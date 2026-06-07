@@ -8,150 +8,150 @@ import { FormsModule } from '@angular/forms';
   imports: [CommonModule, FormsModule],
   changeDetection: ChangeDetectionStrategy.OnPush,
   template: `
-    <section class="max-w-[1600px] mx-auto px-6 md:px-10 pt-32 pb-20">
-      <div class="grid grid-cols-1 lg:grid-cols-12 gap-8 items-end mb-16">
-        <div class="lg:col-span-7">
-          <p class="eyebrow">/ Contacto</p>
-          <h1 class="display-xl text-5xl md:text-7xl mt-6 leading-[0.95]">
-            Hablemos.<br/>
-            <span class="text-ink-500 dark:text-white/50">Estamos aquí.</span>
-          </h1>
+    <!-- HEADER -->
+    <section class="bg-white dark:bg-[#0a0a0a] pt-32 pb-16">
+      <div class="max-w-[1100px] mx-auto px-6 md:px-10 text-center">
+        <p class="text-[12px] tracking-[0.25em] uppercase text-[#0095f6] font-semibold mb-4">
+          Contacto
+        </p>
+        <h1 class="font-bold text-[44px] md:text-[64px] tracking-[-0.03em] leading-[1.05]
+                   text-ink-950 dark:text-white">
+          Hablemos.<br/>
+          <span class="text-ink-500 dark:text-white/45">Estamos aquí.</span>
+        </h1>
+        <p class="text-ink-600 dark:text-white/55 text-[16px] mt-6 leading-relaxed max-w-xl mx-auto">
+          ¿Tienes una pregunta sobre tu pedido, una colaboración, o quieres saber más de un drop?
+          Nuestro equipo responde en menos de 24 horas.
+        </p>
+      </div>
+    </section>
+
+    <!-- CANALES DE CONTACTO -->
+    <section class="bg-white dark:bg-[#0a0a0a] pb-20">
+      <div class="max-w-[1100px] mx-auto px-6 md:px-10">
+        <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+          @for (ch of channels; track ch.title) {
+            <a [href]="ch.link" target="_blank" rel="noopener"
+               class="group block p-7 rounded-3xl
+                      bg-white dark:bg-[#111111]
+                      border border-ink-200 dark:border-white/[0.08]
+                      hover:border-[#0095f6] dark:hover:border-[#0095f6]
+                      hover:shadow-lg hover:-translate-y-1
+                      transition-all duration-300">
+              <div class="w-12 h-12 rounded-full bg-[#0095f6]/10 dark:bg-[#0095f6]/15
+                          grid place-items-center mb-5
+                          group-hover:bg-[#0095f6] group-hover:text-white transition-colors">
+                <i class="fa-solid {{ ch.icon }} text-[#0095f6] group-hover:text-white text-[18px] transition-colors"></i>
+              </div>
+              <h3 class="font-bold text-[16px] text-ink-950 dark:text-white mb-1">{{ ch.title }}</h3>
+              <p class="text-[15px] font-semibold text-ink-950 dark:text-white">{{ ch.value }}</p>
+              <p class="text-[12px] text-ink-500 dark:text-white/45 mt-2">{{ ch.detail }}</p>
+            </a>
+          }
         </div>
+      </div>
+    </section>
+
+    <!-- FORM + INFO -->
+    <section class="bg-ink-50 dark:bg-[#050505] py-24 md:py-32">
+      <div class="max-w-[1100px] mx-auto px-6 md:px-10
+                  grid grid-cols-1 lg:grid-cols-12 gap-12">
+
+        <!-- Info izquierda -->
         <div class="lg:col-span-5">
-          <p class="text-ink-700 dark:text-white/70 leading-relaxed max-w-md">
-            ¿Tienes una pregunta sobre tu pedido, una colaboración, o quieres
-            saber más de un drop? Nuestro equipo responde en menos de 24 horas.
+          <p class="text-[12px] tracking-[0.25em] uppercase text-[#0095f6] font-semibold mb-3">
+            Envíanos un mensaje
           </p>
-        </div>
-      </div>
-    </section>
-
-    <!-- Channels grid -->
-    <section class="max-w-[1600px] mx-auto px-6 md:px-10 pb-20">
-      <div class="grid grid-cols-1 md:grid-cols-4 gap-4">
-        @for (ch of channels; track ch.title) {
-          <div class="editorial-card p-8 hover:shadow-lg transition group cursor-pointer">
-            <div class="w-12 h-12 rounded-full bg-accent-400/10 text-accent-500 dark:text-accent-400 grid place-items-center mb-4
-                        group-hover:bg-accent-400 group-hover:text-ink-950 transition">
-              <i class="fa-solid {{ ch.icon }} text-lg"></i>
-            </div>
-            <h3 class="font-display font-bold text-lg text-ink-950 dark:text-white">{{ ch.title }}</h3>
-            <p class="text-ink-700 dark:text-white/70 text-sm mt-1">{{ ch.value }}</p>
-            <p class="text-ink-500 dark:text-white/50 text-xs mt-3">{{ ch.detail }}</p>
-          </div>
-        }
-      </div>
-    </section>
-
-    <!-- Form -->
-    <section class="max-w-[1600px] mx-auto px-6 md:px-10 pb-32">
-      <div class="grid grid-cols-1 lg:grid-cols-12 gap-12">
-
-        <!-- Left -->
-        <div class="lg:col-span-5">
-          <p class="eyebrow">/ Envíanos un mensaje</p>
-          <h2 class="display-xl text-4xl md:text-5xl mt-6 leading-[0.95]">
-            Cuéntanos<br/>
-            qué necesitas.
+          <h2 class="font-bold text-[36px] md:text-[44px] tracking-[-0.025em] leading-[1.1]
+                     text-ink-950 dark:text-white">
+            Cuéntanos qué necesitas.
           </h2>
+          <p class="text-ink-600 dark:text-white/55 text-[15px] mt-5 leading-relaxed">
+            Llena el formulario y un miembro de nuestro equipo te contactará pronto.
+          </p>
 
-          <div class="mt-12 space-y-8">
-            <div>
-              <h4 class="font-semibold text-sm text-ink-950 dark:text-white">Soporte 24/7</h4>
-              <p class="text-ink-700 dark:text-white/70 text-sm mt-1">Lun a Dom · 8:00 a 22:00</p>
+          <div class="mt-10 space-y-6">
+            <div class="flex items-start gap-3">
+              <div class="w-10 h-10 rounded-full bg-[#0095f6]/10 grid place-items-center shrink-0">
+                <i class="fa-solid fa-clock text-[#0095f6] text-[14px]"></i>
+              </div>
+              <div>
+                <h4 class="font-bold text-[14px] text-ink-950 dark:text-white">Soporte 24/7</h4>
+                <p class="text-ink-600 dark:text-white/55 text-[14px] mt-1">Lun a Dom · 8:00 a 22:00</p>
+              </div>
             </div>
-
-            <div>
-              <h4 class="font-semibold text-sm text-ink-950 dark:text-white">Oficina central</h4>
-              <p class="text-ink-700 dark:text-white/70 text-sm mt-1">Av. Amazonas N24-03 y Colón<br/>Quito, Ecuador</p>
+            <div class="flex items-start gap-3">
+              <div class="w-10 h-10 rounded-full bg-[#0095f6]/10 grid place-items-center shrink-0">
+                <i class="fa-solid fa-location-dot text-[#0095f6] text-[14px]"></i>
+              </div>
+              <div>
+                <h4 class="font-bold text-[14px] text-ink-950 dark:text-white">Oficina central</h4>
+                <p class="text-ink-600 dark:text-white/55 text-[14px] mt-1">Av. Amazonas N24-03 y Colón<br/>Quito, Ecuador</p>
+              </div>
             </div>
-
-            <div>
-              <h4 class="font-semibold text-sm text-ink-950 dark:text-white mb-3">Síguenos</h4>
-              <div class="flex gap-2">
-                <a class="w-11 h-11 grid place-items-center rounded-full glass hover:bg-ink-100 dark:hover:bg-white/10 transition cursor-pointer">
-                  <i class="fa-brands fa-instagram"></i>
-                </a>
-                <a class="w-11 h-11 grid place-items-center rounded-full glass hover:bg-ink-100 dark:hover:bg-white/10 transition cursor-pointer">
-                  <i class="fa-brands fa-tiktok"></i>
-                </a>
-                <a class="w-11 h-11 grid place-items-center rounded-full glass hover:bg-ink-100 dark:hover:bg-white/10 transition cursor-pointer">
-                  <i class="fa-brands fa-x-twitter"></i>
-                </a>
-                <a class="w-11 h-11 grid place-items-center rounded-full glass hover:bg-ink-100 dark:hover:bg-white/10 transition cursor-pointer">
-                  <i class="fa-brands fa-facebook"></i>
-                </a>
+            <div class="flex items-start gap-3">
+              <div class="w-10 h-10 rounded-full bg-[#0095f6]/10 grid place-items-center shrink-0">
+                <i class="fa-solid fa-share-nodes text-[#0095f6] text-[14px]"></i>
+              </div>
+              <div>
+                <h4 class="font-bold text-[14px] text-ink-950 dark:text-white">Síguenos</h4>
+                <div class="flex gap-2 mt-3">
+                  @for (s of socials; track s.icon) {
+                    <a [href]="s.url" target="_blank" rel="noopener"
+                       class="w-10 h-10 rounded-full bg-white dark:bg-white/[0.06]
+                              border border-ink-200 dark:border-white/[0.08]
+                              grid place-items-center
+                              hover:bg-[#0095f6] hover:border-[#0095f6] hover:text-white
+                              text-ink-700 dark:text-white/75 transition">
+                      <i class="fa-brands {{ s.icon }} text-[14px]"></i>
+                    </a>
+                  }
+                </div>
               </div>
             </div>
           </div>
         </div>
 
-        <!-- Right form -->
+        <!-- Form derecha -->
         <div class="lg:col-span-7">
-          <form (ngSubmit)="submit()" class="editorial-card p-8 space-y-5">
+          <form (ngSubmit)="submit()" class="bg-white dark:bg-[#111111]
+                                              border border-ink-200 dark:border-white/[0.08]
+                                              rounded-3xl p-8 md:p-10 space-y-4">
+
             <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
-              <label class="block">
-                <span class="text-sm font-semibold text-ink-800 dark:text-white/80">Nombre</span>
-                <input [(ngModel)]="form.name" name="name" required
-                       class="mt-1.5 w-full px-4 py-3 rounded-lg bg-white dark:bg-white/5
-                              border border-ink-200 dark:border-white/10 text-sm shadow-sm
-                              text-ink-950 dark:text-white placeholder:text-ink-400 dark:placeholder:text-white/30
-                              focus:outline-none focus:border-accent-500 dark:focus:border-accent-400
-                              focus:ring-2 focus:ring-accent-500/10 transition"
-                       placeholder="Tu nombre" />
-              </label>
-              <label class="block">
-                <span class="text-sm font-semibold text-ink-800 dark:text-white/80">Email</span>
-                <input type="email" [(ngModel)]="form.email" name="email" required
-                       class="mt-1.5 w-full px-4 py-3 rounded-lg bg-white dark:bg-white/5
-                              border border-ink-200 dark:border-white/10 text-sm shadow-sm
-                              text-ink-950 dark:text-white placeholder:text-ink-400 dark:placeholder:text-white/30
-                              focus:outline-none focus:border-accent-500 dark:focus:border-accent-400
-                              focus:ring-2 focus:ring-accent-500/10 transition"
-                       placeholder="tu@correo.com" />
-              </label>
+              <input [(ngModel)]="form.name" name="name" required placeholder="Tu nombre" class="input-modern" />
+              <input [(ngModel)]="form.email" name="email" type="email" required placeholder="tu@correo.com" class="input-modern" />
             </div>
 
-            <label class="block">
-              <span class="text-sm font-semibold text-ink-800 dark:text-white/80">Asunto</span>
-              <select [(ngModel)]="form.subject" name="subject"
-                      class="mt-1.5 w-full px-4 py-3 rounded-lg bg-white dark:bg-white/5
-                             border border-ink-200 dark:border-white/10 text-sm shadow-sm
-                             text-ink-950 dark:text-white
-                             focus:outline-none focus:border-accent-500 dark:focus:border-accent-400
-                             focus:ring-2 focus:ring-accent-500/10 transition cursor-pointer">
-                <option value="">Selecciona un tema</option>
-                <option value="order">Consulta sobre pedido</option>
-                <option value="product">Información de producto</option>
-                <option value="return">Cambios y devoluciones</option>
-                <option value="partner">Colaboración / partnership</option>
-                <option value="other">Otro</option>
-              </select>
-            </label>
+            <select [(ngModel)]="form.subject" name="subject" class="input-modern">
+              <option value="">Selecciona un tema</option>
+              <option value="order">Consulta sobre pedido</option>
+              <option value="product">Información de producto</option>
+              <option value="return">Cambios y devoluciones</option>
+              <option value="partner">Colaboración / partnership</option>
+              <option value="other">Otro</option>
+            </select>
 
-            <label class="block">
-              <span class="text-sm font-semibold text-ink-800 dark:text-white/80">Mensaje</span>
-              <textarea [(ngModel)]="form.message" name="message" rows="6" required
-                        class="mt-1.5 w-full px-4 py-3 rounded-lg bg-white dark:bg-white/5
-                               border border-ink-200 dark:border-white/10 text-sm shadow-sm
-                               text-ink-950 dark:text-white placeholder:text-ink-400 dark:placeholder:text-white/30
-                               focus:outline-none focus:border-accent-500 dark:focus:border-accent-400
-                               focus:ring-2 focus:ring-accent-500/10 transition resize-none"
-                        placeholder="Cuéntanos en qué podemos ayudarte..."></textarea>
-            </label>
+            <textarea [(ngModel)]="form.message" name="message" rows="6" required
+                      placeholder="Cuéntanos en qué podemos ayudarte..."
+                      class="input-modern resize-none"></textarea>
 
-            <div class="flex items-center justify-between">
-              <p class="text-xs text-ink-500 dark:text-white/50">Te responderemos en menos de 24h hábiles.</p>
-              <button type="submit" class="btn-accent text-sm font-semibold px-5 py-3">
+            <div class="flex items-center justify-between flex-wrap gap-4 pt-2">
+              <p class="text-[12px] text-ink-500 dark:text-white/45">
+                Respuesta en menos de 24h hábiles.
+              </p>
+              <button type="submit" class="btn-modern-primary" style="width:auto;padding:0 32px;">
                 Enviar mensaje
-                <i class="fa-solid fa-paper-plane"></i>
+                <i class="fa-solid fa-paper-plane text-[12px]"></i>
               </button>
             </div>
 
             @if (sent()) {
-              <p class="text-emerald-500 text-sm animate-fade-in">
+              <div class="px-4 py-3 rounded-2xl bg-emerald-50 dark:bg-emerald-500/10
+                          border border-emerald-200 dark:border-emerald-500/30
+                          text-emerald-700 dark:text-emerald-300 text-[14px] text-center font-medium">
                 <i class="fa-solid fa-circle-check"></i> ¡Mensaje enviado! Te contactaremos pronto.
-              </p>
+              </div>
             }
           </form>
         </div>
@@ -159,21 +159,38 @@ import { FormsModule } from '@angular/forms';
     </section>
 
     <!-- FAQ -->
-    <section class="max-w-[1600px] mx-auto px-6 md:px-10 pb-32">
-      <p class="eyebrow">/ FAQ</p>
-      <h2 class="display-xl text-3xl md:text-5xl mt-6 mb-12 leading-[0.95]">
-        Preguntas frecuentes.
-      </h2>
-      <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
-        @for (item of faqs; track item.q; let i = $index) {
-          <details class="editorial-card p-6 group">
-            <summary class="flex items-center justify-between cursor-pointer list-none">
-              <span class="font-semibold text-ink-950 dark:text-white pr-4">{{ item.q }}</span>
-              <i class="fa-solid fa-chevron-down text-ink-500 dark:text-white/50 group-open:rotate-180 transition"></i>
-            </summary>
-            <p class="text-sm text-ink-700 dark:text-white/70 leading-relaxed mt-4">{{ item.a }}</p>
-          </details>
-        }
+    <section class="bg-white dark:bg-[#0a0a0a] py-24 md:py-32">
+      <div class="max-w-[900px] mx-auto px-6 md:px-10">
+        <div class="text-center mb-14">
+          <p class="text-[12px] tracking-[0.25em] uppercase text-[#0095f6] font-semibold mb-3">
+            FAQ
+          </p>
+          <h2 class="font-bold text-[36px] md:text-[48px] tracking-[-0.025em] leading-[1.1]
+                     text-ink-950 dark:text-white">
+            Preguntas frecuentes.
+          </h2>
+        </div>
+
+        <div class="space-y-3">
+          @for (item of faqs; track item.q) {
+            <details class="group rounded-2xl bg-ink-50 dark:bg-[#111111]
+                            border border-ink-200 dark:border-white/[0.08]
+                            hover:border-[#0095f6] dark:hover:border-[#0095f6] transition">
+              <summary class="flex items-center justify-between cursor-pointer list-none p-6">
+                <span class="font-semibold text-[15px] text-ink-950 dark:text-white pr-4">{{ item.q }}</span>
+                <div class="w-8 h-8 rounded-full bg-white dark:bg-white/[0.06]
+                            grid place-items-center shrink-0
+                            group-open:bg-[#0095f6] group-open:text-white transition-colors">
+                  <i class="fa-solid fa-chevron-down text-[11px] text-ink-500 dark:text-white/55
+                            group-open:text-white group-open:rotate-180 transition-transform"></i>
+                </div>
+              </summary>
+              <p class="text-[14px] text-ink-600 dark:text-white/65 leading-relaxed px-6 pb-6">
+                {{ item.a }}
+              </p>
+            </details>
+          }
+        </div>
       </div>
     </section>
   `,
@@ -183,10 +200,17 @@ export class ContactPageComponent {
   sent = signal(false);
 
   readonly channels = [
-    { icon: 'fa-envelope', title: 'Email', value: 'hola@delux.com.ec', detail: 'Respuesta en < 24h' },
-    { icon: 'fa-phone', title: 'Llámanos', value: '+593 2 000 0000', detail: 'Lun-Dom 8h-22h' },
-    { icon: 'fa-comments', title: 'Chat en vivo', value: 'Abierto ahora', detail: 'Respuesta inmediata' },
-    { icon: 'fa-brands fa-whatsapp', title: 'WhatsApp', value: '+593 99 123 4567', detail: 'Envío de fotos OK' },
+    { icon: 'fa-envelope', title: 'Email', value: 'hola@delux.com.ec', detail: 'Respuesta en < 24h', link: 'mailto:hola@delux.com.ec' },
+    { icon: 'fa-phone', title: 'Llámanos', value: '+593 2 000 0000', detail: 'Lun-Dom 8h-22h', link: 'tel:+59320000000' },
+    { icon: 'fa-comments', title: 'Chat en vivo', value: 'Abierto ahora', detail: 'Respuesta inmediata', link: '#' },
+    { icon: 'fa-brands fa-whatsapp', title: 'WhatsApp', value: '+593 99 123 4567', detail: 'Envío de fotos OK', link: 'https://wa.me/593991234567' },
+  ];
+
+  readonly socials = [
+    { icon: 'fa-instagram', url: 'https://instagram.com' },
+    { icon: 'fa-tiktok', url: 'https://tiktok.com' },
+    { icon: 'fa-x-twitter', url: 'https://x.com' },
+    { icon: 'fa-facebook', url: 'https://facebook.com' },
   ];
 
   readonly faqs = [
@@ -197,7 +221,7 @@ export class ContactPageComponent {
     { q: '¿Cómo funcionan los cambios y devoluciones?',
       a: 'Tienes 14 días desde la entrega para solicitar cambio o devolución. El producto debe estar en perfecto estado y con etiquetas.' },
     { q: '¿Aceptan tarjetas internacionales?',
-      a: 'Sí, aceptamos todas las tarjetas Visa, Mastercard, Diners y American Express. Procesamos pagos vía PayPhone con encriptación segura.' },
+      a: 'Sí, aceptamos Visa, Mastercard, Diners y American Express. Procesamos pagos vía PayPhone con encriptación segura.' },
     { q: '¿Cuándo llegan los drops nuevos?',
       a: 'Los drops se anuncian con anticipación en nuestro newsletter e Instagram. Suscríbete para no perderte ningún lanzamiento.' },
     { q: '¿Tienen guía de tallas?',

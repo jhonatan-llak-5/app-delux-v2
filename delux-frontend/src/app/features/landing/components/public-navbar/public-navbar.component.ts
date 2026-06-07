@@ -75,10 +75,14 @@ import { SearchOverlayComponent } from '@shared/components/search-overlay/search
              class="relative w-10 h-10 grid place-items-center rounded-full
                     text-ink-600 dark:text-white/70
                     hover:bg-ink-100 dark:hover:bg-white/10 hover:text-ink-900 dark:hover:text-white transition" aria-label="Carrito">
-            <i class="fa-solid fa-bag-shopping text-sm"></i>
+            <i class="fa-solid fa-bag-shopping text-[15px]"></i>
             @if (cart.itemCount() > 0) {
-              <span class="absolute -top-0.5 -right-0.5 min-w-5 h-5 px-1.5 rounded-full bg-accent-400 text-ink-950
-                           text-[10px] font-bold grid place-items-center ring-2 ring-white dark:ring-ink-950">{{ cart.itemCount() }}</span>
+              <span class="absolute -top-1 -right-1 min-w-[18px] h-[18px] px-1 rounded-full
+                           bg-[#0095f6] text-white text-[11px] font-bold leading-none
+                           grid place-items-center ring-2 ring-white dark:ring-[#0a0a0a]
+                           animate-pulse">
+                {{ cart.itemCount() > 99 ? '99+' : cart.itemCount() }}
+              </span>
             }
           </a>
           <button (click)="toggle()" class="md:hidden w-10 h-10 grid place-items-center rounded-full

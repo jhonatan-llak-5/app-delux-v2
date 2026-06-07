@@ -17,175 +17,260 @@ interface Filter { categories: string[]; brands: string[]; sizes: string[]; pric
   imports: [CommonModule, RouterLink],
   changeDetection: ChangeDetectionStrategy.OnPush,
   template: `
-    <section class="relative max-w-[1600px] mx-auto px-6 md:px-10 pt-32 pb-12
-                    bg-white dark:bg-ink-950">
-      <div class="grid grid-cols-1 lg:grid-cols-12 gap-8 items-end">
-        <div class="lg:col-span-7">
-          <p class="eyebrow">/ Catálogo</p>
-          <h1 class="display-xl text-5xl md:text-7xl mt-6 leading-[0.95] text-ink-950 dark:text-white">
-            Shop<br/><span class="text-ink-400 dark:text-white/30">la colección.</span>
+    <!-- HEADER del shop — limpio centrado -->
+    <section class="bg-white dark:bg-[#0a0a0a] pt-32 pb-12 border-b border-ink-100 dark:border-white/[0.06]">
+      <div class="max-w-[1400px] mx-auto px-6 md:px-10">
+        <p class="text-[12px] tracking-[0.25em] uppercase text-[#0095f6] font-semibold mb-3">
+          Catálogo
+        </p>
+        <div class="flex items-end justify-between flex-wrap gap-6">
+          <h1 class="font-bold text-[44px] md:text-[64px] tracking-[-0.03em] leading-[1.05]
+                     text-ink-950 dark:text-white">
+            Shop la colección
           </h1>
-        </div>
-        <div class="lg:col-span-5 lg:flex lg:items-end">
-          <p class="text-ink-700 dark:text-white/60 max-w-md leading-relaxed">
-            Explora {{ products.length }} productos premium. Filtra por categoría,
-            marca, talla o precio. Stock en vivo por sucursal.
+          <p class="text-ink-600 dark:text-white/55 text-[15px] max-w-md leading-relaxed">
+            {{ products.length }} productos curados de Nike, Adidas, Jordan y más.
+            Stock en vivo por sucursal.
           </p>
         </div>
       </div>
-      <div class="reveal-line mt-12"></div>
     </section>
 
-    <section class="max-w-[1600px] mx-auto px-6 md:px-10 pb-32 bg-white dark:bg-ink-950">
-      <div class="grid grid-cols-1 lg:grid-cols-12 gap-8">
-        <aside class="lg:col-span-3 space-y-8 lg:sticky lg:top-28 self-start">
-          <button (click)="showFilters.set(!showFilters())" class="lg:hidden w-full btn-outline">
-            <i class="fa-solid fa-sliders"></i>
-            Filtros ({{ activeFiltersCount() }})
+    <!-- BARRA DE FILTROS HORIZONTAL (sticky) -->
+    <section class="sticky top-0 z-30 bg-white dark:bg-[#0a0a0a]
+                    border-b border-ink-100 dark:border-white/[0.06]
+                    backdrop-blur-md">
+      <div class="max-w-[1400px] mx-auto px-6 md:px-10 py-4
+                  flex items-center justify-between gap-4 flex-wrap">
+
+        <!-- Pills de género -->
+        <div class="flex items-center gap-2">
+          @for (g of genders; track g.value) {
+            <button (click)="setGender(g.value)"
+                    class="px-5 h-10 rounded-full text-[13px] font-semibold transition-colors"
+                    [class.bg-ink-950]="gender() === g.value"
+                    [class.text-white]="gender() === g.value"
+                    [class.dark:bg-white]="gender() === g.value"
+                    [class.dark:text-ink-950]="gender() === g.value"
+                    [class.text-ink-600]="gender() !== g.value"
+                    [class.dark:text-white/65]="gender() !== g.value"
+                    [class.hover:bg-ink-100]="gender() !== g.value"
+                    [class.dark:hover:bg-white/[0.06]]="gender() !== g.value">
+              {{ g.label }}
+            </button>
+          }
+        </div>
+
+        <div class="flex items-center gap-2">
+          <!-- Filtro botón -->
+          <button (click)="showFilters.set(!showFilters())"
+                  class="inline-flex items-center gap-2 px-5 h-10 rounded-full
+                         border border-ink-200 dark:border-white/[0.15]
+                         text-[13px] font-semibold text-ink-950 dark:text-white
+                         hover:border-[#0095f6] hover:text-[#0095f6] transition">
+            <i class="fa-solid fa-sliders text-[12px]"></i>
+            Filtros
+            @if (activeFiltersCount() > 0) {
+              <span class="w-5 h-5 rounded-full bg-[#0095f6] text-white text-[10px] font-bold grid place-items-center">
+                {{ activeFiltersCount() }}
+              </span>
+            }
           </button>
 
-          <div [class.hidden]="!showFilters()" class="lg:block space-y-8 editorial-card p-6">
+          <!-- Sort -->
+          <div class="relative">
+            <select [value]="sortBy()" (change)="setSort($any($event.target).value)"
+                    class="appearance-none pl-5 pr-10 h-10 rounded-full
+                           border border-ink-200 dark:border-white/[0.15]
+                           bg-transparent text-[13px] font-semibold text-ink-950 dark:text-white
+                           hover:border-[#0095f6] transition cursor-pointer">
+              <option value="relevance">Relevancia</option>
+              <option value="new">Más nuevos</option>
+              <option value="price-asc">Precio: menor</option>
+              <option value="price-desc">Precio: mayor</option>
+            </select>
+            <i class="fa-solid fa-chevron-down text-[10px] absolute right-4 top-1/2 -translate-y-1/2 pointer-events-none
+                      text-ink-500 dark:text-white/45"></i>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- CONTENIDO -->
+    <section class="bg-white dark:bg-[#0a0a0a] py-10">
+      <div class="max-w-[1400px] mx-auto px-6 md:px-10
+                  grid grid-cols-1 lg:grid-cols-[260px_1fr] gap-10">
+
+        <!-- SIDEBAR FILTROS (collapsible mobile) -->
+        @if (showFilters() || isDesktop) {
+          <aside class="space-y-7 lg:sticky lg:top-24 self-start">
+
+            <!-- Categorías -->
             <div>
-              <h3 class="font-display font-bold text-sm uppercase tracking-widest mb-4 text-ink-950 dark:text-white">Categoría</h3>
-              <ul class="space-y-2">
+              <h3 class="text-[12px] uppercase tracking-[0.2em] font-bold
+                         text-ink-500 dark:text-white/45 mb-4">
+                Categoría
+              </h3>
+              <ul class="space-y-1">
                 @for (c of categories; track c.slug) {
                   <li>
-                    <label class="flex items-center gap-3 cursor-pointer group">
+                    <label class="flex items-center gap-3 px-3 py-2 -mx-3 rounded-lg cursor-pointer
+                                  hover:bg-ink-50 dark:hover:bg-white/[0.04] transition">
                       <input type="checkbox" [checked]="filter().categories.includes(c.slug)"
-                             (change)="toggleCategory(c.slug)" class="w-4 h-4 accent-accent-400" />
-                      <span class="text-sm text-ink-700 dark:text-white/70 group-hover:text-ink-950 dark:group-hover:text-white transition">{{ c.label }}</span>
-                      <span class="ml-auto text-xs text-ink-400 dark:text-white/40">{{ c.count }}</span>
+                             (change)="toggleCategory(c.slug)"
+                             class="w-4 h-4 rounded accent-[#0095f6]" />
+                      <span class="text-[14px] text-ink-700 dark:text-white/75 flex-1">{{ c.label }}</span>
+                      <span class="text-[12px] text-ink-400 dark:text-white/35">{{ c.count }}</span>
                     </label>
                   </li>
                 }
               </ul>
             </div>
 
+            <!-- Marcas -->
             <div>
-              <h3 class="font-display font-bold text-sm uppercase tracking-widest mb-4 text-ink-950 dark:text-white">Género</h3>
-              <div class="grid grid-cols-3 gap-2">
-                @for (g of genders; track g.value) {
-                  <button (click)="setGender(g.value)"
-                          class="px-3 py-2 rounded-lg border text-xs uppercase tracking-wide transition"
-                          [class.bg-accent-400]="gender() === g.value"
-                          [class.text-ink-950]="gender() === g.value"
-                          [class.border-accent-400]="gender() === g.value"
-                          [class.border-ink-200]="gender() !== g.value"
-                          [class.dark:border-white/20]="gender() !== g.value"
-                          [class.text-ink-700]="gender() !== g.value"
-                          [class.dark:text-white/70]="gender() !== g.value">
-                    {{ g.label }}
-                  </button>
-                }
-              </div>
-            </div>
-
-            <div>
-              <h3 class="font-display font-bold text-sm uppercase tracking-widest mb-4 text-ink-950 dark:text-white">Marca</h3>
-              <ul class="space-y-2">
+              <h3 class="text-[12px] uppercase tracking-[0.2em] font-bold
+                         text-ink-500 dark:text-white/45 mb-4">
+                Marca
+              </h3>
+              <ul class="space-y-1">
                 @for (b of brands; track b) {
                   <li>
-                    <label class="flex items-center gap-3 cursor-pointer group">
-                      <input type="checkbox" [checked]="filter().brands.includes(b)" (change)="toggleBrand(b)" class="w-4 h-4 accent-accent-400" />
-                      <span class="text-sm text-ink-700 dark:text-white/70 group-hover:text-ink-950 dark:group-hover:text-white transition">{{ b }}</span>
+                    <label class="flex items-center gap-3 px-3 py-2 -mx-3 rounded-lg cursor-pointer
+                                  hover:bg-ink-50 dark:hover:bg-white/[0.04] transition">
+                      <input type="checkbox" [checked]="filter().brands.includes(b)"
+                             (change)="toggleBrand(b)"
+                             class="w-4 h-4 rounded accent-[#0095f6]" />
+                      <span class="text-[14px] text-ink-700 dark:text-white/75">{{ b }}</span>
                     </label>
                   </li>
                 }
               </ul>
             </div>
 
+            <!-- Tallas -->
             <div>
-              <h3 class="font-display font-bold text-sm uppercase tracking-widest mb-4 text-ink-950 dark:text-white">Talla</h3>
-              <div class="grid grid-cols-5 gap-2">
+              <h3 class="text-[12px] uppercase tracking-[0.2em] font-bold
+                         text-ink-500 dark:text-white/45 mb-4">
+                Talla
+              </h3>
+              <div class="grid grid-cols-4 gap-2">
                 @for (s of sizes; track s) {
                   <button (click)="toggleSize(s)"
-                          class="aspect-square rounded-lg border text-xs font-semibold transition"
-                          [class.bg-accent-400]="filter().sizes.includes(s)"
-                          [class.text-ink-950]="filter().sizes.includes(s)"
-                          [class.border-accent-400]="filter().sizes.includes(s)"
+                          class="h-10 rounded-lg text-[12px] font-semibold transition"
+                          [class.bg-[#0095f6]]="filter().sizes.includes(s)"
+                          [class.text-white]="filter().sizes.includes(s)"
+                          [class.border-transparent]="filter().sizes.includes(s)"
+                          [class.border]="!filter().sizes.includes(s)"
                           [class.border-ink-200]="!filter().sizes.includes(s)"
-                          [class.dark:border-white/20]="!filter().sizes.includes(s)"
+                          [class.dark:border-white/15]="!filter().sizes.includes(s)"
                           [class.text-ink-700]="!filter().sizes.includes(s)"
-                          [class.dark:text-white/70]="!filter().sizes.includes(s)">
+                          [class.dark:text-white/75]="!filter().sizes.includes(s)"
+                          [class.hover:border-[#0095f6]]="!filter().sizes.includes(s)">
                     {{ s }}
                   </button>
                 }
               </div>
             </div>
 
+            <!-- Precio -->
             <div>
-              <h3 class="font-display font-bold text-sm uppercase tracking-widest mb-4 text-ink-950 dark:text-white">Precio</h3>
-              <div class="flex items-center gap-3">
+              <h3 class="text-[12px] uppercase tracking-[0.2em] font-bold
+                         text-ink-500 dark:text-white/45 mb-4">
+                Precio (\$)
+              </h3>
+              <div class="grid grid-cols-2 gap-2">
                 <input type="number" [value]="filter().priceMin" (input)="setPriceMin($any($event.target).value)"
-                       class="w-full px-3 py-2 rounded-lg bg-ink-50 dark:bg-white/5 border border-ink-200 dark:border-white/10 text-sm" placeholder="Min" />
-                <span class="text-ink-400 dark:text-white/40">—</span>
+                       placeholder="Mín"
+                       class="h-10 px-3 rounded-lg border border-ink-200 dark:border-white/15
+                              bg-transparent text-[14px] text-ink-950 dark:text-white
+                              focus:outline-none focus:border-[#0095f6]" />
                 <input type="number" [value]="filter().priceMax" (input)="setPriceMax($any($event.target).value)"
-                       class="w-full px-3 py-2 rounded-lg bg-ink-50 dark:bg-white/5 border border-ink-200 dark:border-white/10 text-sm" placeholder="Max" />
+                       placeholder="Máx"
+                       class="h-10 px-3 rounded-lg border border-ink-200 dark:border-white/15
+                              bg-transparent text-[14px] text-ink-950 dark:text-white
+                              focus:outline-none focus:border-[#0095f6]" />
               </div>
             </div>
 
-            <button (click)="resetFilters()" class="w-full btn-outline text-xs">Limpiar filtros</button>
-          </div>
-        </aside>
+            @if (activeFiltersCount() > 0) {
+              <button (click)="resetFilters()"
+                      class="w-full h-10 rounded-full text-[13px] font-semibold
+                             text-[#0095f6] hover:bg-[#0095f6]/8 transition">
+                Limpiar filtros
+              </button>
+            }
+          </aside>
+        }
 
-        <div class="lg:col-span-9">
-          <div class="flex items-center justify-between mb-8 pb-6 border-b border-ink-200 dark:border-white/10">
-            <p class="text-sm text-ink-700 dark:text-white/70">
-              <span class="font-bold text-ink-950 dark:text-white">{{ filtered().length }}</span> producto(s)
-            </p>
-            <select [value]="sortBy()" (change)="setSort($any($event.target).value)"
-                    class="px-4 py-2 rounded-lg bg-ink-50 dark:bg-white/5 border border-ink-200 dark:border-white/10 text-sm cursor-pointer">
-              <option value="relevance">Relevancia</option>
-              <option value="price-asc">Precio: menor a mayor</option>
-              <option value="price-desc">Precio: mayor a menor</option>
-              <option value="new">Más recientes</option>
-            </select>
-          </div>
-
+        <!-- GRID DE PRODUCTOS -->
+        <div>
           @if (filtered().length === 0) {
             <div class="text-center py-24">
-              <i class="fa-solid fa-magnifying-glass text-4xl text-ink-400 dark:text-white/40 mb-4"></i>
-              <p class="text-ink-700 dark:text-white/70">No encontramos productos con esos filtros.</p>
-              <button (click)="resetFilters()" class="btn-outline mt-4 text-xs">Limpiar filtros</button>
+              <div class="w-16 h-16 mx-auto rounded-full bg-ink-100 dark:bg-white/[0.05] grid place-items-center mb-5">
+                <i class="fa-solid fa-magnifying-glass text-ink-400 dark:text-white/30 text-[20px]"></i>
+              </div>
+              <h3 class="font-bold text-[20px] text-ink-950 dark:text-white mb-2">Sin resultados</h3>
+              <p class="text-ink-600 dark:text-white/55 text-[14px] mb-6">
+                Prueba con otros filtros o limpia la selección actual.
+              </p>
+              <button (click)="resetFilters()"
+                      class="inline-flex items-center gap-2 px-6 h-11 rounded-full
+                             bg-[#0095f6] text-white text-[14px] font-semibold
+                             hover:bg-[#1877f2] transition">
+                Limpiar filtros
+              </button>
             </div>
           } @else {
-            <div class="grid grid-cols-2 lg:grid-cols-3 gap-5">
+            <div class="grid grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-5">
               @for (p of filtered(); track p.id) {
-                <a [routerLink]="['/product', p.id]"
-                   class="group editorial-card overflow-hidden hover:-translate-y-1 transition-all duration-500">
-                  <div class="relative aspect-[4/5] overflow-hidden bg-ink-100 dark:bg-white/5">
+                <a [routerLink]="['/shop', p.id]"
+                   class="group block rounded-2xl overflow-hidden
+                          bg-white dark:bg-[#111111]
+                          border border-ink-100 dark:border-white/[0.06]
+                          hover:border-[#0095f6] dark:hover:border-[#0095f6]
+                          hover:shadow-lg hover:-translate-y-1
+                          transition-all duration-300">
+
+                  <div class="relative aspect-square overflow-hidden bg-ink-100 dark:bg-white/[0.04]">
                     @if (p.tag) {
-                      <span class="absolute top-3 left-3 z-10 text-[9px] font-bold tracking-[0.2em] uppercase px-2.5 py-1 rounded-full backdrop-blur-md"
-                            [ngClass]="{
-                              'bg-accent-400 text-ink-950': p.tag === 'Drop',
-                              'bg-brand-magenta text-white': p.tag === 'Nuevo',
-                              'bg-brand-orange text-white': p.tag === 'Oferta',
-                              'bg-ink-950 text-white dark:bg-white dark:text-ink-950': p.tag === 'Exclusivo'
-                            }">{{ p.tag }}</span>
+                      <span class="absolute top-3 left-3 z-10 px-2.5 py-1 rounded-full
+                                   text-[10px] font-bold uppercase tracking-wider"
+                            [class.bg-[#0095f6]]="p.tag === 'Drop' || p.tag === 'Nuevo'"
+                            [class.text-white]="p.tag === 'Drop' || p.tag === 'Nuevo' || p.tag === 'Exclusivo'"
+                            [class.bg-rose-500]="p.tag === 'Oferta'"
+                            [class.bg-ink-950]="p.tag === 'Exclusivo'">
+                        {{ p.tag }}
+                      </span>
                     }
-                    <button (click)="$event.preventDefault()"
-                            class="absolute top-3 right-3 z-10 w-9 h-9 rounded-full bg-white/80 dark:bg-white/10 backdrop-blur grid place-items-center hover:bg-white dark:hover:bg-white/20 transition" aria-label="Wishlist">
-                      <i class="fa-regular fa-heart text-xs text-ink-700 dark:text-white"></i>
-                    </button>
                     <img [src]="p.image" [alt]="p.name"
-                         class="absolute inset-0 w-full h-full object-cover group-hover:scale-110 transition-transform duration-700"
+                         class="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500"
                          loading="lazy" crossorigin="anonymous" (error)="onImgError($event)" />
                   </div>
-                  <div class="p-4">
-                    <p class="font-mono text-[10px] tracking-widest uppercase text-ink-500 dark:text-white/40">{{ p.brand }}</p>
-                    <h3 class="font-semibold mt-1 truncate text-sm text-ink-950 dark:text-white">{{ p.name }}</h3>
-                    <div class="mt-2 flex items-center justify-between">
-                      <div class="flex items-baseline gap-2">
-                        <span class="font-display font-bold text-ink-950 dark:text-white">\${{ p.price }}</span>
-                        @if (p.oldPrice) {
-                          <span class="text-xs text-ink-400 dark:text-white/40 line-through">\${{ p.oldPrice }}</span>
+
+                  <div class="p-5">
+                    <p class="text-[11px] uppercase tracking-wider text-ink-500 dark:text-white/45 mb-1.5 font-semibold">
+                      {{ p.brand }}
+                    </p>
+                    <h3 class="font-semibold text-[15px] text-ink-950 dark:text-white truncate">
+                      {{ p.name }}
+                    </h3>
+
+                    <!-- Colores -->
+                    @if (p.colors.length) {
+                      <div class="flex items-center gap-1.5 mt-3">
+                        @for (c of p.colors; track c) {
+                          <span class="w-3 h-3 rounded-full border border-ink-200 dark:border-white/15"
+                                [style.background]="c"></span>
                         }
                       </div>
-                      <div class="flex gap-1">
-                        @for (c of p.colors.slice(0, 3); track c) {
-                          <span class="w-3 h-3 rounded-full border border-ink-300 dark:border-white/20" [style.background]="c"></span>
-                        }
-                      </div>
+                    }
+
+                    <div class="flex items-baseline gap-2 mt-3">
+                      <span class="font-bold text-[17px] text-ink-950 dark:text-white">\${{ p.price }}</span>
+                      @if (p.oldPrice) {
+                        <span class="text-[13px] text-ink-400 dark:text-white/35 line-through">\${{ p.oldPrice }}</span>
+                      }
                     </div>
                   </div>
                 </a>
@@ -199,6 +284,7 @@ interface Filter { categories: string[]; brands: string[]; sizes: string[]; pric
 })
 export class ShopListComponent {
   showFilters = signal(false);
+  isDesktop = typeof window !== 'undefined' && window.innerWidth >= 1024;
   gender = signal<'all' | 'men' | 'women' | 'unisex'>('all');
   sortBy = signal<'relevance' | 'price-asc' | 'price-desc' | 'new'>('relevance');
   filter = signal<Filter>({ categories: [], brands: [], sizes: [], priceMin: 0, priceMax: 500 });
@@ -215,6 +301,7 @@ export class ShopListComponent {
     { value: 'all' as const, label: 'Todos' },
     { value: 'men' as const, label: 'Hombre' },
     { value: 'women' as const, label: 'Mujer' },
+    { value: 'unisex' as const, label: 'Unisex' },
   ];
 
   readonly products: Product[] = [
