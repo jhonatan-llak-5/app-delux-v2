@@ -60,7 +60,10 @@ export class SplashIntroComponent implements OnInit {
 
   ngOnInit(): void {
     if (typeof window === 'undefined') return;
-    // Mostrar SIEMPRE — cada vez que se carga la app
+    // Solo mostrar la PRIMERA vez por sesión del navegador
+    const seen = sessionStorage.getItem(STORAGE_KEY);
+    if (seen) return;
+    sessionStorage.setItem(STORAGE_KEY, '1');
     this.visible.set(true);
     setTimeout(() => this.visible.set(false), 3200);
   }

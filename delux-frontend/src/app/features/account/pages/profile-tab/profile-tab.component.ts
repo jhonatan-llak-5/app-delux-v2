@@ -16,23 +16,23 @@ import { MeService, MeProfile } from '@features/account/services/me.service';
       @if (profile()) {
         <form (ngSubmit)="save()" class="grid grid-cols-1 md:grid-cols-2 gap-4">
           <div class="md:col-span-2">
-            <label class="eyebrow mb-1.5 block">Nombre completo</label>
+            <label class="text-sm font-semibold text-ink-800 dark:text-white/80 mb-1.5 block">Nombre completo</label>
             <input [(ngModel)]="profile()!.full_name" name="full_name" required
                    class="w-full px-3 py-3 rounded-lg bg-ink-50 dark:bg-white/5 border border-ink-200 dark:border-white/10 text-sm focus:outline-none focus:border-ink-950 dark:focus:border-white" />
           </div>
           <div>
-            <label class="eyebrow mb-1.5 block">Email</label>
+            <label class="text-sm font-semibold text-ink-800 dark:text-white/80 mb-1.5 block">Email</label>
             <input [value]="profile()!.email" disabled
                    class="w-full px-3 py-3 rounded-lg bg-ink-100 dark:bg-white/5 border border-ink-200 dark:border-white/10 text-sm text-ink-500 dark:text-white/50" />
             <p class="text-[10px] text-ink-500 dark:text-white/40 mt-1">El email no se puede cambiar.</p>
           </div>
           <div>
-            <label class="eyebrow mb-1.5 block">Teléfono</label>
+            <label class="text-sm font-semibold text-ink-800 dark:text-white/80 mb-1.5 block">Teléfono</label>
             <input [(ngModel)]="profile()!.phone" name="phone"
                    class="w-full px-3 py-3 rounded-lg bg-ink-50 dark:bg-white/5 border border-ink-200 dark:border-white/10 text-sm focus:outline-none focus:border-ink-950 dark:focus:border-white" />
           </div>
           <div class="md:col-span-2">
-            <label class="eyebrow mb-1.5 block">Cédula / Documento</label>
+            <label class="text-sm font-semibold text-ink-800 dark:text-white/80 mb-1.5 block">Cédula / Documento</label>
             <input [(ngModel)]="profile()!.document_id" name="document_id"
                    class="w-full px-3 py-3 rounded-lg bg-ink-50 dark:bg-white/5 border border-ink-200 dark:border-white/10 text-sm focus:outline-none focus:border-ink-950 dark:focus:border-white font-mono" />
           </div>
@@ -52,7 +52,7 @@ import { MeService, MeProfile } from '@features/account/services/me.service';
 
           <div class="md:col-span-2 flex justify-end">
             <button type="submit" [disabled]="saving()"
-                    class="btn-accent text-xs uppercase tracking-widest px-8 py-4 disabled:opacity-50">
+                    class="btn-accent text-sm font-semibold px-8 py-4 disabled:opacity-50">
               @if (saving()) { <i class="fa-solid fa-spinner fa-spin"></i> Guardando... }
               @else { Guardar cambios }
             </button>

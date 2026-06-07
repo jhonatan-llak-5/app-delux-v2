@@ -21,7 +21,7 @@ import { MeService } from '@features/account/services/me.service';
         <div class="text-center py-12">
           <i class="fa-solid fa-cart-arrow-down text-4xl text-ink-300 dark:text-white/30 mb-3"></i>
           <p class="text-ink-700 dark:text-white/70 mb-4">Aún no has hecho compras.</p>
-          <a routerLink="/shop" class="btn-accent text-xs uppercase tracking-widest px-6 py-3">
+          <a routerLink="/shop" class="btn-accent text-sm font-semibold px-6 py-3">
             Explorar catálogo
           </a>
         </div>

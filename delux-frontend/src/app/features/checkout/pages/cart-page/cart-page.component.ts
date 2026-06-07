@@ -19,7 +19,7 @@ import { CartService } from '@features/checkout/services/cart.service';
         <div class="text-center py-24">
           <i class="fa-solid fa-cart-arrow-down text-5xl text-ink-300 dark:text-white/20 mb-6"></i>
           <p class="text-xl text-ink-700 dark:text-white/70 mb-6">Tu carrito está vacío</p>
-          <a routerLink="/shop" class="btn-accent text-sm uppercase tracking-widest px-8 py-4">
+          <a routerLink="/shop" class="btn-accent text-sm font-semibold px-8 py-4">
             <i class="fa-solid fa-arrow-left text-xs"></i> Explorar catálogo
           </a>
         </div>
@@ -102,7 +102,7 @@ import { CartService } from '@features/checkout/services/cart.service';
                 </span>
               </div>
 
-              <a routerLink="/checkout" class="w-full btn-accent text-sm uppercase tracking-widest py-4 block text-center">
+              <a routerLink="/checkout" class="w-full btn-accent text-sm font-semibold py-4 block text-center">
                 Proceder al pago <i class="fa-solid fa-arrow-right text-xs"></i>
               </a>
               <a routerLink="/shop" class="block text-center mt-3 text-xs uppercase tracking-widest text-ink-700 dark:text-white/70 hover:text-ink-950 dark:hover:text-white">

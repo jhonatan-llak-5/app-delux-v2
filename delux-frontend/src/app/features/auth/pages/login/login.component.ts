@@ -14,25 +14,25 @@ import { AuthShellComponent } from '@features/auth/components/auth-shell/auth-sh
     <dlx-auth-shell title="Iniciar sesión" subtitle="Bienvenido de vuelta a Delux.">
       <form (ngSubmit)="submit()" #f="ngForm" class="space-y-4">
         <div>
-          <label class="eyebrow mb-1.5 block">Usuario o correo</label>
+          <label class="text-sm font-semibold text-ink-700 dark:text-white/70 mb-1.5 block">Usuario o correo</label>
           <div class="relative">
             <i class="fa-solid fa-user absolute left-3.5 top-1/2 -translate-y-1/2 text-ink-400 text-sm"></i>
             <input [(ngModel)]="identifier" name="identifier" required autocomplete="username"
                    placeholder="tucuenta o tu@correo.com"
-                   class="w-full pl-10 pr-3 py-3.5 rounded-xl bg-ink-50 dark:bg-white/5 border border-ink-200 dark:border-white/10 text-sm focus:outline-none focus:border-ink-950 dark:focus:border-white" />
+                   class="w-full pl-10 pr-3 py-3.5 rounded-xl bg-white dark:bg-white/5 border border-ink-200 dark:border-white/10 shadow-sm text-sm focus:outline-none focus:border-ink-950 dark:focus:border-white" />
           </div>
         </div>
 
         <div>
           <div class="flex items-baseline justify-between mb-1.5">
-            <label class="eyebrow block">Contraseña</label>
-            <a routerLink="/auth/forgot-password" class="text-[10px] uppercase tracking-widest text-ink-500 dark:text-white/50 hover:text-ink-950 dark:hover:text-white">¿Olvidaste?</a>
+            <label class="text-sm font-semibold text-ink-700 dark:text-white/70 block">Contraseña</label>
+            <a routerLink="/auth/forgot-password" class="text-xs font-semibold text-ink-500 dark:text-white/50 hover:text-ink-950 dark:hover:text-white">¿Olvidaste?</a>
           </div>
           <div class="relative">
             <i class="fa-solid fa-lock absolute left-3.5 top-1/2 -translate-y-1/2 text-ink-400 text-sm"></i>
             <input [(ngModel)]="password" name="password" [type]="show() ? 'text' : 'password'"
                    required minlength="8" autocomplete="current-password"
-                   class="w-full pl-10 pr-12 py-3.5 rounded-xl bg-ink-50 dark:bg-white/5 border border-ink-200 dark:border-white/10 text-sm focus:outline-none focus:border-ink-950 dark:focus:border-white" />
+                   class="w-full pl-10 pr-12 py-3.5 rounded-xl bg-white dark:bg-white/5 border border-ink-200 dark:border-white/10 shadow-sm text-sm focus:outline-none focus:border-ink-950 dark:focus:border-white" />
             <button type="button" (click)="show.set(!show())"
                     class="absolute right-3 top-1/2 -translate-y-1/2 text-ink-400 hover:text-ink-700 dark:hover:text-white">
               <i class="fa-solid text-sm" [class.fa-eye]="!show()" [class.fa-eye-slash]="show()"></i>
@@ -47,7 +47,7 @@ import { AuthShellComponent } from '@features/auth/components/auth-shell/auth-sh
         }
 
         <button type="submit" [disabled]="!f.valid || loading()"
-                class="w-full btn-accent text-sm uppercase tracking-widest py-4 disabled:opacity-50">
+                class="w-full btn-accent text-sm font-semibold py-4 disabled:opacity-50">
           @if (loading()) { <i class="fa-solid fa-spinner fa-spin"></i> Entrando... }
           @else { <i class="fa-solid fa-arrow-right-to-bracket"></i> Iniciar sesión }
         </button>

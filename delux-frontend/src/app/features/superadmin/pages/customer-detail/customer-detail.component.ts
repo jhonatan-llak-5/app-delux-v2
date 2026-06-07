@@ -64,7 +64,7 @@ import { Order, OrderService } from '@features/superadmin/services/order.service
             }
           </div>
 
-          @if (c.addresses?.length) {
+          @if (c.addresses.length) {
             <div class="card p-6">
               <h3 class="font-bold tracking-tight mb-3">Direcciones</h3>
               <ul class="space-y-2">

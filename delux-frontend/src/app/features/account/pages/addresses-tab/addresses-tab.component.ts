@@ -12,7 +12,7 @@ import { MeService, MeAddress } from '@features/account/services/me.service';
     <div class="editorial-card p-6">
       <div class="flex items-center justify-between mb-2">
         <h2 class="font-display font-bold text-2xl text-ink-950 dark:text-white">Direcciones</h2>
-        <button (click)="openCreate()" class="btn-outline text-xs uppercase tracking-widest px-4 py-2">
+        <button (click)="openCreate()" class="btn-outline text-sm font-semibold px-4 py-2">
           <i class="fa-solid fa-plus text-[10px]"></i> Nueva
         </button>
       </div>
@@ -67,28 +67,28 @@ import { MeService, MeAddress } from '@features/account/services/me.service';
             {{ editing()?.id ? 'Editar dirección' : 'Nueva dirección' }}
           </h3>
           <div>
-            <label class="eyebrow mb-1.5 block">Etiqueta</label>
+            <label class="text-sm font-semibold text-ink-800 dark:text-white/80 mb-1.5 block">Etiqueta</label>
             <input [(ngModel)]="form.label" name="label" placeholder="Casa, oficina..."
                    class="w-full px-3 py-3 rounded-lg bg-ink-50 dark:bg-white/5 border border-ink-200 dark:border-white/10 text-sm focus:outline-none" />
           </div>
           <div>
-            <label class="eyebrow mb-1.5 block">Dirección *</label>
+            <label class="text-sm font-semibold text-ink-800 dark:text-white/80 mb-1.5 block">Dirección *</label>
             <input [(ngModel)]="form.line1" name="line1" required
                    class="w-full px-3 py-3 rounded-lg bg-ink-50 dark:bg-white/5 border border-ink-200 dark:border-white/10 text-sm focus:outline-none" />
           </div>
           <div>
-            <label class="eyebrow mb-1.5 block">Departamento, suite, etc.</label>
+            <label class="text-sm font-semibold text-ink-800 dark:text-white/80 mb-1.5 block">Departamento, suite, etc.</label>
             <input [(ngModel)]="form.line2" name="line2"
                    class="w-full px-3 py-3 rounded-lg bg-ink-50 dark:bg-white/5 border border-ink-200 dark:border-white/10 text-sm focus:outline-none" />
           </div>
           <div class="grid grid-cols-2 gap-3">
             <div>
-              <label class="eyebrow mb-1.5 block">Ciudad *</label>
+              <label class="text-sm font-semibold text-ink-800 dark:text-white/80 mb-1.5 block">Ciudad *</label>
               <input [(ngModel)]="form.city" name="city" required
                      class="w-full px-3 py-3 rounded-lg bg-ink-50 dark:bg-white/5 border border-ink-200 dark:border-white/10 text-sm focus:outline-none" />
             </div>
             <div>
-              <label class="eyebrow mb-1.5 block">Provincia</label>
+              <label class="text-sm font-semibold text-ink-800 dark:text-white/80 mb-1.5 block">Provincia</label>
               <input [(ngModel)]="form.region" name="region"
                      class="w-full px-3 py-3 rounded-lg bg-ink-50 dark:bg-white/5 border border-ink-200 dark:border-white/10 text-sm focus:outline-none" />
             </div>
@@ -100,7 +100,7 @@ import { MeService, MeAddress } from '@features/account/services/me.service';
 
           <div class="flex justify-end gap-2 pt-2 border-t border-ink-100 dark:border-white/10">
             <button type="button" (click)="closeForm()" class="px-4 py-2.5 rounded-lg bg-ink-100 dark:bg-white/10 text-sm font-semibold">Cancelar</button>
-            <button type="submit" class="btn-accent text-xs uppercase tracking-widest px-5 py-2.5">Guardar</button>
+            <button type="submit" class="btn-accent text-sm font-semibold px-5 py-2.5">Guardar</button>
           </div>
         </form>
       </div>

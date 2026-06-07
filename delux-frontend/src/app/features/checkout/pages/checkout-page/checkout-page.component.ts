@@ -36,22 +36,22 @@ import { CouponService, CouponValidation } from '@features/superadmin/services/c
               </div>
               <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
                 <div>
-                  <label class="eyebrow mb-1.5 block">Nombre completo *</label>
+                  <label class="text-sm font-semibold text-ink-800 dark:text-white/80 mb-1.5 block">Nombre completo *</label>
                   <input [(ngModel)]="customer.full_name" name="full_name" required maxlength="160"
                          class="w-full px-3 py-3 rounded-lg bg-ink-50 dark:bg-white/5 border border-ink-200 dark:border-white/10 text-sm focus:outline-none focus:border-ink-950 dark:focus:border-white" />
                 </div>
                 <div>
-                  <label class="eyebrow mb-1.5 block">Email *</label>
+                  <label class="text-sm font-semibold text-ink-800 dark:text-white/80 mb-1.5 block">Email *</label>
                   <input [(ngModel)]="customer.email" name="email" type="email" required
                          class="w-full px-3 py-3 rounded-lg bg-ink-50 dark:bg-white/5 border border-ink-200 dark:border-white/10 text-sm focus:outline-none focus:border-ink-950 dark:focus:border-white" />
                 </div>
                 <div>
-                  <label class="eyebrow mb-1.5 block">Teléfono *</label>
+                  <label class="text-sm font-semibold text-ink-800 dark:text-white/80 mb-1.5 block">Teléfono *</label>
                   <input [(ngModel)]="customer.phone" name="phone" required maxlength="30"
                          class="w-full px-3 py-3 rounded-lg bg-ink-50 dark:bg-white/5 border border-ink-200 dark:border-white/10 text-sm focus:outline-none focus:border-ink-950 dark:focus:border-white" />
                 </div>
                 <div>
-                  <label class="eyebrow mb-1.5 block">Cédula</label>
+                  <label class="text-sm font-semibold text-ink-800 dark:text-white/80 mb-1.5 block">Cédula</label>
                   <input [(ngModel)]="customer.document_id" name="document_id" maxlength="30"
                          class="w-full px-3 py-3 rounded-lg bg-ink-50 dark:bg-white/5 border border-ink-200 dark:border-white/10 text-sm focus:outline-none focus:border-ink-950 dark:focus:border-white font-mono" />
                 </div>
@@ -180,7 +180,7 @@ import { CouponService, CouponValidation } from '@features/superadmin/services/c
               </div>
 
               <button type="button" (click)="payNow()" [disabled]="!canPay() || saving()"
-                      class="w-full mt-5 btn-accent text-sm uppercase tracking-widest py-4 disabled:opacity-50">
+                      class="w-full mt-5 btn-accent text-sm font-semibold py-4 disabled:opacity-50">
                 @if (saving()) { <i class="fa-solid fa-spinner fa-spin"></i> Procesando... }
                 @else {
                   <i class="fa-solid fa-lock"></i> Pagar \${{ total().toFixed(2) }}

@@ -17,12 +17,12 @@ import { AuthShellComponent } from '@features/auth/components/auth-shell/auth-sh
       @if (!sent()) {
         <form (ngSubmit)="submit()" #f="ngForm" class="space-y-5">
           <div>
-            <label class="eyebrow mb-1.5 block">Correo electrónico</label>
+            <label class="text-sm font-semibold text-ink-700 dark:text-white/70 mb-1.5 block">Correo electrónico</label>
             <div class="relative">
               <i class="fa-solid fa-envelope absolute left-3.5 top-1/2 -translate-y-1/2 text-ink-400 text-sm"></i>
               <input [(ngModel)]="email" name="email" type="email" required autocomplete="email"
                      placeholder="tu@correo.com"
-                     class="w-full pl-10 pr-3 py-3.5 rounded-xl bg-ink-50 dark:bg-white/5 border border-ink-200 dark:border-white/10 text-sm focus:outline-none focus:border-ink-950 dark:focus:border-white" />
+                     class="w-full pl-10 pr-3 py-3.5 rounded-xl bg-white dark:bg-white/5 border border-ink-200 dark:border-white/10 shadow-sm text-sm focus:outline-none focus:border-ink-950 dark:focus:border-white" />
             </div>
           </div>
 
@@ -33,7 +33,7 @@ import { AuthShellComponent } from '@features/auth/components/auth-shell/auth-sh
           }
 
           <button type="submit" [disabled]="!f.valid || loading()"
-                  class="w-full btn-accent text-sm uppercase tracking-widest py-4 disabled:opacity-50">
+                  class="w-full btn-accent text-sm font-semibold py-4 disabled:opacity-50">
             @if (loading()) { <i class="fa-solid fa-spinner fa-spin"></i> Enviando... }
             @else { <i class="fa-solid fa-paper-plane"></i> Enviar código }
           </button>
@@ -49,7 +49,7 @@ import { AuthShellComponent } from '@features/auth/components/auth-shell/auth-sh
             recibirás un código de 6 dígitos.
           </p>
           <a [routerLink]="['/auth/reset-password']" [queryParams]="{ email }"
-             class="btn-accent text-xs uppercase tracking-widest px-8 py-4 inline-flex">
+             class="btn-accent text-sm font-semibold px-8 py-4 inline-flex">
             Ya tengo el código <i class="fa-solid fa-arrow-right text-[10px]"></i>
           </a>
         </div>

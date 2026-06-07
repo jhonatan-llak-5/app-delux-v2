@@ -21,7 +21,7 @@ import { MeService, WishlistEntry } from '@features/account/services/me.service'
         <div class="text-center py-12">
           <i class="fa-regular fa-heart text-5xl text-ink-300 dark:text-white/30 mb-3"></i>
           <p class="text-ink-700 dark:text-white/70 mb-4">Aún no tienes favoritos.</p>
-          <a routerLink="/shop" class="btn-accent text-xs uppercase tracking-widest px-6 py-3">
+          <a routerLink="/shop" class="btn-accent text-sm font-semibold px-6 py-3">
             Descubrir productos
           </a>
         </div>

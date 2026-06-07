@@ -6,7 +6,7 @@ class Migration(migrations.Migration):
     initial = True
     dependencies = [
         ('orders', '0001_initial'),
-        ('accounts', '0002_staff_fields'),
+        ('accounts', '0003_staff_fields'),
         ('tenants', '0001_initial'),
     ]
     operations = [

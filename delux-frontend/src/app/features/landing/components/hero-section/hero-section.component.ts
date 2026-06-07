@@ -64,9 +64,8 @@ type HeroPhase = 'explore' | 'showcase';
           </p>
 
           <div class="mt-12 flex flex-col sm:flex-row gap-3 animate-slide-up-later">
-            <button (click)="enterShowcase()" class="btn-accent animate-cta-pulse text-sm
-                                                     px-8 py-4 uppercase tracking-[0.2em] font-bold">
-              Explore drops <i class="fa-solid fa-arrow-right text-xs"></i>
+            <button (click)="enterShowcase()" class="btn-accent animate-cta-pulse text-sm px-8 py-4 font-semibold">
+              Ver drops <i class="fa-solid fa-arrow-right text-xs"></i>
             </button>
             <a routerLink="/shop" class="btn-outline px-8 py-4">Ver catálogo</a>
           </div>
@@ -168,8 +167,8 @@ type HeroPhase = 'explore' | 'showcase';
                   <p class="text-[10px] tracking-widest uppercase text-ink-500 dark:text-white/40 mb-1.5">Precio</p>
                   <p class="font-display text-4xl font-bold tracking-tight">\${{ currentProduct().price }}</p>
                 </div>
-                <a routerLink="/shop" class="btn-accent text-xs uppercase tracking-widest px-7 py-3.5 group">
-                  Add to bag
+                <a routerLink="/shop" class="btn-accent text-sm font-semibold px-7 py-3.5 group">
+                  Añadir a la bolsa
                   <i class="fa-solid fa-arrow-right text-[10px] group-hover:translate-x-1 transition"></i>
                 </a>
               </div>

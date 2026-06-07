@@ -23,7 +23,7 @@ import { ShippingService, PublicTracking } from '@shared/services/shipping.servi
         <input [(ngModel)]="code" name="code" placeholder="DLX-TR-260606-ABCD1234"
                class="flex-1 px-4 py-4 rounded-xl bg-ink-50 dark:bg-white/5 border border-ink-200 dark:border-white/10 text-sm font-mono uppercase focus:outline-none focus:border-ink-950 dark:focus:border-white" />
         <button type="submit" [disabled]="!code || loading()"
-                class="btn-accent text-xs uppercase tracking-widest px-8 py-4 disabled:opacity-50">
+                class="btn-accent text-sm font-semibold px-8 py-4 disabled:opacity-50">
           @if (loading()) { <i class="fa-solid fa-spinner fa-spin"></i> }
           @else { <i class="fa-solid fa-magnifying-glass"></i> Rastrear }
         </button>

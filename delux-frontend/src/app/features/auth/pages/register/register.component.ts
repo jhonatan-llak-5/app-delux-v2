@@ -14,23 +14,23 @@ import { AuthShellComponent } from '@features/auth/components/auth-shell/auth-sh
     <dlx-auth-shell title="Crear cuenta" subtitle="Únete a Delux y accede a drops exclusivos.">
       <form (ngSubmit)="submit()" #f="ngForm" class="space-y-4">
         <div>
-          <label class="eyebrow mb-1.5 block">Nombre completo *</label>
+          <label class="text-sm font-semibold text-ink-700 dark:text-white/70 mb-1.5 block">Nombre completo *</label>
           <div class="relative">
             <i class="fa-solid fa-user absolute left-3.5 top-1/2 -translate-y-1/2 text-ink-400 text-sm"></i>
             <input [(ngModel)]="form.full_name" name="full_name" required minlength="2" maxlength="160"
                    autocomplete="name" placeholder="Ej. Yessenia Macías"
-                   class="w-full pl-10 pr-3 py-3.5 rounded-xl bg-ink-50 dark:bg-white/5 border border-ink-200 dark:border-white/10 text-sm focus:outline-none focus:border-ink-950 dark:focus:border-white" />
+                   class="w-full pl-10 pr-3 py-3.5 rounded-xl bg-white dark:bg-white/5 border border-ink-200 dark:border-white/10 shadow-sm text-sm focus:outline-none focus:border-ink-950 dark:focus:border-white" />
           </div>
         </div>
 
         <div>
-          <label class="eyebrow mb-1.5 block">Nombre de usuario *</label>
+          <label class="text-sm font-semibold text-ink-700 dark:text-white/70 mb-1.5 block">Nombre de usuario *</label>
           <div class="relative">
             <i class="fa-solid fa-at absolute left-3.5 top-1/2 -translate-y-1/2 text-ink-400 text-sm"></i>
             <input [(ngModel)]="form.username" name="username" required minlength="3" maxlength="40"
                    autocomplete="username" placeholder="yessi_macias"
                    (ngModelChange)="form.username = $event.toLowerCase()"
-                   class="w-full pl-10 pr-3 py-3.5 rounded-xl bg-ink-50 dark:bg-white/5 border border-ink-200 dark:border-white/10 text-sm font-mono focus:outline-none focus:border-ink-950 dark:focus:border-white" />
+                   class="w-full pl-10 pr-3 py-3.5 rounded-xl bg-white dark:bg-white/5 border border-ink-200 dark:border-white/10 shadow-sm text-sm font-mono focus:outline-none focus:border-ink-950 dark:focus:border-white" />
           </div>
           <p class="text-[10px] text-ink-500 dark:text-white/40 mt-1.5">
             Solo letras, números, punto y guion bajo. Mínimo 3 caracteres.
@@ -38,22 +38,22 @@ import { AuthShellComponent } from '@features/auth/components/auth-shell/auth-sh
         </div>
 
         <div>
-          <label class="eyebrow mb-1.5 block">Correo electrónico *</label>
+          <label class="text-sm font-semibold text-ink-700 dark:text-white/70 mb-1.5 block">Correo electrónico *</label>
           <div class="relative">
             <i class="fa-solid fa-envelope absolute left-3.5 top-1/2 -translate-y-1/2 text-ink-400 text-sm"></i>
             <input [(ngModel)]="form.email" name="email" type="email" required
                    autocomplete="email" placeholder="tu@correo.com"
-                   class="w-full pl-10 pr-3 py-3.5 rounded-xl bg-ink-50 dark:bg-white/5 border border-ink-200 dark:border-white/10 text-sm focus:outline-none focus:border-ink-950 dark:focus:border-white" />
+                   class="w-full pl-10 pr-3 py-3.5 rounded-xl bg-white dark:bg-white/5 border border-ink-200 dark:border-white/10 shadow-sm text-sm focus:outline-none focus:border-ink-950 dark:focus:border-white" />
           </div>
         </div>
 
         <div>
-          <label class="eyebrow mb-1.5 block">Contraseña *</label>
+          <label class="text-sm font-semibold text-ink-700 dark:text-white/70 mb-1.5 block">Contraseña *</label>
           <div class="relative">
             <i class="fa-solid fa-lock absolute left-3.5 top-1/2 -translate-y-1/2 text-ink-400 text-sm"></i>
             <input [(ngModel)]="form.password" name="password" [type]="show() ? 'text' : 'password'"
                    required minlength="8" autocomplete="new-password"
-                   class="w-full pl-10 pr-12 py-3.5 rounded-xl bg-ink-50 dark:bg-white/5 border border-ink-200 dark:border-white/10 text-sm focus:outline-none focus:border-ink-950 dark:focus:border-white" />
+                   class="w-full pl-10 pr-12 py-3.5 rounded-xl bg-white dark:bg-white/5 border border-ink-200 dark:border-white/10 shadow-sm text-sm focus:outline-none focus:border-ink-950 dark:focus:border-white" />
             <button type="button" (click)="show.set(!show())"
                     class="absolute right-3 top-1/2 -translate-y-1/2 text-ink-400 hover:text-ink-700 dark:hover:text-white">
               <i class="fa-solid text-sm" [class.fa-eye]="!show()" [class.fa-eye-slash]="show()"></i>
@@ -69,7 +69,7 @@ import { AuthShellComponent } from '@features/auth/components/auth-shell/auth-sh
         }
 
         <button type="submit" [disabled]="!f.valid || loading()"
-                class="w-full btn-accent text-sm uppercase tracking-widest py-4 disabled:opacity-50">
+                class="w-full btn-accent text-sm font-semibold py-4 disabled:opacity-50">
           @if (loading()) { <i class="fa-solid fa-spinner fa-spin"></i> Creando... }
           @else { <i class="fa-solid fa-user-plus"></i> Crear cuenta }
         </button>

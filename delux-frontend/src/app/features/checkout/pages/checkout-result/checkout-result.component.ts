@@ -27,10 +27,10 @@ import { CartService } from '@features/checkout/services/cart.service';
             </p>
           }
           <div class="flex flex-col sm:flex-row gap-3 justify-center">
-            <a routerLink="/shop" class="btn-accent text-xs uppercase tracking-widest px-6 py-3">
+            <a routerLink="/shop" class="btn-accent text-sm font-semibold px-6 py-3">
               Seguir comprando
             </a>
-            <a routerLink="/" class="btn-outline text-xs uppercase tracking-widest px-6 py-3">
+            <a routerLink="/" class="btn-outline text-sm font-semibold px-6 py-3">
               Volver al inicio
             </a>
           </div>
@@ -45,10 +45,10 @@ import { CartService } from '@features/checkout/services/cart.service';
             El pago fue rechazado o cancelado. Tu carrito sigue intacto, puedes intentarlo nuevamente.
           </p>
           <div class="flex flex-col sm:flex-row gap-3 justify-center">
-            <a routerLink="/checkout" class="btn-accent text-xs uppercase tracking-widest px-6 py-3">
+            <a routerLink="/checkout" class="btn-accent text-sm font-semibold px-6 py-3">
               Intentar nuevamente
             </a>
-            <a routerLink="/cart" class="btn-outline text-xs uppercase tracking-widest px-6 py-3">
+            <a routerLink="/cart" class="btn-outline text-sm font-semibold px-6 py-3">
               Ver carrito
             </a>
           </div>

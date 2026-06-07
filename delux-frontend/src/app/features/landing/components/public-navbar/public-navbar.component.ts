@@ -36,11 +36,18 @@ import { SearchOverlayComponent } from '@shared/components/search-overlay/search
 
         <div class="hidden md:block">
           <div class="pill-nav">
-            <a routerLink="/" [routerLinkActiveOptions]="{ exact: true }" routerLinkActive="active">Inicio</a>
-            <a routerLink="/shop" routerLinkActive="active">Shop</a>
-            <a routerLink="/contact" routerLinkActive="active">Contacto</a>
-            <a fragment="branches" routerLink="/">Sucursales</a>
-            <a fragment="drops" routerLink="/">Drops</a>
+            <a routerLink="/" [routerLinkActiveOptions]="{ exact: true }"
+               routerLinkActive="bg-ink-950 dark:bg-white text-white dark:text-ink-950 font-semibold"
+               class="px-4 py-2 rounded-full text-sm text-ink-700 dark:text-white/70 hover:text-ink-900 dark:hover:text-white transition">Inicio</a>
+            <a routerLink="/shop"
+               routerLinkActive="bg-ink-950 dark:bg-white text-white dark:text-ink-950 font-semibold"
+               class="px-4 py-2 rounded-full text-sm text-ink-700 dark:text-white/70 hover:text-ink-900 dark:hover:text-white transition">Shop</a>
+            <a routerLink="/contact"
+               routerLinkActive="bg-ink-950 dark:bg-white text-white dark:text-ink-950 font-semibold"
+               class="px-4 py-2 rounded-full text-sm text-ink-700 dark:text-white/70 hover:text-ink-900 dark:hover:text-white transition">Contacto</a>
+            <a routerLink="/tracking"
+               routerLinkActive="bg-ink-950 dark:bg-white text-white dark:text-ink-950 font-semibold"
+               class="px-4 py-2 rounded-full text-sm text-ink-700 dark:text-white/70 hover:text-ink-900 dark:hover:text-white transition">Rastrear</a>
           </div>
         </div>
 
@@ -94,11 +101,18 @@ import { SearchOverlayComponent } from '@shared/components/search-overlay/search
 
       @if (open()) {
         <div class="md:hidden mx-6 mb-3 glass p-4 flex flex-col gap-1 animate-slide-down">
-          <a routerLink="/" (click)="close()" class="px-4 py-3 rounded-lg hover:bg-ink-100 dark:hover:bg-white/10 text-sm">Inicio</a>
-          <a routerLink="/shop" (click)="close()" class="px-4 py-3 rounded-lg hover:bg-ink-100 dark:hover:bg-white/10 text-sm">Shop</a>
-          <a routerLink="/contact" (click)="close()" class="px-4 py-3 rounded-lg hover:bg-ink-100 dark:hover:bg-white/10 text-sm">Contacto</a>
-          <a fragment="branches" routerLink="/" (click)="close()" class="px-4 py-3 rounded-lg hover:bg-ink-100 dark:hover:bg-white/10 text-sm">Sucursales</a>
-          <a fragment="drops" routerLink="/" (click)="close()" class="px-4 py-3 rounded-lg hover:bg-ink-100 dark:hover:bg-white/10 text-sm">Drops</a>
+          <a routerLink="/" [routerLinkActiveOptions]="{ exact: true }"
+             routerLinkActive="bg-ink-950 dark:bg-white text-white dark:text-ink-950 font-semibold"
+             (click)="close()" class="px-4 py-3 rounded-lg hover:bg-ink-100 dark:hover:bg-white/10 text-sm">Inicio</a>
+          <a routerLink="/shop"
+             routerLinkActive="bg-ink-950 dark:bg-white text-white dark:text-ink-950 font-semibold"
+             (click)="close()" class="px-4 py-3 rounded-lg hover:bg-ink-100 dark:hover:bg-white/10 text-sm">Shop</a>
+          <a routerLink="/contact"
+             routerLinkActive="bg-ink-950 dark:bg-white text-white dark:text-ink-950 font-semibold"
+             (click)="close()" class="px-4 py-3 rounded-lg hover:bg-ink-100 dark:hover:bg-white/10 text-sm">Contacto</a>
+          <a routerLink="/tracking"
+             routerLinkActive="bg-ink-950 dark:bg-white text-white dark:text-ink-950 font-semibold"
+             (click)="close()" class="px-4 py-3 rounded-lg hover:bg-ink-100 dark:hover:bg-white/10 text-sm">Rastrear</a>
           @if (hasToken) {
             <a routerLink="/account" (click)="close()" class="btn-outline mt-2 w-full text-sm">
               <i class="fa-regular fa-user"></i> Mi cuenta

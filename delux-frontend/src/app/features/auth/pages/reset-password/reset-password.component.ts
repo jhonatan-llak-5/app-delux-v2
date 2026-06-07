@@ -17,16 +17,16 @@ import { AuthShellComponent } from '@features/auth/components/auth-shell/auth-sh
       @if (!success()) {
         <form (ngSubmit)="submit()" #f="ngForm" class="space-y-5">
           <div>
-            <label class="eyebrow mb-1.5 block">Correo</label>
+            <label class="text-sm font-semibold text-ink-700 dark:text-white/70 mb-1.5 block">Correo</label>
             <div class="relative">
               <i class="fa-solid fa-envelope absolute left-3.5 top-1/2 -translate-y-1/2 text-ink-400 text-sm"></i>
               <input [(ngModel)]="email" name="email" type="email" required
-                     class="w-full pl-10 pr-3 py-3.5 rounded-xl bg-ink-50 dark:bg-white/5 border border-ink-200 dark:border-white/10 text-sm focus:outline-none focus:border-ink-950 dark:focus:border-white" />
+                     class="w-full pl-10 pr-3 py-3.5 rounded-xl bg-white dark:bg-white/5 border border-ink-200 dark:border-white/10 shadow-sm text-sm focus:outline-none focus:border-ink-950 dark:focus:border-white" />
             </div>
           </div>
 
           <div>
-            <label class="eyebrow mb-3 block text-center">Código de 6 dígitos</label>
+            <label class="text-sm font-semibold text-ink-700 dark:text-white/70 mb-3 block text-center">Código de 6 dígitos</label>
             <div class="flex justify-center gap-2">
               @for (i of [0,1,2,3,4,5]; track i) {
                 <input type="text" inputmode="numeric" maxlength="1"
@@ -35,19 +35,19 @@ import { AuthShellComponent } from '@features/auth/components/auth-shell/auth-sh
                        (keydown)="onKeyDown(i, $event)"
                        (paste)="onPaste($event)"
                        class="w-12 h-14 md:w-14 md:h-16 text-center text-2xl font-display font-bold
-                              rounded-xl bg-ink-50 dark:bg-white/5 border-2 border-ink-200 dark:border-white/10
+                              rounded-xl bg-white dark:bg-white/5 border-2 border-ink-200 dark:border-white/10 shadow-sm
                               focus:outline-none focus:border-accent-500 dark:focus:border-accent-400 transition" />
               }
             </div>
           </div>
 
           <div>
-            <label class="eyebrow mb-1.5 block">Nueva contraseña</label>
+            <label class="text-sm font-semibold text-ink-700 dark:text-white/70 mb-1.5 block">Nueva contraseña</label>
             <div class="relative">
               <i class="fa-solid fa-lock absolute left-3.5 top-1/2 -translate-y-1/2 text-ink-400 text-sm"></i>
               <input [(ngModel)]="newPassword" name="new_password" [type]="show() ? 'text' : 'password'"
                      required minlength="8" autocomplete="new-password"
-                     class="w-full pl-10 pr-12 py-3.5 rounded-xl bg-ink-50 dark:bg-white/5 border border-ink-200 dark:border-white/10 text-sm focus:outline-none focus:border-ink-950 dark:focus:border-white" />
+                     class="w-full pl-10 pr-12 py-3.5 rounded-xl bg-white dark:bg-white/5 border border-ink-200 dark:border-white/10 shadow-sm text-sm focus:outline-none focus:border-ink-950 dark:focus:border-white" />
               <button type="button" (click)="show.set(!show())"
                       class="absolute right-3 top-1/2 -translate-y-1/2 text-ink-400 hover:text-ink-700 dark:hover:text-white">
                 <i class="fa-solid text-sm" [class.fa-eye]="!show()" [class.fa-eye-slash]="show()"></i>
@@ -63,7 +63,7 @@ import { AuthShellComponent } from '@features/auth/components/auth-shell/auth-sh
           }
 
           <button type="submit" [disabled]="!email || code().length < 6 || newPassword.length < 8 || loading()"
-                  class="w-full btn-accent text-sm uppercase tracking-widest py-4 disabled:opacity-50">
+                  class="w-full btn-accent text-sm font-semibold py-4 disabled:opacity-50">
             @if (loading()) { <i class="fa-solid fa-spinner fa-spin"></i> Cambiando... }
             @else { <i class="fa-solid fa-shield-halved"></i> Cambiar contraseña }
           </button>
@@ -77,7 +77,7 @@ import { AuthShellComponent } from '@features/auth/components/auth-shell/auth-sh
           <p class="text-ink-700 dark:text-white/60 mb-6">
             Ya puedes iniciar sesión con tu nueva contraseña.
           </p>
-          <a routerLink="/auth/login" class="btn-accent text-xs uppercase tracking-widest px-8 py-4 inline-flex">
+          <a routerLink="/auth/login" class="btn-accent text-sm font-semibold px-8 py-4 inline-flex">
             <i class="fa-solid fa-arrow-right-to-bracket"></i> Iniciar sesión
           </a>
         </div>
