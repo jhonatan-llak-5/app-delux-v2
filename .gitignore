@@ -1,0 +1,22 @@
+# IDE
+.vscode/
+.idea/
+
+# Env
+.env
+.env.local
+.env.*.local
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Per project
+delux-frontend/node_modules/
+delux-frontend/dist/
+delux-frontend/.angular/
+delux-backend/__pycache__/
+delux-backend/**/__pycache__/
+delux-backend/.venv/
+delux-backend/media/
+delux-backend/staticfiles/

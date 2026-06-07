@@ -1,0 +1,24 @@
+{% extends 'emails/_base.html' %}
+{% block body %}
+<div style="display:inline-block;background:linear-gradient(135deg,#22d3ee 0%,#7c3aed 100%);padding:18px;border-radius:20px;margin-bottom:24px;">
+  <div style="font-size:36px;color:#fff;">🚚</div>
+</div>
+<h1 style="font-family:'Bricolage Grotesque',Georgia,serif;font-size:32px;font-weight:700;letter-spacing:-0.04em;margin:0 0 12px;line-height:1.1;color:#06080f;">
+  Tu pedido está en camino
+</h1>
+<p style="font-size:15px;color:#4c5466;line-height:1.6;margin:0 0 28px;">
+  Hola {{ customer_name }}, tu orden <strong>{{ order_code }}</strong> fue despachada. Rastréala en cualquier momento.
+</p>
+
+{% if tracking_code %}
+<div style="background:#f5f6f8;border-radius:20px;padding:24px;margin-bottom:24px;text-align:center;">
+  <div style="font-size:10px;letter-spacing:0.4em;color:#737c8c;text-transform:uppercase;font-weight:700;margin-bottom:8px;">Código de tracking</div>
+  <div style="font-family:'JetBrains Mono',monospace;font-weight:700;font-size:18px;color:#06080f;letter-spacing:0.1em;">{{ tracking_code }}</div>
+</div>
+<div style="text-align:center;">
+  <a href="https://delux.com.ec/tracking/{{ tracking_code }}" style="display:inline-block;background:linear-gradient(135deg,#22d3ee 0%,#7c3aed 100%);color:#fff;text-decoration:none;padding:16px 36px;border-radius:14px;font-weight:700;font-size:12px;letter-spacing:0.25em;text-transform:uppercase;">
+    Rastrear envío →
+  </a>
+</div>
+{% endif %}
+{% endblock %}

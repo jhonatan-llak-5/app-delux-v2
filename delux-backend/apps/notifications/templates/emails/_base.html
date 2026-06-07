@@ -1,0 +1,29 @@
+<!doctype html>
+<html lang="es">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>{{ platform_name }}</title>
+</head>
+<body style="margin:0;padding:0;background:#f5f6f8;font-family:'Plus Jakarta Sans','Helvetica Neue',sans-serif;color:#0b0e16;-webkit-font-smoothing:antialiased;">
+<div style="display:none;font-size:1px;color:#f5f6f8;line-height:1px;max-height:0;max-width:0;opacity:0;overflow:hidden;">{{ platform_name }} — {{ platform_tagline }}</div>
+<table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0">
+  <tr><td align="center" style="padding:40px 20px;">
+    <table role="presentation" width="600" cellpadding="0" cellspacing="0" border="0" style="background:#fff;border-radius:28px;overflow:hidden;box-shadow:0 30px 60px -20px rgba(2,6,23,0.18);">
+      <!-- Header con gradiente brand -->
+      <tr><td style="background:linear-gradient(135deg,#06080f 0%,#171b27 100%);padding:36px 40px;text-align:center;">
+        <div style="font-family:'Bricolage Grotesque',Georgia,serif;font-weight:800;font-size:42px;letter-spacing:-0.04em;color:#fff;line-height:1;">{{ platform_name|lower }}</div>
+        <div style="font-size:10px;letter-spacing:0.4em;color:#22d3ee;text-transform:uppercase;margin-top:10px;font-weight:600;">{{ platform_tagline }}</div>
+      </td></tr>
+      <!-- Body -->
+      <tr><td style="padding:40px;">{% block body %}{% endblock %}</td></tr>
+      <!-- Footer -->
+      <tr><td style="padding:24px 40px;background:#f5f6f8;text-align:center;font-size:11px;color:#737c8c;border-top:1px solid #e9ebef;">
+        <p style="margin:0 0 8px;">¿Necesitas ayuda? <a href="mailto:{{ support_email }}" style="color:#7c3aed;text-decoration:none;font-weight:600;">{{ support_email }}</a></p>
+        <p style="margin:0;letter-spacing:0.3em;text-transform:uppercase;font-size:9px;">© {{ platform_name }} · Ecuador</p>
+      </td></tr>
+    </table>
+  </td></tr>
+</table>
+</body>
+</html>

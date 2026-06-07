@@ -1,0 +1,368 @@
+═══════════════════════════════════════════
+STACK TECNOLÓGICO — DELUX
+═══════════════════════════════════════════
+
+CONTEXTO DEL PROYECTO
+  Delux es una plataforma SaaS multi-tenant para gestionar tiendas en línea
+  de retail físico-digital. La plataforma está orientada principalmente a la
+  venta de zapatillas (sneakers), pero el catálogo es genérico y soporta
+  también ropa, mochilas, accesorios y, en general, cualquier producto
+  retail con variantes (talla, color, material).
+
+  La instancia inicial se entregará a la empresa "Delux", que opera con
+  varias sucursales (puntos de venta físicos). La arquitectura nace
+  preparada para multi-tenant (varias empresas en una sola instalación) y
+  multi-sucursal (varios locales por empresa) desde el dominio, aunque la
+  primera operación productiva se enfoca exclusivamente en Delux.
+
+  La arquitectura debe ser limpia, escalable, evolutiva y mantenible, pero
+  sin iniciar con microservicios innecesarios. El backend se construye como
+  un monolito modular en Django separado por apps de dominio, preparado
+  para escalar en el futuro si un módulo lo requiere (pagos, inventario,
+  notificaciones, etc.).
+
+═══════════════════════════════════════════
+FRONTEND (Web)
+═══════════════════════════════════════════
+
+  - Angular 20
+  - TypeScript 5.8
+  - TailwindCSS 4 para estilos
+  - Angular Router para navegación
+  - Angular HttpClient para llamadas HTTP
+  - Angular Signals para estado local/simple
+  - RxJS para flujos reactivos y streams async
+  - ngx-toastr para notificaciones/toasts
+  - Lucide Angular para íconos
+  - ApexCharts para dashboards y métricas
+  - Angular CDK para componentes avanzados
+  - GSAP / Angular Animations para microinteracciones en landing
+  - Swiper para carruseles de producto
+  - Standalone Components
+  - Lazy Loading por feature
+  - Guards para rutas protegidas
+  - Interceptors para JWT, errores globales, multi-tenant y loading
+
+═══════════════════════════════════════════
+BACKEND
+═══════════════════════════════════════════
+
+  - Python 3.12
+  - Django 5.2
+  - Django Rest Framework 3.15
+  - PostgreSQL 16
+  - Redis 7
+  - Celery 5.5 para tareas en segundo plano
+  - Django Channels 4 para WebSockets cuando sea necesario
+  - Daphne ASGI Server
+  - Gunicorn para WSGI en producción
+  - SimpleJWT para autenticación JWT
+  - Django CORS Headers
+  - drf-spectacular para documentación OpenAPI/Swagger
+  - django-filter para filtros consistentes
+  - Arquitectura modular basada en apps Django
+  - APIs versionadas bajo /api/v1/
+  - Nginx como reverse proxy
+  - Docker Compose para orquestación
+
+ENFOQUE BACKEND
+  - No iniciar con microservicios.
+  - Usar monolito modular bien separado por dominios.
+  - Cada dominio es una app Django independiente.
+  - La lógica de negocio vive en services/.
+  - Las views/viewsets deben ser delgadas.
+  - Los serializers validan datos, no contienen lógica de negocio pesada.
+  - El sistema queda preparado para crecer y separar servicios en el futuro.
+  - Multi-tenant por columna (tenant_id) con middleware de aislamiento.
+  - Multi-sucursal por columna (branch_id) en stock, ventas e inventario.
+
+═══════════════════════════════════════════
+APP MÓVIL
+═══════════════════════════════════════════
+
+  - Expo SDK 53
+  - React Native 0.79
+  - TypeScript
+  - Expo Router para navegación file-based
+  - NativeWind para estilos
+  - Axios para HTTP
+  - Servicios reutilizados del frontend web adaptados a mobile
+  - Notificaciones push (Expo Notifications)
+
+═══════════════════════════════════════════
+INFRAESTRUCTURA
+═══════════════════════════════════════════
+
+  - Docker Compose
+  - Nginx Reverse Proxy
+  - PostgreSQL 16
+  - Redis 7
+  - Certbot SSL
+  - Ubuntu 24.04+
+  - Variables de entorno por ambiente
+  - Separación entre dev y prod
+  - Almacenamiento de imágenes en S3 o compatible (MinIO en dev)
+
+═══════════════════════════════════════════
+CONVENCIONES DE FRONTEND (OBLIGATORIO)
+═══════════════════════════════════════════
+
+ESTRUCTURA DE CARPETAS:
+
+  src/
+    app/
+      core/
+        guards/
+        interceptors/
+        layouts/
+        services/
+        store/
+        tokens/
+
+      shared/
+        components/
+        directives/
+        pipes/
+        models/
+
+      features/
+        [modulo]/
+          pages/
+          components/
+          services/
+          models/
+          store/
+
+      app.routes.ts
+      app.config.ts
+      app.component.ts
+
+    environments/
+      environment.ts
+      environment.prod.ts
+
+MÓDULOS PRINCIPALES:
+  - landing
+  - auth
+  - shop (catálogo público)
+  - product (detalle de producto)
+  - cart
+  - checkout
+  - account (mi cuenta cliente)
+  - orders (historial pedidos cliente)
+  - wishlist
+  - dashboard (admin tenant / sucursal)
+  - products (gestión de productos)
+  - inventory (stock por sucursal)
+  - branches (sucursales)
+  - sales (POS / ventas en tienda)
+  - customers (CRM)
+  - coupons
+  - reports
+  - marketing
+  - settings (tenant)
+  - superadmin (control global multi-tenant)
+
+REGLAS FRONTEND:
+  - NUNCA mezclar lógica de negocio dentro del HTML.
+  - Toda llamada HTTP debe ir en services/.
+  - Usar componentes pequeños y reutilizables.
+  - Si un bloque se repite más de una vez, extraerlo.
+  - Usar Standalone Components.
+  - Usar Lazy Loading por feature.
+  - Usar tipado estricto. Nunca usar any salvo caso justificado.
+  - Usar Angular Signals para estado local/simple.
+  - Usar RxJS para flujos reactivos.
+  - No crear componentes gigantes de más de 300 líneas.
+  - Separar componentes de página y componentes UI.
+  - Usar interceptors para JWT, errores globales, multi-tenant y loading.
+  - Usar guards para rutas protegidas.
+  - Para tablas, modales, badges, inputs y paginación usar componentes
+    reutilizables del módulo shared.
+  - Las búsquedas deben usar debounce automático.
+  - Todo debe ser responsive y mobile-first.
+  - Mantener soporte para dark mode desde la base.
+  - El tema visual de la landing es DARK PREMIUM con acentos cyan.
+  - Los dashboards usan tema claro/oscuro toggle estilo SaaS profesional.
+
+═══════════════════════════════════════════
+CONVENCIONES DE BACKEND (OBLIGATORIO)
+═══════════════════════════════════════════
+
+ESTRUCTURA BACKEND:
+
+  delux-backend/
+    config/
+      settings/
+        base.py
+        dev.py
+        prod.py
+      urls.py
+      asgi.py
+      wsgi.py
+      celery.py
+
+    apps/
+      accounts/
+      tenants/
+      branches/
+      brands/
+      categories/
+      products/
+      variants/
+      inventory/
+      media/
+      customers/
+      addresses/
+      carts/
+      orders/
+      payments/
+      shipments/
+      coupons/
+      reviews/
+      wishlist/
+      marketing/
+      analytics/
+      notifications/
+      audit/
+      superadmin/
+
+    common/
+      pagination/
+      permissions/
+      responses/
+      exceptions/
+      services/
+      validators/
+      tenancy/
+      utils/
+
+REGLAS BACKEND:
+  - Las views/viewsets deben ser delgadas.
+  - Toda lógica de negocio debe vivir en services/.
+  - No poner lógica de negocio pesada en serializers.
+  - No hacer consultas complejas directamente en views.
+  - Usar serializers DRF para validación.
+  - Usar permisos reutilizables.
+  - Responder con una estructura consistente.
+  - Todas las APIs deben estar bajo /api/v1/.
+  - Usar paginación estándar en listados.
+  - Usar filtros y búsqueda de forma consistente con django-filter.
+  - Usar Celery para tareas largas.
+  - Usar Redis como broker/cache.
+  - Usar Django Channels solo para tiempo real real.
+  - Mantener multi-tenant desde el diseño (tenant_id en cada modelo).
+  - Mantener multi-sucursal desde el diseño en inventario/ventas.
+  - Evitar dependencias circulares entre apps.
+  - Mantener nombres claros, consistentes y en inglés.
+
+USO DE CELERY:
+  - Envío de correos transaccionales (orden creada, enviada, etc.)
+  - Generación de facturas / boletas PDF
+  - Procesamiento y resize de imágenes de producto
+  - Reportes PDF/Excel
+  - Sincronización de inventario entre sucursales
+  - Notificaciones programadas y recordatorios
+  - Limpieza de carritos abandonados
+  - Reindexado de catálogo
+
+USO DE WEBSOCKETS:
+  - Notificaciones en vivo de nuevas órdenes en el dashboard de sucursal
+  - Actualización en tiempo real de stock cuando hay venta concurrente
+  - Mensajería interna (cliente ↔ atención al cliente)
+  - Eventos administrativos / auditoría en vivo
+
+NO usar WebSockets para CRUD normal.
+
+═══════════════════════════════════════════
+CONVENCIONES DE APP MÓVIL
+═══════════════════════════════════════════
+
+ESTRUCTURA:
+
+  app/
+    (auth)/
+    (shop)/
+      home/
+      catalog/
+      product/
+      cart/
+      checkout/
+    (account)/
+      orders/
+      profile/
+      addresses/
+      wishlist/
+
+  components/
+  features/
+  services/
+  hooks/
+
+REGLAS MOBILE:
+  - Reutilizar lógica similar al frontend web.
+  - Componentes pequeños y reutilizables.
+  - No usar lógica inline en pantallas.
+  - Usar NativeWind.
+  - Manejar estados de loading, error y vacío.
+  - Reutilizar servicios HTTP.
+  - Mantener navegación desacoplada.
+
+═══════════════════════════════════════════
+DOMINIO DE NEGOCIO — DELUX
+═══════════════════════════════════════════
+
+CATÁLOGO
+  - Productos con variantes (talla, color, material).
+  - Marcas (Nike, Adidas, Puma, New Balance, etc.).
+  - Categorías padre / hijas (Zapatillas → Running, Lifestyle, Skate;
+    Ropa → Polos, Hoodies, Pantalones; Mochilas → Casual, Deportiva;
+    Accesorios → Medias, Gorros).
+  - Atributos dinámicos por categoría.
+  - Galería de imágenes y video corto por producto.
+  - Etiquetas: nuevo, oferta, exclusivo, drop, agotado.
+
+INVENTARIO MULTI-SUCURSAL
+  - Stock por variante y por sucursal.
+  - Reserva temporal al añadir al carrito.
+  - Transferencias entre sucursales.
+  - Alertas de stock mínimo por sucursal.
+
+VENTAS
+  - E-commerce (cliente externo).
+  - POS en tienda (vendedor de sucursal).
+  - Retiro en tienda (BOPIS) o envío a domicilio.
+  - Pagos: PayPhone, tarjeta, transferencia, efectivo en tienda.
+  - Devoluciones y notas de crédito.
+
+ROLES
+  - Superadmin de plataforma (multi-tenant).
+  - Admin de empresa (Delux).
+  - Gerente de sucursal.
+  - Vendedor / cajero.
+  - Cliente registrado.
+  - Invitado (guest checkout permitido).
+
+═══════════════════════════════════════════
+REGLAS GENERALES
+═══════════════════════════════════════════
+
+  - No escribir código espagueti.
+  - Separar responsabilidades correctamente.
+  - Mantener código reutilizable.
+  - Mantener arquitectura limpia y escalable.
+  - No duplicar lógica.
+  - No crear componentes repetidos.
+  - Mantener tipado estricto.
+  - No agregar funcionalidades no solicitadas.
+  - Priorizar mantenibilidad.
+  - Priorizar escalabilidad sin sobreingeniería.
+  - Mantener naming consistente.
+  - Todo debe ser responsive y mobile-first.
+  - Preparar la arquitectura para multi-tenant.
+  - Preparar la arquitectura para multi-sucursal desde el dominio.
+  - No iniciar con microservicios salvo que sea estrictamente necesario.
+  - La landing pública (delux.com) usa estética DARK PREMIUM con gradientes
+    fluidos, tipografía bold uppercase para productos y acento cyan en CTAs.
+  - Los dashboards internos usan estética SaaS profesional limpia tipo
+    novafactura (sidebar, topbar, cards de KPI, tablas densas, charts).

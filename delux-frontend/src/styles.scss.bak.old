@@ -1,0 +1,111 @@
+@import 'tailwindcss';
+
+/* ─────────────────────────────────────────────
+ * Delux — Design tokens (CSS variables)
+ * Tema DARK premium para landing/shop
+ * Tema SaaS profesional para dashboards
+ * ───────────────────────────────────────────── */
+
+:root {
+  /* Landing dark */
+  --dlx-bg: 6 8 15;          /* ink-950 */
+  --dlx-surface: 11 14 22;   /* ink-900 */
+  --dlx-elevated: 23 27 39;  /* ink-800 */
+  --dlx-border: 37 42 57;    /* ink-700 */
+  --dlx-text: 245 246 248;
+  --dlx-muted: 164 171 183;
+  --dlx-accent: 34 211 238;  /* cyan-400 */
+
+  color-scheme: dark;
+}
+
+html, body {
+  height: 100%;
+  margin: 0;
+  font-family: 'Inter', system-ui, -apple-system, sans-serif;
+  -webkit-font-smoothing: antialiased;
+  background: rgb(var(--dlx-bg));
+  color: rgb(var(--dlx-text));
+}
+
+/* Fuente display para títulos */
+.font-display {
+  font-family: 'Space Grotesk', 'Inter', sans-serif;
+  letter-spacing: -0.01em;
+}
+
+/* Scroll bar dark */
+::-webkit-scrollbar { width: 10px; height: 10px; }
+::-webkit-scrollbar-track { background: rgb(var(--dlx-bg)); }
+::-webkit-scrollbar-thumb { background: rgb(var(--dlx-border)); border-radius: 8px; }
+::-webkit-scrollbar-thumb:hover { background: rgb(var(--dlx-muted)); }
+
+/* Botón cyan estándar (landing) */
+.btn-accent {
+  @apply inline-flex items-center justify-center gap-2 px-6 py-3 rounded-full
+         bg-accent-400 text-ink-950 font-semibold tracking-wide
+         hover:bg-accent-300 transition-all
+         shadow-glow active:scale-95;
+}
+
+.btn-ghost {
+  @apply inline-flex items-center justify-center gap-2 px-6 py-3 rounded-full
+         border border-white/15 text-white/90 hover:bg-white/10 transition;
+}
+
+/* Pill nav (landing) */
+.pill-nav {
+  @apply flex items-center gap-1 p-1 rounded-full bg-white/5 backdrop-blur-md
+         border border-white/10;
+}
+.pill-nav button,
+.pill-nav a {
+  @apply px-4 py-2 rounded-full text-sm text-white/70 hover:text-white transition;
+}
+.pill-nav .active {
+  @apply bg-white text-ink-950 font-medium;
+}
+
+/* Glass card */
+.glass {
+  @apply bg-white/5 backdrop-blur-xl border border-white/10 rounded-2xl;
+}
+
+/* Wordmark watermark gigante en hero */
+.wordmark {
+  font-family: 'Space Grotesk', sans-serif;
+  font-weight: 800;
+  letter-spacing: 0.02em;
+  background: linear-gradient(180deg, rgba(255,255,255,0.10) 0%, rgba(255,255,255,0.02) 100%);
+  -webkit-background-clip: text;
+  background-clip: text;
+  color: transparent;
+}
+
+/* ─────────────────────────────────────────────
+ * Dashboard (SaaS) light theme override
+ * Aplicado al envolver con .dlx-dashboard
+ * Inspirado en novafactura-frontend
+ * ───────────────────────────────────────────── */
+.dlx-dashboard {
+  --dlx-bg: 247 248 251;
+  --dlx-surface: 255 255 255;
+  --dlx-elevated: 255 255 255;
+  --dlx-border: 226 230 238;
+  --dlx-text: 23 27 39;
+  --dlx-muted: 100 110 130;
+  color-scheme: light;
+  background: rgb(var(--dlx-bg));
+  color: rgb(var(--dlx-text));
+}
+.dlx-dashboard .card {
+  @apply bg-white border border-slate-200 rounded-xl shadow-sm;
+}
+.dlx-dashboard .btn-primary {
+  @apply inline-flex items-center gap-2 px-4 py-2 rounded-lg bg-ink-900 text-white
+         hover:bg-ink-800 transition text-sm font-medium;
+}
+.dlx-dashboard .btn-secondary {
+  @apply inline-flex items-center gap-2 px-4 py-2 rounded-lg bg-white border border-slate-200
+         text-ink-800 hover:bg-slate-50 transition text-sm font-medium;
+}

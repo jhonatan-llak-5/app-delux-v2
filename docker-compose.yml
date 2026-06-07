@@ -1,0 +1,120 @@
+# ============================================================================
+# Delux — Stack completo (puertos: frontend :4004, backend :8004, ws :8005)
+# ============================================================================
+
+services:
+
+  backend:
+    build:
+      context: ./delux-backend
+      args:
+        REQUIREMENTS: dev.txt
+    container_name: delux_backend
+    command: >
+      sh -c "python manage.py makemigrations --noinput &&
+             python manage.py migrate --noinput &&
+             python manage.py collectstatic --noinput &&
+             gunicorn config.wsgi:application --bind 0.0.0.0:8000 --workers 3 --reload"
+    env_file: .env
+    volumes:
+      - ./delux-backend:/app
+      - backend_media:/app/media
+      - backend_static:/app/static
+    ports:
+      - "8004:8000"
+    depends_on:
+      - postgres
+      - redis
+    restart: unless-stopped
+
+  websocket:
+    build:
+      context: ./delux-backend
+      args:
+        REQUIREMENTS: dev.txt
+    container_name: delux_websocket
+    command: daphne -b 0.0.0.0 -p 8001 config.asgi:application
+    env_file: .env
+    volumes:
+      - ./delux-backend:/app
+    ports:
+      - "8005:8001"
+    depends_on:
+      - redis
+      - postgres
+    restart: unless-stopped
+
+  celery:
+    build:
+      context: ./delux-backend
+      args:
+        REQUIREMENTS: dev.txt
+    container_name: delux_celery
+    command: celery -A config worker -l info
+    env_file: .env
+    volumes:
+      - ./delux-backend:/app
+    depends_on:
+      - redis
+      - postgres
+    restart: unless-stopped
+
+  celery-beat:
+    build:
+      context: ./delux-backend
+      args:
+        REQUIREMENTS: dev.txt
+    container_name: delux_celery_beat
+    command: celery -A config beat -l info
+    env_file: .env
+    volumes:
+      - ./delux-backend:/app
+    depends_on:
+      - redis
+      - postgres
+    restart: unless-stopped
+
+  frontend:
+    image: node:20-alpine
+    container_name: delux_frontend
+    working_dir: /app
+    # --poll 2000 activa polling de archivos cada 2s (necesario en Docker+Windows)
+    command: sh -c "npm install && npx ng serve --host 0.0.0.0 --port 4200 --poll 2000 --disable-host-check"
+    environment:
+      # Reduce ruido de watchers de node y chokidar usa polling
+      CHOKIDAR_USEPOLLING: "true"
+      CHOKIDAR_INTERVAL: "1000"
+      WATCHPACK_POLLING: "true"
+      NG_FORCE_TTY: "false"
+    volumes:
+      - ./delux-frontend:/app
+    ports:
+      - "4004:4200"
+    depends_on:
+      - backend
+    restart: unless-stopped
+
+  postgres:
+    image: postgres:16-alpine
+    container_name: delux_postgres
+    environment:
+      POSTGRES_DB: delux
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: postgres
+    volumes:
+      - delux_pg_data:/var/lib/postgresql/data
+    ports:
+      - "5434:5432"
+    restart: unless-stopped
+
+  redis:
+    image: redis:7-alpine
+    container_name: delux_redis
+    ports:
+      - "6381:6379"
+    restart: unless-stopped
+
+volumes:
+  delux_pg_data:
+  backend_media:
+  backend_static:
