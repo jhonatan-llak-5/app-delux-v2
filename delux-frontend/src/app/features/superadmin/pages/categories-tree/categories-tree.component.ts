@@ -16,8 +16,8 @@ import { CategoryFormModalComponent } from '@features/superadmin/components/cate
           <i class="fa-solid fa-folder-tree"></i>
           <span class="uppercase tracking-widest font-semibold">Catálogo</span>
         </div>
-        <h1 class="text-2xl md:text-3xl font-bold tracking-tight">Categorías</h1>
-        <p class="text-slate-500 text-sm mt-1">
+        <h1 class="text-2xl md:text-3xl font-bold tracking-tight text-ink-950 dark:text-white">Categorías</h1>
+        <p class="text-slate-500 dark:text-white/50 text-sm mt-1">
           Organiza el catálogo en árbol jerárquico. {{ totalCount() }} categorías en total.
         </p>
       </div>
@@ -27,8 +27,9 @@ import { CategoryFormModalComponent } from '@features/superadmin/components/cate
           Actualizar
         </button>
         <button (click)="openCreate(null)"
-                class="px-4 py-2.5 rounded-lg bg-ink-950 text-white text-sm font-semibold
-                       hover:bg-ink-900 transition flex items-center gap-2">
+                class="px-4 py-2.5 rounded-lg bg-ink-950 dark:bg-gradient-to-r dark:from-accent-500 dark:to-brand-violet
+                       text-white text-sm font-semibold
+                       hover:bg-ink-900 dark:hover:shadow-md dark:hover:shadow-brand-violet/30 transition flex items-center gap-2">
           <i class="fa-solid fa-plus"></i> Nueva categoría
         </button>
       </div>
@@ -118,10 +119,9 @@ import { CategoryFormModalComponent } from '@features/superadmin/components/cate
 
           <!-- Icon -->
           <div class="w-9 h-9 rounded-lg grid place-items-center text-sm"
-               [class.bg-ink-950]="depth === 0"
-               [class.text-white]="depth === 0"
-               [class.bg-slate-100]="depth > 0"
-               [class.text-slate-600]="depth > 0">
+               [ngClass]="depth === 0
+                  ? 'bg-ink-950 dark:bg-white/[0.08] text-white'
+                  : 'bg-slate-100 dark:bg-white/[0.04] text-slate-600 dark:text-white/70'">
             @if (node.icon) {
               <i class="fa-solid {{ node.icon }}"></i>
             } @else {
@@ -175,7 +175,7 @@ import { CategoryFormModalComponent } from '@features/superadmin/components/cate
         </div>
 
         @if (isExpanded(node.id) && node.children?.length) {
-          <ul class="bg-slate-50/40">
+          <ul class="bg-slate-50/40 dark:bg-white/[0.02]">
             @for (child of node.children; track child.id) {
               <ng-container *ngTemplateOutlet="treeNode; context: { $implicit: child, depth: depth + 1 }"></ng-container>
             }

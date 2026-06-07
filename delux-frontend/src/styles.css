@@ -5,18 +5,43 @@
 @tailwind utilities;
 
 /* ============================================================
+ * Tokens (dark + light)
+ * ============================================================ */
+:root {
+  --dlx-bg-deep:  #ffffff;
+  --dlx-bg-main:  #f8f9fb;
+  --dlx-bg-card:  #ffffff;
+  --dlx-bg-hover: #f1f5f9;
+  --dlx-border:   #e2e8f0;
+  --dlx-muted:    #64748b;
+}
+html.dark {
+  --dlx-bg-deep:  #0a0d14;
+  --dlx-bg-main:  #0f1320;
+  --dlx-bg-card:  #161a26;
+  --dlx-bg-hover: #1c2030;
+  --dlx-border:   rgba(255, 255, 255, 0.07);
+  --dlx-muted:    rgba(255, 255, 255, 0.55);
+}
+
+/* ============================================================
  * Base
  * ============================================================ */
 html, body {
   height: 100%;
   margin: 0;
-  font-family: 'Inter', system-ui, -apple-system, sans-serif;
+  font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, system-ui, sans-serif;
   -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+  font-feature-settings: 'cv02', 'cv03', 'cv04', 'cv11';
   transition: background-color 0.4s ease, color 0.4s ease;
 }
 
 html { background: #fafafa; }
-html.dark { background: #06080f; }
+html.dark {
+  background: #0a0a0a;
+}
+html:not(.dark) { background: #ffffff; }
 body { background: transparent; color: #0b0e16; }
 html.dark body { color: #f5f6f8; }
 
@@ -28,15 +53,14 @@ html.dark body { color: #f5f6f8; }
 
 .font-mono { font-family: 'JetBrains Mono', ui-monospace, monospace; }
 
-/* Scrollbar (ambos temas) */
 ::-webkit-scrollbar { width: 10px; height: 10px; }
 ::-webkit-scrollbar-track { background: #f1f5f9; }
-html.dark ::-webkit-scrollbar-track { background: #06080f; }
+html.dark ::-webkit-scrollbar-track { background: #0a0a0a; }
 ::-webkit-scrollbar-thumb { background: #cbd5e1; border-radius: 8px; }
 html.dark ::-webkit-scrollbar-thumb { background: #252a39; }
 
 /* ============================================================
- * Components
+ * Componentes legacy del landing
  * ============================================================ */
 @layer components {
   .btn-accent {
@@ -57,20 +81,19 @@ html.dark ::-webkit-scrollbar-thumb { background: #252a39; }
            hover:bg-ink-900 hover:text-white dark:hover:bg-white dark:hover:text-ink-950 transition-all;
   }
   .pill-nav {
-    @apply flex items-center gap-1 p-1 rounded-full
-           bg-ink-900/5 dark:bg-white/5
-           backdrop-blur-md
-           border border-ink-900/10 dark:border-white/10;
+    @apply flex items-center gap-0.5 p-1.5 rounded-full
+           bg-ink-100/60 dark:bg-white/5
+           backdrop-blur-xl
+           border border-ink-200/40 dark:border-white/10
+           shadow-sm dark:shadow-none;
   }
   .pill-nav button,
   .pill-nav a {
-    @apply px-4 py-2 rounded-full text-sm
-           text-ink-700/70 dark:text-white/70
-           hover:text-ink-900 dark:hover:text-white transition;
-  }
-  .pill-nav .active {
-    @apply bg-ink-950 dark:bg-white
-           text-white dark:text-ink-950 font-medium;
+    @apply inline-block px-5 py-2 rounded-full text-sm
+           text-ink-600 dark:text-white/60
+           hover:text-ink-900 dark:hover:text-white
+           hover:bg-white/60 dark:hover:bg-white/5
+           transition-all;
   }
   .glass {
     @apply backdrop-blur-xl
@@ -125,9 +148,7 @@ html.dark ::-webkit-scrollbar-thumb { background: #252a39; }
   }
 }
 
-/* ============================================================
- * Reveal on scroll
- * ============================================================ */
+/* Reveal on scroll */
 .reveal {
   opacity: 0;
   transform: translateY(40px);
@@ -152,9 +173,7 @@ html.dark ::-webkit-scrollbar-thumb { background: #252a39; }
 .reveal-stagger.is-visible > *:nth-child(7) { transition-delay: 480ms; }
 .reveal-stagger.is-visible > *:nth-child(8) { transition-delay: 560ms; }
 
-/* ============================================================
- * Decorative textures
- * ============================================================ */
+/* Texturas decorativas (landing) */
 .noise::after {
   content: '';
   position: absolute; inset: 0;
@@ -176,40 +195,338 @@ html.dark .grid-pattern {
     linear-gradient(90deg, rgba(255,255,255,0.04) 1px, transparent 1px);
 }
 
-/* ============================================================
- * Dashboard (always light)
- * ============================================================ */
-.dlx-dashboard {
-  background: #f7f8fb;
-  color: #171b27;
-}
+/* Dashboard (paleta MedicGet) */
 .dlx-dashboard .card {
-  @apply bg-white border border-slate-200 rounded-xl shadow-sm;
+  background-color: var(--dlx-bg-card);
+  border: 1px solid var(--dlx-border);
+  border-radius: 0.875rem;
 }
+html:not(.dark) .dlx-dashboard .card {
+  box-shadow: 0 1px 2px 0 rgba(0, 0, 0, 0.04);
+}
+
 .dlx-dashboard .btn-primary {
-  @apply inline-flex items-center gap-2 px-4 py-2 rounded-lg bg-ink-900 text-white
-         hover:bg-ink-800 transition text-sm font-medium;
+  @apply inline-flex items-center gap-2 px-4 py-2.5 rounded-lg
+         bg-ink-900 dark:bg-white
+         text-white dark:text-ink-950
+         hover:bg-ink-800 dark:hover:bg-ink-100
+         transition text-sm font-medium;
 }
 .dlx-dashboard .btn-secondary {
-  @apply inline-flex items-center gap-2 px-4 py-2 rounded-lg bg-white border border-slate-200
-         text-ink-800 hover:bg-slate-50 transition text-sm font-medium;
+  @apply inline-flex items-center gap-2 px-4 py-2.5 rounded-lg
+         bg-white dark:bg-white/5 border border-slate-200 dark:border-white/10
+         text-ink-800 dark:text-white/80
+         hover:bg-slate-50 dark:hover:bg-white/10 transition text-sm font-medium;
+}
+.dlx-dashboard .dlx-input {
+  @apply mt-1 w-full px-3 py-2.5 rounded-lg
+         bg-slate-50 dark:bg-white/5
+         border border-slate-200 dark:border-white/10
+         text-sm text-ink-950 dark:text-white
+         placeholder:text-slate-400 dark:placeholder:text-white/30
+         focus:bg-white dark:focus:bg-ink-950
+         focus:border-slate-400 dark:focus:border-white/30
+         focus:outline-none transition;
 }
 
+/* ============================================================
+ * Inputs estilo Instagram — rounded-full PILL
+ * ============================================================ */
+.input-modern {
+  width: 100%;
+  height: 56px;
+  padding: 0 24px;
+  border-radius: 9999px;
+  background-color: #ffffff;
+  border: 1.5px solid #d4d4d4;
+  font-size: 15px;
+  font-weight: 400;
+  font-family: inherit;
+  color: #0b0e16;
+  transition: border-color .12s ease, background-color .12s ease, box-shadow .12s ease;
+  outline: none;
+}
+.input-modern::placeholder { color: #8e8e8e; font-size: 15px; }
+.input-modern:hover { border-color: #a8a8a8; }
+.input-modern:focus {
+  border-color: #0095f6;
+  background-color: #ffffff;
+  box-shadow: 0 0 0 4px rgba(0, 149, 246, 0.10);
+}
+.input-modern:focus::placeholder { color: #0095f6; opacity: 0.6; }
+html.dark .input-modern {
+  background-color: transparent;
+  border-color: #363636;
+  color: #ffffff;
+}
+html.dark .input-modern::placeholder { color: #a8a8a8; }
+html.dark .input-modern:hover { border-color: #4a4a4a; }
+html.dark .input-modern:focus {
+  border-color: #0095f6;
+  background-color: transparent;
+  box-shadow: 0 0 0 4px rgba(0, 149, 246, 0.15);
+}
+html.dark .input-modern:focus::placeholder { color: #0095f6; opacity: 0.6; }
+
+textarea.input-modern { height: auto; padding: 14px 22px; min-height: 120px; border-radius: 24px; }
+
+.input-modern-wrap { position: relative; }
+.input-modern-wrap > .input-modern-trailing {
+  position: absolute;
+  right: 20px;
+  top: 50%;
+  transform: translateY(-50%);
+  color: #0b0e16;
+  background: transparent;
+  border: none;
+  cursor: pointer;
+  transition: opacity .12s ease;
+}
+.input-modern-wrap > .input-modern-trailing:hover { opacity: 0.7; }
+html.dark .input-modern-wrap > .input-modern-trailing { color: #ffffff; }
+
+.input-modern-label {
+  display: block;
+  font-size: 13px;
+  font-weight: 500;
+  color: #374151;
+  margin-bottom: 6px;
+}
+html.dark .input-modern-label { color: rgba(255, 255, 255, 0.75); }
+
+.input-modern-help {
+  display: block;
+  font-size: 13px;
+  color: #64748b;
+  margin-top: 8px;
+}
+html.dark .input-modern-help { color: rgba(255, 255, 255, 0.45); }
+
+/* ============================================================
+ * Botones estilo Instagram — todos PILL
+ * ============================================================ */
+.btn-modern-primary {
+  width: 100%;
+  height: 54px;
+  border-radius: 9999px;
+  font-size: 15px;
+  font-weight: 600;
+  font-family: inherit;
+  letter-spacing: -0.005em;
+  background-color: #0095f6;
+  color: #ffffff;
+  border: none;
+  cursor: pointer;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  transition: background-color .12s ease, transform .08s ease;
+}
+.btn-modern-primary:hover:not(:disabled) { background-color: #1877f2; }
+.btn-modern-primary:active:not(:disabled) { transform: scale(0.99); }
+.btn-modern-primary:disabled {
+  background-color: #b2dffc;
+  color: #ffffff;
+  cursor: not-allowed;
+  opacity: 1;
+}
+html.dark .btn-modern-primary:disabled {
+  background-color: #1b4470;
+  color: rgba(255, 255, 255, 0.5);
+}
+
+.btn-modern-secondary {
+  width: 100%;
+  height: 54px;
+  border-radius: 9999px;
+  font-size: 15px;
+  font-weight: 600;
+  font-family: inherit;
+  background-color: transparent;
+  color: #0b0e16;
+  border: 1px solid #d4d4d4;
+  cursor: pointer;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  transition: background-color .12s ease, border-color .12s ease;
+}
+.btn-modern-secondary:hover:not(:disabled) {
+  background-color: #fafafa;
+  border-color: #a8a8a8;
+}
+html.dark .btn-modern-secondary {
+  color: #ffffff;
+  border-color: #363636;
+}
+html.dark .btn-modern-secondary:hover:not(:disabled) {
+  background-color: rgba(255, 255, 255, 0.04);
+  border-color: #4a4a4a;
+}
+
+.btn-modern-ghost {
+  width: 100%;
+  height: 54px;
+  border-radius: 9999px;
+  font-size: 15px;
+  font-weight: 600;
+  font-family: inherit;
+  background-color: transparent;
+  color: #0095f6;
+  border: 1px solid #0095f6;
+  cursor: pointer;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  transition: background-color .12s ease;
+}
+.btn-modern-ghost:hover:not(:disabled) { background-color: rgba(0, 149, 246, 0.08); }
+
+/* Gradient text estilo Instagram */
+.ig-gradient-text {
+  background: linear-gradient(90deg, #f09433 0%, #e6683c 25%, #dc2743 50%, #cc2366 75%, #bc1888 100%);
+  -webkit-background-clip: text;
+  background-clip: text;
+  color: transparent;
+}
+
+/* FontAwesome baseline */
 .fa, .fas, .fab, .fa-solid, .fa-brands { line-height: 1; }
 
-@media (prefers-reduced-motion: reduce) {
-  *, *::before, *::after {
-    animation-duration: 0.01ms !important;
-    animation-iteration-count: 1 !important;
-    transition-duration: 0.01ms !important;
-  }
+/* Hide scrollbar utility */
+.scrollbar-hide { -ms-overflow-style: none; scrollbar-width: none; }
+.scrollbar-hide::-webkit-scrollbar { display: none; }
+
+.scrollbar-thin::-webkit-scrollbar { width: 6px; height: 6px; }
+.scrollbar-thin::-webkit-scrollbar-thumb { background: rgba(0,0,0,0.15); border-radius: 4px; }
+html.dark .scrollbar-thin::-webkit-scrollbar-thumb { background: rgba(255,255,255,0.15); }
+
+/* ============================================================
+ * Dashboard — Dark mode inputs/selects/textareas
+ * ============================================================ */
+.dlx-dashboard input[type="text"],
+.dlx-dashboard input[type="email"],
+.dlx-dashboard input[type="number"],
+.dlx-dashboard input[type="date"],
+.dlx-dashboard input[type="time"],
+.dlx-dashboard input[type="datetime-local"],
+.dlx-dashboard input[type="search"],
+.dlx-dashboard input[type="password"],
+.dlx-dashboard input[type="url"],
+.dlx-dashboard input:not([type]),
+.dlx-dashboard select,
+.dlx-dashboard textarea {
+  background-color: rgb(248 250 252);
+  color: rgb(11 14 22);
+}
+html.dark .dlx-dashboard input[type="text"],
+html.dark .dlx-dashboard input[type="email"],
+html.dark .dlx-dashboard input[type="number"],
+html.dark .dlx-dashboard input[type="date"],
+html.dark .dlx-dashboard input[type="time"],
+html.dark .dlx-dashboard input[type="datetime-local"],
+html.dark .dlx-dashboard input[type="search"],
+html.dark .dlx-dashboard input[type="password"],
+html.dark .dlx-dashboard input[type="url"],
+html.dark .dlx-dashboard input:not([type]),
+html.dark .dlx-dashboard select,
+html.dark .dlx-dashboard textarea {
+  background-color: rgba(255, 255, 255, 0.04);
+  color: rgb(245 246 248);
+  border-color: rgba(255, 255, 255, 0.08);
+}
+html.dark .dlx-dashboard input::placeholder,
+html.dark .dlx-dashboard textarea::placeholder {
+  color: rgba(255, 255, 255, 0.3);
+}
+html.dark .dlx-dashboard select option {
+  background-color: #161a26;
+  color: rgb(245 246 248);
 }
 
-/* Hide scrollbar for thumbnail carousels */
-.scrollbar-hide {
-  -ms-overflow-style: none;
-  scrollbar-width: none;
+.dlx-dashboard table { color: rgb(11 14 22); }
+html.dark .dlx-dashboard table { color: rgb(245 246 248); }
+html.dark .dlx-dashboard thead { background-color: rgba(255, 255, 255, 0.03); }
+html.dark .dlx-dashboard thead th { color: rgba(255, 255, 255, 0.55); }
+html.dark .dlx-dashboard tbody tr { border-color: rgba(255, 255, 255, 0.05); }
+html.dark .dlx-dashboard tbody tr:hover { background-color: rgba(255, 255, 255, 0.03); }
+
+/* Dashboard overrides via [class~="..."] */
+html.dark .dlx-dashboard [class~="bg-white"] {
+  background-color: var(--dlx-bg-card) !important;
 }
-.scrollbar-hide::-webkit-scrollbar {
-  display: none;
+html.dark .dlx-dashboard [class~="bg-slate-50"],
+html.dark .dlx-dashboard [class~="bg-slate-100"],
+html.dark .dlx-dashboard [class~="bg-gray-50"],
+html.dark .dlx-dashboard [class~="bg-gray-100"] {
+  background-color: rgba(255, 255, 255, 0.03) !important;
 }
+html.dark .dlx-dashboard [class~="bg-slate-200"],
+html.dark .dlx-dashboard [class~="bg-gray-200"] {
+  background-color: rgba(255, 255, 255, 0.06) !important;
+}
+html.dark .dlx-dashboard [class~="border-slate-100"],
+html.dark .dlx-dashboard [class~="border-slate-200"],
+html.dark .dlx-dashboard [class~="border-slate-300"],
+html.dark .dlx-dashboard [class~="border-gray-100"],
+html.dark .dlx-dashboard [class~="border-gray-200"],
+html.dark .dlx-dashboard [class~="border-gray-300"] {
+  border-color: var(--dlx-border) !important;
+}
+html.dark .dlx-dashboard [class~="text-ink-950"],
+html.dark .dlx-dashboard [class~="text-ink-900"],
+html.dark .dlx-dashboard [class~="text-slate-900"],
+html.dark .dlx-dashboard [class~="text-gray-900"],
+html.dark .dlx-dashboard [class~="text-black"] {
+  color: rgb(245 246 248) !important;
+}
+html.dark .dlx-dashboard [class~="text-ink-800"],
+html.dark .dlx-dashboard [class~="text-ink-700"],
+html.dark .dlx-dashboard [class~="text-slate-800"],
+html.dark .dlx-dashboard [class~="text-slate-700"],
+html.dark .dlx-dashboard [class~="text-gray-800"],
+html.dark .dlx-dashboard [class~="text-gray-700"] {
+  color: rgba(255, 255, 255, 0.85) !important;
+}
+html.dark .dlx-dashboard [class~="text-ink-600"],
+html.dark .dlx-dashboard [class~="text-slate-600"],
+html.dark .dlx-dashboard [class~="text-slate-500"],
+html.dark .dlx-dashboard [class~="text-gray-600"],
+html.dark .dlx-dashboard [class~="text-gray-500"] {
+  color: rgba(255, 255, 255, 0.65) !important;
+}
+html.dark .dlx-dashboard [class~="text-slate-400"],
+html.dark .dlx-dashboard [class~="text-gray-400"] {
+  color: rgba(255, 255, 255, 0.45) !important;
+}
+html.dark .dlx-dashboard [class*="hover:bg-slate-50"]:hover,
+html.dark .dlx-dashboard [class*="hover:bg-slate-100"]:hover,
+html.dark .dlx-dashboard [class*="hover:bg-gray-50"]:hover,
+html.dark .dlx-dashboard [class*="hover:bg-gray-100"]:hover {
+  background-color: rgba(255, 255, 255, 0.04) !important;
+}
+html.dark .dlx-dashboard [class*="hover:bg-white"]:hover {
+  background-color: var(--dlx-bg-hover) !important;
+}
+html.dark .dlx-dashboard [class~="divide-slate-100"] > * + *,
+html.dark .dlx-dashboard [class~="divide-slate-200"] > * + *,
+html.dark .dlx-dashboard [class~="divide-gray-100"] > * + *,
+html.dark .dlx-dashboard [class~="divide-gray-200"] > * + * {
+  border-color: var(--dlx-border) !important;
+}
+
+/* Animaciones */
+@keyframes slideDown {
+  from { opacity: 0; transform: translateY(-8px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+.animate-slide-down { animation: slideDown 0.2s ease-out; }
+
+@keyframes fadeIn {
+  from { opacity: 0; }
+  to { opacity: 1; }
+}
+.animate-fade-in { animation: fadeIn 0.3s ease-out; }

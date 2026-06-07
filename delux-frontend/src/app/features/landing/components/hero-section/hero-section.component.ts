@@ -6,7 +6,7 @@ interface HeroProduct {
   id: string; name: string; collection: string; tagline: string; price: number;
   image: string; haloClass: string; gradient: string;
 }
-type HeroPhase = 'explore' | 'showcase';
+type HeroPhase = 'showcase';
 
 @Component({
   selector: 'dlx-hero-section',
@@ -16,118 +16,48 @@ type HeroPhase = 'explore' | 'showcase';
   template: `
     <section class="relative min-h-[100svh] overflow-hidden pt-20">
 
-      <!-- Gradiente fluido base -->
-      <div class="pointer-events-none absolute inset-0 animate-fluid-drift opacity-40 dark:opacity-90 transition-all duration-1000"
+      <!-- Gradiente fluido base (más sutil) -->
+      <div class="pointer-events-none absolute inset-0 animate-fluid-drift opacity-25 dark:opacity-60 transition-all duration-1000"
            [style.background]="currentGradient()"></div>
 
-      <!-- Shimmer -->
-      <div class="pointer-events-none absolute inset-0 opacity-30 dark:opacity-50 mix-blend-overlay animate-liquid-wave"
+      <!-- Shimmer (sutil) -->
+      <div class="pointer-events-none absolute inset-0 opacity-20 dark:opacity-30 mix-blend-overlay animate-liquid-wave"
            style="background:
-             radial-gradient(35% 50% at 25% 30%, rgba(255,255,255,0.4) 0%, transparent 60%),
-             radial-gradient(35% 50% at 75% 70%, rgba(255,255,255,0.25) 0%, transparent 60%);"></div>
+             radial-gradient(35% 50% at 25% 30%, rgba(255,255,255,0.3) 0%, transparent 60%),
+             radial-gradient(35% 50% at 75% 70%, rgba(255,255,255,0.2) 0%, transparent 60%);"></div>
 
-      <!-- Grid -->
-      <div class="pointer-events-none absolute inset-0 grid-pattern opacity-30"></div>
+      <!-- Grid muy sutil -->
+      <div class="pointer-events-none absolute inset-0 grid-pattern opacity-[0.15]"></div>
 
       <!-- Vignette inferior -->
       <div class="pointer-events-none absolute inset-0
                   bg-gradient-to-b from-transparent
                   via-white/30 to-white dark:via-ink-950/30 dark:to-ink-950"></div>
 
-      <!-- ═══════════ EXPLORE ═══════════ -->
-      @if (phase() === 'explore') {
-        <div class="relative max-w-[1600px] mx-auto px-6 md:px-10 min-h-[calc(100svh-5rem)]
-                    flex flex-col items-center justify-center text-center animate-zoom-fade">
+      <!-- ═══════════ SHOWCASE (única fase) ═══════════ -->
+      <div class="relative max-w-[1600px] mx-auto px-6 md:px-10 pt-8 pb-24 animate-zoom-fade">
 
-          <div class="flex items-center gap-6 mb-8 animate-fade-in">
-            <span class="font-mono text-[10px] tracking-widest text-ink-500 dark:text-white/40">EC · 2026</span>
+        <!-- Header: meta del drop + link al catálogo -->
+        <div class="flex items-center justify-between mb-12 animate-fade-in">
+          <div class="flex items-center gap-4 font-mono text-[10px] tracking-widest text-ink-500 dark:text-white/40">
+            <span>DROP {{ currentProduct().id }}</span>
             <span class="w-px h-3 bg-ink-300 dark:bg-white/20"></span>
-            <span class="font-mono text-[10px] tracking-widest text-ink-500 dark:text-white/40">FALL · WINTER</span>
+            <span>{{ currentProduct().collection }}</span>
             <span class="w-px h-3 bg-ink-300 dark:bg-white/20"></span>
-            <span class="font-mono text-[10px] tracking-widest text-ink-500 dark:text-white/40">VOL. 01</span>
-          </div>
-
-          <h1 class="display-xl select-none leading-[0.85] animate-wordmark-rise
-                     text-[26vw] md:text-[20vw] lg:text-[17vw]
-                     text-ink-950 dark:text-white tracking-[-0.04em] font-semibold">
-            Delux
-          </h1>
-
-          <div class="reveal-line my-10 max-w-md mx-auto animate-reveal-line"></div>
-
-          <p class="text-ink-700 dark:text-white/70 max-w-2xl mx-auto text-base md:text-lg leading-relaxed
-                    animate-slide-up-late px-4 font-normal">
-            La nueva forma de vivir el streetwear premium en Ecuador.
-            <span class="block mt-2 text-ink-500 dark:text-white/50 text-sm tracking-wide">
-              Drops exclusivos · Retiro en sucursales · Envíos nacionales
+            <span class="text-accent-500 dark:text-accent-400 flex items-center gap-1.5">
+              <span class="w-1.5 h-1.5 rounded-full bg-accent-500 dark:bg-accent-400 animate-pulse"></span>
+              DISPONIBLE
             </span>
-          </p>
-
-          <div class="mt-12 flex flex-col sm:flex-row gap-3 animate-slide-up-later">
-            <button (click)="enterShowcase()" class="btn-accent animate-cta-pulse text-sm px-8 py-4 font-semibold">
-              Ver drops <i class="fa-solid fa-arrow-right text-xs"></i>
-            </button>
-            <a routerLink="/shop" class="btn-outline px-8 py-4">Ver catálogo</a>
           </div>
 
-          <div class="mt-20 grid grid-cols-3 gap-12 max-w-3xl mx-auto animate-fade-in-slow">
-            <div class="text-center">
-              <div class="font-display text-3xl md:text-4xl font-bold text-ink-950 dark:text-white tracking-tight">6+</div>
-              <div class="text-[10px] tracking-widest uppercase text-ink-500 dark:text-white/40 mt-1">Sucursales</div>
-            </div>
-            <div class="text-center border-x border-ink-200 dark:border-white/10">
-              <div class="font-display text-3xl md:text-4xl font-bold text-ink-950 dark:text-white tracking-tight">120+</div>
-              <div class="text-[10px] tracking-widest uppercase text-ink-500 dark:text-white/40 mt-1">Drops 2026</div>
-            </div>
-            <div class="text-center">
-              <div class="font-display text-3xl md:text-4xl font-bold text-ink-950 dark:text-white tracking-tight">10K+</div>
-              <div class="text-[10px] tracking-widest uppercase text-ink-500 dark:text-white/40 mt-1">Sneakerheads</div>
-            </div>
-          </div>
-
-          <button (click)="enterShowcase()"
-                  class="absolute bottom-8 left-1/2 -translate-x-1/2 flex flex-col items-center
-                         gap-3 text-ink-500 dark:text-white/40
-                         hover:text-ink-900 dark:hover:text-white transition group">
-            <span class="text-[9px] tracking-[0.4em] uppercase font-mono">Featured Drops</span>
-            <div class="w-px h-10 bg-gradient-to-b from-ink-400 dark:from-white/30 to-transparent"></div>
-            <i class="fa-solid fa-chevron-down text-xs animate-bounce"></i>
-          </button>
+          <a routerLink="/shop"
+             class="text-[10px] tracking-[0.3em] uppercase font-mono
+                    text-ink-500 dark:text-white/50 hover:text-ink-900 dark:hover:text-white transition
+                    flex items-center gap-2 group">
+            <span>Ver todo</span>
+            <i class="fa-solid fa-arrow-right text-xs group-hover:translate-x-1 transition"></i>
+          </a>
         </div>
-      }
-
-      <!-- ═══════════ SHOWCASE ═══════════ -->
-      @if (phase() === 'showcase') {
-        <div class="relative max-w-[1600px] mx-auto px-6 md:px-10 pt-8 pb-24 animate-zoom-fade">
-
-          <!-- Header simétrico -->
-          <div class="grid grid-cols-3 items-center mb-12 animate-fade-in">
-            <button (click)="backToExplore()"
-                    class="group flex items-center gap-3 text-ink-500 dark:text-white/50
-                           hover:text-ink-900 dark:hover:text-white transition justify-self-start">
-              <i class="fa-solid fa-arrow-left text-xs group-hover:-translate-x-1 transition"></i>
-              <span class="text-[10px] tracking-[0.3em] uppercase font-mono">Back</span>
-            </button>
-
-            <div class="flex items-center justify-center gap-4 font-mono text-[10px] tracking-widest text-ink-500 dark:text-white/40">
-              <span>DROP {{ currentProduct().id }}</span>
-              <span class="w-px h-3 bg-ink-300 dark:bg-white/20"></span>
-              <span>{{ currentProduct().collection }}</span>
-              <span class="w-px h-3 bg-ink-300 dark:bg-white/20"></span>
-              <span class="text-accent-500 dark:text-accent-400 flex items-center gap-1.5">
-                <span class="w-1.5 h-1.5 rounded-full bg-accent-500 dark:bg-accent-400 animate-pulse"></span>
-                DISPONIBLE
-              </span>
-            </div>
-
-            <a routerLink="/shop"
-               class="justify-self-end text-[10px] tracking-[0.3em] uppercase font-mono
-                      text-ink-500 dark:text-white/50 hover:text-ink-900 dark:hover:text-white transition
-                      flex items-center gap-2 group">
-              <span>Ver todo</span>
-              <i class="fa-solid fa-arrow-right text-xs group-hover:translate-x-1 transition"></i>
-            </a>
-          </div>
 
           <!-- Producto principal -->
           <div class="grid grid-cols-1 lg:grid-cols-12 gap-8 items-center">
@@ -307,7 +237,6 @@ type HeroPhase = 'explore' | 'showcase';
             </div>
           </div>
         </div>
-      }
     </section>
   `,
 })
@@ -360,37 +289,22 @@ export class HeroSectionComponent implements OnInit, OnDestroy {
     'radial-gradient(70% 90% at 50% 100%, rgba(20,184,166,0.35) 0%, transparent 70%),' +
     'radial-gradient(40% 60% at 80% 80%, rgba(255,120,73,0.35) 0%, transparent 70%)';
 
-  phase = signal<HeroPhase>('explore');
+  phase = signal<HeroPhase>('showcase');
   index = signal(0);
   currentProduct = computed(() => this.products[this.index()]);
-  currentGradient = computed(() =>
-    this.phase() === 'explore' ? this.defaultGradient : this.currentProduct().gradient
-  );
+  currentGradient = computed(() => this.currentProduct().gradient);
   paddedIndex = computed(() => String(this.index() + 1).padStart(2, '0'));
   paddedTotal = computed(() => String(this.products.length).padStart(2, '0'));
   progressPercent = computed(() => ((this.index() + 1) / this.products.length) * 100);
 
   private rotationTimer?: ReturnType<typeof setInterval>;
-  private autoEnterTimer?: ReturnType<typeof setTimeout>;
   private userInteractedSinceShowcase = false;
 
   ngOnInit(): void {
-    this.autoEnterTimer = setTimeout(() => {
-      if (this.phase() === 'explore') this.enterShowcase();
-    }, 7000);
+    this.startAutoRotation();
   }
   ngOnDestroy(): void {
     if (this.rotationTimer) clearInterval(this.rotationTimer);
-    if (this.autoEnterTimer) clearTimeout(this.autoEnterTimer);
-  }
-  enterShowcase() {
-    if (this.autoEnterTimer) clearTimeout(this.autoEnterTimer);
-    this.phase.set('showcase');
-    this.startAutoRotation();
-  }
-  backToExplore() {
-    if (this.rotationTimer) clearInterval(this.rotationTimer);
-    this.phase.set('explore');
   }
   private startAutoRotation() {
     if (this.rotationTimer) clearInterval(this.rotationTimer);

@@ -12,48 +12,48 @@ import { UiKpiCardComponent } from '@shared/components/ui-kpi-card/ui-kpi-card.c
   template: `
     <div class="flex items-end justify-between mb-6">
       <div>
-        <h1 class="text-2xl md:text-3xl font-bold tracking-tight">Panel de Superadmin</h1>
-        <p class="text-slate-500 text-sm mt-1">Visión global de la plataforma multi-tenant.</p>
+        <h1 class="text-2xl md:text-3xl font-bold tracking-tight text-ink-950 dark:text-white">Panel de Superadmin</h1>
+        <p class="text-slate-500 dark:text-white/50 text-sm mt-1">Visión global de la plataforma multi-tenant.</p>
       </div>
     </div>
 
     <div class="grid grid-cols-2 lg:grid-cols-4 gap-4 mb-6">
       <dlx-ui-kpi-card label="Tiendas"    [value]="tenantsCount() + ''"   icon="fa-store"
-                       iconBg="bg-violet-100 text-violet-600" />
+                       iconBg="bg-violet-100 dark:bg-violet-500/15 text-violet-600 dark:text-violet-400" />
       <dlx-ui-kpi-card label="Sucursales" [value]="branchesCount() + ''"  icon="fa-building"
-                       iconBg="bg-sky-100 text-sky-600" />
+                       iconBg="bg-sky-100 dark:bg-sky-500/15 text-sky-600 dark:text-sky-400" />
       <dlx-ui-kpi-card label="Usuarios"   [value]="usersCount() + ''"     icon="fa-users"
-                       iconBg="bg-emerald-100 text-emerald-600" />
+                       iconBg="bg-emerald-100 dark:bg-emerald-500/15 text-emerald-600 dark:text-emerald-400" />
       <dlx-ui-kpi-card label="Clientes"   [value]="customersCount() + ''" icon="fa-user-group"
-                       iconBg="bg-amber-100 text-amber-600" />
+                       iconBg="bg-amber-100 dark:bg-amber-500/15 text-amber-600 dark:text-amber-400" />
     </div>
 
     <div class="grid grid-cols-1 lg:grid-cols-3 gap-4">
       <a routerLink="/app/admin/tenants" class="card p-5 hover:shadow-md transition group">
-        <div class="w-10 h-10 rounded-lg bg-violet-100 text-violet-600 grid place-items-center mb-3">
+        <div class="w-10 h-10 rounded-lg bg-violet-100 dark:bg-violet-500/15 text-violet-600 dark:text-violet-400 grid place-items-center mb-3">
           <i class="fa-solid fa-store"></i>
         </div>
         <h3 class="font-semibold">Tiendas registradas</h3>
         <p class="text-sm text-slate-500 mt-1">Empresas/marcas que operan en Delux.</p>
-        <span class="text-sm text-ink-900 font-semibold mt-3 inline-block group-hover:underline">Ver tiendas →</span>
+        <span class="text-sm text-accent-600 dark:text-accent-400 font-semibold mt-3 inline-block group-hover:underline">Ver tiendas →</span>
       </a>
 
       <a routerLink="/app/admin/users" class="card p-5 hover:shadow-md transition group">
-        <div class="w-10 h-10 rounded-lg bg-emerald-100 text-emerald-600 grid place-items-center mb-3">
+        <div class="w-10 h-10 rounded-lg bg-emerald-100 dark:bg-emerald-500/15 text-emerald-600 dark:text-emerald-400 grid place-items-center mb-3">
           <i class="fa-solid fa-users"></i>
         </div>
         <h3 class="font-semibold">Usuarios</h3>
         <p class="text-sm text-slate-500 mt-1">Staff y clientes registrados.</p>
-        <span class="text-sm text-ink-900 font-semibold mt-3 inline-block group-hover:underline">Ver usuarios →</span>
+        <span class="text-sm text-accent-600 dark:text-accent-400 font-semibold mt-3 inline-block group-hover:underline">Ver usuarios →</span>
       </a>
 
       <a routerLink="/app/admin/settings" class="card p-5 hover:shadow-md transition group">
-        <div class="w-10 h-10 rounded-lg bg-sky-100 text-sky-600 grid place-items-center mb-3">
+        <div class="w-10 h-10 rounded-lg bg-sky-100 dark:bg-sky-500/15 text-sky-600 dark:text-sky-400 grid place-items-center mb-3">
           <i class="fa-solid fa-gear"></i>
         </div>
         <h3 class="font-semibold">Configuración</h3>
         <p class="text-sm text-slate-500 mt-1">SMTP, remitente, branding y expiraciones.</p>
-        <span class="text-sm text-ink-900 font-semibold mt-3 inline-block group-hover:underline">Abrir configuración →</span>
+        <span class="text-sm text-accent-600 dark:text-accent-400 font-semibold mt-3 inline-block group-hover:underline">Abrir configuración →</span>
       </a>
     </div>
   `,

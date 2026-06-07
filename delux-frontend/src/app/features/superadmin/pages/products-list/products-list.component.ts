@@ -20,14 +20,15 @@ import { CategoryService, Category } from '@features/superadmin/services/categor
           <i class="fa-solid fa-box"></i>
           <span class="uppercase tracking-widest font-semibold">Catálogo</span>
         </div>
-        <h1 class="text-2xl md:text-3xl font-bold tracking-tight">Productos</h1>
-        <p class="text-slate-500 text-sm mt-1">
+        <h1 class="text-2xl md:text-3xl font-bold tracking-tight text-ink-950 dark:text-white">Productos</h1>
+        <p class="text-slate-500 dark:text-white/50 text-sm mt-1">
           Administra tu catálogo. {{ products().length }} productos en pantalla.
         </p>
       </div>
       <a routerLink="/app/admin/products/new"
-         class="px-4 py-2.5 rounded-lg bg-ink-950 text-white text-sm font-semibold
-                hover:bg-ink-900 transition flex items-center gap-2">
+         class="px-4 py-2.5 rounded-lg bg-ink-950 dark:bg-gradient-to-r dark:from-accent-500 dark:to-brand-violet
+                text-white text-sm font-semibold
+                hover:bg-ink-900 dark:hover:shadow-md dark:hover:shadow-brand-violet/30 transition flex items-center gap-2">
         <i class="fa-solid fa-plus"></i> Nuevo producto
       </a>
     </div>
@@ -157,7 +158,8 @@ import { CategoryService, Category } from '@features/superadmin/services/categor
               <!-- Acciones -->
               <div class="mt-3 pt-3 border-t border-slate-100 flex items-center gap-1">
                 <button (click)="edit(p)"
-                        class="flex-1 py-2 rounded-lg bg-slate-100 hover:bg-slate-200 text-xs font-semibold transition">
+                        class="flex-1 py-2 rounded-lg bg-slate-100 dark:bg-white/[0.07] hover:bg-slate-200 dark:hover:bg-white/[0.12]
+                               text-slate-700 dark:text-white/85 text-xs font-semibold transition">
                   <i class="fa-solid fa-pen"></i> Editar
                 </button>
                 <button (click)="toggleFeatured(p)" [title]="p.is_featured ? 'Quitar destaque' : 'Destacar'"

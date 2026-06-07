@@ -11,51 +11,61 @@ import { AuthShellComponent } from '@features/auth/components/auth-shell/auth-sh
   imports: [CommonModule, FormsModule, RouterLink, AuthShellComponent],
   changeDetection: ChangeDetectionStrategy.OnPush,
   template: `
-    <dlx-auth-shell title="Iniciar sesión" subtitle="Bienvenido de vuelta a Delux.">
-      <form (ngSubmit)="submit()" #f="ngForm" class="space-y-4">
-        <div>
-          <label class="text-sm font-semibold text-ink-700 dark:text-white/70 mb-1.5 block">Usuario o correo</label>
-          <div class="relative">
-            <i class="fa-solid fa-user absolute left-3.5 top-1/2 -translate-y-1/2 text-ink-400 text-sm"></i>
-            <input [(ngModel)]="identifier" name="identifier" required autocomplete="username"
-                   placeholder="tucuenta o tu@correo.com"
-                   class="w-full pl-10 pr-3 py-3.5 rounded-xl bg-white dark:bg-white/5 border border-ink-200 dark:border-white/10 shadow-sm text-sm focus:outline-none focus:border-ink-950 dark:focus:border-white" />
-          </div>
-        </div>
+    <dlx-auth-shell title="Iniciar sesión en Delux">
+      <form (ngSubmit)="submit()" #f="ngForm" class="space-y-2.5">
 
-        <div>
-          <div class="flex items-baseline justify-between mb-1.5">
-            <label class="text-sm font-semibold text-ink-700 dark:text-white/70 block">Contraseña</label>
-            <a routerLink="/auth/forgot-password" class="text-xs font-semibold text-ink-500 dark:text-white/50 hover:text-ink-950 dark:hover:text-white">¿Olvidaste?</a>
-          </div>
-          <div class="relative">
-            <i class="fa-solid fa-lock absolute left-3.5 top-1/2 -translate-y-1/2 text-ink-400 text-sm"></i>
-            <input [(ngModel)]="password" name="password" [type]="show() ? 'text' : 'password'"
-                   required minlength="8" autocomplete="current-password"
-                   class="w-full pl-10 pr-12 py-3.5 rounded-xl bg-white dark:bg-white/5 border border-ink-200 dark:border-white/10 shadow-sm text-sm focus:outline-none focus:border-ink-950 dark:focus:border-white" />
-            <button type="button" (click)="show.set(!show())"
-                    class="absolute right-3 top-1/2 -translate-y-1/2 text-ink-400 hover:text-ink-700 dark:hover:text-white">
-              <i class="fa-solid text-sm" [class.fa-eye]="!show()" [class.fa-eye-slash]="show()"></i>
+        <input [(ngModel)]="identifier" name="identifier" required autocomplete="username"
+               placeholder="Usuario, correo o teléfono"
+               class="input-modern" />
+
+        <div class="input-modern-wrap">
+          <input [(ngModel)]="password" name="password" [type]="show() ? 'text' : 'password'"
+                 required minlength="8" autocomplete="current-password"
+                 placeholder="Contraseña"
+                 class="input-modern" />
+          @if (password) {
+            <button type="button" (click)="show.set(!show())" tabindex="-1"
+                    class="input-modern-trailing"
+                    style="font-size:13px;font-weight:600;">
+              {{ show() ? 'Ocultar' : 'Mostrar' }}
             </button>
-          </div>
+          }
         </div>
 
         @if (error()) {
-          <div class="p-3 rounded-xl bg-rose-50 dark:bg-rose-500/10 border border-rose-200 dark:border-rose-500/30 text-rose-700 dark:text-rose-300 text-sm">
-            <i class="fa-solid fa-circle-exclamation"></i> {{ error() }}
-          </div>
+          <p class="text-rose-600 dark:text-rose-400 text-[13px] text-center pt-1">
+            {{ error() }}
+          </p>
         }
 
-        <button type="submit" [disabled]="!f.valid || loading()"
-                class="w-full btn-accent text-sm font-semibold py-4 disabled:opacity-50">
-          @if (loading()) { <i class="fa-solid fa-spinner fa-spin"></i> Entrando... }
-          @else { <i class="fa-solid fa-arrow-right-to-bracket"></i> Iniciar sesión }
+        <button type="submit" [disabled]="!f.valid || loading()" class="btn-modern-primary mt-3">
+          @if (loading()) {
+            <i class="fa-solid fa-spinner fa-spin"></i> Entrando...
+          } @else {
+            Iniciar sesión
+          }
         </button>
+
+        <a routerLink="/auth/forgot-password"
+           class="block text-center text-[13px] font-semibold text-ink-950 dark:text-white pt-4">
+          ¿Has olvidado la contraseña?
+        </a>
       </form>
 
-      <div footer class="text-center text-sm text-ink-700 dark:text-white/60">
-        ¿No tienes cuenta?
-        <a routerLink="/auth/register" class="text-ink-950 dark:text-white font-semibold hover:underline">Crear una</a>
+      <div footer class="mt-12 space-y-3">
+        <button type="button" disabled
+                class="btn-modern-secondary opacity-50 cursor-not-allowed">
+          <i class="fa-brands fa-facebook text-[#0866ff]"></i>
+          Iniciar sesión con Facebook
+        </button>
+
+        <a routerLink="/auth/register" class="btn-modern-ghost">
+          Crear una cuenta
+        </a>
+
+        <p class="text-center text-[12px] text-ink-400 dark:text-white/35 pt-4">
+          © 2026 Delux · Quito, Ecuador
+        </p>
       </div>
     </dlx-auth-shell>
   `,
@@ -76,7 +86,6 @@ export class LoginComponent {
     this.auth.login(this.identifier.trim(), this.password).subscribe({
       next: r => {
         this.loading.set(false);
-        // Redirigir según rol
         const role = r.user.role;
         if (role === 'SUPERADMIN' || role === 'TENANT_ADMIN' || role === 'BRANCH_MANAGER') {
           this.router.navigate(['/app/admin/overview']);
@@ -86,7 +95,7 @@ export class LoginComponent {
       },
       error: e => {
         this.loading.set(false);
-        this.error.set(e?.error?.detail || 'No pudimos iniciar sesión.');
+        this.error.set(e?.error?.detail || 'Datos incorrectos. Verifica e intenta de nuevo.');
       },
     });
   }

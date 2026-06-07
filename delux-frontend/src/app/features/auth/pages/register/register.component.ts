@@ -11,77 +11,66 @@ import { AuthShellComponent } from '@features/auth/components/auth-shell/auth-sh
   imports: [CommonModule, FormsModule, RouterLink, AuthShellComponent],
   changeDetection: ChangeDetectionStrategy.OnPush,
   template: `
-    <dlx-auth-shell title="Crear cuenta" subtitle="Únete a Delux y accede a drops exclusivos.">
-      <form (ngSubmit)="submit()" #f="ngForm" class="space-y-4">
-        <div>
-          <label class="text-sm font-semibold text-ink-700 dark:text-white/70 mb-1.5 block">Nombre completo *</label>
-          <div class="relative">
-            <i class="fa-solid fa-user absolute left-3.5 top-1/2 -translate-y-1/2 text-ink-400 text-sm"></i>
-            <input [(ngModel)]="form.full_name" name="full_name" required minlength="2" maxlength="160"
-                   autocomplete="name" placeholder="Ej. Yessenia Macías"
-                   class="w-full pl-10 pr-3 py-3.5 rounded-xl bg-white dark:bg-white/5 border border-ink-200 dark:border-white/10 shadow-sm text-sm focus:outline-none focus:border-ink-950 dark:focus:border-white" />
-          </div>
-        </div>
+    <dlx-auth-shell title="Crear cuenta en Delux">
+      <form (ngSubmit)="submit()" #f="ngForm" class="space-y-2.5">
 
-        <div>
-          <label class="text-sm font-semibold text-ink-700 dark:text-white/70 mb-1.5 block">Nombre de usuario *</label>
-          <div class="relative">
-            <i class="fa-solid fa-at absolute left-3.5 top-1/2 -translate-y-1/2 text-ink-400 text-sm"></i>
-            <input [(ngModel)]="form.username" name="username" required minlength="3" maxlength="40"
-                   autocomplete="username" placeholder="yessi_macias"
-                   (ngModelChange)="form.username = $event.toLowerCase()"
-                   class="w-full pl-10 pr-3 py-3.5 rounded-xl bg-white dark:bg-white/5 border border-ink-200 dark:border-white/10 shadow-sm text-sm font-mono focus:outline-none focus:border-ink-950 dark:focus:border-white" />
-          </div>
-          <p class="text-[10px] text-ink-500 dark:text-white/40 mt-1.5">
-            Solo letras, números, punto y guion bajo. Mínimo 3 caracteres.
-          </p>
-        </div>
+        <input [(ngModel)]="form.email" name="email" type="email" required
+               autocomplete="email" placeholder="Correo electrónico"
+               class="input-modern" />
 
-        <div>
-          <label class="text-sm font-semibold text-ink-700 dark:text-white/70 mb-1.5 block">Correo electrónico *</label>
-          <div class="relative">
-            <i class="fa-solid fa-envelope absolute left-3.5 top-1/2 -translate-y-1/2 text-ink-400 text-sm"></i>
-            <input [(ngModel)]="form.email" name="email" type="email" required
-                   autocomplete="email" placeholder="tu@correo.com"
-                   class="w-full pl-10 pr-3 py-3.5 rounded-xl bg-white dark:bg-white/5 border border-ink-200 dark:border-white/10 shadow-sm text-sm focus:outline-none focus:border-ink-950 dark:focus:border-white" />
-          </div>
-        </div>
+        <input [(ngModel)]="form.full_name" name="full_name" required minlength="2" maxlength="160"
+               autocomplete="name" placeholder="Nombre completo"
+               class="input-modern" />
 
-        <div>
-          <label class="text-sm font-semibold text-ink-700 dark:text-white/70 mb-1.5 block">Contraseña *</label>
-          <div class="relative">
-            <i class="fa-solid fa-lock absolute left-3.5 top-1/2 -translate-y-1/2 text-ink-400 text-sm"></i>
-            <input [(ngModel)]="form.password" name="password" [type]="show() ? 'text' : 'password'"
-                   required minlength="8" autocomplete="new-password"
-                   class="w-full pl-10 pr-12 py-3.5 rounded-xl bg-white dark:bg-white/5 border border-ink-200 dark:border-white/10 shadow-sm text-sm focus:outline-none focus:border-ink-950 dark:focus:border-white" />
-            <button type="button" (click)="show.set(!show())"
-                    class="absolute right-3 top-1/2 -translate-y-1/2 text-ink-400 hover:text-ink-700 dark:hover:text-white">
-              <i class="fa-solid text-sm" [class.fa-eye]="!show()" [class.fa-eye-slash]="show()"></i>
+        <input [(ngModel)]="form.username" name="username" required minlength="3" maxlength="40"
+               autocomplete="username" placeholder="Nombre de usuario"
+               (ngModelChange)="form.username = $event.toLowerCase()"
+               class="input-modern" />
+
+        <div class="input-modern-wrap">
+          <input [(ngModel)]="form.password" name="password" [type]="show() ? 'text' : 'password'"
+                 required minlength="8" autocomplete="new-password"
+                 placeholder="Contraseña"
+                 class="input-modern" />
+          @if (form.password) {
+            <button type="button" (click)="show.set(!show())" tabindex="-1"
+                    class="input-modern-trailing"
+                    style="font-size:13px;font-weight:600;">
+              {{ show() ? 'Ocultar' : 'Mostrar' }}
             </button>
-          </div>
-          <p class="text-[10px] text-ink-500 dark:text-white/40 mt-1.5">Mínimo 8 caracteres.</p>
+          }
         </div>
+
+        <p class="text-[12px] text-ink-500 dark:text-white/55 text-center leading-relaxed pt-2">
+          Al registrarte aceptas nuestros
+          <a routerLink="/" class="text-[#0095f6]">términos</a>
+          y la
+          <a routerLink="/" class="text-[#0095f6]">política de privacidad</a>.
+        </p>
 
         @if (error()) {
-          <div class="p-3 rounded-xl bg-rose-50 dark:bg-rose-500/10 border border-rose-200 dark:border-rose-500/30 text-rose-700 dark:text-rose-300 text-sm">
-            <i class="fa-solid fa-circle-exclamation"></i> {{ error() }}
-          </div>
+          <p class="text-rose-600 dark:text-rose-400 text-[13px] text-center pt-1">
+            {{ error() }}
+          </p>
         }
 
-        <button type="submit" [disabled]="!f.valid || loading()"
-                class="w-full btn-accent text-sm font-semibold py-4 disabled:opacity-50">
-          @if (loading()) { <i class="fa-solid fa-spinner fa-spin"></i> Creando... }
-          @else { <i class="fa-solid fa-user-plus"></i> Crear cuenta }
+        <button type="submit" [disabled]="!f.valid || loading()" class="btn-modern-primary mt-2">
+          @if (loading()) {
+            <i class="fa-solid fa-spinner fa-spin"></i> Creando...
+          } @else {
+            Registrarte
+          }
         </button>
-
-        <p class="text-[10px] text-center text-ink-500 dark:text-white/40 leading-relaxed">
-          Al crear tu cuenta aceptas nuestros términos y política de privacidad.
-        </p>
       </form>
 
-      <div footer class="text-center text-sm text-ink-700 dark:text-white/60">
-        ¿Ya tienes cuenta?
-        <a routerLink="/auth/login" class="text-ink-950 dark:text-white font-semibold hover:underline">Inicia sesión</a>
+      <div footer class="mt-12 space-y-3">
+        <a routerLink="/auth/login" class="btn-modern-ghost">
+          Ya tengo una cuenta
+        </a>
+
+        <p class="text-center text-[12px] text-ink-400 dark:text-white/35 pt-4">
+          © 2026 Delux · Quito, Ecuador
+        </p>
       </div>
     </dlx-auth-shell>
   `,

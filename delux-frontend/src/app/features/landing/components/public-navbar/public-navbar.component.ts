@@ -21,33 +21,22 @@ import { SearchOverlayComponent } from '@shared/components/search-overlay/search
             [class.border-white/10]="scrolled() && theme.isDark()">
       <div class="max-w-[1600px] mx-auto px-6 md:px-10 h-20 flex items-center justify-between">
 
-        <a routerLink="/" class="flex items-center gap-3 group">
-          <div class="relative">
-            <div class="absolute inset-0 rounded-xl bg-gradient-to-br from-accent-400 to-brand-violet
-                        blur-md opacity-60 group-hover:opacity-100 transition"></div>
-            <div class="relative w-10 h-10 rounded-xl bg-gradient-to-br from-accent-400 via-brand-violet to-brand-magenta
-                        grid place-items-center font-display font-extrabold text-ink-950 text-lg">D</div>
-          </div>
-          <div class="hidden sm:flex flex-col leading-none">
-            <span class="font-display font-bold text-lg tracking-tight text-ink-900 dark:text-white">Delux</span>
-            <span class="text-[9px] tracking-[0.3em] uppercase text-ink-500 dark:text-white/40 mt-0.5">Streetwear · EC</span>
-          </div>
+        <a routerLink="/" class="flex items-center gap-2.5 group">
+          <div class="w-9 h-9 rounded-xl bg-ink-950 dark:bg-white grid place-items-center
+                      font-display font-extrabold text-white dark:text-ink-950 text-base">D</div>
+          <span class="hidden sm:inline font-display font-bold text-lg tracking-tight text-ink-950 dark:text-white">Delux</span>
         </a>
 
         <div class="hidden md:block">
           <div class="pill-nav">
             <a routerLink="/" [routerLinkActiveOptions]="{ exact: true }"
-               routerLinkActive="bg-ink-950 dark:bg-white text-white dark:text-ink-950 font-semibold"
-               class="px-4 py-2 rounded-full text-sm text-ink-700 dark:text-white/70 hover:text-ink-900 dark:hover:text-white transition">Inicio</a>
+               routerLinkActive="!bg-white dark:!bg-ink-950 !text-ink-950 dark:!text-white font-semibold shadow-md">Inicio</a>
             <a routerLink="/shop"
-               routerLinkActive="bg-ink-950 dark:bg-white text-white dark:text-ink-950 font-semibold"
-               class="px-4 py-2 rounded-full text-sm text-ink-700 dark:text-white/70 hover:text-ink-900 dark:hover:text-white transition">Shop</a>
+               routerLinkActive="!bg-white dark:!bg-ink-950 !text-ink-950 dark:!text-white font-semibold shadow-md">Shop</a>
             <a routerLink="/contact"
-               routerLinkActive="bg-ink-950 dark:bg-white text-white dark:text-ink-950 font-semibold"
-               class="px-4 py-2 rounded-full text-sm text-ink-700 dark:text-white/70 hover:text-ink-900 dark:hover:text-white transition">Contacto</a>
+               routerLinkActive="!bg-white dark:!bg-ink-950 !text-ink-950 dark:!text-white font-semibold shadow-md">Contacto</a>
             <a routerLink="/tracking"
-               routerLinkActive="bg-ink-950 dark:bg-white text-white dark:text-ink-950 font-semibold"
-               class="px-4 py-2 rounded-full text-sm text-ink-700 dark:text-white/70 hover:text-ink-900 dark:hover:text-white transition">Rastrear</a>
+               routerLinkActive="!bg-white dark:!bg-ink-950 !text-ink-950 dark:!text-white font-semibold shadow-md">Rastrear</a>
           </div>
         </div>
 
@@ -102,16 +91,16 @@ import { SearchOverlayComponent } from '@shared/components/search-overlay/search
       @if (open()) {
         <div class="md:hidden mx-6 mb-3 glass p-4 flex flex-col gap-1 animate-slide-down">
           <a routerLink="/" [routerLinkActiveOptions]="{ exact: true }"
-             routerLinkActive="bg-ink-950 dark:bg-white text-white dark:text-ink-950 font-semibold"
+             routerLinkActive="!bg-ink-950 dark:!bg-white !text-white dark:!text-ink-950 font-semibold"
              (click)="close()" class="px-4 py-3 rounded-lg hover:bg-ink-100 dark:hover:bg-white/10 text-sm">Inicio</a>
           <a routerLink="/shop"
-             routerLinkActive="bg-ink-950 dark:bg-white text-white dark:text-ink-950 font-semibold"
+             routerLinkActive="!bg-ink-950 dark:!bg-white !text-white dark:!text-ink-950 font-semibold"
              (click)="close()" class="px-4 py-3 rounded-lg hover:bg-ink-100 dark:hover:bg-white/10 text-sm">Shop</a>
           <a routerLink="/contact"
-             routerLinkActive="bg-ink-950 dark:bg-white text-white dark:text-ink-950 font-semibold"
+             routerLinkActive="!bg-ink-950 dark:!bg-white !text-white dark:!text-ink-950 font-semibold"
              (click)="close()" class="px-4 py-3 rounded-lg hover:bg-ink-100 dark:hover:bg-white/10 text-sm">Contacto</a>
           <a routerLink="/tracking"
-             routerLinkActive="bg-ink-950 dark:bg-white text-white dark:text-ink-950 font-semibold"
+             routerLinkActive="!bg-ink-950 dark:!bg-white !text-white dark:!text-ink-950 font-semibold"
              (click)="close()" class="px-4 py-3 rounded-lg hover:bg-ink-100 dark:hover:bg-white/10 text-sm">Rastrear</a>
           @if (hasToken) {
             <a routerLink="/account" (click)="close()" class="btn-outline mt-2 w-full text-sm">
