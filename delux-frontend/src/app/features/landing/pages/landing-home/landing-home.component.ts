@@ -1,7 +1,12 @@
-import { ChangeDetectionStrategy, Component } from '@angular/core';
+import { ChangeDetectionStrategy, Component, OnInit, inject, signal } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { RouterLink } from '@angular/router';
 import { HeroSectionComponent } from '@features/landing/components/hero-section/hero-section.component';
+import { PublicCatalogService, PublicProduct } from '@shared/services/public-catalog.service';
+
+interface DropCard {
+  id: number; name: string; brand: string; price: string; tag: string; image: string;
+}
 
 /**
  * Landing — Diseño consistente con auth (Instagram-like clean).
@@ -91,8 +96,20 @@ import { HeroSectionComponent } from '@features/landing/components/hero-section/
         </div>
 
         <!-- Grid de 4 productos -->
+        @if (loadingDrops()) {
+          <div class="grid grid-cols-2 lg:grid-cols-4 gap-5">
+            @for (i of [1,2,3,4]; track i) {
+              <div class="aspect-[3/4] rounded-2xl bg-ink-100 dark:bg-white/[0.04] animate-pulse"></div>
+            }
+          </div>
+        } @else if (drops().length === 0) {
+          <div class="text-center py-12 text-ink-500 dark:text-white/55">
+            <i class="fa-solid fa-box-open text-3xl mb-3"></i>
+            <p>No hay productos disponibles aún.</p>
+          </div>
+        } @else {
         <div class="grid grid-cols-2 lg:grid-cols-4 gap-5">
-          @for (d of drops; track d.id) {
+          @for (d of drops(); track d.id) {
             <a [routerLink]="['/shop', d.id]"
                class="group block rounded-2xl overflow-hidden
                       bg-white dark:bg-[#111111]
@@ -122,6 +139,7 @@ import { HeroSectionComponent } from '@features/landing/components/hero-section/
             </a>
           }
         </div>
+        }
       </div>
     </section>
 
@@ -242,7 +260,34 @@ import { HeroSectionComponent } from '@features/landing/components/hero-section/
     </section>
   `,
 })
-export class LandingHomeComponent {
+export class LandingHomeComponent implements OnInit {
+  private catalog = inject(PublicCatalogService);
+
+  drops = signal<DropCard[]>([]);
+  loadingDrops = signal(true);
+
+  ngOnInit(): void {
+    // Cargar 4 productos destacados desde el backend real
+    this.catalog.listProducts({ sort: 'featured' }).subscribe({
+      next: r => {
+        this.drops.set((r.results || []).slice(0, 4).map(p => ({
+          id: p.id,
+          name: p.name,
+          brand: p.brand_name,
+          price: p.base_price,
+          tag: this.tagLabel(p.tag),
+          image: p.main_image_url || 'https://images.unsplash.com/photo-1542291026-7eec264c27ff?w=600&q=85',
+        })));
+        this.loadingDrops.set(false);
+      },
+      error: () => this.loadingDrops.set(false),
+    });
+  }
+
+  private tagLabel(t: string): string {
+    return ({ NEW: 'Nuevo', DROP: 'Drop', SALE: 'Oferta', EXCLUSIVE: 'Exclusivo' } as any)[t] || 'Drop';
+  }
+
   readonly categories = [
     {
       slug: 'zapatillas',
@@ -262,17 +307,6 @@ export class LandingHomeComponent {
       description: 'Mochilas, gorras y complementos para completar tu fit.',
       image: 'https://images.unsplash.com/photo-1553062407-98eeb64c6a62?w=800&q=85&auto=format&fit=crop',
     },
-  ];
-
-  readonly drops = [
-    { id: '01', name: 'Court Vintage', brand: 'Nike', price: 180, tag: 'Drop',
-      image: 'https://images.unsplash.com/photo-1606107557195-0e29a4b5b4aa?w=600&q=85&auto=format&fit=crop' },
-    { id: '02', name: 'Heritage OG', brand: 'Converse', price: 95, tag: 'Nuevo',
-      image: 'https://images.unsplash.com/photo-1600185365778-7c4e2bbd8a4f?w=600&q=85&auto=format&fit=crop' },
-    { id: '03', name: 'Pulse Runner', brand: 'Puma', price: 220, tag: 'Nuevo',
-      image: 'https://images.unsplash.com/photo-1595950653106-6c9ebd614d3a?w=600&q=85&auto=format&fit=crop' },
-    { id: '04', name: 'Forum Low', brand: 'Adidas', price: 140, tag: 'Exclusivo',
-      image: 'https://images.unsplash.com/photo-1552346154-21d32810aba3?w=600&q=85&auto=format&fit=crop' },
   ];
 
   readonly benefits = [

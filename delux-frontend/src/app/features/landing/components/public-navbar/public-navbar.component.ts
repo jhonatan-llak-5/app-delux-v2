@@ -1,7 +1,8 @@
-import { ChangeDetectionStrategy, Component, HostListener, inject, signal } from '@angular/core';
+import { ChangeDetectionStrategy, Component, ElementRef, HostListener, computed, inject, signal } from '@angular/core';
 import { CommonModule } from '@angular/common';
-import { RouterLink, RouterLinkActive } from '@angular/router';
+import { Router, RouterLink, RouterLinkActive } from '@angular/router';
 import { ThemeService } from '@core/services/theme.service';
+import { AuthService } from '@core/services/auth.service';
 import { CartService } from '@features/checkout/services/cart.service';
 import { SearchOverlayComponent } from '@shared/components/search-overlay/search-overlay.component';
 
@@ -55,12 +56,64 @@ import { SearchOverlayComponent } from '@shared/components/search-overlay/search
             <i class="fa-solid fa-magnifying-glass text-sm"></i>
           </button>
           @if (hasToken) {
-            <a routerLink="/account"
-               class="hidden sm:grid w-10 h-10 place-items-center rounded-full
-                      text-ink-600 dark:text-white/70
-                      hover:bg-ink-100 dark:hover:bg-white/10 hover:text-ink-900 dark:hover:text-white transition" aria-label="Mi cuenta" title="Mi cuenta">
-              <i class="fa-regular fa-user text-sm"></i>
-            </a>
+            <div class="hidden sm:block relative" #accountDropdown>
+              <button (click)="accountOpen.set(!accountOpen())"
+                      class="w-10 h-10 grid place-items-center rounded-full
+                             bg-gradient-to-br from-[#0095f6] to-[#1877f2]
+                             text-white text-xs font-bold
+                             hover:scale-105 transition"
+                      aria-label="Mi cuenta">
+                {{ initials() }}
+              </button>
+              @if (accountOpen()) {
+                <div class="absolute right-0 top-full mt-2 w-60 rounded-xl overflow-hidden
+                            bg-white dark:bg-[#161a26]
+                            border border-ink-200 dark:border-white/[0.08]
+                            shadow-xl animate-slide-down z-50">
+                  <div class="p-3 border-b border-ink-100 dark:border-white/[0.08]">
+                    <p class="font-bold text-sm text-ink-950 dark:text-white truncate">{{ userName() }}</p>
+                    <p class="text-xs text-ink-500 dark:text-white/55 truncate">{{ userEmail() }}</p>
+                    @if (isStaff()) {
+                      <span class="inline-block mt-2 px-2 py-0.5 rounded-md bg-[#0095f6]/10 text-[#0095f6] text-[10px] font-bold uppercase tracking-wider">
+                        {{ roleLabel() }}
+                      </span>
+                    }
+                  </div>
+                  <div class="p-1">
+                    @if (isStaff()) {
+                      <a routerLink="/app/admin/overview" (click)="accountOpen.set(false)"
+                         class="flex items-center gap-3 px-3 py-2 rounded-lg text-sm text-[#0095f6] font-semibold
+                                hover:bg-[#0095f6]/10 transition">
+                        <i class="fa-solid fa-shield-halved w-4 text-center"></i>
+                        Panel admin
+                      </a>
+                    }
+                    <a routerLink="/account" (click)="accountOpen.set(false)"
+                       class="flex items-center gap-3 px-3 py-2 rounded-lg text-sm
+                              text-ink-700 dark:text-white/80
+                              hover:bg-ink-100 dark:hover:bg-white/[0.06] transition">
+                      <i class="fa-regular fa-user w-4 text-center"></i>
+                      Mi cuenta
+                    </a>
+                    <a routerLink="/account/orders" (click)="accountOpen.set(false)"
+                       class="flex items-center gap-3 px-3 py-2 rounded-lg text-sm
+                              text-ink-700 dark:text-white/80
+                              hover:bg-ink-100 dark:hover:bg-white/[0.06] transition">
+                      <i class="fa-solid fa-receipt w-4 text-center"></i>
+                      Mis compras
+                    </a>
+                  </div>
+                  <div class="p-1 border-t border-ink-100 dark:border-white/[0.08]">
+                    <button (click)="logout()"
+                            class="w-full flex items-center gap-3 px-3 py-2 rounded-lg text-sm font-semibold
+                                   text-rose-600 hover:bg-rose-50 dark:hover:bg-rose-500/10 transition">
+                      <i class="fa-solid fa-right-from-bracket w-4 text-center"></i>
+                      Cerrar sesión
+                    </button>
+                  </div>
+                </div>
+              }
+            </div>
           } @else {
             <a routerLink="/auth/login"
                class="hidden sm:inline-flex items-center gap-2 px-4 py-2 rounded-full
@@ -128,11 +181,36 @@ import { SearchOverlayComponent } from '@shared/components/search-overlay/search
   `,
 })
 export class PublicNavbarComponent {
+  private readonly STAFF_ROLES = ['SUPERADMIN', 'TENANT_ADMIN', 'BRANCH_MANAGER', 'SALESPERSON'];
+
   theme = inject(ThemeService);
   cart = inject(CartService);
+  private auth = inject(AuthService);
+  private router = inject(Router);
+  private host = inject(ElementRef);
+
   searchOpen = signal(false);
   open = signal(false);
+  accountOpen = signal(false);
   scrolled = signal(false);
+
+  userName  = computed(() => this.auth.user()?.full_name ?? 'Usuario');
+  userEmail = computed(() => this.auth.user()?.email ?? '');
+  initials  = computed(() => {
+    const n = this.userName();
+    return n.split(' ').map(s => s[0]).slice(0, 2).join('').toUpperCase() || 'U';
+  });
+  isStaff = computed(() => {
+    const r = this.auth.user()?.role;
+    return !!r && this.STAFF_ROLES.includes(r);
+  });
+  roleLabel = computed(() => {
+    const r = this.auth.user()?.role;
+    return ({
+      SUPERADMIN: 'Superadmin', TENANT_ADMIN: 'Admin tienda',
+      BRANCH_MANAGER: 'Gerente sucursal', SALESPERSON: 'Vendedor',
+    } as Record<string, string>)[r ?? ''] ?? 'Cliente';
+  });
 
   get hasToken(): boolean {
     return typeof window !== 'undefined' && !!localStorage.getItem('dlx_access_token');
@@ -141,8 +219,21 @@ export class PublicNavbarComponent {
   toggle() { this.open.update(v => !v); }
   close() { this.open.set(false); }
 
+  logout() {
+    this.accountOpen.set(false);
+    this.auth.logout();
+    this.router.navigate(['/']);
+  }
+
   @HostListener('window:scroll')
   onScroll() {
     this.scrolled.set(typeof window !== 'undefined' && window.scrollY > 30);
+  }
+
+  @HostListener('document:click', ['$event'])
+  onDocClick(ev: MouseEvent) {
+    if (!this.accountOpen()) return;
+    const el = this.host.nativeElement as HTMLElement;
+    if (!el.contains(ev.target as Node)) this.accountOpen.set(false);
   }
 }

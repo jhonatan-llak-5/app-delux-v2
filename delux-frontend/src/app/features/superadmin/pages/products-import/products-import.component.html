@@ -1,0 +1,376 @@
+<div class="space-y-6">
+
+  <dlx-page-header
+    eyebrow="Catálogo"
+    title="Importar productos masivamente"
+    subtitle="Descarga la plantilla Excel, llénala y súbela. Las imágenes se asocian por URL o por ZIP con auto-match.">
+    <a routerLink="/app/admin/products"
+       class="px-3 py-2 rounded-lg text-sm text-slate-600 dark:text-slate-300
+              hover:bg-slate-100 dark:hover:bg-[#1e293b] flex items-center gap-2">
+      <i class="fa-solid fa-arrow-left"></i> Volver
+    </a>
+  </dlx-page-header>
+
+  <!-- Stepper -->
+  <div class="flex items-center gap-2 sm:gap-4 overflow-x-auto pb-2">
+    @for (s of [1,2,3,4]; track s; let i = $index) {
+      <div class="flex items-center gap-2 sm:gap-4 shrink-0">
+        <div class="flex items-center gap-2">
+          <div class="w-9 h-9 rounded-full grid place-items-center text-sm font-bold transition"
+               [class.bg-blue-600]="step() >= s"
+               [class.text-white]="step() >= s"
+               [class.bg-slate-200]="step() < s"
+               [class.dark:bg-slate-700]="step() < s"
+               [class.text-slate-500]="step() < s">
+            @if (step() > s) { <i class="fa-solid fa-check"></i> }
+            @else { {{ s }} }
+          </div>
+          <span class="text-sm font-semibold hidden sm:inline"
+                [class.text-slate-900]="step() >= s"
+                [class.dark:text-white]="step() >= s"
+                [class.text-slate-400]="step() < s">
+            @switch (s) {
+              @case (1) { Plantilla }
+              @case (2) { Validar datos }
+              @case (3) { Imágenes y crear }
+              @case (4) { Resultado }
+            }
+          </span>
+        </div>
+        @if (s < 4) {
+          <div class="h-px w-8 sm:w-16 bg-slate-200 dark:bg-slate-700"></div>
+        }
+      </div>
+    }
+  </div>
+
+  <!-- ============================================================ -->
+  <!-- PASO 1: Descargar plantilla -->
+  <!-- ============================================================ -->
+  @if (step() === 1) {
+    <dlx-card>
+      <div class="text-center py-8 space-y-5 max-w-xl mx-auto">
+        <div class="w-16 h-16 mx-auto rounded-2xl bg-blue-100 dark:bg-blue-500/15
+                    text-blue-600 dark:text-blue-300 grid place-items-center">
+          <i class="fa-solid fa-file-excel text-3xl"></i>
+        </div>
+        <div>
+          <h2 class="text-xl font-bold text-slate-900 dark:text-white">Descarga la plantilla</h2>
+          <p class="text-sm text-slate-500 dark:text-slate-400 mt-2 leading-relaxed">
+            Es un archivo Excel con todas las columnas correctas, dropdowns para marca / categoría /
+            sucursal y una hoja de instrucciones. Llénalo con tus productos y vuelve aquí.
+          </p>
+        </div>
+        <div class="flex flex-col sm:flex-row items-center justify-center gap-3 pt-2">
+          <dlx-button variant="primary" icon="fa-download" [loading]="loading()" (clicked)="downloadTemplate()">
+            Descargar plantilla
+          </dlx-button>
+          <dlx-button variant="ghost" icon="fa-arrow-right" iconRight="" (clicked)="goStep2()">
+            Ya la tengo, continuar
+          </dlx-button>
+        </div>
+
+        <div class="text-left mt-6 p-4 rounded-lg bg-slate-50 dark:bg-[#0b1220] border border-slate-200 dark:border-[#334155]">
+          <p class="text-sm font-bold text-slate-700 dark:text-slate-200 mb-2">
+            <i class="fa-solid fa-lightbulb text-amber-500"></i> Recomendaciones
+          </p>
+          <ul class="text-sm text-slate-600 dark:text-slate-400 space-y-1.5 list-disc pl-5">
+            <li>Las columnas obligatorias son: <b>Nombre, Marca, Categoría, Precio base</b>.</li>
+            <li>Usa el <b>slug</b> (no el nombre) para marca y categoría. Hay una hoja "Catálogos" con los valores válidos.</li>
+            <li>Para variantes, separa tallas y colores con <code class="font-mono">|</code> (ej: <code>38|39|40</code>). Se crean todas las combinaciones.</li>
+            <li>Imágenes: o pones URLs en el archivo, o subes un ZIP con archivos nombrados como el slug del producto.</li>
+          </ul>
+        </div>
+      </div>
+    </dlx-card>
+  }
+
+  <!-- ============================================================ -->
+  <!-- PASO 2: Subir + validar -->
+  <!-- ============================================================ -->
+  @if (step() === 2) {
+    <dlx-card>
+      @if (!xlsxFile()) {
+        <label class="block cursor-pointer">
+          <div class="border-2 border-dashed border-slate-300 dark:border-[#334155] rounded-xl
+                      p-10 text-center hover:border-blue-500 dark:hover:border-blue-400 transition">
+            <i class="fa-solid fa-cloud-arrow-up text-4xl text-slate-400 mb-3"></i>
+            <p class="text-base font-semibold text-slate-700 dark:text-slate-200">Sube tu archivo .xlsx</p>
+            <p class="text-sm text-slate-500 dark:text-slate-400 mt-1">Click aquí para seleccionarlo</p>
+            <input type="file" class="hidden"
+                   accept=".xlsx,application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
+                   (change)="onXlsxSelected($event)" />
+          </div>
+        </label>
+      } @else {
+        <div class="flex items-center justify-between p-4 rounded-lg bg-slate-50 dark:bg-[#0b1220] border border-slate-200 dark:border-[#334155]">
+          <div class="flex items-center gap-3">
+            <div class="w-10 h-10 rounded-lg bg-blue-100 dark:bg-blue-500/15 text-blue-600 dark:text-blue-300 grid place-items-center">
+              <i class="fa-solid fa-file-excel"></i>
+            </div>
+            <div>
+              <p class="font-semibold text-sm text-slate-900 dark:text-white">{{ xlsxFile()!.name }}</p>
+              <p class="text-xs text-slate-500 dark:text-slate-400">{{ (xlsxFile()!.size / 1024).toFixed(1) }} KB</p>
+            </div>
+          </div>
+          <button (click)="clearXlsx()" class="text-xs text-rose-600 hover:underline font-semibold">
+            Quitar
+          </button>
+        </div>
+      }
+
+      @if (loading()) {
+        <div class="text-center py-6 text-slate-500">
+          <i class="fa-solid fa-spinner fa-spin text-2xl mb-2"></i>
+          <p class="text-sm">Validando filas…</p>
+        </div>
+      }
+    </dlx-card>
+
+    <!-- Resumen -->
+    @if (summary(); as s) {
+      <div class="grid grid-cols-2 md:grid-cols-4 gap-3">
+        <div class="eg-card-padded">
+          <p class="text-xs uppercase tracking-widest text-slate-500 font-semibold">Total</p>
+          <p class="text-2xl font-bold mt-1 text-slate-900 dark:text-white">{{ s.total }}</p>
+        </div>
+        <div class="eg-card-padded">
+          <p class="text-xs uppercase tracking-widest text-emerald-600 dark:text-emerald-400 font-semibold">Válidas</p>
+          <p class="text-2xl font-bold mt-1 text-emerald-600 dark:text-emerald-300">{{ s.ok }}</p>
+        </div>
+        <div class="eg-card-padded">
+          <p class="text-xs uppercase tracking-widest text-amber-600 dark:text-amber-400 font-semibold">Con avisos</p>
+          <p class="text-2xl font-bold mt-1 text-amber-600 dark:text-amber-300">{{ s.warning }}</p>
+        </div>
+        <div class="eg-card-padded">
+          <p class="text-xs uppercase tracking-widest text-rose-600 dark:text-rose-400 font-semibold">Con errores</p>
+          <p class="text-2xl font-bold mt-1 text-rose-600 dark:text-rose-300">{{ s.error }}</p>
+        </div>
+      </div>
+    }
+
+    <!-- Tabla preview -->
+    @if (rows().length > 0) {
+      <dlx-card>
+        <div class="flex items-center justify-between mb-4 gap-2 flex-wrap">
+          <div class="flex items-center gap-1 bg-slate-100 dark:bg-[#0b1220] rounded-lg p-1">
+            <button (click)="filter.set('all')"
+                    class="px-3 py-1.5 rounded-md text-xs font-bold transition"
+                    [class.bg-white]="filter() === 'all'"
+                    [class.dark:bg-[#1e293b]]="filter() === 'all'"
+                    [class.shadow-sm]="filter() === 'all'">Todas</button>
+            <button (click)="filter.set('ok')"
+                    class="px-3 py-1.5 rounded-md text-xs font-bold transition"
+                    [class.bg-white]="filter() === 'ok'"
+                    [class.dark:bg-[#1e293b]]="filter() === 'ok'"
+                    [class.shadow-sm]="filter() === 'ok'">Válidas</button>
+            <button (click)="filter.set('warning')"
+                    class="px-3 py-1.5 rounded-md text-xs font-bold transition"
+                    [class.bg-white]="filter() === 'warning'"
+                    [class.dark:bg-[#1e293b]]="filter() === 'warning'"
+                    [class.shadow-sm]="filter() === 'warning'">Con avisos</button>
+            <button (click)="filter.set('error')"
+                    class="px-3 py-1.5 rounded-md text-xs font-bold transition"
+                    [class.bg-white]="filter() === 'error'"
+                    [class.dark:bg-[#1e293b]]="filter() === 'error'"
+                    [class.shadow-sm]="filter() === 'error'">Con errores</button>
+          </div>
+          <p class="text-xs text-slate-500">Mostrando {{ filteredRows().length }} de {{ rows().length }} filas</p>
+        </div>
+
+        <div class="overflow-x-auto rounded-lg border border-slate-200 dark:border-[#334155]">
+          <table class="w-full text-sm">
+            <thead class="bg-slate-50 dark:bg-[#0b1220] text-xs uppercase tracking-wider text-slate-500">
+              <tr>
+                <th class="text-left px-3 py-2 w-12">#</th>
+                <th class="text-left px-3 py-2">Estado</th>
+                <th class="text-left px-3 py-2">Nombre</th>
+                <th class="text-left px-3 py-2">Marca</th>
+                <th class="text-left px-3 py-2">Categoría</th>
+                <th class="text-right px-3 py-2">Precio</th>
+                <th class="text-left px-3 py-2">Variantes</th>
+                <th class="text-left px-3 py-2">Mensajes</th>
+              </tr>
+            </thead>
+            <tbody class="divide-y divide-slate-100 dark:divide-[#1e293b]">
+              @for (r of filteredRows(); track r.__row__) {
+                <tr [class]="rowRowClass(r._status)">
+                  <td class="px-3 py-2 text-slate-400 font-mono">{{ r.__row__ }}</td>
+                  <td class="px-3 py-2">
+                    <span class="inline-flex items-center gap-1.5 px-2 py-0.5 rounded-md text-[11px] font-bold uppercase tracking-wider"
+                          [class]="rowBadgeClass(r._status)">
+                      @switch (r._status) {
+                        @case ('ok')      { <i class="fa-solid fa-check"></i> OK }
+                        @case ('warning') { <i class="fa-solid fa-triangle-exclamation"></i> Aviso }
+                        @case ('error')   { <i class="fa-solid fa-circle-xmark"></i> Error }
+                      }
+                    </span>
+                  </td>
+                  <td class="px-3 py-2 font-semibold text-slate-900 dark:text-white">{{ r.name || '—' }}</td>
+                  <td class="px-3 py-2 font-mono text-xs text-slate-600 dark:text-slate-300">{{ r.brand_slug || '—' }}</td>
+                  <td class="px-3 py-2 font-mono text-xs text-slate-600 dark:text-slate-300">{{ r.category_slug || '—' }}</td>
+                  <td class="px-3 py-2 text-right font-semibold tabular-nums text-slate-900 dark:text-white">
+                    @if (r.base_price) { ${{ r.base_price }} } @else { — }
+                  </td>
+                  <td class="px-3 py-2 text-xs text-slate-600 dark:text-slate-400">
+                    @if (r.sizes?.length || r.colors?.length) {
+                      {{ (r.sizes?.length || 1) * (r.colors?.length || 1) }} combos
+                    } @else { 1 }
+                  </td>
+                  <td class="px-3 py-2 text-xs">
+                    @for (e of r._errors; track e) {
+                      <div class="text-rose-600 dark:text-rose-400">• {{ e }}</div>
+                    }
+                    @for (w of r._warnings; track w) {
+                      <div class="text-amber-600 dark:text-amber-400">• {{ w }}</div>
+                    }
+                  </td>
+                </tr>
+              }
+              @if (filteredRows().length === 0) {
+                <tr>
+                  <td colspan="8" class="text-center py-8 text-slate-400 text-sm">
+                    Sin filas en esta vista.
+                  </td>
+                </tr>
+              }
+            </tbody>
+          </table>
+        </div>
+
+        <div class="flex justify-between items-center mt-5 gap-3 flex-wrap">
+          <dlx-button variant="ghost" icon="fa-arrow-left" (clicked)="step.set(1)">
+            Atrás
+          </dlx-button>
+          <dlx-button variant="primary" icon="fa-arrow-right"
+                      [disabled]="validRowsCount() === 0"
+                      (clicked)="goStep3()">
+            Continuar con {{ validRowsCount() }} producto(s)
+          </dlx-button>
+        </div>
+      </dlx-card>
+    }
+  }
+
+  <!-- ============================================================ -->
+  <!-- PASO 3: ZIP opcional + commit -->
+  <!-- ============================================================ -->
+  @if (step() === 3) {
+    <dlx-card>
+      <div class="space-y-5">
+        <div>
+          <h2 class="text-lg font-bold text-slate-900 dark:text-white">
+            Imágenes adicionales <span class="text-xs font-normal text-slate-500">(opcional)</span>
+          </h2>
+          <p class="text-sm text-slate-500 dark:text-slate-400 mt-1">
+            Sube un <b>.zip</b> con tus imágenes locales. Se asocian automáticamente al producto
+            cuyo <b>slug</b> coincide con el nombre del archivo.<br />
+            Ejemplo: <code class="font-mono text-blue-600">nike-air-force-1.jpg</code>,
+            <code class="font-mono text-blue-600">nike-air-force-1-2.jpg</code>.
+          </p>
+        </div>
+
+        @if (!zipFile()) {
+          <label class="block cursor-pointer">
+            <div class="border-2 border-dashed rounded-xl p-10 text-center transition"
+                 [class.border-blue-500]="zipDragOver()"
+                 [class.bg-blue-50]="zipDragOver()"
+                 [class.dark:bg-blue-500/10]="zipDragOver()"
+                 [class.border-slate-300]="!zipDragOver()"
+                 [class.dark:border-[#334155]]="!zipDragOver()"
+                 (dragover)="onZipDragOver($event)"
+                 (dragleave)="onZipDragLeave()"
+                 (drop)="onZipDrop($event)">
+              <i class="fa-solid fa-file-zipper text-4xl text-slate-400 mb-3"></i>
+              <p class="text-base font-semibold text-slate-700 dark:text-slate-200">
+                Arrastra el ZIP aquí o click para elegir
+              </p>
+              <p class="text-sm text-slate-500 dark:text-slate-400 mt-1">
+                Solo .zip · imágenes .jpg .png .webp .gif .avif
+              </p>
+              <input type="file" class="hidden" accept=".zip,application/zip"
+                     (change)="onZipSelected($event)" />
+            </div>
+          </label>
+        } @else {
+          <div class="flex items-center justify-between p-4 rounded-lg bg-slate-50 dark:bg-[#0b1220] border border-slate-200 dark:border-[#334155]">
+            <div class="flex items-center gap-3">
+              <div class="w-10 h-10 rounded-lg bg-blue-100 dark:bg-blue-500/15 text-blue-600 dark:text-blue-300 grid place-items-center">
+                <i class="fa-solid fa-file-zipper"></i>
+              </div>
+              <div>
+                <p class="font-semibold text-sm text-slate-900 dark:text-white">{{ zipFile()!.name }}</p>
+                <p class="text-xs text-slate-500 dark:text-slate-400">{{ (zipFile()!.size / 1024 / 1024).toFixed(2) }} MB</p>
+              </div>
+            </div>
+            <button (click)="clearZip()" class="text-xs text-rose-600 hover:underline font-semibold">
+              Quitar
+            </button>
+          </div>
+        }
+
+        <div class="p-4 rounded-lg bg-blue-50 dark:bg-blue-500/10 border border-blue-200 dark:border-blue-500/30">
+          <p class="text-sm text-blue-900 dark:text-blue-200">
+            <i class="fa-solid fa-info-circle mr-1.5"></i>
+            Se crearán <b>{{ validRowsCount() }} producto(s)</b>. Si no subes ZIP, se usarán solo las URLs
+            que tienes en el Excel.
+          </p>
+        </div>
+      </div>
+
+      <div class="flex justify-between items-center mt-6 gap-3 flex-wrap">
+        <dlx-button variant="ghost" icon="fa-arrow-left" (clicked)="step.set(2)">
+          Atrás
+        </dlx-button>
+        <dlx-button variant="primary" icon="fa-check" [loading]="loading()" (clicked)="doCommit()">
+          Crear {{ validRowsCount() }} producto(s)
+        </dlx-button>
+      </div>
+    </dlx-card>
+  }
+
+  <!-- ============================================================ -->
+  <!-- PASO 4: Resultado -->
+  <!-- ============================================================ -->
+  @if (step() === 4 && result(); as r) {
+    <dlx-card>
+      <div class="text-center py-6 space-y-4">
+        <div class="w-16 h-16 mx-auto rounded-2xl bg-emerald-100 dark:bg-emerald-500/15
+                    text-emerald-600 dark:text-emerald-300 grid place-items-center">
+          <i class="fa-solid fa-check text-3xl"></i>
+        </div>
+        <div>
+          <h2 class="text-xl font-bold text-slate-900 dark:text-white">¡Importación completada!</h2>
+          <p class="text-sm text-slate-500 dark:text-slate-400 mt-2">
+            Se crearon <b class="text-emerald-600 dark:text-emerald-300">{{ r.created_count }}</b> productos
+            @if (r.skipped_count > 0) {
+              y se omitieron <b class="text-amber-600 dark:text-amber-300">{{ r.skipped_count }}</b>.
+            } @else { sin omisiones. }
+          </p>
+        </div>
+      </div>
+
+      @if (r.skipped.length > 0) {
+        <div class="mt-2 rounded-lg border border-amber-200 dark:border-amber-500/30 bg-amber-50 dark:bg-amber-500/10 p-4">
+          <p class="text-sm font-bold text-amber-900 dark:text-amber-200 mb-2">
+            <i class="fa-solid fa-triangle-exclamation"></i> Filas omitidas
+          </p>
+          <ul class="text-xs text-amber-800 dark:text-amber-300 space-y-1 max-h-40 overflow-auto pl-4">
+            @for (s of r.skipped; track s.row) {
+              <li>Fila {{ s.row }} — {{ s.reason }}</li>
+            }
+          </ul>
+        </div>
+      }
+
+      <div class="flex justify-center items-center mt-6 gap-3 flex-wrap">
+        <dlx-button variant="ghost" icon="fa-rotate-right" (clicked)="resetAll()">
+          Importar más
+        </dlx-button>
+        <dlx-button variant="primary" icon="fa-list" (clicked)="goToProducts()">
+          Ver productos
+        </dlx-button>
+      </div>
+    </dlx-card>
+  }
+</div>

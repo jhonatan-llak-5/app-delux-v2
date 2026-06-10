@@ -25,10 +25,10 @@ class AdminBrandViewSet(viewsets.ModelViewSet):
 
     def get_queryset(self):
         qs = Brand.objects.annotate(
-            products_count=Count('product_set', distinct=True),
+            products_count=Count('products', distinct=True),
             active_products_count=Count(
-                'product_set',
-                filter=Q(product_set__status='PUBLISHED'),
+                'products',
+                filter=Q(products__status='PUBLISHED'),
                 distinct=True,
             ),
         )

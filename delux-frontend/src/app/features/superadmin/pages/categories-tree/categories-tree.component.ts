@@ -27,9 +27,9 @@ import { CategoryFormModalComponent } from '@features/superadmin/components/cate
           Actualizar
         </button>
         <button (click)="openCreate(null)"
-                class="px-4 py-2.5 rounded-lg bg-ink-950 dark:bg-gradient-to-r dark:from-accent-500 dark:to-brand-violet
+                class="px-4 py-2.5 rounded-lg bg-[#1e40af] dark:bg-[#2563eb]
                        text-white text-sm font-semibold
-                       hover:bg-ink-900 dark:hover:shadow-md dark:hover:shadow-brand-violet/30 transition flex items-center gap-2">
+                       hover:bg-[#1e3a8a] dark:hover:bg-[#1d4ed8] transition flex items-center gap-2">
           <i class="fa-solid fa-plus"></i> Nueva categoría
         </button>
       </div>

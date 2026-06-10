@@ -41,6 +41,15 @@ class Shipment(TenantOwnedModel):
     region = models.CharField(max_length=80, blank=True)
     country = models.CharField(max_length=80, default='Ecuador')
 
+    # Coordenadas del destino (opcional — para el mapa Leaflet)
+    dest_latitude  = models.DecimalField(max_digits=9, decimal_places=6, null=True, blank=True)
+    dest_longitude = models.DecimalField(max_digits=9, decimal_places=6, null=True, blank=True)
+
+    # Última posición conocida del repartidor (solo carrier INHOUSE)
+    courier_latitude  = models.DecimalField(max_digits=9, decimal_places=6, null=True, blank=True)
+    courier_longitude = models.DecimalField(max_digits=9, decimal_places=6, null=True, blank=True)
+    courier_updated_at = models.DateTimeField(null=True, blank=True)
+
     notes = models.TextField(blank=True)
 
     class Meta:
@@ -58,6 +67,8 @@ class ShipmentEvent(TenantOwnedModel):
     status = models.CharField(max_length=15, choices=ShipmentStatus.choices)
     description = models.CharField(max_length=240)
     location = models.CharField(max_length=120, blank=True)
+    latitude  = models.DecimalField(max_digits=9, decimal_places=6, null=True, blank=True)
+    longitude = models.DecimalField(max_digits=9, decimal_places=6, null=True, blank=True)
     actor = models.ForeignKey(
         'accounts.User', on_delete=models.SET_NULL, null=True, blank=True
     )

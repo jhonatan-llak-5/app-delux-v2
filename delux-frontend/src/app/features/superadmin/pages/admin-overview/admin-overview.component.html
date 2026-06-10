@@ -1,0 +1,45 @@
+<div class="space-y-6">
+
+  <dlx-page-header
+    eyebrow="Superadmin"
+    title="Panel general"
+    subtitle="Visión global de la plataforma multi-tenant.">
+    <span class="eg-badge eg-badge-brand">
+      <i class="fa-solid fa-shield-halved text-[10px]"></i> Solo superadmin
+    </span>
+  </dlx-page-header>
+
+  <!-- Stats grid -->
+  <div class="grid grid-cols-2 lg:grid-cols-4 gap-4">
+    @for (k of kpis(); track k.label) {
+      <dlx-stat-card
+        [label]="k.label" [value]="k.value" [icon]="k.icon"
+        [iconBg]="k.iconBg" [iconColor]="k.iconColor" />
+    }
+  </div>
+
+  <!-- Atajos -->
+  <section>
+    <h2 class="font-bold text-[16px] text-slate-900 dark:text-white mb-3">Atajos del superadmin</h2>
+    <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
+      @for (s of shortcuts; track s.route) {
+        <a [routerLink]="s.route"
+           class="eg-card-padded group hover:border-[#1e40af] dark:hover:border-[#3b82f6] transition">
+          <div class="w-11 h-11 rounded-xl grid place-items-center mb-4"
+               [ngClass]="s.iconBg + ' ' + s.iconColor">
+            <i class="fa-solid {{ s.icon }}"></i>
+          </div>
+          <h3 class="font-bold text-[16px] text-slate-900 dark:text-white">{{ s.title }}</h3>
+          <p class="text-[13px] text-slate-500 dark:text-white/55 mt-1.5 leading-relaxed">
+            {{ s.description }}
+          </p>
+          <span class="inline-flex items-center gap-1.5 text-[13px] font-semibold
+                       text-[#1e40af] dark:text-[#60a5fa] mt-4
+                       group-hover:gap-2.5 transition-all">
+            {{ s.cta }} <i class="fa-solid fa-arrow-right text-[10px]"></i>
+          </span>
+        </a>
+      }
+    </div>
+  </section>
+</div>

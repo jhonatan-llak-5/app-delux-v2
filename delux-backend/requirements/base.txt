@@ -32,3 +32,6 @@ requests==2.32.3
 
 # Generación de PDFs (facturas, comprobantes)
 reportlab==4.2.5
+
+# Excel (bulk import productos: plantilla con dropdowns + parse)
+openpyxl==3.1.5

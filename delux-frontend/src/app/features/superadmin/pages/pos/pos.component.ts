@@ -221,8 +221,8 @@ interface CartItem {
         }
 
         <button (click)="checkout()" [disabled]="!canCheckout() || saving()"
-                class="w-full py-4 rounded-xl bg-gradient-to-r from-accent-500 to-brand-violet text-white text-sm font-bold uppercase tracking-widest
-                       hover:shadow-glow transition disabled:opacity-40 disabled:cursor-not-allowed
+                class="w-full py-4 rounded-xl bg-[#1e40af] hover:bg-[#1e3a8a] text-white text-sm font-bold uppercase tracking-widest
+                       transition disabled:opacity-40 disabled:cursor-not-allowed
                        flex items-center justify-center gap-3">
           @if (saving()) {
             <i class="fa-solid fa-spinner fa-spin"></i> Procesando...

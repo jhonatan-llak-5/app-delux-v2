@@ -33,6 +33,11 @@ export const SUPERADMIN_ROUTES: Routes = [
           import('./pages/product-form/product-form.component').then(m => m.ProductFormComponent),
       },
       {
+        path: 'products/import',
+        loadComponent: () =>
+          import('./pages/products-import/products-import.component').then(m => m.ProductsImportComponent),
+      },
+      {
         path: 'products/:id',
         loadComponent: () =>
           import('./pages/product-form/product-form.component').then(m => m.ProductFormComponent),

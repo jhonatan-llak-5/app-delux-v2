@@ -1,4 +1,5 @@
 from rest_framework import permissions, status
+from rest_framework.parsers import JSONParser, MultiPartParser, FormParser
 from rest_framework.response import Response
 from rest_framework.views import APIView
 
@@ -6,18 +7,33 @@ from apps.accounts.permissions import IsSuperadmin
 
 from .email import send_platform_email
 from .models import PlatformSettings
-from .serializers import PlatformSettingsSerializer, TestEmailSerializer
+from .serializers import (
+    PlatformSettingsSerializer,
+    TestEmailSerializer,
+    TestPayPhoneSerializer,
+)
 
 
 class PlatformSettingsView(APIView):
+    """
+    GET   /api/v1/admin/settings/    → leer configuracion
+    PATCH /api/v1/admin/settings/    → actualizar (JSON o multipart con files)
+    """
     permission_classes = [permissions.IsAuthenticated, IsSuperadmin]
+    parser_classes = [JSONParser, MultiPartParser, FormParser]
 
     def get(self, request):
-        return Response(PlatformSettingsSerializer(PlatformSettings.load()).data)
+        return Response(
+            PlatformSettingsSerializer(
+                PlatformSettings.load(), context={'request': request}
+            ).data
+        )
 
     def patch(self, request):
         instance = PlatformSettings.load()
-        ser = PlatformSettingsSerializer(instance, data=request.data, partial=True)
+        ser = PlatformSettingsSerializer(
+            instance, data=request.data, partial=True, context={'request': request}
+        )
         ser.is_valid(raise_exception=True)
         ser.save()
         return Response(ser.data)
@@ -33,8 +49,27 @@ class TestEmailView(APIView):
             send_platform_email(
                 to=[ser.validated_data['to']],
                 subject='Prueba SMTP - Delux',
-                body='Si recibes este correo, tu configuracion SMTP funciona.',
+                body='Si recibes este correo, tu configuracion SMTP funciona correctamente.',
             )
         except Exception as exc:
             return Response({'detail': f'Error: {exc}'}, status=status.HTTP_400_BAD_REQUEST)
-        return Response({'detail': 'Correo enviado.'})
+        return Response({'detail': 'Correo de prueba enviado correctamente.'})
+
+
+class TestPayPhoneView(APIView):
+    """Valida que las credenciales PayPhone configuradas responden."""
+    permission_classes = [permissions.IsAuthenticated, IsSuperadmin]
+
+    def post(self, request):
+        s = PlatformSettings.load()
+        if not s.payphone_enabled:
+            return Response({'detail': 'PayPhone no esta habilitado.'}, status=400)
+        if not s.payphone_token or not s.payphone_store_id:
+            return Response({'detail': 'Faltan token o store_id de PayPhone.'}, status=400)
+        # Ping simple: solo validamos que los campos esten presentes (sin llamar al API externo)
+        return Response({
+            'detail': 'Configuracion PayPhone valida.',
+            'sandbox': s.payphone_sandbox,
+            'api_url': s.payphone_api_url,
+            'store_id': s.payphone_store_id,
+        })

@@ -1,13 +1,30 @@
 """
 PlatformSettings (singleton)
-Configuracion global de plataforma editable desde el panel del superadmin:
-SMTP, remitente por defecto, expiraciones, branding.
+Configuracion global de plataforma editable desde el panel del superadmin.
 """
 from django.db import models
 
 
+def _site_logo_upload_to(instance, filename):
+    return f'platform/logo/{filename}'
+
+
+def _site_favicon_upload_to(instance, filename):
+    return f'platform/favicon/{filename}'
+
+
 class PlatformSettings(models.Model):
-    # Email / SMTP
+    # ─── Email / SMTP ───
+    email_active = models.BooleanField(default=True, help_text='Activa el envio de correos')
+    email_provider = models.CharField(
+        max_length=20, default='custom',
+        choices=[
+            ('custom', 'Custom'), ('gmail', 'Gmail'), ('outlook', 'Outlook'),
+            ('yahoo', 'Yahoo'), ('office365', 'Office 365'),
+            ('zoho', 'Zoho'), ('sendgrid', 'SendGrid'), ('mailgun', 'Mailgun'),
+        ],
+        help_text='Proveedor SMTP (preset)'
+    )
     smtp_host = models.CharField(max_length=120, blank=True)
     smtp_port = models.PositiveIntegerField(default=587)
     smtp_username = models.CharField(max_length=160, blank=True)
@@ -17,16 +34,48 @@ class PlatformSettings(models.Model):
 
     default_from_email = models.EmailField(default='no-reply@delux.local')
     default_from_name = models.CharField(max_length=120, default='Delux')
+    email_reply_to = models.EmailField(blank=True, default='')
     support_email = models.EmailField(blank=True, default='soporte@delux.local')
 
+    # ─── reCAPTCHA ───
+    recaptcha_site_key = models.CharField(max_length=120, blank=True)
+    recaptcha_secret_key = models.CharField(max_length=120, blank=True)
+
+    # ─── Cuentas / expiraciones ───
     activation_code_ttl_minutes = models.PositiveIntegerField(default=15)
     password_reset_ttl_minutes = models.PositiveIntegerField(default=30)
 
+    # ─── Marca / branding ───
+    site_name = models.CharField(max_length=120, default='Delux')
     platform_name = models.CharField(max_length=120, default='Delux')
-    platform_tagline = models.CharField(max_length=240, blank=True,
-                                        default='Sneakers, Ropa y mas')
+    platform_tagline = models.CharField(max_length=240, blank=True, default='Sneakers, Ropa y mas')
+    site_logo = models.ImageField(upload_to=_site_logo_upload_to, blank=True, null=True)
+    site_favicon = models.ImageField(upload_to=_site_favicon_upload_to, blank=True, null=True)
 
-    # PayPhone integration (Sprint 11)
+    # ─── Contacto público ───
+    whatsapp_contact_number = models.CharField(max_length=30, blank=True, default='')
+
+    # ─── Subidas: limites y tipos permitidos ───
+    max_image_upload_mb = models.PositiveIntegerField(default=5)
+    max_file_upload_mb = models.PositiveIntegerField(default=10)
+    max_video_upload_mb = models.PositiveIntegerField(default=500)
+    allowed_image_extensions = models.CharField(
+        max_length=200,
+        default='png,jpg,jpeg,webp,svg,avif,gif',
+        help_text='CSV de extensiones permitidas para imagenes'
+    )
+    allowed_file_extensions = models.CharField(
+        max_length=200,
+        default='pdf,doc,docx,xls,xlsx,csv,txt,zip',
+        help_text='CSV de extensiones permitidas para archivos'
+    )
+    allowed_video_extensions = models.CharField(
+        max_length=200,
+        default='mp4,webm,mov,avi,mkv',
+        help_text='CSV de extensiones permitidas para videos'
+    )
+
+    # ─── PayPhone integration ───
     payphone_enabled = models.BooleanField(default=False)
     payphone_token = models.CharField(max_length=240, blank=True)
     payphone_store_id = models.CharField(max_length=80, blank=True)
@@ -56,3 +105,13 @@ class PlatformSettings(models.Model):
 
     def delete(self, *args, **kwargs):
         raise RuntimeError('PlatformSettings es un singleton: no se elimina.')
+
+    # Helpers para validacion de archivos
+    def allowed_image_exts_list(self) -> list[str]:
+        return [e.strip().lower() for e in (self.allowed_image_extensions or '').split(',') if e.strip()]
+
+    def allowed_file_exts_list(self) -> list[str]:
+        return [e.strip().lower() for e in (self.allowed_file_extensions or '').split(',') if e.strip()]
+
+    def allowed_video_exts_list(self) -> list[str]:
+        return [e.strip().lower() for e in (self.allowed_video_extensions or '').split(',') if e.strip()]

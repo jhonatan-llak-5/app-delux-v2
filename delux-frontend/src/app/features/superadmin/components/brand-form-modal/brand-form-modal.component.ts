@@ -62,9 +62,11 @@ import { Brand, BrandPayload } from '@features/superadmin/services/brand.service
                      class="dlx-input"
                      placeholder="https://..." />
               @if (form.logo_url) {
-                <img [src]="form.logo_url" alt="preview"
-                     class="mt-2 h-12 object-contain"
-                     (error)="onLogoErr($event)" />
+                <div class="logo-frame mt-2 inline-flex h-14 w-32 rounded-lg p-2 items-center justify-center">
+                  <img [src]="form.logo_url" alt="preview"
+                       class="max-h-full max-w-full object-contain"
+                       (error)="onLogoErr($event)" />
+                </div>
               }
             </label>
 
@@ -74,9 +76,11 @@ import { Brand, BrandPayload } from '@features/superadmin/services/brand.service
                      class="dlx-input"
                      placeholder="https://..." />
               @if (form.logo_dark_url) {
-                <img [src]="form.logo_dark_url" alt="preview"
-                     class="mt-2 h-12 object-contain bg-ink-900 p-2 rounded"
-                     (error)="onLogoErr($event)" />
+                <div class="mt-2 inline-flex h-14 w-32 rounded-lg p-2 items-center justify-center bg-ink-900">
+                  <img [src]="form.logo_dark_url" alt="preview"
+                       class="max-h-full max-w-full object-contain"
+                       (error)="onLogoErr($event)" />
+                </div>
               }
             </label>
           </div>

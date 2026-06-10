@@ -69,26 +69,60 @@ export interface AdminBranchCatalogResponse {
   results: AdminBranchCatalogItem[];
 }
 
+export type EmailProvider =
+  'custom' | 'gmail' | 'outlook' | 'yahoo' | 'office365' | 'zoho' | 'sendgrid' | 'mailgun';
+
 export interface PlatformSettings {
+  // Email
+  email_active: boolean;
+  email_provider: EmailProvider;
   smtp_host: string;
   smtp_port: number;
   smtp_username: string;
   smtp_password?: string;
+  smtp_password_configured?: boolean;
   smtp_use_tls: boolean;
   smtp_use_ssl: boolean;
   default_from_email: string;
   default_from_name: string;
+  email_reply_to: string;
   support_email: string;
+
+  // reCAPTCHA
+  recaptcha_site_key: string;
+  recaptcha_secret_key?: string;
+  recaptcha_secret_configured?: boolean;
+
+  // Cuentas
   activation_code_ttl_minutes: number;
   password_reset_ttl_minutes: number;
+
+  // Marca
+  site_name: string;
   platform_name: string;
   platform_tagline: string;
+  site_logo?: string | null;
+  site_logo_url?: string | null;
+  site_favicon?: string | null;
+  site_favicon_url?: string | null;
+  whatsapp_contact_number: string;
+
+  // Subidas
+  max_image_upload_mb: number;
+  max_file_upload_mb: number;
+  max_video_upload_mb: number;
+  allowed_image_extensions: string;
+  allowed_file_extensions: string;
+  allowed_video_extensions: string;
+
+  // PayPhone
   payphone_enabled: boolean;
   payphone_token?: string;
   payphone_token_masked?: string;
   payphone_store_id: string;
   payphone_api_url: string;
   payphone_sandbox: boolean;
+
   updated_at?: string;
 }
 
@@ -134,14 +168,24 @@ export class AdminService {
     return this.http.get<AdminBranchCatalogResponse>(`${this.base}/branches/${id}/catalog/`);
   }
 
-  // ── Settings
+  // ── Settings (singleton de configuración global)
   getSettings(): Observable<PlatformSettings> {
     return this.http.get<PlatformSettings>(`${this.base}/settings/`);
   }
+  /** PATCH JSON (sin archivos). */
   updateSettings(payload: Partial<PlatformSettings>) {
     return this.http.patch<PlatformSettings>(`${this.base}/settings/`, payload);
   }
+  /** PATCH multipart cuando se adjunta logo/favicon. */
+  updateSettingsMultipart(form: FormData) {
+    return this.http.patch<PlatformSettings>(`${this.base}/settings/`, form);
+  }
   testEmail(to: string) {
     return this.http.post<{ detail: string }>(`${this.base}/settings/test-email/`, { to });
+  }
+  testPayPhone() {
+    return this.http.post<{ detail: string; sandbox: boolean; api_url: string; store_id: string }>(
+      `${this.base}/settings/test-payphone/`, {}
+    );
   }
 }

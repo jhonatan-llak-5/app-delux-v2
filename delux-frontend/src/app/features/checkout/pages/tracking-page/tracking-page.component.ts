@@ -1,120 +1,57 @@
-import { ChangeDetectionStrategy, Component, OnInit, inject, signal } from '@angular/core';
+import {
+  AfterViewInit, ChangeDetectionStrategy, Component, ElementRef, OnDestroy, OnInit,
+  ViewChild, inject, signal,
+} from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
-import { ActivatedRoute, Router } from '@angular/router';
-import { ShippingService, PublicTracking } from '@shared/services/shipping.service';
+import { ActivatedRoute } from '@angular/router';
+import { environment } from '@env/environment';
+import { ShippingService, PublicTracking, PublicTrackingEvent } from '@shared/services/shipping.service';
+
+// Leaflet se carga dinámicamente.
+// El usuario debe correr: npm install leaflet @types/leaflet
+type LeafletNs = any;
 
 @Component({
   selector: 'dlx-tracking-page',
   standalone: true,
   imports: [CommonModule, FormsModule],
   changeDetection: ChangeDetectionStrategy.OnPush,
-  template: `
-    <section class="max-w-[1100px] mx-auto px-6 md:px-10 pt-32 pb-24 bg-white dark:bg-ink-950 min-h-screen">
-      <p class="eyebrow">/ Tracking</p>
-      <h1 class="display-xl text-4xl md:text-6xl mt-4 mb-3 leading-[0.95] text-ink-950 dark:text-white tracking-[-0.03em]">
-        Rastrea tu pedido
-      </h1>
-      <p class="text-ink-700 dark:text-white/60 max-w-xl mb-10">
-        Ingresa el código que te enviamos por email cuando despachamos tu compra.
-      </p>
-
-      <form (ngSubmit)="search()" class="flex flex-col sm:flex-row gap-3 mb-12 max-w-2xl">
-        <input [(ngModel)]="code" name="code" placeholder="DLX-TR-260606-ABCD1234"
-               class="flex-1 px-4 py-4 rounded-xl bg-ink-50 dark:bg-white/5 border border-ink-200 dark:border-white/10 text-sm font-mono uppercase focus:outline-none focus:border-ink-950 dark:focus:border-white" />
-        <button type="submit" [disabled]="!code || loading()"
-                class="btn-accent text-sm font-semibold px-8 py-4 disabled:opacity-50">
-          @if (loading()) { <i class="fa-solid fa-spinner fa-spin"></i> }
-          @else { <i class="fa-solid fa-magnifying-glass"></i> Rastrear }
-        </button>
-      </form>
-
-      @if (error()) {
-        <div class="editorial-card p-6 border-rose-300 dark:border-rose-500/30">
-          <p class="text-rose-600"><i class="fa-solid fa-circle-exclamation"></i> {{ error() }}</p>
-        </div>
-      }
-
-      @if (tracking(); as t) {
-        <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
-          <!-- Card de estado actual -->
-          <div class="lg:col-span-1">
-            <div class="editorial-card p-6">
-              <div class="w-16 h-16 rounded-2xl grid place-items-center mb-4"
-                   [ngClass]="statusColor(t.status)">
-                <i class="fa-solid {{ statusIcon(t.status) }} text-2xl"></i>
-              </div>
-              <p class="eyebrow">{{ t.carrier }}</p>
-              <h2 class="display-xl text-2xl md:text-3xl mt-2 text-ink-950 dark:text-white tracking-[-0.03em]">
-                {{ t.status_label }}
-              </h2>
-              <p class="text-sm text-ink-700 dark:text-white/60 mt-3">
-                Destinatario: <span class="font-semibold text-ink-950 dark:text-white">{{ t.recipient_name }}</span>
-              </p>
-              <p class="text-sm text-ink-700 dark:text-white/60">
-                Ciudad: <span class="font-semibold text-ink-950 dark:text-white">{{ t.city }}</span>
-              </p>
-              @if (t.estimated_delivery) {
-                <p class="text-sm text-ink-700 dark:text-white/60 mt-2">
-                  Entrega estimada: <span class="font-semibold">{{ t.estimated_delivery | date:'mediumDate' }}</span>
-                </p>
-              }
-              <p class="mt-4 pt-4 border-t border-ink-200 dark:border-white/10 text-xs text-ink-500 dark:text-white/50 font-mono">
-                Orden: {{ t.order_code }}<br/>Tracking: {{ t.tracking_code }}
-              </p>
-            </div>
-          </div>
-
-          <!-- Timeline -->
-          <div class="lg:col-span-2">
-            <div class="editorial-card p-6">
-              <h3 class="font-bold text-ink-950 dark:text-white mb-6">Historial</h3>
-              @if (t.events.length === 0) {
-                <p class="text-ink-500 dark:text-white/50 text-sm">Aún no hay eventos registrados.</p>
-              } @else {
-                <ol class="relative border-l-2 border-ink-200 dark:border-white/10 ml-3 space-y-6">
-                  @for (e of t.events; track e.created_at; let i = $index) {
-                    <li class="ml-6">
-                      <span class="absolute -left-3 w-6 h-6 rounded-full grid place-items-center"
-                            [ngClass]="i === 0 ? statusColor(e.status) : 'bg-ink-200 dark:bg-white/10 text-ink-700 dark:text-white/50'">
-                        <i class="fa-solid {{ statusIcon(e.status) }} text-[10px]"></i>
-                      </span>
-                      <div [class.opacity-60]="i !== 0">
-                        <p class="text-[10px] uppercase tracking-widest font-semibold text-ink-500 dark:text-white/50">
-                          {{ e.created_at | date:'medium' }}
-                        </p>
-                        <p class="font-bold text-ink-950 dark:text-white mt-1">{{ e.status_label }}</p>
-                        <p class="text-sm text-ink-700 dark:text-white/60">{{ e.description }}</p>
-                        @if (e.location) {
-                          <p class="text-xs text-ink-500 dark:text-white/40 mt-1">
-                            <i class="fa-solid fa-location-dot"></i> {{ e.location }}
-                          </p>
-                        }
-                      </div>
-                    </li>
-                  }
-                </ol>
-              }
-            </div>
-          </div>
-        </div>
-      }
-    </section>
-  `,
+  templateUrl: './tracking-page.component.html',
 })
-export class TrackingPageComponent implements OnInit {
+export class TrackingPageComponent implements OnInit, AfterViewInit, OnDestroy {
   private svc = inject(ShippingService);
   private route = inject(ActivatedRoute);
-  private router = inject(Router);
+
+  @ViewChild('mapEl') mapEl?: ElementRef<HTMLDivElement>;
 
   code = '';
   tracking = signal<PublicTracking | null>(null);
   loading = signal(false);
   error = signal<string | null>(null);
+  wsConnected = signal(false);
+  lastUpdate = signal<Date | null>(null);
+
+  private ws: WebSocket | null = null;
+  private leaflet: LeafletNs | null = null;
+  private map: any = null;
+  private originMarker: any = null;
+  private destMarker: any = null;
+  private courierMarker: any = null;
+  private routeLine: any = null;
+  private cssLoaded = false;
 
   ngOnInit() {
-    const c = this.route.snapshot.paramMap.get('code') || this.route.snapshot.queryParamMap.get('code');
+    const c = this.route.snapshot.paramMap.get('code') ||
+              this.route.snapshot.queryParamMap.get('code');
     if (c) { this.code = c; this.search(); }
+  }
+
+  ngAfterViewInit() { this.injectLeafletCss(); }
+
+  ngOnDestroy() {
+    this.closeWs();
+    if (this.map) { this.map.remove(); this.map = null; }
   }
 
   search() {
@@ -122,8 +59,15 @@ export class TrackingPageComponent implements OnInit {
     this.loading.set(true);
     this.error.set(null);
     this.tracking.set(null);
+    this.closeWs();
     this.svc.publicTrack(this.code.trim().toUpperCase()).subscribe({
-      next: t => { this.tracking.set(t); this.loading.set(false); },
+      next: t => {
+        this.tracking.set(t);
+        this.loading.set(false);
+        this.lastUpdate.set(new Date());
+        this.connectWs(t.tracking_code);
+        setTimeout(() => this.renderMap(), 50);
+      },
       error: e => {
         this.loading.set(false);
         this.error.set(e?.error?.detail || 'Código no encontrado');
@@ -131,26 +75,178 @@ export class TrackingPageComponent implements OnInit {
     });
   }
 
-  statusColor(s: string) {
-    return ({
-      CREATED: 'bg-slate-200 text-slate-700 dark:bg-white/10 dark:text-white/70',
-      PREPARING: 'bg-amber-100 text-amber-700',
-      SHIPPED: 'bg-sky-100 text-sky-700',
-      IN_TRANSIT: 'bg-violet-100 text-violet-700',
-      DELIVERED: 'bg-emerald-100 text-emerald-700',
-      FAILED: 'bg-rose-100 text-rose-700',
-      RETURNED: 'bg-rose-100 text-rose-700',
-    } as any)[s] || 'bg-slate-200 text-slate-700';
+  private connectWs(code: string) {
+    const url = `${environment.wsUrl}/tracking/${code}/`;
+    try {
+      this.ws = new WebSocket(url);
+      this.ws.onopen = () => this.wsConnected.set(true);
+      this.ws.onclose = () => this.wsConnected.set(false);
+      this.ws.onerror = () => this.wsConnected.set(false);
+      this.ws.onmessage = (ev) => this.handleWsMessage(JSON.parse(ev.data));
+    } catch {
+      this.wsConnected.set(false);
+    }
   }
-  statusIcon(s: string) {
-    return ({
-      CREATED: 'fa-box',
-      PREPARING: 'fa-boxes-packing',
-      SHIPPED: 'fa-truck-fast',
+
+  private closeWs() {
+    if (this.ws) {
+      try { this.ws.close(); } catch {}
+      this.ws = null;
+      this.wsConnected.set(false);
+    }
+  }
+
+  private handleWsMessage(msg: any) {
+    const t = this.tracking();
+    if (!t) return;
+
+    if (msg.type === 'event_added' && msg.event) {
+      const updated: PublicTracking = {
+        ...t,
+        status: msg.shipment_status,
+        status_label: msg.shipment_status_label,
+        events: [msg.event as PublicTrackingEvent, ...t.events],
+      };
+      this.tracking.set(updated);
+      this.lastUpdate.set(new Date());
+      if (msg.event.latitude != null && msg.event.longitude != null) {
+        this.addEventMarker(msg.event.latitude, msg.event.longitude, msg.event.status_label);
+      }
+    }
+
+    if (msg.type === 'courier_moved' && msg.latitude != null && msg.longitude != null) {
+      this.updateCourierMarker(msg.latitude, msg.longitude);
+      this.lastUpdate.set(new Date());
+    }
+  }
+
+  private injectLeafletCss() {
+    if (this.cssLoaded || typeof document === 'undefined') return;
+    const id = 'leaflet-css-cdn';
+    if (document.getElementById(id)) { this.cssLoaded = true; return; }
+    const link = document.createElement('link');
+    link.id = id;
+    link.rel = 'stylesheet';
+    link.href = 'https://unpkg.com/leaflet@1.9.4/dist/leaflet.css';
+    link.crossOrigin = '';
+    document.head.appendChild(link);
+    this.cssLoaded = true;
+  }
+
+  private async renderMap() {
+    const t = this.tracking();
+    if (!t || !this.mapEl) return;
+
+    const origin = t.origin;
+    const dest   = t.destination;
+    const hasOrigin = !!(origin && origin.latitude != null && origin.longitude != null);
+    const hasDest   = !!(dest   && dest.latitude   != null && dest.longitude   != null);
+    if (!hasOrigin && !hasDest) return;
+
+    if (!this.leaflet) {
+      const modName: string = 'leaflet';
+      this.leaflet = await import(/* webpackIgnore: true */ modName as any);
+    }
+    const L = this.leaflet!;
+
+    if (this.map) { this.map.remove(); this.map = null; }
+
+    const center: [number, number] = hasOrigin
+      ? [origin!.latitude as number, origin!.longitude as number]
+      : [dest!.latitude as number, dest!.longitude as number];
+
+    this.map = L.map(this.mapEl.nativeElement, {
+      center, zoom: 13, zoomControl: true, scrollWheelZoom: false,
+    });
+    L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+      maxZoom: 19,
+      attribution: 'OpenStreetMap contributors',
+    }).addTo(this.map);
+
+    if (hasOrigin && origin) {
+      this.originMarker = L.marker([origin.latitude as number, origin.longitude as number], {
+        icon: this.colorIcon(L, '#16a34a', 'fa-store'),
+      }).addTo(this.map).bindPopup(
+        '<b>' + (origin.name ?? 'Sucursal') + '</b><br>' + (origin.address ?? '')
+      );
+    }
+    if (hasDest && dest) {
+      this.destMarker = L.marker([dest.latitude as number, dest.longitude as number], {
+        icon: this.colorIcon(L, '#dc2626', 'fa-location-dot'),
+      }).addTo(this.map).bindPopup(
+        '<b>Destino</b><br>' + dest.address
+      );
+    }
+    if (hasOrigin && hasDest && origin && dest) {
+      this.routeLine = L.polyline(
+        [[origin.latitude as number, origin.longitude as number],
+         [dest.latitude as number, dest.longitude as number]],
+        { color: '#1e40af', weight: 3, opacity: 0.5, dashArray: '8,8' }
+      ).addTo(this.map);
+      const group = L.featureGroup([this.originMarker, this.destMarker]);
+      this.map.fitBounds(group.getBounds().pad(0.25));
+    }
+    if (t.courier?.latitude != null && t.courier?.longitude != null) {
+      this.updateCourierMarker(t.courier.latitude, t.courier.longitude);
+    }
+  }
+
+  private colorIcon(L: any, color: string, faIcon: string) {
+    const html =
+      '<div style="background:' + color + ';width:34px;height:34px;border-radius:50% 50% 50% 0;' +
+      'transform:rotate(-45deg);display:grid;place-items:center;' +
+      'box-shadow:0 4px 12px rgba(0,0,0,0.3);border:3px solid #fff;">' +
+      '<i class="fa-solid ' + faIcon + '" style="color:#fff;transform:rotate(45deg);font-size:13px;"></i>' +
+      '</div>';
+    return L.divIcon({
+      className: 'dlx-map-pin',
+      html,
+      iconSize: [34, 34],
+      iconAnchor: [17, 34],
+    });
+  }
+
+  private addEventMarker(lat: number, lon: number, label: string) {
+    if (!this.map || !this.leaflet) return;
+    this.leaflet.circleMarker([lat, lon], {
+      radius: 6, color: '#1e40af', fillColor: '#3b82f6', fillOpacity: 0.7,
+    }).bindPopup('<b>' + label + '</b>').addTo(this.map);
+  }
+
+  private updateCourierMarker(lat: number, lon: number) {
+    if (!this.map || !this.leaflet) return;
+    if (this.courierMarker) {
+      this.courierMarker.setLatLng([lat, lon]);
+    } else {
+      this.courierMarker = this.leaflet.marker([lat, lon], {
+        icon: this.colorIcon(this.leaflet, '#f59e0b', 'fa-truck'),
+      }).addTo(this.map).bindPopup('<b>Repartidor</b><br>En ruta');
+    }
+  }
+
+  statusColor(s: string): string {
+    const map: Record<string, string> = {
+      CREATED:    'bg-slate-200 text-slate-700 dark:bg-white/10 dark:text-white/70',
+      PREPARING:  'bg-amber-100 text-amber-700',
+      SHIPPED:    'bg-sky-100 text-sky-700',
+      IN_TRANSIT: 'bg-violet-100 text-violet-700',
+      DELIVERED:  'bg-emerald-100 text-emerald-700',
+      FAILED:     'bg-rose-100 text-rose-700',
+      RETURNED:   'bg-rose-100 text-rose-700',
+    };
+    return map[s] || 'bg-slate-200 text-slate-700';
+  }
+
+  statusIcon(s: string): string {
+    const map: Record<string, string> = {
+      CREATED:    'fa-box',
+      PREPARING:  'fa-boxes-packing',
+      SHIPPED:    'fa-truck-fast',
       IN_TRANSIT: 'fa-truck',
-      DELIVERED: 'fa-circle-check',
-      FAILED: 'fa-circle-xmark',
-      RETURNED: 'fa-rotate-left',
-    } as any)[s] || 'fa-box';
+      DELIVERED:  'fa-circle-check',
+      FAILED:     'fa-circle-xmark',
+      RETURNED:   'fa-rotate-left',
+    };
+    return map[s] || 'fa-box';
   }
 }

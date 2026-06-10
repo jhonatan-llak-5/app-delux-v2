@@ -35,16 +35,31 @@ export interface Shipment {
   created_at: string;
 }
 
+export interface PublicTrackingEvent {
+  status: string;
+  status_label: string;
+  description: string;
+  location: string;
+  latitude: number | null;
+  longitude: number | null;
+  created_at: string;
+}
+
 export interface PublicTracking {
   tracking_code: string;
   order_code: string;
   status: string;
   status_label: string;
   carrier: string;
+  carrier_code: string;
   recipient_name: string;
   city: string;
+  address_line1: string;
   estimated_delivery: string | null;
-  events: { status: string; status_label: string; description: string; location: string; created_at: string }[];
+  origin?: { name?: string; city?: string; address?: string; latitude: number | null; longitude: number | null };
+  destination?: { address: string; latitude: number | null; longitude: number | null };
+  courier: { latitude: number | null; longitude: number | null; updated_at: string | null } | null;
+  events: PublicTrackingEvent[];
 }
 
 @Injectable({ providedIn: 'root' })
@@ -60,8 +75,17 @@ export class ShippingService {
     Object.entries(params).forEach(([k, v]) => { if (v) p = p.set(k, String(v)); });
     return this.http.get<{ count: number; results: Shipment[] }>(`${this.base}/admin/shipments/`, { params: p });
   }
-  create(payload: Partial<Shipment>) { return this.http.post<Shipment>(`${this.base}/admin/shipments/`, payload); }
-  updateStatus(id: number, status: string, description = '', location = '') {
-    return this.http.post<Shipment>(`${this.base}/admin/shipments/${id}/update_status/`, { status, description, location });
+  create(payload: Partial<Shipment>) {
+    return this.http.post<Shipment>(`${this.base}/admin/shipments/`, payload);
+  }
+  updateStatus(id: number, status: string, description = '', location = '', latitude?: number, longitude?: number) {
+    return this.http.post<Shipment>(`${this.base}/admin/shipments/${id}/update_status/`,
+      { status, description, location, latitude, longitude });
+  }
+  updateCourierLocation(id: number, latitude: number, longitude: number) {
+    return this.http.post<{ ok: boolean; updated_at: string }>(
+      `${this.base}/admin/shipments/${id}/courier-location/`,
+      { latitude, longitude }
+    );
   }
 }

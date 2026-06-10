@@ -25,12 +25,20 @@ import { CategoryService, Category } from '@features/superadmin/services/categor
           Administra tu catálogo. {{ products().length }} productos en pantalla.
         </p>
       </div>
-      <a routerLink="/app/admin/products/new"
-         class="px-4 py-2.5 rounded-lg bg-ink-950 dark:bg-gradient-to-r dark:from-accent-500 dark:to-brand-violet
-                text-white text-sm font-semibold
-                hover:bg-ink-900 dark:hover:shadow-md dark:hover:shadow-brand-violet/30 transition flex items-center gap-2">
-        <i class="fa-solid fa-plus"></i> Nuevo producto
-      </a>
+      <div class="flex items-center gap-2 flex-wrap">
+        <a routerLink="/app/admin/products/import"
+           class="px-4 py-2.5 rounded-lg border border-slate-300 dark:border-[#334155]
+                  text-slate-700 dark:text-slate-200 text-sm font-semibold
+                  hover:bg-slate-100 dark:hover:bg-[#1e293b] transition flex items-center gap-2">
+          <i class="fa-solid fa-file-import"></i> Importar masivo
+        </a>
+        <a routerLink="/app/admin/products/new"
+           class="px-4 py-2.5 rounded-lg bg-[#1e40af] dark:bg-[#2563eb]
+                  text-white text-sm font-semibold
+                  hover:bg-[#1e3a8a] dark:hover:bg-[#1d4ed8] transition flex items-center gap-2">
+          <i class="fa-solid fa-plus"></i> Nuevo producto
+        </a>
+      </div>
     </div>
 
     <!-- KPIs -->

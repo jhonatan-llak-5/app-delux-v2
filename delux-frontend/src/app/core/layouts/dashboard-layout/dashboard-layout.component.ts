@@ -5,6 +5,7 @@ import { AuthService } from '@core/services/auth.service';
 import { ThemeService } from '@core/services/theme.service';
 import { ToastHostComponent } from '@shared/components/toast-host/toast-host.component';
 import { WebSocketService } from '@core/services/websocket.service';
+import { DlxNotificationsBellComponent } from '@shared/ui';
 
 interface NavItem { label: string; icon: string; route: string; badge?: string; }
 interface NavGroup { title: string; items: NavItem[]; roles?: string[]; }
@@ -14,23 +15,23 @@ const COLLAPSED_KEY = 'dlx_sidebar_collapsed';
 @Component({
   selector: 'dlx-dashboard-layout',
   standalone: true,
-  imports: [CommonModule, RouterLink, RouterLinkActive, RouterOutlet, ToastHostComponent],
+  imports: [CommonModule, RouterLink, RouterLinkActive, RouterOutlet, ToastHostComponent, DlxNotificationsBellComponent],
   changeDetection: ChangeDetectionStrategy.OnPush,
   template: `
-    <div class="dlx-dashboard min-h-screen flex bg-slate-50 dark:bg-[#0f1320] transition-colors">
+    <div class="dlx-dashboard min-h-screen flex bg-[#f8fafc] dark:bg-[#020617] transition-colors">
 
       <!-- ═══════════ SIDEBAR (fijo, paleta MedicGet) ═══════════ -->
       <aside class="hidden lg:flex shrink-0 flex-col transition-all duration-300
-                    bg-white dark:bg-[#0a0d14] backdrop-blur-xl
-                    border-r border-slate-200 dark:border-white/[0.07]
+                    bg-white dark:bg-[#0f172a] backdrop-blur-xl
+                    border-r border-slate-200 dark:border-[#1e293b]
                     h-screen sticky top-0"
              [class.w-64]="!collapsed()"
              [class.w-20]="collapsed()">
 
-        <div class="h-16 flex items-center gap-2.5 px-4 border-b border-slate-200 dark:border-white/[0.07] shrink-0">
-          <div class="w-9 h-9 shrink-0 rounded-xl bg-gradient-to-br from-accent-400 to-brand-violet
-                      grid place-items-center font-display font-bold text-ink-950
-                      shadow-md shadow-brand-violet/30">D</div>
+        <div class="h-16 flex items-center gap-2.5 px-4 border-b border-slate-200 dark:border-[#1e293b] shrink-0">
+          <div class="w-9 h-9 shrink-0 rounded-xl bg-gradient-to-br from-[#1e40af] to-[#1e3a8a]
+                      grid place-items-center font-display font-bold text-white
+                      shadow-md shadow-[#1e40af]/20">D</div>
           @if (!collapsed()) {
             <div class="flex-1 min-w-0">
               <p class="font-display font-bold text-lg leading-none text-ink-950 dark:text-white truncate">Delux</p>
@@ -51,18 +52,19 @@ const COLLAPSED_KEY = 'dlx_sidebar_collapsed';
                 @for (item of group.items; track item.label) {
                   <li>
                     <a [routerLink]="item.route"
-                       routerLinkActive="!bg-gradient-to-r !from-accent-500 !to-brand-violet !text-white font-semibold shadow-md shadow-brand-violet/30"
+                       routerLinkActive="!bg-[#1e40af]/8 !text-[#1e40af] dark:!bg-[#2563eb]/15 dark:!text-[#60a5fa] font-semibold !border-l-[3px] !border-[#1e40af] dark:!border-[#3b82f6]"
                        [routerLinkActiveOptions]="{ exact: false }"
                        [title]="collapsed() ? item.label : ''"
                        class="flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm
+                              border-l-[3px] border-transparent
                               text-slate-600 dark:text-white/70
-                              hover:bg-slate-100 dark:hover:bg-white/5 hover:text-ink-950 dark:hover:text-white
-                              transition">
+                              hover:bg-slate-50 dark:hover:bg-white/5 hover:text-ink-950 dark:hover:text-white
+                              transition-colors">
                       <i class="fa-solid {{ item.icon }} w-4 text-center shrink-0"></i>
                       @if (!collapsed()) {
                         <span class="flex-1 truncate">{{ item.label }}</span>
                         @if (item.badge) {
-                          <span class="text-[10px] bg-accent-400 text-ink-950 font-bold px-1.5 py-0.5 rounded-md">
+                          <span class="eg-badge eg-badge-brand">
                             {{ item.badge }}
                           </span>
                         }
@@ -81,8 +83,8 @@ const COLLAPSED_KEY = 'dlx_sidebar_collapsed';
 
         <!-- Header -->
         <header class="h-16 sticky top-0 z-30 flex items-center px-4 md:px-6 gap-3
-                       bg-white dark:bg-[#0a0d14] backdrop-blur-xl
-                       border-b border-slate-200 dark:border-white/[0.07]">
+                       bg-white/95 dark:bg-[#0f172a]/95 backdrop-blur-md
+                       border-b border-slate-200 dark:border-[#1e293b]">
 
           <button (click)="toggleCollapse()"
                   class="w-10 h-10 grid place-items-center rounded-lg
@@ -117,33 +119,15 @@ const COLLAPSED_KEY = 'dlx_sidebar_collapsed';
             <i class="fa-solid" [class.fa-sun]="theme.isDark()" [class.fa-moon]="!theme.isDark()"></i>
           </button>
 
-          <!-- Notifications -->
-          <button (click)="ws.markAllRead()"
-                  class="relative w-10 h-10 grid place-items-center rounded-lg
-                         text-slate-600 dark:text-white/70
-                         hover:bg-slate-100 dark:hover:bg-white/10 hover:text-ink-950 dark:hover:text-white transition" aria-label="Notificaciones">
-            <i class="fa-solid fa-bell text-sm"></i>
-            @if (ws.connected()) {
-              <span class="absolute -bottom-0.5 -right-0.5 w-2 h-2 rounded-full bg-emerald-500
-                           ring-2 ring-white dark:ring-[#0a0d14]" title="Conectado"></span>
-            } @else {
-              <span class="absolute -bottom-0.5 -right-0.5 w-2 h-2 rounded-full bg-slate-400
-                           ring-2 ring-white dark:ring-[#0a0d14]" title="Desconectado"></span>
-            }
-            @if (ws.unreadCount() > 0) {
-              <span class="absolute -top-1 -right-1 min-w-4 h-4 px-1 rounded-full bg-rose-500 text-white
-                           text-[9px] font-bold grid place-items-center">
-                {{ ws.unreadCount() }}
-              </span>
-            }
-          </button>
+          <!-- Notifications (componente reutilizable con dropdown) -->
+          <dlx-notifications-bell />
 
           <!-- Avatar perfil + popup -->
           <div class="relative" #profileDropdown>
             <button (click)="profileOpen.set(!profileOpen())"
                     class="flex items-center gap-2 pl-1 pr-2 py-1 rounded-full
                            hover:bg-slate-100 dark:hover:bg-white/10 transition">
-              <div class="w-9 h-9 shrink-0 rounded-full bg-gradient-to-br from-brand-violet to-accent-400
+              <div class="w-9 h-9 shrink-0 rounded-full bg-gradient-to-br from-[#1e40af] to-[#3b82f6]
                           grid place-items-center text-white font-bold text-sm">
                 {{ initials() }}
               </div>
@@ -166,7 +150,7 @@ const COLLAPSED_KEY = 'dlx_sidebar_collapsed';
                 <div class="p-4 border-b border-slate-100 dark:border-white/10
                             bg-gradient-to-br from-slate-50 to-white dark:from-white/5 dark:to-transparent">
                   <div class="flex items-center gap-3">
-                    <div class="w-12 h-12 rounded-full bg-gradient-to-br from-brand-violet to-accent-400
+                    <div class="w-12 h-12 rounded-full bg-gradient-to-br from-[#1e40af] to-[#3b82f6]
                                 grid place-items-center text-white font-bold">
                       {{ initials() }}
                     </div>

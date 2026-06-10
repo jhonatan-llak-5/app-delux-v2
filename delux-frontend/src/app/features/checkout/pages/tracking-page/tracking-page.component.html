@@ -1,0 +1,144 @@
+<section class="max-w-[1200px] mx-auto px-6 md:px-10 pt-32 pb-24 bg-white dark:bg-ink-950 min-h-screen">
+  <p class="eyebrow">/ Tracking</p>
+  <h1 class="display-xl text-4xl md:text-6xl mt-4 mb-3 leading-[0.95] text-ink-950 dark:text-white tracking-[-0.03em]">
+    Rastrea tu pedido
+  </h1>
+  <p class="text-ink-700 dark:text-white/60 max-w-xl mb-10">
+    Ingresa el código que te enviamos por email cuando despachamos tu compra.
+    Las actualizaciones aparecen en vivo, sin recargar.
+  </p>
+
+  <form (ngSubmit)="search()" class="flex flex-col sm:flex-row gap-3 mb-12 max-w-2xl">
+    <input [(ngModel)]="code" name="code" placeholder="DLX-TR-260606-ABCD1234"
+           class="flex-1 px-4 py-4 rounded-xl bg-ink-50 dark:bg-white/5 border border-ink-200 dark:border-white/10 text-sm font-mono uppercase focus:outline-none focus:border-ink-950 dark:focus:border-white" />
+    <button type="submit" [disabled]="!code || loading()"
+            class="btn-accent text-sm font-semibold px-8 py-4 disabled:opacity-50">
+      @if (loading()) { <i class="fa-solid fa-spinner fa-spin"></i> }
+      @else { <i class="fa-solid fa-magnifying-glass"></i> Rastrear }
+    </button>
+  </form>
+
+  @if (error()) {
+    <div class="editorial-card p-6 border-rose-300 dark:border-rose-500/30">
+      <p class="text-rose-600"><i class="fa-solid fa-circle-exclamation"></i> {{ error() }}</p>
+    </div>
+  }
+
+  @if (tracking(); as t) {
+    <!-- Banner de conexión en vivo -->
+    <div class="flex items-center gap-2 mb-4 text-xs">
+      <span class="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full"
+            [class.bg-emerald-100]="wsConnected()"
+            [class.text-emerald-700]="wsConnected()"
+            [class.bg-slate-100]="!wsConnected()"
+            [class.text-slate-600]="!wsConnected()">
+        <span class="w-1.5 h-1.5 rounded-full"
+              [class.bg-emerald-500]="wsConnected()"
+              [class.bg-slate-400]="!wsConnected()"
+              [class.animate-pulse]="wsConnected()"></span>
+        {{ wsConnected() ? 'En vivo' : 'Sin conexión en vivo' }}
+      </span>
+      @if (lastUpdate(); as u) {
+        <span class="text-ink-500 dark:text-white/40">
+          Última actualización: {{ u | date:'shortTime' }}
+        </span>
+      }
+    </div>
+
+    <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
+
+      <!-- Card de estado actual -->
+      <div class="lg:col-span-1">
+        <div class="editorial-card p-6">
+          <div class="w-16 h-16 rounded-2xl grid place-items-center mb-4"
+               [ngClass]="statusColor(t.status)">
+            <i class="fa-solid {{ statusIcon(t.status) }} text-2xl"></i>
+          </div>
+          <p class="eyebrow">{{ t.carrier }}</p>
+          <h2 class="display-xl text-2xl md:text-3xl mt-2 text-ink-950 dark:text-white tracking-[-0.03em]">
+            {{ t.status_label }}
+          </h2>
+          <p class="text-sm text-ink-700 dark:text-white/60 mt-3">
+            Destinatario: <span class="font-semibold text-ink-950 dark:text-white">{{ t.recipient_name }}</span>
+          </p>
+          <p class="text-sm text-ink-700 dark:text-white/60">
+            Destino: <span class="font-semibold text-ink-950 dark:text-white">{{ t.address_line1 }}, {{ t.city }}</span>
+          </p>
+          @if (t.origin?.name) {
+            <p class="text-sm text-ink-700 dark:text-white/60 mt-2">
+              Sale de: <span class="font-semibold text-ink-950 dark:text-white">{{ t.origin.name }} · {{ t.origin.city }}</span>
+            </p>
+          }
+          @if (t.estimated_delivery) {
+            <p class="text-sm text-ink-700 dark:text-white/60 mt-2">
+              Entrega estimada: <span class="font-semibold">{{ t.estimated_delivery | date:'mediumDate' }}</span>
+            </p>
+          }
+          <p class="mt-4 pt-4 border-t border-ink-200 dark:border-white/10 text-xs text-ink-500 dark:text-white/50 font-mono">
+            Orden: {{ t.order_code }}<br/>Tracking: {{ t.tracking_code }}
+          </p>
+        </div>
+      </div>
+
+      <!-- Mapa + Timeline -->
+      <div class="lg:col-span-2 space-y-6">
+
+        <!-- Mapa (solo si hay coordenadas) -->
+        @if (t.origin?.latitude || t.destination?.latitude) {
+          <div class="editorial-card overflow-hidden">
+            <div class="px-6 pt-5 pb-3 border-b border-ink-100 dark:border-white/10 flex items-center justify-between flex-wrap gap-2">
+              <div>
+                <h3 class="font-bold text-ink-950 dark:text-white">Ruta</h3>
+                <p class="text-xs text-ink-500 dark:text-white/50">
+                  <span class="inline-block w-3 h-3 rounded-full bg-emerald-600 mr-1.5 align-middle"></span> Sucursal
+                  <span class="inline-block w-3 h-3 rounded-full bg-rose-600 ml-3 mr-1.5 align-middle"></span> Destino
+                  @if (t.courier) {
+                    <span class="inline-block w-3 h-3 rounded-full bg-amber-500 ml-3 mr-1.5 align-middle"></span> Repartidor
+                  }
+                </p>
+              </div>
+              @if (t.courier?.updated_at) {
+                <p class="text-[11px] text-ink-500 dark:text-white/50">
+                  Repartidor visto: {{ t.courier!.updated_at | date:'shortTime' }}
+                </p>
+              }
+            </div>
+            <div #mapEl class="w-full h-[360px] md:h-[440px] bg-slate-100 dark:bg-[#0b1220]"></div>
+          </div>
+        }
+
+        <!-- Timeline -->
+        <div class="editorial-card p-6">
+          <h3 class="font-bold text-ink-950 dark:text-white mb-6">Historial en vivo</h3>
+          @if (t.events.length === 0) {
+            <p class="text-ink-500 dark:text-white/50 text-sm">Aún no hay eventos registrados.</p>
+          } @else {
+            <ol class="relative border-l-2 border-ink-200 dark:border-white/10 ml-3 space-y-6">
+              @for (e of t.events; track e.created_at; let i = $index) {
+                <li class="ml-6"
+                    [class.animate-slide-down]="i === 0">
+                  <span class="absolute -left-3 w-6 h-6 rounded-full grid place-items-center"
+                        [ngClass]="i === 0 ? statusColor(e.status) : 'bg-ink-200 dark:bg-white/10 text-ink-700 dark:text-white/50'">
+                    <i class="fa-solid {{ statusIcon(e.status) }} text-[10px]"></i>
+                  </span>
+                  <div [class.opacity-60]="i !== 0">
+                    <p class="text-[10px] uppercase tracking-widest font-semibold text-ink-500 dark:text-white/50">
+                      {{ e.created_at | date:'medium' }}
+                    </p>
+                    <p class="font-bold text-ink-950 dark:text-white mt-1">{{ e.status_label }}</p>
+                    <p class="text-sm text-ink-700 dark:text-white/60">{{ e.description }}</p>
+                    @if (e.location) {
+                      <p class="text-xs text-ink-500 dark:text-white/40 mt-1">
+                        <i class="fa-solid fa-location-dot"></i> {{ e.location }}
+                      </p>
+                    }
+                  </div>
+                </li>
+              }
+            </ol>
+          }
+        </div>
+      </div>
+    </div>
+  }
+</section>

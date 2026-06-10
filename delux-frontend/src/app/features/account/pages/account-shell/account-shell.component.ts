@@ -20,7 +20,7 @@ import { MeService, MeProfile } from '@features/account/services/me.service';
         <aside class="lg:sticky lg:top-24 self-start">
           <div class="editorial-card p-5">
             <div class="flex items-center gap-3 pb-4 border-b border-ink-200 dark:border-white/10">
-              <div class="w-12 h-12 rounded-full bg-gradient-to-br from-accent-400 to-brand-violet grid place-items-center text-white font-bold">
+              <div class="w-12 h-12 rounded-full bg-gradient-to-br from-[#0095f6] to-[#1877f2] grid place-items-center text-white font-bold">
                 {{ initials() }}
               </div>
               <div class="min-w-0">
@@ -44,7 +44,8 @@ import { MeService, MeProfile } from '@features/account/services/me.service';
 
             <nav class="pt-4 space-y-1">
               @for (l of links; track l.path) {
-                <a [routerLink]="l.path" routerLinkActive="bg-ink-950 dark:bg-white text-white dark:text-ink-950"
+                <a [routerLink]="l.path"
+                   routerLinkActive="!bg-[#0095f6] !text-white !shadow-md !shadow-[#0095f6]/25"
                    [routerLinkActiveOptions]="{ exact: l.exact }"
                    class="flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-semibold
                           text-ink-700 dark:text-white/70 hover:bg-ink-100 dark:hover:bg-white/5 transition">

@@ -79,6 +79,46 @@ def notify_order_shipped(order, tracking_code=''):
     )
 
 
+# Mapping de estado → (asunto, template, emoji)
+_STATE_EMAILS = {
+    'PREPARING':  ('Preparamos tu orden {code}', 'order_state', '📦'),
+    'SHIPPED':    ('Tu orden {code} está en camino', 'order_state', '🚚'),
+    'IN_TRANSIT': ('Tu orden {code} va en ruta', 'order_state', '🛣️'),
+    'DELIVERED':  ('¡Tu orden {code} fue entregada!', 'order_state', '✅'),
+}
+
+
+def notify_order_state_change(order, new_status: str, tracking_code: str = ''):
+    """Email genérico para cada cambio de estado."""
+    if not order.customer or not order.customer.email:
+        return
+    cfg = _STATE_EMAILS.get(new_status)
+    if not cfg:
+        return
+    subject_tpl, template, emoji = cfg
+    send_html_email(
+        to_email=order.customer.email,
+        subject=f"{subject_tpl.format(code=order.code)} {emoji}",
+        template=template,
+        ctx={
+            'customer_name': order.customer.full_name,
+            'order_code': order.code,
+            'tracking_code': tracking_code,
+            'status_code': new_status,
+            'status_label': dict(
+                (s, l) for s, l in [
+                    ('PREPARING', 'Preparando'),
+                    ('SHIPPED',   'Enviado'),
+                    ('IN_TRANSIT','En tránsito'),
+                    ('DELIVERED', 'Entregado'),
+                ]
+            ).get(new_status, new_status),
+            'tracking_url': f'/tracking?code={tracking_code}' if tracking_code else '',
+            'emoji': emoji,
+        },
+    )
+
+
 def notify_password_reset(user, code):
     send_html_email(
         to_email=user.email,
