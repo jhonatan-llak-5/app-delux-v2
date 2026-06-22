@@ -5,6 +5,8 @@ import { RouterLink } from '@angular/router';
 import { debounceTime, Subject } from 'rxjs';
 
 import { Customer, CustomerService } from '@features/superadmin/services/customer.service';
+import { ConfirmService } from '@shared/components/confirm/confirm.service';
+import { NotifyService } from '@shared/services/notify.service';
 import { CustomerFormModalComponent } from '@features/superadmin/components/customer-form-modal/customer-form-modal.component';
 
 @Component({
@@ -147,6 +149,8 @@ import { CustomerFormModalComponent } from '@features/superadmin/components/cust
 })
 export class CustomersListComponent implements OnInit {
   private svc = inject(CustomerService);
+  private confirm = inject(ConfirmService);
+  private notify = inject(NotifyService);
 
   customers = signal<Customer[]>([]);
   summary = signal<{ total_customers: number; with_purchases: number; marketing_subscribers: number } | null>(null);
@@ -181,10 +185,18 @@ export class CustomersListComponent implements OnInit {
   openCreate() { this.editing.set(null); this.showModal.set(true); }
   openEdit(c: Customer) { this.editing.set(c); this.showModal.set(true); }
   closeModal() { this.showModal.set(false); this.editing.set(null); }
-  onSaved() { this.closeModal(); this.reload(); }
+  onSaved() { this.closeModal(); this.notify.success('Cliente guardado'); this.reload(); }
 
-  remove(c: Customer) {
-    if (!confirm(`¿Eliminar a ${c.full_name}?`)) return;
-    this.svc.delete(c.id).subscribe(() => this.reload());
+  async remove(c: Customer) {
+    const ok = await this.confirm.ask({
+      title: 'Eliminar cliente',
+      message: `¿Eliminar a ${c.full_name}? Esta acción no se puede deshacer.`,
+      variant: 'danger', confirmText: 'Eliminar',
+    });
+    if (!ok) return;
+    this.svc.delete(c.id).subscribe({
+      next: () => { this.notify.success('Cliente eliminado'); this.reload(); },
+      error: e => this.notify.fromServerError(e, 'No se pudo eliminar el cliente.'),
+    });
   }
 }

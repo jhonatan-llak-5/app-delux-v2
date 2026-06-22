@@ -64,10 +64,12 @@
           <p class="text-sm text-ink-700 dark:text-white/60">
             Destino: <span class="font-semibold text-ink-950 dark:text-white">{{ t.address_line1 }}, {{ t.city }}</span>
           </p>
-          @if (t.origin?.name) {
-            <p class="text-sm text-ink-700 dark:text-white/60 mt-2">
-              Sale de: <span class="font-semibold text-ink-950 dark:text-white">{{ t.origin.name }} · {{ t.origin.city }}</span>
-            </p>
+          @if (t.origin; as o) {
+            @if (o.name) {
+              <p class="text-sm text-ink-700 dark:text-white/60 mt-2">
+                Sale de: <span class="font-semibold text-ink-950 dark:text-white">{{ o.name }} · {{ o.city }}</span>
+              </p>
+            }
           }
           @if (t.estimated_delivery) {
             <p class="text-sm text-ink-700 dark:text-white/60 mt-2">

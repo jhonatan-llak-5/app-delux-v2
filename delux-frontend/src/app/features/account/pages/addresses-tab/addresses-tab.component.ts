@@ -2,6 +2,8 @@ import { ChangeDetectionStrategy, Component, OnInit, inject, signal } from '@ang
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { MeService, MeAddress } from '@features/account/services/me.service';
+import { ConfirmService } from '@shared/components/confirm/confirm.service';
+import { NotifyService } from '@shared/services/notify.service';
 
 @Component({
   selector: 'dlx-addresses-tab',
@@ -109,6 +111,8 @@ import { MeService, MeAddress } from '@features/account/services/me.service';
 })
 export class AddressesTabComponent implements OnInit {
   private me = inject(MeService);
+  private confirm = inject(ConfirmService);
+  private notify = inject(NotifyService);
   addresses = signal<MeAddress[]>([]);
   showForm = signal(false);
   editing = signal<MeAddress | null>(null);
@@ -139,8 +143,17 @@ export class AddressesTabComponent implements OnInit {
     if (!a.id) return;
     this.me.setDefaultAddress(a.id).subscribe(() => this.reload());
   }
-  remove(a: MeAddress) {
-    if (!a.id || !confirm('¿Eliminar esta dirección?')) return;
-    this.me.deleteAddress(a.id).subscribe(() => this.reload());
+  async remove(a: MeAddress) {
+    if (!a.id) return;
+    const ok = await this.confirm.ask({
+      title: 'Eliminar dirección',
+      message: '¿Eliminar esta dirección de tu cuenta?',
+      variant: 'danger', confirmText: 'Eliminar',
+    });
+    if (!ok) return;
+    this.me.deleteAddress(a.id).subscribe({
+      next: () => { this.notify.success('Dirección eliminada'); this.reload(); },
+      error: e => this.notify.fromServerError(e, 'No se pudo eliminar la dirección.'),
+    });
   }
 }

@@ -7,6 +7,7 @@ from .bulk_views import (
     ProductBulkTemplateView,
 )
 from .views import AdminProductViewSet
+from .upload_views import ProductImageUploadView
 
 router = DefaultRouter()
 router.register(r'', AdminProductViewSet, basename='admin-products')
@@ -19,5 +20,7 @@ urlpatterns = [
          name='product-bulk-dryrun'),
     path('bulk-import/commit/',   ProductBulkCommitView.as_view(),
          name='product-bulk-commit'),
+    path('upload-image/',         ProductImageUploadView.as_view(),
+         name='product-upload-image'),
 ]
 urlpatterns += router.urls

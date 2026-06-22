@@ -34,6 +34,12 @@ export interface StaffPayload {
   password?: string;
 }
 
+export interface StaffCreated extends StaffUser {
+  temp_password?: string | null;
+  password_generated?: boolean;
+  credentials_emailed?: boolean;
+}
+
 export interface SalesMetrics {
   total_sales: number;
   total_revenue: number;
@@ -56,7 +62,7 @@ export class StaffService {
   }
 
   get(id: number) { return this.http.get<StaffUser>(`${this.base}/${id}/`); }
-  create(payload: StaffPayload) { return this.http.post<StaffUser>(`${this.base}/`, payload); }
+  create(payload: StaffPayload) { return this.http.post<StaffCreated>(`${this.base}/`, payload); }
   update(id: number, payload: Partial<StaffPayload>) { return this.http.patch<StaffUser>(`${this.base}/${id}/`, payload); }
   delete(id: number) { return this.http.delete<void>(`${this.base}/${id}/`); }
   toggleActive(id: number) { return this.http.post<{ is_active: boolean }>(`${this.base}/${id}/toggle_active/`, {}); }

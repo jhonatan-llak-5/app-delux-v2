@@ -3,7 +3,7 @@ from rest_framework import permissions, viewsets
 from rest_framework.decorators import action
 from rest_framework.response import Response
 
-from apps.accounts.permissions import IsSuperadmin
+from apps.accounts.permissions import IsBranchManager
 
 from .models import Branch
 from .serializers import BranchSerializer
@@ -11,7 +11,7 @@ from .serializers import BranchSerializer
 
 class AdminBranchViewSet(viewsets.ModelViewSet):
     serializer_class = BranchSerializer
-    permission_classes = [permissions.IsAuthenticated, IsSuperadmin]
+    permission_classes = [permissions.IsAuthenticated, IsBranchManager]
 
     def get_queryset(self):
         qs = (

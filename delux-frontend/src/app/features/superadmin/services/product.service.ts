@@ -33,6 +33,7 @@ export interface Product {
   images: ProductImage[];
   images_count: number;
   variants_count: number;
+  variants_detail?: { size: string; color: string }[];
   total_stock: number | null;
   created_at: string;
   updated_at: string;
@@ -55,6 +56,7 @@ export interface ProductPayload {
   meta_title?: string;
   meta_description?: string;
   images?: ProductImage[];
+  variants?: { size: string; color: string }[];
 }
 
 interface Paged<T> { count: number; results: T[]; }
@@ -64,10 +66,16 @@ export class ProductService {
   private http = inject(HttpClient);
   private base = `${environment.apiUrl}/admin/products`;
 
+  uploadImage(file: File): Observable<{ url: string; name: string }> {
+    const form = new FormData();
+    form.append('image', file);
+    return this.http.post<{ url: string; name: string }>(`${this.base}/upload-image/`, form);
+  }
+
   list(params: {
     search?: string; brand?: number; category?: number;
     status?: string; tag?: string; gender?: string;
-    is_featured?: boolean;
+    is_featured?: boolean; branch?: number;
   } = {}): Observable<Paged<Product>> {
     let p = new HttpParams();
     Object.entries(params).forEach(([k, v]) => {

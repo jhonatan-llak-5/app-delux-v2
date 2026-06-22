@@ -186,6 +186,62 @@ import { AdminService, AdminBranch } from '@features/superadmin/services/admin.s
         </div>
       </div>
     </form>
+
+    @if (createdCreds(); as c) {
+      <div class="fixed inset-0 z-[9999] flex items-center justify-center p-4">
+        <div class="absolute inset-0 bg-ink-950/60 backdrop-blur-sm"></div>
+        <div class="relative w-full max-w-md bg-white dark:bg-[#0f172a] rounded-3xl shadow-2xl
+                    border border-ink-200 dark:border-white/10 overflow-hidden">
+          <div class="p-6 text-center border-b border-ink-100 dark:border-white/10">
+            <div class="w-12 h-12 rounded-2xl bg-emerald-100 grid place-items-center mx-auto mb-3">
+              <i class="fa-solid fa-circle-check text-emerald-600 text-xl"></i>
+            </div>
+            <h2 class="font-bold text-xl text-ink-950 dark:text-white">Usuario creado</h2>
+            <p class="text-sm text-slate-500 mt-1">
+              @if (c.generated) { Se generó una contraseña automática. }
+              Guarda o comparte estas credenciales — la contraseña no se vuelve a mostrar.
+            </p>
+          </div>
+          <div class="p-6 space-y-3">
+            <div class="flex items-center gap-2 p-3 rounded-xl bg-slate-50 dark:bg-white/5 border border-slate-200 dark:border-white/10">
+              <div class="flex-1 min-w-0">
+                <p class="text-[10px] uppercase tracking-widest text-slate-400 font-semibold">Email</p>
+                <p class="font-mono text-sm text-ink-950 dark:text-white truncate">{{ c.email }}</p>
+              </div>
+              <button (click)="copy(c.email)" class="px-2.5 py-1.5 rounded-lg bg-slate-200 dark:bg-white/10 text-xs font-semibold hover:bg-slate-300 transition">
+                <i class="fa-solid fa-copy"></i>
+              </button>
+            </div>
+            <div class="flex items-center gap-2 p-3 rounded-xl bg-slate-50 dark:bg-white/5 border border-slate-200 dark:border-white/10">
+              <div class="flex-1 min-w-0">
+                <p class="text-[10px] uppercase tracking-widest text-slate-400 font-semibold">Contraseña</p>
+                <p class="font-mono text-sm text-ink-950 dark:text-white truncate">{{ c.password }}</p>
+              </div>
+              <button (click)="copy(c.password)" class="px-2.5 py-1.5 rounded-lg bg-slate-200 dark:bg-white/10 text-xs font-semibold hover:bg-slate-300 transition">
+                <i class="fa-solid fa-copy"></i>
+              </button>
+            </div>
+            <button (click)="copy(c.email + ' / ' + c.password)"
+                    class="w-full h-10 rounded-xl border border-slate-200 dark:border-white/15 text-sm font-semibold hover:bg-slate-50 dark:hover:bg-white/5 transition">
+              <i class="fa-regular fa-clipboard"></i> Copiar ambos
+            </button>
+            <p class="text-[11px] text-center mt-1"
+               [class.text-emerald-600]="c.emailed" [class.text-slate-400]="!c.emailed">
+              <i class="fa-solid" [class.fa-envelope-circle-check]="c.emailed" [class.fa-circle-info]="!c.emailed"></i>
+              {{ c.emailed ? 'También enviamos las credenciales por correo.' : 'Correo no enviado (configura el SMTP en Configuración para enviarlas automáticamente).' }}
+            </p>
+          </div>
+          <div class="p-4 border-t border-ink-100 dark:border-white/10 flex gap-2">
+            <button (click)="createAnother()" class="flex-1 h-11 rounded-xl bg-slate-100 dark:bg-white/10 text-sm font-semibold hover:bg-slate-200 transition">
+              Crear otro
+            </button>
+            <button (click)="goToList()" class="flex-1 h-11 rounded-xl bg-[#1e40af] text-white text-sm font-semibold hover:bg-[#1d4ed8] transition">
+              Ir a la lista
+            </button>
+          </div>
+        </div>
+      </div>
+    }
   `,
 })
 export class StaffFormComponent implements OnInit {
@@ -200,6 +256,7 @@ export class StaffFormComponent implements OnInit {
   saving = signal(false);
   error = signal<string | null>(null);
   metrics = signal<SalesMetrics | null>(null);
+  createdCreds = signal<{ email: string; password: string; generated: boolean; emailed: boolean } | null>(null);
 
   payload: StaffPayload = {
     email: '', full_name: '', phone: '', document_id: '',
@@ -235,11 +292,41 @@ export class StaffFormComponent implements OnInit {
       ? this.svc.update(this.staffId()!, body)
       : this.svc.create(body);
     obs.subscribe({
-      next: () => { this.saving.set(false); this.router.navigate(['/app/admin/staff']); },
+      next: (res: any) => {
+        this.saving.set(false);
+        if (this.isEdit()) {
+          this.router.navigate(['/app/admin/staff']);
+        } else {
+          // Mostrar credenciales una sola vez.
+          this.createdCreds.set({
+            email: res?.email || this.payload.email,
+            password: res?.temp_password || this.payload.password || '(definida por ti)',
+            generated: !!res?.password_generated,
+            emailed: !!res?.credentials_emailed,
+          });
+        }
+      },
       error: e => {
         this.saving.set(false);
         this.error.set(e?.error?.detail || JSON.stringify(e?.error || {}) || 'Error al guardar');
       },
     });
+  }
+
+  copy(text: string) {
+    if (typeof navigator !== 'undefined' && navigator.clipboard) {
+      navigator.clipboard.writeText(text).catch(() => {});
+    }
+  }
+
+  goToList() { this.router.navigate(['/app/admin/staff']); }
+
+  createAnother() {
+    this.createdCreds.set(null);
+    this.payload = {
+      email: '', full_name: '', phone: '', document_id: '',
+      role: 'SALESPERSON', branch: null as any,
+      commission_rate: 5, hire_date: null, password: '',
+    };
   }
 }

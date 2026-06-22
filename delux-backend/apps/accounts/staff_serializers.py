@@ -40,6 +40,7 @@ class StaffCreateSerializer(serializers.ModelSerializer):
 
     def create(self, validated_data):
         request = self.context.get('request')
+        provided = validated_data.get('password')
         password = validated_data.pop('password', None) or get_random_string(10)
         tenant = getattr(request.user, 'tenant', None) if request else None
         if tenant is None:
@@ -50,6 +51,9 @@ class StaffCreateSerializer(serializers.ModelSerializer):
         validated_data['is_email_verified'] = True
         validated_data['is_active'] = True
         user = User.objects.create_user(password=password, **validated_data)
+        # Se exponen al creador una sola vez (en la respuesta del POST).
+        user._plain_password = password
+        user._password_generated = not bool(provided)
         return user
 
     def update(self, instance, validated_data):

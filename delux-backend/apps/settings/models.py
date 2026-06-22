@@ -115,3 +115,32 @@ class PlatformSettings(models.Model):
 
     def allowed_video_exts_list(self) -> list[str]:
         return [e.strip().lower() for e in (self.allowed_video_extensions or '').split(',') if e.strip()]
+
+
+class ContactMessage(models.Model):
+    """Mensaje del formulario de contacto público."""
+    name = models.CharField(max_length=120)
+    email = models.EmailField()
+    subject = models.CharField(max_length=160, blank=True)
+    message = models.TextField()
+    is_read = models.BooleanField(default=False)
+    created_at = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        ordering = ['-created_at']
+
+    def __str__(self) -> str:
+        return f'{self.name} <{self.email}>'
+
+
+class NewsletterSubscriber(models.Model):
+    """Suscriptor al newsletter."""
+    email = models.EmailField(unique=True)
+    is_active = models.BooleanField(default=True)
+    created_at = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        ordering = ['-created_at']
+
+    def __str__(self) -> str:
+        return self.email

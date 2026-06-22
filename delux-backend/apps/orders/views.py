@@ -4,14 +4,14 @@ from rest_framework import filters, permissions, status, viewsets
 from rest_framework.decorators import action
 from rest_framework.response import Response
 
-from apps.accounts.permissions import IsSuperadmin
+from apps.accounts.permissions import IsBranchManager, IsStaff
 from .models import Order, OrderStatus
 from .serializers import OrderSerializer, POSCheckoutSerializer
 
 
 class AdminOrderViewSet(viewsets.ReadOnlyModelViewSet):
     serializer_class = OrderSerializer
-    permission_classes = [permissions.IsAuthenticated, IsSuperadmin]
+    permission_classes = [permissions.IsAuthenticated, IsStaff]
     filter_backends = [filters.SearchFilter, filters.OrderingFilter]
     search_fields = ['code', 'customer__full_name', 'customer__email']
     ordering_fields = ['created_at', 'total', 'code']
@@ -32,6 +32,14 @@ class AdminOrderViewSet(viewsets.ReadOnlyModelViewSet):
             qs = qs.filter(created_at__date__gte=params['date_from'])
         if params.get('date_to'):
             qs = qs.filter(created_at__date__lte=params['date_to'])
+
+        # Aislamiento por rol: gerente solo ve su sucursal; superadmin ve todo.
+        user = self.request.user
+        if getattr(user, 'role', None) and user.role != 'SUPERADMIN':
+            if user.tenant_id:
+                qs = qs.filter(tenant_id=user.tenant_id)
+            if user.role in ('BRANCH_MANAGER', 'SALESPERSON') and user.branch_id:
+                qs = qs.filter(branch_id=user.branch_id)
         return qs
 
     @action(detail=False, methods=['post'], url_path='pos-checkout')
@@ -43,6 +51,8 @@ class AdminOrderViewSet(viewsets.ReadOnlyModelViewSet):
 
     @action(detail=True, methods=['post'])
     def cancel(self, request, pk=None):
+        if request.user.role == 'SALESPERSON':
+            return Response({'detail': 'No autorizado.'}, status=status.HTTP_403_FORBIDDEN)
         order = self.get_object()
         if order.status in (OrderStatus.CANCELLED, OrderStatus.REFUNDED):
             return Response({'detail': 'Ya estaba cancelada.'}, status=400)

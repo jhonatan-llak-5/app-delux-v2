@@ -1,4 +1,7 @@
 import { ChangeDetectionStrategy, Component, signal } from '@angular/core';
+import { inject } from '@angular/core';
+import { PublicFormsService } from '@shared/services/public-forms.service';
+import { NotifyService } from '@shared/services/notify.service';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { RevealOnScrollDirective } from '@shared/directives/reveal-on-scroll.directive';
@@ -71,7 +74,17 @@ import { RevealOnScrollDirective } from '@shared/directives/reveal-on-scroll.dir
   `,
 })
 export class NewsletterSectionComponent {
+  private forms = inject(PublicFormsService);
+  private notify = inject(NotifyService);
   email = signal('');
   sent = signal(false);
-  submit() { if (this.email().includes('@')) { this.sent.set(true); this.email.set(''); } }
+  saving = signal(false);
+  submit() {
+    if (!this.email().includes('@')) { this.notify.warning('Ingresa un correo válido'); return; }
+    this.saving.set(true);
+    this.forms.subscribeNewsletter(this.email()).subscribe({
+      next: r => { this.saving.set(false); this.sent.set(true); this.notify.success(r.detail || '¡Suscrito!'); this.email.set(''); },
+      error: e => { this.saving.set(false); this.notify.error(e?.error?.detail || 'No se pudo suscribir.'); },
+    });
+  }
 }

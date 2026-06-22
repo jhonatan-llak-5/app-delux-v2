@@ -65,7 +65,9 @@ class CheckoutPayPhoneInitView(APIView):
                 tenant=tenant, code=code, branch_id=data['branch_id'],
                 customer=customer,
                 channel=OrderChannel.WEB,
-                fulfillment=FulfillmentType.SHIPPING,
+                fulfillment=(FulfillmentType.PICKUP
+                             if data.get('fulfillment') == 'PICKUP'
+                             else FulfillmentType.SHIPPING),
                 status=OrderStatus.PENDING,
                 discount=data.get('discount', 0),
                 coupon_code=data.get('coupon_code', ''),

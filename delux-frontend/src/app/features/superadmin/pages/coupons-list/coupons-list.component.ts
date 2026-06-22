@@ -2,6 +2,8 @@ import { ChangeDetectionStrategy, Component, OnInit, inject, signal } from '@ang
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { Coupon, CouponService } from '@features/superadmin/services/coupon.service';
+import { ConfirmService } from '@shared/components/confirm/confirm.service';
+import { NotifyService } from '@shared/services/notify.service';
 import { CouponFormModalComponent } from '@features/superadmin/components/coupon-form-modal/coupon-form-modal.component';
 
 @Component({
@@ -159,6 +161,8 @@ import { CouponFormModalComponent } from '@features/superadmin/components/coupon
 })
 export class CouponsListComponent implements OnInit {
   private svc = inject(CouponService);
+  private confirm = inject(ConfirmService);
+  private notify = inject(NotifyService);
 
   coupons = signal<Coupon[]>([]);
   loading = signal(true);
@@ -187,12 +191,25 @@ export class CouponsListComponent implements OnInit {
   openCreate() { this.editing.set(null); this.showModal.set(true); }
   openEdit(c: Coupon) { this.editing.set(c); this.showModal.set(true); }
   closeModal() { this.showModal.set(false); this.editing.set(null); }
-  onSaved() { this.closeModal(); this.reload(); }
+  onSaved() { this.closeModal(); this.notify.success('Cupón guardado'); this.reload(); }
 
   copyCode(c: Coupon) { navigator.clipboard?.writeText(c.code); }
-  toggle(c: Coupon) { this.svc.toggleActive(c.id).subscribe(() => this.reload()); }
-  remove(c: Coupon) {
-    if (!confirm(`¿Eliminar cupón ${c.code}?`)) return;
-    this.svc.delete(c.id).subscribe(() => this.reload());
+  toggle(c: Coupon) {
+    this.svc.toggleActive(c.id).subscribe({
+      next: () => { this.notify.success('Cupón actualizado'); this.reload(); },
+      error: e => this.notify.fromServerError(e),
+    });
+  }
+  async remove(c: Coupon) {
+    const ok = await this.confirm.ask({
+      title: 'Eliminar cupón',
+      message: `¿Eliminar el cupón ${c.code}? Esta acción no se puede deshacer.`,
+      variant: 'danger', confirmText: 'Eliminar',
+    });
+    if (!ok) return;
+    this.svc.delete(c.id).subscribe({
+      next: () => { this.notify.success('Cupón eliminado'); this.reload(); },
+      error: e => this.notify.fromServerError(e, 'No se pudo eliminar el cupón.'),
+    });
   }
 }

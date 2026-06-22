@@ -28,6 +28,26 @@ export const appRoutes: Routes = [
           import('./features/contact/contact.routes').then(m => m.CONTACT_ROUTES),
       },
       {
+        path: 'terms',
+        data: { page: 'terms' },
+        loadComponent: () => import('./features/legal/legal-page.component').then(m => m.LegalPageComponent),
+      },
+      {
+        path: 'privacy',
+        data: { page: 'privacy' },
+        loadComponent: () => import('./features/legal/legal-page.component').then(m => m.LegalPageComponent),
+      },
+      {
+        path: 'cookies',
+        data: { page: 'cookies' },
+        loadComponent: () => import('./features/legal/legal-page.component').then(m => m.LegalPageComponent),
+      },
+      {
+        path: 'about',
+        data: { page: 'about' },
+        loadComponent: () => import('./features/legal/legal-page.component').then(m => m.LegalPageComponent),
+      },
+      {
         path: 'cart',
         loadComponent: () =>
           import('./features/checkout/pages/cart-page/cart-page.component').then(m => m.CartPageComponent),

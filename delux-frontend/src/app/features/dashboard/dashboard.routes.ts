@@ -6,7 +6,7 @@ export const DASHBOARD_ROUTES: Routes = [
     path: '',
     canActivate: [authGuard],
     children: [
-      { path: '', pathMatch: 'full', redirectTo: 'dashboard' },
+      { path: '', pathMatch: 'full', redirectTo: 'admin/overview' },
       {
         path: 'dashboard',
         loadComponent: () =>

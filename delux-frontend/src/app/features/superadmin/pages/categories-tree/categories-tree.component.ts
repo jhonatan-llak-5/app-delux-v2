@@ -2,6 +2,8 @@ import { ChangeDetectionStrategy, Component, OnInit, computed, inject, signal } 
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { Category, CategoryService, CategoryTreeNode } from '@features/superadmin/services/category.service';
+import { ConfirmService } from '@shared/components/confirm/confirm.service';
+import { NotifyService } from '@shared/services/notify.service';
 import { CategoryFormModalComponent } from '@features/superadmin/components/category-form-modal/category-form-modal.component';
 
 @Component({
@@ -195,6 +197,8 @@ import { CategoryFormModalComponent } from '@features/superadmin/components/cate
 })
 export class CategoriesTreeComponent implements OnInit {
   private service = inject(CategoryService);
+  private confirm = inject(ConfirmService);
+  private notify = inject(NotifyService);
 
   tree = signal<CategoryTreeNode[]>([]);
   loading = signal(true);
@@ -305,12 +309,17 @@ export class CategoriesTreeComponent implements OnInit {
     this.service.toggleActive(node.id).subscribe(() => this.reload());
   }
 
-  remove(node: CategoryTreeNode): void {
+  async remove(node: CategoryTreeNode): Promise<void> {
     const subs = node.children?.length ? ` y sus ${node.children.length} subcategorías` : '';
-    if (!confirm(`¿Eliminar "${node.name}"${subs}? Esta acción no se puede deshacer.`)) return;
+    const ok = await this.confirm.ask({
+      title: 'Eliminar categoría',
+      message: `¿Eliminar "${node.name}"${subs}? Esta acción no se puede deshacer.`,
+      variant: 'danger', confirmText: 'Eliminar',
+    });
+    if (!ok) return;
     this.service.delete(node.id).subscribe({
-      next: () => this.reload(),
-      error: e => alert('No se pudo eliminar: ' + (e?.error?.detail || 'error')),
+      next: () => { this.notify.success('Categoría eliminada'); this.reload(); },
+      error: e => this.notify.fromServerError(e, 'No se pudo eliminar la categoría.'),
     });
   }
 }

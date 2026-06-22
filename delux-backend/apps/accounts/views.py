@@ -163,3 +163,24 @@ class AdminUserViewSet(viewsets.ModelViewSet):
         user.is_active = False
         user.save(update_fields=['is_active'])
         return Response({'detail': 'Usuario desactivado.'})
+
+    @action(detail=True, methods=['post'])
+    def impersonate(self, request, pk=None):
+        """Superadmin: genera tokens para entrar como el usuario objetivo.
+
+        Pensado para que el superadmin pruebe la experiencia de cada cuenta
+        (admin de local, vendedor, etc.). Devuelve el mismo shape que el login.
+        """
+        from rest_framework_simplejwt.tokens import RefreshToken
+        target = self.get_object()
+        if not target.is_active:
+            return Response({'detail': 'La cuenta esta inactiva.'}, status=status.HTTP_400_BAD_REQUEST)
+        if target.id == request.user.id:
+            return Response({'detail': 'Ya eres este usuario.'}, status=status.HTTP_400_BAD_REQUEST)
+        refresh = RefreshToken.for_user(target)
+        return Response({
+            'access': str(refresh.access_token),
+            'refresh': str(refresh),
+            'user': UserSerializer(target).data,
+            'impersonated': True,
+        }, status=status.HTTP_200_OK)

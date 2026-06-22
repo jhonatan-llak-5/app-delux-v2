@@ -17,6 +17,9 @@ class PaymentSerializer(serializers.ModelSerializer):
 class PayPhoneInitOrderSerializer(serializers.Serializer):
     """Crea orden WEB+PENDING + inicia pago PayPhone en un solo paso."""
     branch_id = serializers.IntegerField()
+    fulfillment = serializers.ChoiceField(
+        choices=['SHIPPING', 'PICKUP'], required=False, default='SHIPPING'
+    )
     customer_data = serializers.DictField()
     items = serializers.ListField(child=serializers.DictField(), allow_empty=False)
     discount = serializers.DecimalField(max_digits=10, decimal_places=2, default=0)

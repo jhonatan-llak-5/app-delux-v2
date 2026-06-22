@@ -132,23 +132,64 @@ class Command(BaseCommand):
         tenant_admin.is_email_verified = True
         tenant_admin.save()
 
+        # code, name, city, address, lat, lng, phone, hours
         branch_defs = [
-            ('CENTRO', 'Delux Centro', 'Quito', 'Av. Amazonas N24-03 y Colon'),
-            ('NORTE',  'Delux Norte',  'Quito', 'C.C. Quicentro Shopping'),
-            ('CUENCA', 'Delux Cuenca', 'Cuenca', 'Av. Solano 5-23'),
+            ('CENTRO', 'Delux Centro', 'Quito', 'Av. Amazonas N24-03 y Colon',
+             -0.204600, -78.491800, '+593 2 256 7890', 'Lun - Sab 10:00 a 20:00'),
+            ('NORTE',  'Delux Norte',  'Quito', 'C.C. Quicentro Shopping, Local 2-14',
+             -0.175900, -78.480100, '+593 2 290 4455', 'Lun - Dom 10:00 a 21:00'),
+            ('GYE',    'Delux Mall del Sol', 'Guayaquil', 'C.C. Mall del Sol, Local 128',
+             -2.150500, -79.889400, '+593 4 208 3344', 'Lun - Dom 10:00 a 22:00'),
+            ('CUENCA', 'Delux Cuenca', 'Cuenca', 'Av. Solano 5-23 y Remigio Crespo',
+             -2.903500, -79.008600, '+593 7 280 1122', 'Lun - Sab 10:00 a 19:00'),
         ]
         branches = []
-        for code, name, city, address in branch_defs:
+        for code, name, city, address, lat, lng, phone, hours in branch_defs:
             b, _ = Branch.objects.get_or_create(
                 tenant=tenant, code=code,
                 defaults={
                     'name': name, 'city': city, 'address': address,
-                    'phone': '+593 2 000 0000',
-                    'opening_hours': 'Lun - Sab 10:00 a 20:00',
+                    'latitude': lat, 'longitude': lng,
+                    'phone': phone, 'email': f'{code.lower()}@delux.ec',
+                    'opening_hours': hours,
                     'allows_pickup': True, 'is_active': True,
                 },
             )
+            updated = False
+            if b.latitude is None or b.longitude is None:
+                b.latitude, b.longitude = lat, lng
+                updated = True
+            if not b.phone or b.phone == '+593 2 000 0000':
+                b.phone = phone
+                updated = True
+            if not b.opening_hours:
+                b.opening_hours = hours
+                updated = True
+            if updated:
+                b.save(update_fields=['latitude', 'longitude', 'phone', 'opening_hours'])
             branches.append(b)
+
+        # Un admin (Gerente) por cada sucursal.
+        for b in branches:
+            email = f'admin.{b.code.lower()}@delux.ec'
+            mgr, _ = User.objects.get_or_create(
+                email=email,
+                defaults={'username': f'admin_{b.code.lower()}'},
+            )
+            mgr.set_password('12345678')
+            mgr.full_name = f'Admin {b.name}'
+            mgr.role = Role.BRANCH_MANAGER
+            mgr.tenant = tenant
+            mgr.branch = b
+            mgr.is_active = True
+            mgr.is_email_verified = True
+            mgr.save()
+            if b.manager_id != mgr.id:
+                b.manager = mgr
+                b.save(update_fields=['manager'])
+            self.stdout.write(self.style.SUCCESS(
+                f'  sucursal admin -> {email} / 12345678  ({b.name})'
+            ))
 
         brands = {}
         for i, b in enumerate(BRANDS_DATA):
@@ -308,11 +349,22 @@ class Command(BaseCommand):
                             defaults={'product': product, 'size': size,
                                       'color': color, 'is_active': True},
                         )
-                        for branch in branches:
-                            Stock.objects.get_or_create(
+                        # Stock variado por sucursal: cada ciudad tiene un
+                        # surtido distinto (algunos productos agotados en
+                        # ciertas sucursales) para que la zona se note.
+                        # prob = probabilidad de tener stock; rango de cantidad.
+                        branch_profiles = [
+                            (0.92, (6, 20)),  # 1ra sucursal: surtido amplio
+                            (0.72, (3, 12)),
+                            (0.60, (2, 10)),
+                            (0.48, (1, 8)),   # ultima: surtido reducido
+                        ]
+                        for bi, branch in enumerate(branches):
+                            prob, (lo, hi) = branch_profiles[bi % len(branch_profiles)]
+                            qty = random.randint(lo, hi) if random.random() < prob else 0
+                            Stock.objects.update_or_create(
                                 tenant=tenant, variant=v, branch=branch,
-                                defaults={'quantity': random.randint(2, 15),
-                                          'min_threshold': 2},
+                                defaults={'quantity': qty, 'min_threshold': 2},
                             )
 
         self.stdout.write(self.style.SUCCESS(

@@ -10,6 +10,7 @@ export interface CheckoutItemInput {
 
 export interface CheckoutInitPayload {
   branch_id: number;
+  fulfillment?: 'SHIPPING' | 'PICKUP';
   customer_data: {
     full_name: string;
     email: string;

@@ -4,7 +4,7 @@ from rest_framework import filters, permissions, status, viewsets
 from rest_framework.decorators import action
 from rest_framework.response import Response
 
-from apps.accounts.permissions import IsSuperadmin
+from apps.accounts.permissions import IsBranchManager, IsStaff
 from apps.variants.models import Variant
 from .models import Stock, StockMovement
 from .serializers import (
@@ -15,7 +15,7 @@ from .serializers import (
 
 class AdminStockViewSet(viewsets.ReadOnlyModelViewSet):
     serializer_class = StockSerializer
-    permission_classes = [permissions.IsAuthenticated, IsSuperadmin]
+    permission_classes = [permissions.IsAuthenticated, IsStaff]
     filter_backends = [filters.SearchFilter, filters.OrderingFilter]
     search_fields = ['variant__sku', 'variant__product__name']
     ordering_fields = ['quantity', 'updated_at']
@@ -40,6 +40,14 @@ class AdminStockViewSet(viewsets.ReadOnlyModelViewSet):
             qs = qs.filter(quantity__lte=F('min_threshold'))
         if params.get('out_of_stock') == 'true':
             qs = qs.filter(quantity=0)
+
+        # Scoping por rol: gerente de sucursal solo ve el stock de su sucursal.
+        user = self.request.user
+        if getattr(user, 'role', None) and user.role != 'SUPERADMIN':
+            if user.tenant_id:
+                qs = qs.filter(tenant_id=user.tenant_id)
+            if user.role in ('BRANCH_MANAGER', 'SALESPERSON') and user.branch_id:
+                qs = qs.filter(branch_id=user.branch_id)
         return qs
 
     @action(detail=True, methods=['post'])
@@ -143,7 +151,7 @@ class AdminStockViewSet(viewsets.ReadOnlyModelViewSet):
 
 class AdminMovementViewSet(viewsets.ReadOnlyModelViewSet):
     serializer_class = StockMovementSerializer
-    permission_classes = [permissions.IsAuthenticated, IsSuperadmin]
+    permission_classes = [permissions.IsAuthenticated, IsStaff]
     filter_backends = [filters.OrderingFilter]
     ordering = ['-created_at']
 

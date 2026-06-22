@@ -1,4 +1,4 @@
-import { ChangeDetectionStrategy, Component, computed, inject, signal, HostListener, ElementRef } from '@angular/core';
+import { ChangeDetectionStrategy, Component, computed, inject, signal, HostListener, ElementRef, AfterViewInit } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { RouterLink, RouterLinkActive, RouterOutlet, Router } from '@angular/router';
 import { AuthService } from '@core/services/auth.service';
@@ -6,6 +6,8 @@ import { ThemeService } from '@core/services/theme.service';
 import { ToastHostComponent } from '@shared/components/toast-host/toast-host.component';
 import { WebSocketService } from '@core/services/websocket.service';
 import { DlxNotificationsBellComponent } from '@shared/ui';
+import { AppTourComponent } from '@shared/components/app-tour/app-tour.component';
+import { TourService } from '@shared/components/app-tour/tour.service';
 
 interface NavItem { label: string; icon: string; route: string; badge?: string; }
 interface NavGroup { title: string; items: NavItem[]; roles?: string[]; }
@@ -15,13 +17,14 @@ const COLLAPSED_KEY = 'dlx_sidebar_collapsed';
 @Component({
   selector: 'dlx-dashboard-layout',
   standalone: true,
-  imports: [CommonModule, RouterLink, RouterLinkActive, RouterOutlet, ToastHostComponent, DlxNotificationsBellComponent],
+  imports: [CommonModule, RouterLink, RouterLinkActive, RouterOutlet, ToastHostComponent, DlxNotificationsBellComponent, AppTourComponent],
   changeDetection: ChangeDetectionStrategy.OnPush,
   template: `
     <div class="dlx-dashboard min-h-screen flex bg-[#f8fafc] dark:bg-[#020617] transition-colors">
 
       <!-- ═══════════ SIDEBAR (fijo, paleta MedicGet) ═══════════ -->
-      <aside class="hidden lg:flex shrink-0 flex-col transition-all duration-300
+      <aside data-tour="sidebar"
+             class="hidden lg:flex shrink-0 flex-col transition-all duration-300
                     bg-white dark:bg-[#0f172a] backdrop-blur-xl
                     border-r border-slate-200 dark:border-[#1e293b]
                     h-screen sticky top-0"
@@ -52,6 +55,7 @@ const COLLAPSED_KEY = 'dlx_sidebar_collapsed';
                 @for (item of group.items; track item.label) {
                   <li>
                     <a [routerLink]="item.route"
+                       [attr.data-tour]="tourKey(item.route)"
                        routerLinkActive="!bg-[#1e40af]/8 !text-[#1e40af] dark:!bg-[#2563eb]/15 dark:!text-[#60a5fa] font-semibold !border-l-[3px] !border-[#1e40af] dark:!border-[#3b82f6]"
                        [routerLinkActiveOptions]="{ exact: false }"
                        [title]="collapsed() ? item.label : ''"
@@ -81,6 +85,20 @@ const COLLAPSED_KEY = 'dlx_sidebar_collapsed';
       <!-- ═══════════ MAIN ═══════════ -->
       <div class="flex-1 flex flex-col min-w-0">
 
+        <!-- Banner de impersonación -->
+        @if (isImpersonating()) {
+          <div class="h-11 shrink-0 sticky top-0 z-40 flex items-center justify-center gap-3 px-4
+                      bg-amber-500 text-amber-950 text-sm font-medium">
+            <i class="fa-solid fa-user-secret"></i>
+            <span>Estás viendo como <b>{{ userName() }}</b> ({{ roleLabel() }})</span>
+            <button (click)="exitImpersonation()"
+                    class="ml-2 px-3 py-1 rounded-lg bg-amber-950 text-amber-50 text-xs font-semibold
+                           hover:bg-amber-900 transition inline-flex items-center gap-1.5">
+              <i class="fa-solid fa-arrow-left"></i> Volver a {{ impersonatorName() }}
+            </button>
+          </div>
+        }
+
         <!-- Header -->
         <header class="h-16 sticky top-0 z-30 flex items-center px-4 md:px-6 gap-3
                        bg-white/95 dark:bg-[#0f172a]/95 backdrop-blur-md
@@ -94,7 +112,7 @@ const COLLAPSED_KEY = 'dlx_sidebar_collapsed';
             <i class="fa-solid" [class.fa-bars]="collapsed()" [class.fa-bars-staggered]="!collapsed()"></i>
           </button>
 
-          <div class="flex-1 max-w-md relative">
+          <div data-tour="search" class="flex-1 max-w-md relative">
             <i class="fa-solid fa-magnifying-glass text-sm absolute left-3 top-1/2 -translate-y-1/2
                       text-slate-400 dark:text-white/40"></i>
             <input placeholder="Buscar productos, pedidos, clientes..."
@@ -111,7 +129,7 @@ const COLLAPSED_KEY = 'dlx_sidebar_collapsed';
           <div class="flex-1"></div>
 
           <!-- Theme toggle -->
-          <button (click)="theme.toggle()"
+          <button (click)="theme.toggle()" data-tour="theme"
                   class="w-10 h-10 grid place-items-center rounded-lg
                          text-slate-600 dark:text-white/70
                          hover:bg-slate-100 dark:hover:bg-white/10 hover:text-ink-950 dark:hover:text-white transition"
@@ -120,10 +138,10 @@ const COLLAPSED_KEY = 'dlx_sidebar_collapsed';
           </button>
 
           <!-- Notifications (componente reutilizable con dropdown) -->
-          <dlx-notifications-bell />
+          <span data-tour="notifications"><dlx-notifications-bell /></span>
 
           <!-- Avatar perfil + popup -->
-          <div class="relative" #profileDropdown>
+          <div class="relative" data-tour="account" #profileDropdown>
             <button (click)="profileOpen.set(!profileOpen())"
                     class="flex items-center gap-2 pl-1 pr-2 py-1 rounded-full
                            hover:bg-slate-100 dark:hover:bg-white/10 transition">
@@ -182,6 +200,13 @@ const COLLAPSED_KEY = 'dlx_sidebar_collapsed';
                     <i class="fa-solid fa-gear w-4 text-center text-slate-400 dark:text-white/40"></i>
                     Configuración
                   </a>
+                  <button (click)="startTour()"
+                     class="w-full flex items-center gap-3 px-3 py-2.5 rounded-lg
+                            text-sm text-slate-700 dark:text-white/80
+                            hover:bg-slate-100 dark:hover:bg-white/5 transition">
+                    <i class="fa-solid fa-route w-4 text-center text-[#1e40af] dark:text-[#60a5fa]"></i>
+                    Hacer tour del app
+                  </button>
                   <a routerLink="/" (click)="profileOpen.set(false)"
                      class="flex items-center gap-3 px-3 py-2.5 rounded-lg
                             text-sm text-slate-700 dark:text-white/80
@@ -212,14 +237,33 @@ const COLLAPSED_KEY = 'dlx_sidebar_collapsed';
     </div>
 
     <dlx-toast-host />
+    <dlx-app-tour />
   `,
 })
-export class DashboardLayoutComponent {
+export class DashboardLayoutComponent implements AfterViewInit {
   private auth = inject(AuthService);
   private router = inject(Router);
   private host = inject(ElementRef);
+  private tour = inject(TourService);
   theme = inject(ThemeService);
   ws = inject(WebSocketService);
+
+  ngAfterViewInit(): void {
+    // Auto-inicia el tour la primera vez (se guarda en localStorage).
+    this.tour.maybeAutoStart();
+  }
+
+  /** Lanza el tour manualmente desde el menu de cuenta. */
+  startTour(): void {
+    this.profileOpen.set(false);
+    setTimeout(() => this.tour.start(), 120);
+  }
+
+  /** Clave de tour derivada de la ruta: /app/admin/products -> nav-products. */
+  tourKey(route: string): string {
+    const seg = route.split('/').filter(Boolean).pop() || 'item';
+    return 'nav-' + seg;
+  }
 
   collapsed = signal<boolean>(
     typeof window !== 'undefined' && localStorage.getItem(COLLAPSED_KEY) === '1'
@@ -265,12 +309,49 @@ export class DashboardLayoutComponent {
         { label: 'Configuración', icon: 'fa-gear',           route: '/app/admin/settings' },
       ],
     },
+    {
+      title: 'Mi local',
+      roles: ['TENANT_ADMIN', 'BRANCH_MANAGER'],
+      items: [
+        { label: 'Panel',        icon: 'fa-gauge-high',     route: '/app/admin/overview' },
+        { label: 'Productos',    icon: 'fa-box',            route: '/app/admin/products' },
+        { label: 'Inventario',   icon: 'fa-boxes-stacked',  route: '/app/admin/inventory' },
+        { label: 'POS',          icon: 'fa-cash-register',  route: '/app/admin/pos' },
+        { label: 'Ventas',       icon: 'fa-receipt',        route: '/app/admin/sales' },
+        { label: 'Equipo',       icon: 'fa-user-tie',       route: '/app/admin/staff' },
+        { label: 'Horarios',     icon: 'fa-clock',          route: '/app/admin/schedules' },
+        { label: 'Clientes',     icon: 'fa-user-group',     route: '/app/admin/customers' },
+        { label: 'Reportes',     icon: 'fa-chart-line',     route: '/app/admin/reports' },
+        { label: 'Reseñas',      icon: 'fa-comment-dots',   route: '/app/admin/reviews' },
+        { label: 'Envíos',       icon: 'fa-truck',          route: '/app/admin/shipments' },
+        { label: 'Devoluciones', icon: 'fa-rotate-left',    route: '/app/admin/returns' },
+      ],
+    },
+    {
+      title: 'Mi punto de venta',
+      roles: ['SALESPERSON'],
+      items: [
+        { label: 'POS',         icon: 'fa-cash-register',  route: '/app/admin/pos' },
+        { label: 'Mis ventas',  icon: 'fa-receipt',        route: '/app/admin/sales' },
+        { label: 'Productos',   icon: 'fa-box',            route: '/app/admin/products' },
+        { label: 'Inventario',  icon: 'fa-boxes-stacked',  route: '/app/admin/inventory' },
+      ],
+    },
   ];
 
   visibleGroups = computed(() => {
     const role = this.auth.user()?.role;
     return this.allGroups.filter(g => !g.roles || (role && g.roles.includes(role)));
   });
+
+  // ── Impersonación
+  isImpersonating = computed(() => this.auth.impersonating());
+  impersonatorName = computed(() => this.auth.impersonator()?.name ?? 'mi cuenta');
+
+  exitImpersonation(): void {
+    this.auth.stopImpersonation();
+    this.router.navigate(['/app/admin/users']);
+  }
 
   toggleCollapse() {
     const next = !this.collapsed();
@@ -290,15 +371,11 @@ export class DashboardLayoutComponent {
   onDocClick(ev: MouseEvent) {
     if (!this.profileOpen()) return;
     const target = ev.target as HTMLElement;
-    if (!this.host.nativeElement.contains(target) || !target.closest('[\\#profileDropdown]')) {
-      // Cerrar si click fuera del dropdown
-      const dd = this.host.nativeElement.querySelector('[ng-reflect-name]')
-              || this.host.nativeElement.querySelector('.relative');
-      // Simple: cerrar si no se hizo click dentro del botón del avatar
-      const avatar = (this.host.nativeElement as HTMLElement).querySelector('header .relative');
-      if (avatar && !avatar.contains(target)) {
-        this.profileOpen.set(false);
-      }
+    // Cierra el dropdown solo si el click ocurrio fuera del contenedor del avatar.
+    const account = (this.host.nativeElement as HTMLElement)
+      .querySelector('[data-tour="account"]');
+    if (account && !account.contains(target)) {
+      this.profileOpen.set(false);
     }
   }
 }

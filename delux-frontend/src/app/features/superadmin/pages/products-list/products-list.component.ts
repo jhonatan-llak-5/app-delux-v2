@@ -7,6 +7,9 @@ import { debounceTime, Subject } from 'rxjs';
 import { Product, ProductService } from '@features/superadmin/services/product.service';
 import { BrandService, Brand } from '@features/superadmin/services/brand.service';
 import { CategoryService, Category } from '@features/superadmin/services/category.service';
+import { AdminService, AdminBranch } from '@features/superadmin/services/admin.service';
+import { ConfirmService } from '@shared/components/confirm/confirm.service';
+import { NotifyService } from '@shared/services/notify.service';
 
 @Component({
   selector: 'dlx-products-list',
@@ -87,6 +90,11 @@ import { CategoryService, Category } from '@features/superadmin/services/categor
         <option value="DRAFT">Borradores</option>
         <option value="PAUSED">Pausados</option>
         <option value="ARCHIVED">Archivados</option>
+      </select>
+      <select [(ngModel)]="branchFilter" (change)="reload()" title="Filtrar por tienda"
+              class="px-3 py-2 rounded-lg bg-slate-50 border border-transparent focus:bg-white focus:border-slate-300 focus:outline-none text-sm">
+        <option [ngValue]="null">Todas las tiendas</option>
+        @for (b of stores(); track b.id) { <option [ngValue]="b.id">{{ b.name }} · {{ b.city }}</option> }
       </select>
     </div>
 
@@ -202,22 +210,28 @@ export class ProductsListComponent implements OnInit {
   private svc = inject(ProductService);
   private brandSvc = inject(BrandService);
   private catSvc = inject(CategoryService);
+  private adminSvc = inject(AdminService);
+  private confirm = inject(ConfirmService);
+  private notify = inject(NotifyService);
   private router = inject(Router);
 
   products = signal<Product[]>([]);
   brands = signal<Brand[]>([]);
   categories = signal<Category[]>([]);
+  stores = signal<AdminBranch[]>([]);
   loading = signal(true);
   search = signal('');
   brandFilter: number | null = null;
   categoryFilter: number | null = null;
   statusFilter = '';
+  branchFilter: number | null = null;
   private search$ = new Subject<void>();
 
   ngOnInit(): void {
     this.search$.pipe(debounceTime(300)).subscribe(() => this.reload());
     this.brandSvc.list({ search: '' }).subscribe(r => this.brands.set(r.results || []));
     this.catSvc.list().subscribe(r => this.categories.set(r.results || []));
+    this.adminSvc.listBranches().subscribe(r => this.stores.set(r.results || []));
     this.reload();
   }
 
@@ -228,6 +242,7 @@ export class ProductsListComponent implements OnInit {
       brand: this.brandFilter || undefined,
       category: this.categoryFilter || undefined,
       status: this.statusFilter || undefined,
+      branch: this.branchFilter || undefined,
     }).subscribe({
       next: r => { this.products.set(r.results); this.loading.set(false); },
       error: () => this.loading.set(false),
@@ -265,17 +280,38 @@ export class ProductsListComponent implements OnInit {
   edit(p: Product) { this.router.navigate(['/app/admin/products', p.id]); }
 
   toggleFeatured(p: Product) {
-    this.svc.toggleFeatured(p.id).subscribe(() => this.reload());
+    this.svc.toggleFeatured(p.id).subscribe({
+      next: () => { this.notify.success(p.is_featured ? 'Quitado de destacados' : 'Producto destacado'); this.reload(); },
+      error: e => this.notify.fromServerError(e),
+    });
   }
   publish(p: Product) {
-    this.svc.publish(p.id).subscribe(() => this.reload());
+    this.svc.publish(p.id).subscribe({
+      next: () => { this.notify.success('Producto publicado'); this.reload(); },
+      error: e => this.notify.fromServerError(e),
+    });
   }
   archive(p: Product) {
-    this.svc.archive(p.id).subscribe(() => this.reload());
+    this.svc.archive(p.id).subscribe({
+      next: () => { this.notify.success('Producto archivado'); this.reload(); },
+      error: e => this.notify.fromServerError(e),
+    });
   }
-  remove(p: Product) {
-    if (!confirm(`¿Eliminar "${p.name}"? No se puede deshacer.`)) return;
-    this.svc.delete(p.id).subscribe(() => this.reload());
+  async remove(p: Product) {
+    const ok = await this.confirm.ask({
+      title: 'Eliminar producto',
+      message: `¿Eliminar "${p.name}"? Esta acción es permanente y no se puede deshacer.`,
+      variant: 'danger', confirmText: 'Eliminar',
+    });
+    if (!ok) return;
+    this.svc.delete(p.id).subscribe({
+      next: () => {
+        // Quita de la lista de inmediato (borrado físico confirmado por el backend).
+        this.products.set(this.products().filter(x => x.id !== p.id));
+        this.notify.success(`"${p.name}" eliminado`);
+      },
+      error: e => this.notify.fromServerError(e, 'No se pudo eliminar el producto.'),
+    });
   }
 
   onImgErr(ev: Event) {

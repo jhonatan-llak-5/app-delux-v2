@@ -6,6 +6,7 @@ import { ActivatedRoute, Router, RouterLink } from '@angular/router';
 import { Product, ProductImage, ProductPayload, ProductService } from '@features/superadmin/services/product.service';
 import { BrandService, Brand } from '@features/superadmin/services/brand.service';
 import { CategoryService, Category } from '@features/superadmin/services/category.service';
+import { NotifyService } from '@shared/services/notify.service';
 
 @Component({
   selector: 'dlx-product-form',
@@ -116,6 +117,24 @@ import { CategoryService, Category } from '@features/superadmin/services/categor
             </div>
           }
 
+          <!-- Subir desde el dispositivo (drag & drop o seleccionar) -->
+          <div class="mb-3 rounded-xl border-2 border-dashed transition cursor-pointer p-6 text-center"
+               [class.border-violet-400]="dragOver()"
+               [class.bg-violet-50]="dragOver()"
+               [class.border-slate-300]="!dragOver()"
+               (click)="fileInput.click()"
+               (dragover)="onDragOver($event)" (dragleave)="onDragLeave($event)" (drop)="onDrop($event)">
+            <input #fileInput type="file" accept="image/*" multiple hidden (change)="onFilePick($event)" />
+            @if (uploading()) {
+              <i class="fa-solid fa-spinner fa-spin text-violet-600 text-xl mb-2"></i>
+              <p class="text-sm text-slate-600">Subiendo imágenes...</p>
+            } @else {
+              <i class="fa-solid fa-cloud-arrow-up text-slate-400 text-2xl mb-2"></i>
+              <p class="text-sm font-semibold text-slate-700">Arrastra imágenes aquí o haz clic para seleccionar</p>
+              <p class="text-[11px] text-slate-400 mt-1">JPG, PNG, WEBP, GIF o AVIF · hasta 8 MB c/u</p>
+            }
+          </div>
+
           <!-- Añadir por URL -->
           <div class="flex gap-2">
             <input [(ngModel)]="newImgUrl" name="newImgUrl" type="url" placeholder="https://imagen.com/foto.jpg"
@@ -127,8 +146,59 @@ import { CategoryService, Category } from '@features/superadmin/services/categor
             </button>
           </div>
           <p class="text-[10px] text-slate-400 mt-2">
-            Pega una URL pública de imagen. La primera marcada como "Main" será la imagen principal del producto.
+            También puedes pegar una URL pública. La primera marcada como "Main" será la imagen principal del producto.
           </p>
+        </div>
+
+        <!-- Variantes (tallas y colores) -->
+        <div class="card p-6">
+          <h2 class="font-bold tracking-tight mb-1">Variantes</h2>
+          <p class="text-xs text-slate-500 mb-4">
+            Define tallas y colores. Se crean combinando talla × color, con stock inicial 0 en cada sucursal
+            (luego lo ajustas en Inventario). {{ variantCount() }} variante(s) se generarán.
+          </p>
+          <label class="block text-xs font-semibold uppercase tracking-wider text-slate-600 mb-2">Tallas</label>
+          <div class="flex flex-wrap gap-1.5 mb-2">
+            <button type="button" (click)="addPreset('shoe')" class="px-2.5 py-1 rounded-md bg-slate-100 hover:bg-slate-200 text-xs font-semibold">Calzado 38-44</button>
+            <button type="button" (click)="addPreset('cloth')" class="px-2.5 py-1 rounded-md bg-slate-100 hover:bg-slate-200 text-xs font-semibold">Ropa S-XL</button>
+            <button type="button" (click)="addPreset('unica')" class="px-2.5 py-1 rounded-md bg-slate-100 hover:bg-slate-200 text-xs font-semibold">Única</button>
+          </div>
+          <div class="flex flex-wrap gap-2 mb-2">
+            @for (sz of sizes(); track sz) {
+              <span class="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-lg bg-violet-100 text-violet-700 text-sm font-semibold">
+                {{ sz }}
+                <button type="button" (click)="removeSize(sz)" class="hover:text-violet-900"><i class="fa-solid fa-xmark text-[11px]"></i></button>
+              </span>
+            }
+          </div>
+          <div class="flex gap-2 mb-5">
+            <input [(ngModel)]="newSize" name="newSize" (keydown.enter)="$event.preventDefault(); addSize()"
+                   placeholder="Ej: 42, M, XL" maxlength="20"
+                   class="flex-1 px-3 py-2 rounded-lg bg-slate-50 border border-slate-200 focus:bg-white focus:border-slate-400 focus:outline-none text-sm" />
+            <button type="button" (click)="addSize()" [disabled]="!newSize.trim()"
+                    class="px-4 py-2 rounded-lg bg-slate-900 text-white text-sm font-semibold hover:bg-slate-800 disabled:opacity-40">Añadir</button>
+          </div>
+          <label class="block text-xs font-semibold uppercase tracking-wider text-slate-600 mb-2">Colores</label>
+          <div class="flex flex-wrap gap-1.5 mb-2">
+            @for (c of colorPresets; track c) {
+              <button type="button" (click)="addColorValue(c)" class="px-2.5 py-1 rounded-md bg-slate-100 hover:bg-slate-200 text-xs font-semibold">{{ c }}</button>
+            }
+          </div>
+          <div class="flex flex-wrap gap-2 mb-2">
+            @for (col of colors(); track col) {
+              <span class="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-lg bg-sky-100 text-sky-700 text-sm font-semibold">
+                {{ col }}
+                <button type="button" (click)="removeColor(col)" class="hover:text-sky-900"><i class="fa-solid fa-xmark text-[11px]"></i></button>
+              </span>
+            }
+          </div>
+          <div class="flex gap-2">
+            <input [(ngModel)]="newColor" name="newColor" (keydown.enter)="$event.preventDefault(); addColor()"
+                   placeholder="Ej: Negro, Azul marino" maxlength="40"
+                   class="flex-1 px-3 py-2 rounded-lg bg-slate-50 border border-slate-200 focus:bg-white focus:border-slate-400 focus:outline-none text-sm" />
+            <button type="button" (click)="addColor()" [disabled]="!newColor.trim()"
+                    class="px-4 py-2 rounded-lg bg-slate-900 text-white text-sm font-semibold hover:bg-slate-800 disabled:opacity-40">Añadir</button>
+          </div>
         </div>
 
         <!-- SEO -->
@@ -267,6 +337,7 @@ export class ProductFormComponent implements OnInit {
   private catSvc = inject(CategoryService);
   private route = inject(ActivatedRoute);
   private router = inject(Router);
+  private notify = inject(NotifyService);
 
   brands = signal<Brand[]>([]);
   categories = signal<Category[]>([]);
@@ -277,6 +348,16 @@ export class ProductFormComponent implements OnInit {
   isEdit = computed(() => this.productId() !== null);
 
   newImgUrl = '';
+
+  uploading = signal(false);
+  dragOver = signal(false);
+
+  sizes = signal<string[]>([]);
+  colors = signal<string[]>([]);
+  newSize = '';
+  newColor = '';
+  readonly colorPresets = ['Negro', 'Blanco', 'Gris', 'Azul', 'Celeste', 'Rojo', 'Verde', 'Amarillo', 'Naranja', 'Morado', 'Rosa', 'Café', 'Beige'];
+  variantCount = computed(() => (this.sizes().length || 1) * (this.colors().length || 1));
 
   payload: ProductPayload = {
     name: '', slug: '', short_description: '', description: '',
@@ -305,6 +386,9 @@ export class ProductFormComponent implements OnInit {
           meta_title: p.meta_title, meta_description: p.meta_description,
         };
         this.images.set(p.images || []);
+        const vs = p.variants_detail || [];
+        this.sizes.set([...new Set(vs.map(v => v.size).filter(Boolean))]);
+        this.colors.set([...new Set(vs.map(v => v.color).filter(Boolean))]);
       });
     }
   }
@@ -320,6 +404,55 @@ export class ProductFormComponent implements OnInit {
     });
     this.images.set(list);
     this.newImgUrl = '';
+  }
+
+  onDragOver(ev: DragEvent) { ev.preventDefault(); this.dragOver.set(true); }
+  onDragLeave(ev: DragEvent) { ev.preventDefault(); this.dragOver.set(false); }
+  onDrop(ev: DragEvent) {
+    ev.preventDefault();
+    this.dragOver.set(false);
+    const files = ev.dataTransfer?.files;
+    if (files?.length) this.uploadFiles(Array.from(files));
+  }
+  onFilePick(ev: Event) {
+    const input = ev.target as HTMLInputElement;
+    if (input.files?.length) this.uploadFiles(Array.from(input.files));
+    input.value = '';
+  }
+  private uploadFiles(files: File[]) {
+    const imgs = files.filter(f => f.type.startsWith('image/'));
+    if (!imgs.length) return;
+    this.uploading.set(true);
+    this.error.set(null);
+    let pending = imgs.length;
+    for (const file of imgs) {
+      this.svc.uploadImage(file).subscribe({
+        next: r => {
+          const list = [...this.images()];
+          list.push({ url: r.url, alt: this.payload.name || 'producto', sort_order: list.length, is_main: list.length === 0 });
+          this.images.set(list);
+          if (--pending === 0) this.uploading.set(false);
+        },
+        error: e => { this.error.set(e?.error?.detail || 'No se pudo subir una imagen.'); if (--pending === 0) this.uploading.set(false); },
+      });
+    }
+  }
+
+  addSize() { const v = this.newSize.trim(); if (v && !this.sizes().includes(v)) this.sizes.update(a => [...a, v]); this.newSize = ''; }
+  removeSize(s: string) { this.sizes.update(a => a.filter(x => x !== s)); }
+  addColor() { this.addColorValue(this.newColor); this.newColor = ''; }
+  addColorValue(v: string) { const c = (v || '').trim(); if (c && !this.colors().includes(c)) this.colors.update(a => [...a, c]); }
+  removeColor(c: string) { this.colors.update(a => a.filter(x => x !== c)); }
+  addPreset(kind: 'shoe' | 'cloth' | 'unica') {
+    const map: Record<string, string[]> = { shoe: ['38','39','40','41','42','43','44'], cloth: ['S','M','L','XL'], unica: ['UNICA'] };
+    this.sizes.update(a => Array.from(new Set([...a, ...(map[kind] || [])])));
+  }
+  private buildVariants(): { size: string; color: string }[] {
+    const sizes = this.sizes().length ? this.sizes() : ['UNICA'];
+    const colors = this.colors().length ? this.colors() : ['Estándar'];
+    const out: { size: string; color: string }[] = [];
+    for (const s of sizes) for (const c of colors) out.push({ size: s, color: c });
+    return out;
   }
 
   removeImg(i: number) {
@@ -359,7 +492,7 @@ export class ProductFormComponent implements OnInit {
     const mainImg = this.images().find(i => i.is_main) || this.images()[0];
     if (mainImg) this.payload.main_image_url = mainImg.url;
 
-    const body: ProductPayload = { ...this.payload, images: this.images() };
+    const body: ProductPayload = { ...this.payload, images: this.images(), variants: this.buildVariants() };
 
     const obs = this.isEdit()
       ? this.svc.update(this.productId()!, body)
@@ -368,6 +501,7 @@ export class ProductFormComponent implements OnInit {
     obs.subscribe({
       next: () => {
         this.saving.set(false);
+        this.notify.success(this.isEdit() ? 'Producto actualizado' : 'Producto creado');
         this.router.navigate(['/app/admin/products']);
       },
       error: e => {

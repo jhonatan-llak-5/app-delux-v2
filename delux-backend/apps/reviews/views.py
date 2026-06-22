@@ -4,7 +4,7 @@ from rest_framework.decorators import action
 from rest_framework.response import Response
 from rest_framework.views import APIView
 
-from apps.accounts.permissions import IsTenantAdmin
+from apps.accounts.permissions import IsBranchManager
 from apps.customers.me_views import get_or_create_customer_for_user
 from apps.orders.models import Order, OrderStatus
 from .models import Review, ReviewStatus
@@ -63,7 +63,7 @@ class MeReviewCreateView(APIView):
 class AdminReviewViewSet(viewsets.ModelViewSet):
     """Moderación de reseñas."""
     serializer_class = ReviewSerializer
-    permission_classes = [permissions.IsAuthenticated, IsTenantAdmin]
+    permission_classes = [permissions.IsAuthenticated, IsBranchManager]
     filter_backends = [filters.SearchFilter, filters.OrderingFilter]
     search_fields = ['product__name', 'customer__full_name', 'comment']
     ordering_fields = ['rating', 'created_at']

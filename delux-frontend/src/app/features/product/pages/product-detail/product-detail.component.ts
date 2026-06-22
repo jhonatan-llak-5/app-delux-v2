@@ -1,16 +1,32 @@
-import { ChangeDetectionStrategy, Component, computed, inject, signal } from '@angular/core';
+import { ChangeDetectionStrategy, Component, OnInit, computed, inject, signal } from '@angular/core';
 import { CommonModule } from '@angular/common';
-import { Router, RouterLink } from '@angular/router';
-import { ReviewsComponent } from '@shared/components/reviews/reviews.component';
+import { Router, RouterLink, ActivatedRoute } from '@angular/router';
+import { ProductReviewsComponent } from '@shared/components/product-reviews/product-reviews.component';
+import { MeService } from '@features/account/services/me.service';
+import { AuthService } from '@core/services/auth.service';
 import { CartService } from '@features/checkout/services/cart.service';
 import { NotifyService } from '@shared/services/notify.service';
+import { PublicCatalogService } from '@shared/services/public-catalog.service';
 
 interface ColorOption { name: string; hex: string; image: string; }
+
+interface ProductVM {
+  id: number; name: string; subtitle: string; brand: string; category: string;
+  slug: string; price: number; oldPrice?: number; rating: number; reviewsCount: number;
+  tag: string; gallery: string[]; colors: ColorOption[]; sizes: string[]; description: string;
+}
+
+const EMPTY_PRODUCT: ProductVM = {
+  id: 0, name: '', subtitle: '', brand: '', category: '', slug: '',
+  price: 0, oldPrice: undefined, rating: 0, reviewsCount: 0, tag: '',
+  gallery: ['https://images.unsplash.com/photo-1542291026-7eec264c27ff?w=1200&q=85'],
+  colors: [], sizes: [], description: '',
+};
 
 @Component({
   selector: 'dlx-product-detail',
   standalone: true,
-  imports: [CommonModule, RouterLink, ReviewsComponent],
+  imports: [CommonModule, RouterLink, ProductReviewsComponent],
   changeDetection: ChangeDetectionStrategy.OnPush,
   template: `
     <div class="bg-white dark:bg-[#0a0a0a]">
@@ -23,9 +39,9 @@ interface ColorOption { name: string; hex: string; image: string; }
           <i class="fa-solid fa-chevron-right text-[8px] text-ink-300 dark:text-white/25"></i>
           <a routerLink="/shop" class="hover:text-[#0095f6] transition">Shop</a>
           <i class="fa-solid fa-chevron-right text-[8px] text-ink-300 dark:text-white/25"></i>
-          <span>{{ product.category }}</span>
+          <span>{{ product().category }}</span>
           <i class="fa-solid fa-chevron-right text-[8px] text-ink-300 dark:text-white/25"></i>
-          <span class="text-ink-950 dark:text-white">{{ product.name }}</span>
+          <span class="text-ink-950 dark:text-white">{{ product().name }}</span>
         </nav>
 
         <!-- Grid principal -->
@@ -44,7 +60,7 @@ interface ColorOption { name: string; hex: string; image: string; }
                           [ngClass]="i === activeImg()
                             ? 'border-[#0095f6] scale-[1.02]'
                             : 'border-transparent opacity-60 hover:opacity-100'">
-                    <img [src]="img" [alt]="product.name + ' ' + (i+1)"
+                    <img [src]="img" [alt]="product().name + ' ' + (i+1)"
                          class="w-full h-full object-cover bg-ink-100 dark:bg-white/[0.04]"
                          loading="lazy" crossorigin="anonymous" />
                   </button>
@@ -57,16 +73,16 @@ interface ColorOption { name: string; hex: string; image: string; }
                           border border-ink-100 dark:border-white/[0.06]"
                    (mouseenter)="zoomed.set(true)" (mouseleave)="zoomed.set(false)"
                    (mousemove)="onMouseMove($event)">
-                <img [src]="activeGallery()[activeImg()]" [alt]="product.name"
+                <img [src]="activeGallery()[activeImg()]" [alt]="product().name"
                      class="w-full h-full object-cover transition-transform duration-300"
                      [class.scale-150]="zoomed()"
                      [style.transform-origin]="zoomOrigin()"
                      loading="eager" crossorigin="anonymous" />
 
-                @if (product.tag) {
+                @if (product().tag) {
                   <span class="absolute top-5 left-5 px-3 py-1.5 rounded-full
                                bg-[#0095f6] text-white text-[11px] font-bold uppercase tracking-wider">
-                    {{ product.tag }}
+                    {{ product().tag }}
                   </span>
                 }
 
@@ -103,25 +119,25 @@ interface ColorOption { name: string; hex: string; image: string; }
 
             <!-- Brand + nombre -->
             <p class="text-[12px] uppercase tracking-[0.25em] text-[#0095f6] font-bold mb-3">
-              {{ product.brand }}
+              {{ product().brand }}
             </p>
             <h1 class="font-bold text-[32px] md:text-[40px] tracking-[-0.02em] leading-[1.05]
                        text-ink-950 dark:text-white">
-              {{ product.name }}
+              {{ product().name }}
             </h1>
-            <p class="text-ink-600 dark:text-white/55 text-[15px] mt-3">{{ product.subtitle }}</p>
+            <p class="text-ink-600 dark:text-white/55 text-[15px] mt-3">{{ product().subtitle }}</p>
 
             <!-- Rating -->
             <div class="flex items-center gap-3 mt-5">
               <div class="flex gap-0.5 text-amber-400">
                 @for (s of [1,2,3,4,5]; track s) {
                   <i class="fa-solid fa-star text-[13px]"
-                     [class.opacity-25]="s > Math.round(product.rating)"></i>
+                     [class.opacity-25]="s > Math.round(product().rating)"></i>
                 }
               </div>
               <span class="text-[13px] text-ink-600 dark:text-white/55">
-                <span class="font-semibold text-ink-950 dark:text-white">{{ product.rating }}</span>
-                · {{ product.reviewsCount }} reseñas
+                <span class="font-semibold text-ink-950 dark:text-white">{{ product().rating }}</span>
+                · {{ product().reviewsCount }} reseñas
               </span>
             </div>
 
@@ -129,11 +145,11 @@ interface ColorOption { name: string; hex: string; image: string; }
             <div class="mt-7 pb-7 border-b border-ink-100 dark:border-white/[0.06]">
               <div class="flex items-baseline gap-3 flex-wrap">
                 <span class="font-bold text-[36px] tracking-tight text-ink-950 dark:text-white">
-                  \${{ product.price }}
+                  \${{ product().price }}
                 </span>
-                @if (product.oldPrice) {
+                @if (product().oldPrice) {
                   <span class="text-[18px] text-ink-400 dark:text-white/35 line-through">
-                    \${{ product.oldPrice }}
+                    \${{ product().oldPrice }}
                   </span>
                   <span class="px-2.5 py-1 rounded-full bg-rose-500 text-white text-[11px] font-bold">
                     -{{ discount() }}%
@@ -142,32 +158,40 @@ interface ColorOption { name: string; hex: string; image: string; }
               </div>
               <p class="text-[13px] text-ink-500 dark:text-white/45 mt-2">
                 o 3 pagos sin interés de
-                <span class="font-semibold text-ink-950 dark:text-white">\${{ (product.price/3).toFixed(2) }}</span>
+                <span class="font-semibold text-ink-950 dark:text-white">\${{ (product().price/3).toFixed(2) }}</span>
               </p>
             </div>
 
             <!-- COLORES -->
-            <div class="mt-7">
-              <div class="flex items-center justify-between mb-3.5">
-                <h3 class="text-[13px] font-bold text-ink-950 dark:text-white">
-                  Color: <span class="font-normal text-ink-600 dark:text-white/55">{{ activeColor().name }}</span>
-                </h3>
+            @if (product().colors.length) {
+              <div class="mt-7">
+                <div class="flex items-center justify-between mb-3.5">
+                  <h3 class="text-[13px] font-bold text-ink-950 dark:text-white">
+                    Color: <span class="font-normal text-ink-600 dark:text-white/55">{{ activeColor()?.name }}</span>
+                  </h3>
+                </div>
+                <div class="flex gap-3 flex-wrap">
+                  @for (c of product().colors; track c.name; let i = $index) {
+                    <button type="button" (click)="selectColor(i)" [title]="c.name"
+                            [attr.aria-label]="'Color ' + c.name"
+                            class="relative w-10 h-10 rounded-full transition-all duration-200
+                                   ring-1 ring-ink-200 dark:ring-white/20"
+                            [class.ring-2]="i === activeColorIdx()"
+                            [class.ring-offset-2]="i === activeColorIdx()"
+                            [class.ring-offset-white]="i === activeColorIdx()"
+                            [class.dark:ring-offset-[#0a0a0a]]="i === activeColorIdx()"
+                            [style.background-color]="c.hex"
+                            [style.--tw-ring-color]="i === activeColorIdx() ? '#0095f6' : ''">
+                      @if (i === activeColorIdx()) {
+                        <i class="fa-solid fa-check absolute inset-0 m-auto w-4 h-4 text-[12px]"
+                           [class.text-white]="isDarkColor(c.hex)"
+                           [class.text-ink-950]="!isDarkColor(c.hex)"></i>
+                      }
+                    </button>
+                  }
+                </div>
               </div>
-              <div class="flex gap-2 flex-wrap">
-                @for (c of product.colors; track c.name; let i = $index) {
-                  <button type="button" (click)="selectColor(i)"
-                          [attr.aria-label]="'Color ' + c.name"
-                          class="relative w-16 h-16 rounded-2xl overflow-hidden
-                                 transition-all duration-200"
-                          [ngClass]="i === activeColorIdx()
-                            ? 'ring-2 ring-[#0095f6] ring-offset-2 ring-offset-white dark:ring-offset-[#0a0a0a]'
-                            : 'ring-1 ring-ink-200 dark:ring-white/15 hover:ring-ink-400 dark:hover:ring-white/30'">
-                    <img [src]="c.image" [alt]="c.name"
-                         class="w-full h-full object-cover" loading="lazy" crossorigin="anonymous" />
-                  </button>
-                }
-              </div>
-            </div>
+            }
 
             <!-- TALLAS -->
             <div class="mt-7">
@@ -183,7 +207,7 @@ interface ColorOption { name: string; hex: string; image: string; }
                 </button>
               </div>
               <div class="grid grid-cols-4 sm:grid-cols-5 gap-2">
-                @for (s of product.sizes; track s) {
+                @for (s of product().sizes; track s) {
                   <button type="button" (click)="selectSize(s)"
                           [attr.aria-label]="'Talla ' + s"
                           class="h-12 rounded-xl text-[14px] font-semibold transition-all duration-150"
@@ -242,7 +266,7 @@ interface ColorOption { name: string; hex: string; image: string; }
 
             <!-- Acordeón descripción -->
             <div class="mt-8 space-y-2">
-              @for (acc of accordions; track acc.id) {
+              @for (acc of accordions(); track acc.id) {
                 <details class="group rounded-2xl
                                 border border-ink-100 dark:border-white/[0.06]
                                 hover:border-[#0095f6] dark:hover:border-[#0095f6] transition
@@ -272,18 +296,23 @@ interface ColorOption { name: string; hex: string; image: string; }
                      text-ink-950 dark:text-white mb-8">
             Lo que dicen quienes ya lo compraron.
           </h2>
-          <dlx-reviews [productId]="product.id + ''" />
+          <dlx-product-reviews [productId]="product().id" />
         </div>
 
       </section>
     </div>
   `,
 })
-export class ProductDetailComponent {
+export class ProductDetailComponent implements OnInit {
   Math = Math;
   private cart = inject(CartService);
   private notify = inject(NotifyService);
   private router = inject(Router);
+  private route = inject(ActivatedRoute);
+  private catalog = inject(PublicCatalogService);
+  private me = inject(MeService);
+  private auth = inject(AuthService);
+  loading = signal(true);
 
   activeImg = signal(0);
   activeColorIdx = signal(0);
@@ -291,45 +320,56 @@ export class ProductDetailComponent {
   sizeError = signal(false);
   zoomed = signal(false);
   zoomOrigin = signal('center');
-  inWishlist = signal(false);
+  inWishlist = computed(() => this.me.wishlistIds().has(this.product().id));
   addedFeedback = signal(false);
 
-  readonly product = {
-    id: 1,
-    name: 'Air Force Stealth',
-    subtitle: 'Sneakers de performance · Unisex',
-    brand: 'Nike',
-    category: 'Zapatillas',
-    slug: 'air-force-stealth',
-    price: 200,
-    oldPrice: 240,
-    rating: 4.7,
-    reviewsCount: 124,
-    tag: 'Drop',
-    gallery: [
-      'https://images.unsplash.com/photo-1542291026-7eec264c27ff?w=1200&q=85&auto=format&fit=crop',
-      'https://images.unsplash.com/photo-1552346154-21d32810aba3?w=1200&q=85&auto=format&fit=crop',
-      'https://images.unsplash.com/photo-1606107557195-0e29a4b5b4aa?w=1200&q=85&auto=format&fit=crop',
-      'https://images.unsplash.com/photo-1595950653106-6c9ebd614d3a?w=1200&q=85&auto=format&fit=crop',
-      'https://images.unsplash.com/photo-1600185365778-7c4e2bbd8a4f?w=1200&q=85&auto=format&fit=crop',
-    ],
-    colors: [
-      { name: 'Magenta Fire', hex: '#e0399a',
-        image: 'https://images.unsplash.com/photo-1542291026-7eec264c27ff?w=200&q=85&auto=format&fit=crop' },
-      { name: 'Black Edition', hex: '#0b0e16',
-        image: 'https://images.unsplash.com/photo-1552346154-21d32810aba3?w=200&q=85&auto=format&fit=crop' },
-      { name: 'White Core', hex: '#f5f6f8',
-        image: 'https://images.unsplash.com/photo-1606107557195-0e29a4b5b4aa?w=200&q=85&auto=format&fit=crop' },
-    ] as ColorOption[],
-    sizes: ['38','39','40','41','42','43','44'],
-  };
+  product = signal<ProductVM>(EMPTY_PRODUCT);
+
+  ngOnInit(): void {
+    if (this.auth.isLogged()) this.me.wishlist().subscribe({ error: () => {} });
+    const id = this.route.snapshot.paramMap.get('id');
+    if (!id) { this.loading.set(false); return; }
+    this.catalog.getProduct(id).subscribe({
+      next: d => {
+        this.product.set({
+          id: d.id,
+          name: d.name,
+          subtitle: d.short_description || `${d.category_name} · ${this.genderLabel(d.gender)}`,
+          brand: d.brand_name,
+          category: d.category_name,
+          slug: d.slug,
+          price: Number(d.base_price),
+          oldPrice: d.compare_at_price ? Number(d.compare_at_price) : undefined,
+          rating: d.rating || 0,
+          reviewsCount: d.reviews_count || 0,
+          tag: this.tagLabel(d.tag),
+          gallery: d.images?.length ? d.images : EMPTY_PRODUCT.gallery,
+          colors: d.colors || [],
+          sizes: d.sizes || [],
+          description: d.description || '',
+        });
+        this.activeColorIdx.set(0);
+        this.activeImg.set(0);
+        this.loading.set(false);
+      },
+      error: () => { this.loading.set(false); this.notify.error('No se pudo cargar el producto.'); },
+    });
+  }
+
+  private genderLabel(g: string): string {
+    return ({ MEN: 'Hombre', WOMEN: 'Mujer', KIDS: 'Niños', UNISEX: 'Unisex' } as any)[g] || 'Unisex';
+  }
+  private tagLabel(t: string): string {
+    return ({ NEW: 'Nuevo', DROP: 'Drop', SALE: 'Oferta', EXCLUSIVE: 'Exclusivo' } as any)[t] || '';
+  }
 
   // Galería activa según color (en este demo es la misma, pero soporta variantes)
-  activeGallery = computed(() => this.product.gallery);
-  activeColor = computed(() => this.product.colors[this.activeColorIdx()]);
+  activeGallery = computed(() => this.product().gallery);
+  activeColor = computed(() => this.product().colors[this.activeColorIdx()]);
   discount = computed(() => {
-    if (!this.product.oldPrice) return 0;
-    return Math.round(((this.product.oldPrice - this.product.price) / this.product.oldPrice) * 100);
+    const p = this.product();
+    if (!p.oldPrice) return 0;
+    return Math.round(((p.oldPrice - p.price) / p.oldPrice) * 100);
   });
 
   readonly features = [
@@ -339,14 +379,25 @@ export class ProductDetailComponent {
     { icon: 'fa-store', label: 'Retiro en tienda' },
   ];
 
-  readonly accordions = [
+  accordions = computed(() => [
     { id: 'desc', title: 'Descripción',
-      body: 'Diseñadas para la cultura urbana, las Air Force Stealth combinan herencia y tecnología. Materiales premium con cuero genuino, suela de espuma de alta respuesta y cordones planos clásicos.' },
+      body: this.product().description
+            || `${this.product().name} de ${this.product().brand}. Producto original disponible en Delux.` },
     { id: 'mat', title: 'Materiales y cuidado',
       body: 'Capellada de cuero genuino curtido al cromo. Suela exterior de caucho con patrón de pivot. Plantilla acolchada con espuma de memoria. Limpia con paño húmedo, evita la lavadora.' },
     { id: 'env', title: 'Envío y devoluciones',
       body: 'Envío gratis a todo el país en pedidos sobre $50. Recibe en 24-72 horas en Quito y Guayaquil. Cambios sin costo durante los primeros 14 días, sin preguntas.' },
-  ];
+  ]);
+
+  isDarkColor(hex: string): boolean {
+    const h = (hex || '').replace('#', '');
+    if (h.length < 6) return true;
+    const r = parseInt(h.slice(0, 2), 16);
+    const g = parseInt(h.slice(2, 4), 16);
+    const b = parseInt(h.slice(4, 6), 16);
+    // luminancia relativa
+    return (0.299 * r + 0.587 * g + 0.114 * b) < 150;
+  }
 
   selectColor(i: number) {
     this.activeColorIdx.set(i);
@@ -359,7 +410,7 @@ export class ProductDetailComponent {
   }
 
   toggleWishlist() {
-    this.inWishlist.update(v => !v);
+    this.me.toggleWishlist(this.product().id).subscribe({ error: () => {} });
   }
 
   addToCart() {
@@ -372,25 +423,27 @@ export class ProductDetailComponent {
     }
 
     const color = this.activeColor();
+    const colorImage = color?.image || this.product().gallery[0];
+    const colorName = color?.name || 'default';
     const size = this.activeSize()!;
-    const variantId = Number(`${this.product.id}${this.activeColorIdx()}${size}`.replace(/\D/g, '')) || Date.now();
+    const variantId = Number(`${this.product().id}${this.activeColorIdx()}${size}`.replace(/\D/g, '')) || Date.now();
 
     this.cart.add({
       variant_id: variantId,
-      product_id: this.product.id,
-      product_name: this.product.name,
-      product_image: color.image,
-      product_slug: this.product.slug,
-      sku: `${this.product.id}-${color.name.toLowerCase().replace(/\s+/g, '-')}-${size}`,
+      product_id: this.product().id,
+      product_name: this.product().name,
+      product_image: colorImage,
+      product_slug: this.product().slug,
+      sku: `${this.product().id}-${colorName.toLowerCase().replace(/\s+/g, '-')}-${size}`,
       size,
       color: color.name,
-      unit_price: this.product.price,
+      unit_price: this.product().price,
       max_stock: 99,
-      brand_name: this.product.brand,
+      brand_name: this.product().brand,
     }, 1);
 
     this.notify.success('Agregado al carrito', {
-      description: `${this.product.name} · Talla ${size} · ${color.name}`,
+      description: `${this.product().name} · Talla ${size} · ${color.name}`,
       action: {
         label: 'Ver carrito',
         onClick: () => this.router.navigate(['/cart']),
@@ -399,13 +452,19 @@ export class ProductDetailComponent {
   }
 
   toggleWishlistWithToast() {
-    const wasIn = this.inWishlist();
-    this.toggleWishlist();
-    if (!wasIn) {
-      this.notify.success('Añadido a tu wishlist', { description: this.product.name });
-    } else {
-      this.notify.message('Eliminado de tu wishlist');
+    if (!this.auth.isLogged()) {
+      this.notify.warning('Inicia sesión', { description: 'Crea una cuenta para guardar favoritos.' });
+      this.router.navigate(['/auth/login']);
+      return;
     }
+    const wasIn = this.inWishlist();
+    this.me.toggleWishlist(this.product().id).subscribe({
+      next: () => {
+        if (!wasIn) this.notify.success('Añadido a tu wishlist', { description: this.product().name });
+        else this.notify.message('Eliminado de tu wishlist');
+      },
+      error: () => this.notify.error('No se pudo actualizar tu wishlist.'),
+    });
   }
 
   prevImg() {

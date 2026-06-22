@@ -16,7 +16,7 @@ class AdminTenantViewSet(viewsets.ModelViewSet):
         return (
             Tenant.objects
             .annotate(
-                branches_count=Count('branch_set', distinct=True),
+                branches_count=Count('branch', distinct=True),
                 users_count=Count('users', distinct=True),
             )
             .order_by('name')

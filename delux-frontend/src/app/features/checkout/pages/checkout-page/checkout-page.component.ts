@@ -5,7 +5,8 @@ import { Router, RouterLink } from '@angular/router';
 
 import { CartService } from '@features/checkout/services/cart.service';
 import { CheckoutService } from '@features/checkout/services/checkout.service';
-import { AdminService, AdminBranch } from '@features/superadmin/services/admin.service';
+import { PublicBranchesService, PublicBranch } from '@shared/services/public-branches.service';
+import { ZoneService } from '@shared/services/zone.service';
 import { CouponService, CouponValidation } from '@features/superadmin/services/coupon.service';
 
 @Component({
@@ -65,6 +66,37 @@ import { CouponService, CouponValidation } from '@features/superadmin/services/c
                 <h2 class="font-display font-bold text-xl text-ink-950 dark:text-white">Sucursal de despacho</h2>
               </div>
               <p class="text-sm text-ink-700 dark:text-white/70 mb-4">El stock se reserva en la sucursal seleccionada.</p>
+
+              <!-- Tipo de entrega -->
+              <div class="grid grid-cols-2 gap-3 mb-4">
+                <button type="button" (click)="fulfillment = 'SHIPPING'"
+                        class="p-3 rounded-xl border-2 text-left transition flex items-center gap-3"
+                        [class.border-accent-500]="fulfillment === 'SHIPPING'"
+                        [class.bg-accent-50]="fulfillment === 'SHIPPING'"
+                        [class.dark:bg-white/10]="fulfillment === 'SHIPPING'"
+                        [class.border-ink-200]="fulfillment !== 'SHIPPING'"
+                        [class.dark:border-white/10]="fulfillment !== 'SHIPPING'">
+                  <i class="fa-solid fa-truck text-accent-600"></i>
+                  <span>
+                    <span class="block font-semibold text-ink-950 dark:text-white text-sm">Envío a domicilio</span>
+                    <span class="block text-xs text-ink-600 dark:text-white/55">Te lo llevamos</span>
+                  </span>
+                </button>
+                <button type="button" (click)="fulfillment = 'PICKUP'"
+                        class="p-3 rounded-xl border-2 text-left transition flex items-center gap-3"
+                        [class.border-accent-500]="fulfillment === 'PICKUP'"
+                        [class.bg-accent-50]="fulfillment === 'PICKUP'"
+                        [class.dark:bg-white/10]="fulfillment === 'PICKUP'"
+                        [class.border-ink-200]="fulfillment !== 'PICKUP'"
+                        [class.dark:border-white/10]="fulfillment !== 'PICKUP'">
+                  <i class="fa-solid fa-store text-accent-600"></i>
+                  <span>
+                    <span class="block font-semibold text-ink-950 dark:text-white text-sm">Retiro en tienda</span>
+                    <span class="block text-xs text-ink-600 dark:text-white/55">Sin costo de envío</span>
+                  </span>
+                </button>
+              </div>
+
               <div class="grid grid-cols-1 md:grid-cols-3 gap-3">
                 @for (b of branches(); track b.id) {
                   <button type="button" (click)="branchId = b.id"
@@ -200,12 +232,14 @@ import { CouponService, CouponValidation } from '@features/superadmin/services/c
 export class CheckoutPageComponent implements OnInit {
   cart = inject(CartService);
   private checkout = inject(CheckoutService);
-  private adminSvc = inject(AdminService);
+  private branchSvc = inject(PublicBranchesService);
+  zone = inject(ZoneService);
   private couponSvc = inject(CouponService);
   private router = inject(Router);
 
-  branches = signal<AdminBranch[]>([]);
+  branches = signal<PublicBranch[]>([]);
   branchId: number | null = null;
+  fulfillment: 'SHIPPING' | 'PICKUP' = 'SHIPPING';
   saving = signal(false);
   error = signal<string | null>(null);
 
@@ -224,9 +258,13 @@ export class CheckoutPageComponent implements OnInit {
   );
 
   ngOnInit() {
-    this.adminSvc.listBranches().subscribe(r => {
-      this.branches.set(r.results || []);
-      if (r.results?.length) this.branchId = r.results[0].id;
+    // Sucursales segun la ciudad elegida por el cliente (zona).
+    this.zone.load(false);
+    const city = this.zone.city() || undefined;
+    this.branchSvc.list(city).subscribe(r => {
+      const list = r.results || [];
+      this.branches.set(list);
+      if (list.length) this.branchId = list[0].id;
     });
   }
 
@@ -264,6 +302,7 @@ export class CheckoutPageComponent implements OnInit {
     const returnUrl = `${window.location.origin}/checkout/result`;
     this.checkout.initPayPhone({
       branch_id: this.branchId,
+      fulfillment: this.fulfillment,
       customer_data: this.customer,
       items: this.cart.lines().map(l => ({ variant_id: l.variant_id, quantity: l.quantity })),
       discount: this.discount(),

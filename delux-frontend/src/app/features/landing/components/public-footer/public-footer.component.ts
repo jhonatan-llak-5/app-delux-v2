@@ -1,11 +1,14 @@
-import { ChangeDetectionStrategy, Component } from '@angular/core';
+import { ChangeDetectionStrategy, Component, inject, signal } from '@angular/core';
 import { CommonModule } from '@angular/common';
+import { FormsModule } from '@angular/forms';
 import { RouterLink } from '@angular/router';
+import { PublicFormsService } from '@shared/services/public-forms.service';
+import { NotifyService } from '@shared/services/notify.service';
 
 @Component({
   selector: 'dlx-public-footer',
   standalone: true,
-  imports: [CommonModule, RouterLink],
+  imports: [CommonModule, FormsModule, RouterLink],
   changeDetection: ChangeDetectionStrategy.OnPush,
   template: `
     <footer class="bg-white dark:bg-[#0a0a0a] border-t border-ink-100 dark:border-white/[0.06]">
@@ -23,8 +26,9 @@ import { RouterLink } from '@angular/router';
               Sin spam. Sólo lanzamientos y ofertas exclusivas para suscriptores.
             </p>
           </div>
-          <form class="md:col-span-5 flex gap-2">
+          <form class="md:col-span-5 flex gap-2" (ngSubmit)="subscribe()">
             <input type="email" required placeholder="tu@correo.com"
+                   [(ngModel)]="email" name="footerEmail"
                    class="input-modern flex-1" />
             <button type="submit" class="btn-modern-primary" style="width:auto;padding:0 24px;">
               Suscribirme
@@ -131,11 +135,11 @@ import { RouterLink } from '@angular/router';
             © {{ year }} Delux. Todos los derechos reservados.
           </p>
           <div class="flex items-center gap-5 text-[12px] text-ink-500 dark:text-white/45">
-            <a routerLink="/" class="hover:text-ink-950 dark:hover:text-white transition">Términos</a>
+            <a routerLink="/terms" class="hover:text-ink-950 dark:hover:text-white transition">Términos</a>
             <span class="w-px h-3 bg-ink-200 dark:bg-white/15"></span>
-            <a routerLink="/" class="hover:text-ink-950 dark:hover:text-white transition">Privacidad</a>
+            <a routerLink="/privacy" class="hover:text-ink-950 dark:hover:text-white transition">Privacidad</a>
             <span class="w-px h-3 bg-ink-200 dark:bg-white/15"></span>
-            <a routerLink="/" class="hover:text-ink-950 dark:hover:text-white transition">Cookies</a>
+            <a routerLink="/cookies" class="hover:text-ink-950 dark:hover:text-white transition">Cookies</a>
           </div>
           <div class="flex items-center gap-3 text-[11px] font-mono text-ink-400 dark:text-white/35 uppercase tracking-widest">
             <span>EC</span>
@@ -150,7 +154,18 @@ import { RouterLink } from '@angular/router';
   `,
 })
 export class PublicFooterComponent {
+  private forms = inject(PublicFormsService);
+  private notify = inject(NotifyService);
+  email = '';
   readonly year = new Date().getFullYear();
+
+  subscribe() {
+    if (!this.email.includes('@')) { this.notify.warning('Ingresa un correo válido'); return; }
+    this.forms.subscribeNewsletter(this.email).subscribe({
+      next: r => { this.notify.success(r.detail || '¡Suscrito!'); this.email = ''; },
+      error: e => this.notify.error(e?.error?.detail || 'No se pudo suscribir.'),
+    });
+  }
 
   readonly socials = [
     { icon: 'fa-instagram', label: 'Instagram', url: 'https://instagram.com' },
@@ -176,11 +191,11 @@ export class PublicFooterComponent {
       { label: 'Rastrear pedido',         route: '/tracking', qp: null },
     ]},
     { title: 'Empresa', items: [
-      { label: 'Sobre nosotros',         route: '/',         qp: null },
-      { label: 'Sucursales',             route: '/',         qp: null },
+      { label: 'Sobre nosotros',         route: '/about',    qp: null },
+      { label: 'Sucursales',             route: '/shop',     qp: null },
       { label: 'Trabaja con nosotros',   route: '/contact',  qp: null },
       { label: 'Sé un partner',          route: '/contact',  qp: null },
-      { label: 'Newsletter',             route: '/',         qp: null },
+      { label: 'Newsletter',             route: '/contact',  qp: null },
     ]},
   ];
 }

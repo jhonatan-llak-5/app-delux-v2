@@ -5,6 +5,8 @@ import { RouterLink } from '@angular/router';
 import { debounceTime, Subject } from 'rxjs';
 
 import { StaffService, StaffUser } from '@features/superadmin/services/staff.service';
+import { ConfirmService } from '@shared/components/confirm/confirm.service';
+import { NotifyService } from '@shared/services/notify.service';
 import { AdminService, AdminBranch } from '@features/superadmin/services/admin.service';
 
 @Component({
@@ -156,6 +158,8 @@ import { AdminService, AdminBranch } from '@features/superadmin/services/admin.s
 })
 export class StaffListComponent implements OnInit {
   private svc = inject(StaffService);
+  private confirm = inject(ConfirmService);
+  private notify = inject(NotifyService);
   private adminSvc = inject(AdminService);
 
   staff = signal<StaffUser[]>([]);
@@ -209,8 +213,16 @@ export class StaffListComponent implements OnInit {
     this.svc.toggleActive(s.id).subscribe(() => this.reload());
   }
 
-  remove(s: StaffUser) {
-    if (!confirm(`¿Eliminar a ${s.full_name}? No se puede deshacer.`)) return;
-    this.svc.delete(s.id).subscribe(() => this.reload());
+  async remove(s: StaffUser) {
+    const ok = await this.confirm.ask({
+      title: 'Eliminar miembro',
+      message: `¿Eliminar a ${s.full_name}? Esta acción no se puede deshacer.`,
+      variant: 'danger', confirmText: 'Eliminar',
+    });
+    if (!ok) return;
+    this.svc.delete(s.id).subscribe({
+      next: () => { this.notify.success('Miembro eliminado'); this.reload(); },
+      error: e => this.notify.fromServerError(e, 'No se pudo eliminar.'),
+    });
   }
 }

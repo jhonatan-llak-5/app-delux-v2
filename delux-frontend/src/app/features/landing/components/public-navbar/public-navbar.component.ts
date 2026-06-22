@@ -5,6 +5,7 @@ import { ThemeService } from '@core/services/theme.service';
 import { AuthService } from '@core/services/auth.service';
 import { CartService } from '@features/checkout/services/cart.service';
 import { SearchOverlayComponent } from '@shared/components/search-overlay/search-overlay.component';
+import { ZoneService } from '@shared/services/zone.service';
 
 @Component({
   selector: 'dlx-public-navbar',
@@ -42,6 +43,15 @@ import { SearchOverlayComponent } from '@shared/components/search-overlay/search
         </div>
 
         <div class="flex items-center gap-1">
+          <button (click)="zone.openPicker()" title="Cambiar ciudad"
+                  class="mr-1 h-10 px-3 rounded-full inline-flex items-center gap-2
+                         text-ink-700 dark:text-white/80 text-sm font-semibold
+                         bg-ink-100 dark:bg-white/10
+                         hover:bg-ink-200 dark:hover:bg-white/15 transition">
+            <i class="fa-solid fa-location-dot text-[#0095f6]"></i>
+            <span class="hidden sm:inline max-w-[120px] truncate">{{ zone.city() || 'Elige ciudad' }}</span>
+            <i class="fa-solid fa-chevron-down text-[10px] opacity-60"></i>
+          </button>
           <button (click)="theme.toggle()"
                   class="w-10 h-10 grid place-items-center rounded-full
                          text-ink-600 dark:text-white/70
@@ -185,6 +195,7 @@ export class PublicNavbarComponent {
 
   theme = inject(ThemeService);
   cart = inject(CartService);
+  zone = inject(ZoneService);
   private auth = inject(AuthService);
   private router = inject(Router);
   private host = inject(ElementRef);

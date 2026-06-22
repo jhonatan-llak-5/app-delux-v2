@@ -2,6 +2,8 @@ import { ChangeDetectionStrategy, Component, OnInit, inject, signal } from '@ang
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { ReturnsService, ReturnRequest } from '@shared/services/returns.service';
+import { ConfirmService } from '@shared/components/confirm/confirm.service';
+import { NotifyService } from '@shared/services/notify.service';
 
 @Component({
   selector: 'dlx-returns-list',
@@ -111,6 +113,8 @@ import { ReturnsService, ReturnRequest } from '@shared/services/returns.service'
 })
 export class ReturnsListComponent implements OnInit {
   private svc = inject(ReturnsService);
+  private confirm = inject(ConfirmService);
+  private notify = inject(NotifyService);
   items = signal<ReturnRequest[]>([]);
   statusFilter = '';
 
@@ -128,8 +132,16 @@ export class ReturnsListComponent implements OnInit {
   }
   approve(r: ReturnRequest) { this.svc.approve(r.id).subscribe(() => this.reload()); }
   reject(r: ReturnRequest) { this.svc.reject(r.id).subscribe(() => this.reload()); }
-  refund(r: ReturnRequest) {
-    if (!confirm(`¿Reembolsar ${r.code} y devolver stock?`)) return;
-    this.svc.refund(r.id).subscribe(() => this.reload());
+  async refund(r: ReturnRequest) {
+    const ok = await this.confirm.ask({
+      title: 'Reembolsar devolución',
+      message: `¿Reembolsar ${r.code} y devolver el stock al inventario?`,
+      variant: 'warning', confirmText: 'Reembolsar',
+    });
+    if (!ok) return;
+    this.svc.refund(r.id).subscribe({
+      next: () => { this.notify.success('Devolución reembolsada'); this.reload(); },
+      error: e => this.notify.fromServerError(e, 'No se pudo reembolsar.'),
+    });
   }
 }

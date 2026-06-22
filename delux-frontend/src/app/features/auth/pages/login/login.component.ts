@@ -89,6 +89,8 @@ export class LoginComponent {
         const role = r.user.role;
         if (role === 'SUPERADMIN' || role === 'TENANT_ADMIN' || role === 'BRANCH_MANAGER') {
           this.router.navigate(['/app/admin/overview']);
+        } else if (role === 'SALESPERSON') {
+          this.router.navigate(['/app/admin/pos']);
         } else {
           this.router.navigate(['/account']);
         }

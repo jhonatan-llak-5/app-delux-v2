@@ -1,6 +1,9 @@
 import { ChangeDetectionStrategy, Component, signal } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
+import { inject } from '@angular/core';
+import { PublicFormsService } from '@shared/services/public-forms.service';
+import { NotifyService } from '@shared/services/notify.service';
 
 @Component({
   selector: 'dlx-contact-page',
@@ -196,8 +199,11 @@ import { FormsModule } from '@angular/forms';
   `,
 })
 export class ContactPageComponent {
+  private forms = inject(PublicFormsService);
+  private notify = inject(NotifyService);
   form = { name: '', email: '', subject: '', message: '' };
   sent = signal(false);
+  saving = signal(false);
 
   readonly channels = [
     { icon: 'fa-envelope', title: 'Email', value: 'hola@delux.com.ec', detail: 'Respuesta en < 24h', link: 'mailto:hola@delux.com.ec' },
@@ -229,8 +235,23 @@ export class ContactPageComponent {
   ];
 
   submit() {
-    this.sent.set(true);
-    setTimeout(() => this.sent.set(false), 5000);
-    this.form = { name: '', email: '', subject: '', message: '' };
+    if (!this.form.name || !this.form.email || !this.form.message) {
+      this.notify.warning('Completa los campos', { description: 'Nombre, correo y mensaje son obligatorios.' });
+      return;
+    }
+    this.saving.set(true);
+    this.forms.contact(this.form).subscribe({
+      next: r => {
+        this.saving.set(false);
+        this.sent.set(true);
+        this.notify.success(r.detail || 'Mensaje enviado.');
+        setTimeout(() => this.sent.set(false), 5000);
+        this.form = { name: '', email: '', subject: '', message: '' };
+      },
+      error: e => {
+        this.saving.set(false);
+        this.notify.error(e?.error?.detail || 'No se pudo enviar el mensaje.');
+      },
+    });
   }
 }

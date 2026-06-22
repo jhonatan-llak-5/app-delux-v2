@@ -43,6 +43,16 @@ def filter_products(request):
         if color: vq &= Q(variants__color__iexact=color)
         qs = qs.filter(vq).distinct()
 
+    # Filtro estricto solo por sucursal específica (uso admin).
+    # La ciudad NO filtra: el catálogo público es híbrido (muestra todo y marca
+    # la disponibilidad por ciudad en la vista).
+    branch = params.get('branch')
+    if branch:
+        qs = qs.filter(
+            variants__stocks__branch_id=branch,
+            variants__stocks__quantity__gt=0,
+        ).distinct()
+
     sort = params.get('sort', 'new')
     if sort == 'price-asc': qs = qs.order_by('base_price')
     elif sort == 'price-desc': qs = qs.order_by('-base_price')
@@ -56,18 +66,52 @@ class PublicProductsView(APIView):
     permission_classes = [permissions.AllowAny]
 
     def get(self, request):
+        from django.db.models import Sum
+        from apps.inventory.models import Stock
+
         qs = filter_products(request)
-        results = [{
-            'id': p.id, 'name': p.name, 'slug': p.slug,
-            'brand_id': p.brand_id, 'brand_name': p.brand.name,
-            'category_id': p.category_id, 'category_name': p.category.name,
-            'base_price': str(p.base_price),
-            'compare_at_price': str(p.compare_at_price) if p.compare_at_price else None,
-            'gender': p.gender, 'tag': p.tag,
-            'main_image_url': p.main_image_url,
-            'is_featured': p.is_featured,
-        } for p in qs[:200]]
-        return Response({'count': qs.count(), 'results': results})
+        params = request.query_params
+        branch_id = params.get('branch')
+        city = params.get('city')
+
+        products = list(qs[:200])
+        pids = [p.id for p in products]
+
+        # Mapa de stock por ciudad o sucursal (para disponibilidad).
+        stock_map = {}
+        zone_active = False
+        if branch_id:
+            zone_active = True
+            rows = (Stock.objects.filter(branch_id=branch_id, variant__product_id__in=pids)
+                    .values('variant__product_id').annotate(total=Sum('quantity')))
+            stock_map = {r['variant__product_id']: r['total'] or 0 for r in rows}
+        elif city:
+            zone_active = True
+            rows = (Stock.objects.filter(branch__city__iexact=city, variant__product_id__in=pids)
+                    .values('variant__product_id').annotate(total=Sum('quantity')))
+            stock_map = {r['variant__product_id']: r['total'] or 0 for r in rows}
+
+        def serialize(p):
+            stock = stock_map.get(p.id, 0)
+            return {
+                'id': p.id, 'name': p.name, 'slug': p.slug,
+                'brand_id': p.brand_id, 'brand_name': p.brand.name,
+                'category_id': p.category_id, 'category_name': p.category.name,
+                'base_price': str(p.base_price),
+                'compare_at_price': str(p.compare_at_price) if p.compare_at_price else None,
+                'gender': p.gender, 'tag': p.tag,
+                'main_image_url': p.main_image_url,
+                'is_featured': p.is_featured,
+                'branch_stock': stock if zone_active else None,
+                'available_in_city': (stock > 0) if zone_active else True,
+            }
+
+        results = [serialize(p) for p in products]
+        # Híbrido: prioriza los disponibles en la ciudad (orden estable).
+        if zone_active:
+            results.sort(key=lambda r: 0 if r['available_in_city'] else 1)
+
+        return Response({'count': len(results), 'results': results})
 
 
 class SearchAutocompleteView(APIView):
@@ -107,4 +151,81 @@ class ProductFacetsView(APIView):
             'max_price': float(agg['max_price'] or 500),
             'brands': brands,
             'categories': cats,
+        })
+
+
+class PublicProductDetailView(APIView):
+    """Detalle público de un producto: imágenes, variantes (tallas/colores), rating."""
+    permission_classes = [permissions.AllowAny]
+
+    def get(self, request, pk):
+        from django.db.models import Avg, Count as _Count
+        from apps.variants.models import Variant
+        from apps.reviews.models import Review, ReviewStatus
+
+        p = (Product.objects
+             .filter(pk=pk, status=ProductStatus.PUBLISHED)
+             .select_related('brand', 'category')
+             .prefetch_related('images')
+             .first())
+        if not p:
+            return Response({'detail': 'Producto no encontrado.'}, status=404)
+
+        images = [img.url for img in p.images.all().order_by('-is_main', 'sort_order')]
+        if p.main_image_url and p.main_image_url not in images:
+            images.insert(0, p.main_image_url)
+        if not images:
+            images = ['https://images.unsplash.com/photo-1542291026-7eec264c27ff?w=1200&q=85']
+
+        variants = list(Variant.objects.filter(product=p, is_active=True)
+                        .values('size', 'color'))
+        # Tallas únicas (orden natural-ish) y colores únicos
+        sizes = sorted({v['size'] for v in variants if v['size']},
+                       key=lambda x: (len(x), x))
+        color_names = []
+        for v in variants:
+            c = v['color']
+            if c and c not in color_names:
+                color_names.append(c)
+        palette = {
+            'negro': '#0b0e16', 'black': '#0b0e16',
+            'blanco': '#f5f6f8', 'white': '#f5f6f8',
+            'gris': '#9aa0ab', 'gray': '#9aa0ab', 'grey': '#9aa0ab', 'plomo': '#6b7280',
+            'azul': '#1e40af', 'blue': '#1e40af', 'azul marino': '#1e3a8a', 'navy': '#1e3a8a',
+            'celeste': '#38bdf8', 'turquesa': '#14b8a6', 'cyan': '#06b6d4',
+            'rojo': '#dc2626', 'red': '#dc2626', 'vino': '#7f1d1d', 'guinda': '#9f1239',
+            'verde': '#16a34a', 'green': '#16a34a', 'verde lima': '#84cc16', 'lima': '#84cc16',
+            'oliva': '#65733b', 'menta': '#34d399',
+            'amarillo': '#eab308', 'yellow': '#eab308', 'mostaza': '#ca8a04', 'dorado': '#d4af37', 'gold': '#d4af37',
+            'rosa': '#ec4899', 'pink': '#ec4899', 'fucsia': '#e0399a', 'magenta': '#e0399a',
+            'morado': '#7c3aed', 'purple': '#7c3aed', 'violeta': '#8b5cf6', 'lila': '#c4b5fd',
+            'naranja': '#f97316', 'orange': '#f97316',
+            'cafe': '#7c4a2d', 'café': '#7c4a2d', 'marron': '#7c4a2d', 'marrón': '#7c4a2d', 'brown': '#7c4a2d',
+            'beige': '#d8c3a5', 'crema': '#efe6d5', 'arena': '#d8c3a5',
+            'plateado': '#c0c0c0', 'silver': '#c0c0c0',
+        }
+        colors = [{
+            'name': c,
+            'hex': palette.get(c.strip().lower(), '#475569'),
+            'image': images[0],
+        } for c in color_names]
+
+        agg = (Review.objects.filter(product=p, status=ReviewStatus.APPROVED)
+               .aggregate(avg=Avg('rating'), n=_Count('id')))
+
+        return Response({
+            'id': p.id, 'name': p.name, 'slug': p.slug,
+            'brand_name': p.brand.name, 'category_name': p.category.name,
+            'category_slug': p.category.slug,
+            'base_price': str(p.base_price),
+            'compare_at_price': str(p.compare_at_price) if p.compare_at_price else None,
+            'gender': p.gender, 'tag': p.tag,
+            'short_description': p.short_description,
+            'description': p.description,
+            'main_image_url': images[0],
+            'images': images,
+            'sizes': sizes,
+            'colors': colors,
+            'rating': round(agg['avg'], 1) if agg['avg'] else 0,
+            'reviews_count': agg['n'] or 0,
         })

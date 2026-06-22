@@ -1,13 +1,15 @@
-import { ChangeDetectionStrategy, Component, computed, signal } from '@angular/core';
+import { ChangeDetectionStrategy, Component, computed, effect, inject, signal } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { RouterLink } from '@angular/router';
+import { PublicCatalogService } from '@shared/services/public-catalog.service';
+import { ZoneService } from '@shared/services/zone.service';
 
 interface Product {
   id: string; name: string; brand: string;
   category: 'zapatillas' | 'ropa' | 'mochilas' | 'accesorios';
   price: number; oldPrice?: number; colors: string[]; sizes: string[];
   image: string; tag?: 'Nuevo' | 'Drop' | 'Oferta' | 'Exclusivo';
-  gender: 'men' | 'women' | 'unisex';
+  gender: 'men' | 'women' | 'unisex'; available: boolean;
 }
 interface Filter { categories: string[]; brands: string[]; sizes: string[]; priceMin: number; priceMax: number; }
 
@@ -29,7 +31,7 @@ interface Filter { categories: string[]; brands: string[]; sizes: string[]; pric
             Shop la colección
           </h1>
           <p class="text-ink-600 dark:text-white/55 text-[15px] max-w-md leading-relaxed">
-            {{ products.length }} productos curados de Nike, Adidas, Jordan y más.
+            {{ filtered().length }} productos curados de Nike, Adidas, Jordan y más.
             Stock en vivo por sucursal.
           </p>
         </div>
@@ -222,8 +224,25 @@ interface Filter { categories: string[]; brands: string[]; sizes: string[]; pric
               </button>
             </div>
           } @else {
+            @if (zone.city()) {
+              <div class="flex items-center gap-2 mb-5 text-[13px]">
+                <i class="fa-solid fa-location-dot text-[#0095f6]"></i>
+                <span class="font-semibold text-emerald-600">{{ availableCount() }} disponibles en {{ zone.city() }}</span>
+                @if (unavailableCount() > 0) {
+                  <span class="text-ink-500 dark:text-white/45">· {{ unavailableCount() }} solo por envío</span>
+                }
+              </div>
+            }
             <div class="grid grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-5">
               @for (p of filtered(); track p.id) {
+                @if (zone.city() && p.id === firstUnavailableId()) {
+                  <div class="col-span-full flex items-center gap-3 mt-6 mb-1">
+                    <span class="text-[12px] font-bold uppercase tracking-wider text-ink-500 dark:text-white/50">
+                      Solo por envío a {{ zone.city() }}
+                    </span>
+                    <div class="flex-1 h-px bg-ink-200 dark:bg-white/10"></div>
+                  </div>
+                }
                 <a [routerLink]="['/shop', p.id]"
                    class="group block rounded-2xl overflow-hidden
                           bg-white dark:bg-[#111111]
@@ -232,7 +251,14 @@ interface Filter { categories: string[]; brands: string[]; sizes: string[]; pric
                           hover:shadow-lg hover:-translate-y-1
                           transition-all duration-300">
 
-                  <div class="relative aspect-square overflow-hidden bg-ink-100 dark:bg-white/[0.04]">
+                  <div class="relative aspect-square overflow-hidden bg-ink-100 dark:bg-white/[0.04]"
+                       [class.opacity-60]="!p.available">
+                    @if (!p.available) {
+                      <span class="absolute top-3 right-3 z-10 px-2.5 py-1 rounded-full
+                                   text-[10px] font-bold uppercase tracking-wider bg-ink-950/80 text-white backdrop-blur">
+                        Solo envío
+                      </span>
+                    }
                     @if (p.tag) {
                       <span class="absolute top-3 left-3 z-10 px-2.5 py-1 rounded-full
                                    text-[10px] font-bold uppercase tracking-wider"
@@ -283,6 +309,8 @@ interface Filter { categories: string[]; brands: string[]; sizes: string[]; pric
   `,
 })
 export class ShopListComponent {
+  private catalog = inject(PublicCatalogService);
+  zone = inject(ZoneService);
   showFilters = signal(false);
   isDesktop = typeof window !== 'undefined' && window.innerWidth >= 1024;
   gender = signal<'all' | 'men' | 'women' | 'unisex'>('all');
@@ -304,50 +332,68 @@ export class ShopListComponent {
     { value: 'unisex' as const, label: 'Unisex' },
   ];
 
-  readonly products: Product[] = [
-    { id: '1', name: 'Air Force Stealth', brand: 'Nike', category: 'zapatillas', price: 200, tag: 'Drop',
-      gender: 'unisex', colors: ['#e0399a', '#0b0e16'], sizes: ['40','41','42'],
-      image: 'https://images.unsplash.com/photo-1542291026-7eec264c27ff?w=600&q=85&auto=format&fit=crop' },
-    { id: '2', name: 'Air Max Plus', brand: 'Nike', category: 'zapatillas', price: 220, oldPrice: 260, tag: 'Oferta',
-      gender: 'men', colors: ['#0b0e16','#ff7849'], sizes: ['41','42','43'],
-      image: 'https://images.unsplash.com/photo-1552346154-21d32810aba3?w=600&q=85&auto=format&fit=crop' },
-    { id: '3', name: 'Samba OG', brand: 'Adidas', category: 'zapatillas', price: 160, tag: 'Nuevo',
-      gender: 'unisex', colors: ['#f5f6f8','#0b0e16'], sizes: ['38','39','40','41','42'],
-      image: 'https://images.unsplash.com/photo-1606107557195-0e29a4b5b4aa?w=600&q=85&auto=format&fit=crop' },
-    { id: '4', name: 'Forum Low', brand: 'Adidas', category: 'zapatillas', price: 140, tag: 'Exclusivo',
-      gender: 'men', colors: ['#7c3aed','#22d3ee'], sizes: ['40','41','42','43'],
-      image: 'https://images.unsplash.com/photo-1600185365778-7c4e2bbd8a4f?w=600&q=85&auto=format&fit=crop' },
-    { id: '5', name: 'Hoodie Tech Fleece', brand: 'Nike', category: 'ropa', price: 95, tag: 'Nuevo',
-      gender: 'unisex', colors: ['#363c4d'], sizes: ['S','M','L','XL'],
-      image: 'https://images.unsplash.com/photo-1556821840-3a63f95609a7?w=600&q=85&auto=format&fit=crop' },
-    { id: '6', name: 'Mochila Tech Pack', brand: 'Puma', category: 'mochilas', price: 75, tag: 'Drop',
-      gender: 'unisex', colors: ['#14b8a6'], sizes: [],
-      image: 'https://images.unsplash.com/photo-1553062407-98eeb64c6a62?w=600&q=85&auto=format&fit=crop' },
-    { id: '7', name: '550 White', brand: 'New Balance', category: 'zapatillas', price: 130, tag: 'Nuevo',
-      gender: 'unisex', colors: ['#f5f6f8','#7c3aed'], sizes: ['38','39','40','41','42','43'],
-      image: 'https://images.unsplash.com/photo-1539185441755-769473a23570?w=600&q=85&auto=format&fit=crop' },
-    { id: '8', name: 'Old Skool', brand: 'Vans', category: 'zapatillas', price: 85, oldPrice: 110, tag: 'Oferta',
-      gender: 'unisex', colors: ['#0b0e16','#f5f6f8'], sizes: ['39','40','41','42'],
-      image: 'https://images.unsplash.com/photo-1525966222134-fcfa99b8ae77?w=600&q=85&auto=format&fit=crop' },
-    { id: '9', name: 'Court Vintage', brand: 'Nike', category: 'zapatillas', price: 180, tag: 'Drop',
-      gender: 'men', colors: ['#fff','#000'], sizes: ['40','41','42','43'],
-      image: 'https://images.unsplash.com/photo-1595950653106-6c9ebd614d3a?w=600&q=85&auto=format&fit=crop' },
-  ];
+products = signal<Product[]>([]);
+  loadingProducts = signal(true);
 
-  filtered = computed(() => {
+  constructor() {
+    // Recarga el catálogo segun la ciudad elegida por el cliente.
+    effect(() => { const c = this.zone.city(); this.loadProducts(c); });
+  }
+
+  private loadProducts(city: string | null): void {
+    this.loadingProducts.set(true);
+    this.catalog.listProducts({ city: city || undefined, sort: 'new' }).subscribe({
+      next: r => {
+        this.products.set((r.results || []).map(pp => ({
+          id: String(pp.id),
+          name: pp.name,
+          brand: pp.brand_name,
+          category: (pp.category_name || '').toLowerCase() as Product['category'],
+          price: Number(pp.base_price),
+          oldPrice: pp.compare_at_price ? Number(pp.compare_at_price) : undefined,
+          colors: [],
+          sizes: [],
+          image: pp.main_image_url || 'https://images.unsplash.com/photo-1542291026-7eec264c27ff?w=600&q=85',
+          tag: this.mapTag(pp.tag),
+          gender: this.mapGender(pp.gender),
+          available: pp.available_in_city !== false,
+        })));
+        this.loadingProducts.set(false);
+      },
+      error: () => { this.products.set([]); this.loadingProducts.set(false); },
+    });
+  }
+
+  private mapTag(t: string): Product['tag'] {
+    return ({ NEW: 'Nuevo', DROP: 'Drop', SALE: 'Oferta', EXCLUSIVE: 'Exclusivo' } as const)[t as 'NEW'] ?? undefined;
+  }
+  private mapGender(g: string): Product['gender'] {
+    const m = (g || '').toUpperCase();
+    if (m === 'MEN') return 'men';
+    if (m === 'WOMEN') return 'women';
+    return 'unisex';
+  }
+
+    filtered = computed(() => {
     const f = this.filter(); const g = this.gender(); const sort = this.sortBy();
-    let list = this.products.filter(p => {
+    let list = this.products().filter(p => {
       if (f.categories.length && !f.categories.includes(p.category)) return false;
       if (f.brands.length && !f.brands.includes(p.brand)) return false;
-      if (f.sizes.length && !p.sizes.some(s => f.sizes.includes(s))) return false;
+      if (f.sizes.length && p.sizes.length && !p.sizes.some(s => f.sizes.includes(s))) return false;
       if (p.price < f.priceMin || p.price > f.priceMax) return false;
       if (g !== 'all' && p.gender !== g && p.gender !== 'unisex') return false;
       return true;
     });
     if (sort === 'price-asc') list = [...list].sort((a, b) => a.price - b.price);
     if (sort === 'price-desc') list = [...list].sort((a, b) => b.price - a.price);
+    // Disponibles en la ciudad primero (orden estable dentro de cada grupo).
+    list = [...list].sort((a, b) => (a.available === b.available ? 0 : a.available ? -1 : 1));
     return list;
   });
+
+  availableCount = computed(() => this.filtered().filter(p => p.available).length);
+  unavailableCount = computed(() => this.filtered().filter(p => !p.available).length);
+  firstUnavailableId = computed(() => this.filtered().find(p => !p.available)?.id ?? null);
 
   activeFiltersCount = computed(() => {
     const f = this.filter();

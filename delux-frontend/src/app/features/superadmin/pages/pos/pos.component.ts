@@ -1,4 +1,5 @@
 import { ChangeDetectionStrategy, Component, OnInit, computed, inject, signal } from '@angular/core';
+import { AuthService } from '@core/services/auth.service';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { debounceTime, Subject } from 'rxjs';
@@ -38,9 +39,9 @@ interface CartItem {
           Busca productos, agrega al carrito y cobra. Stock se descuenta al instante.
         </p>
       </div>
-      <select [(ngModel)]="branchId" (change)="reload()"
-              class="px-4 py-2.5 rounded-lg bg-ink-950 text-white font-semibold text-sm cursor-pointer">
-        <option [ngValue]="null">— Seleccionar sucursal —</option>
+      <select [(ngModel)]="branchId" (change)="reload()" [disabled]="branchLocked"
+              class="px-4 py-2.5 rounded-lg bg-ink-950 text-white font-semibold text-sm cursor-pointer disabled:opacity-70 disabled:cursor-not-allowed">
+        @if (!branchLocked) { <option [ngValue]="null">— Seleccionar sucursal —</option> }
         @for (b of branches(); track b.id) {
           <option [ngValue]="b.id">{{ b.name }}</option>
         }
@@ -263,6 +264,7 @@ export class PosComponent implements OnInit {
   private ord = inject(OrderService);
   private adminSvc = inject(AdminService);
   private couponSvc = inject(CouponService);
+  private auth = inject(AuthService);
 
   couponInput = '';
   appliedCoupon = signal<CouponValidation | null>(null);
@@ -271,6 +273,7 @@ export class PosComponent implements OnInit {
 
   branches = signal<AdminBranch[]>([]);
   branchId: number | null = null;
+  branchLocked = false;
   stocks = signal<Stock[]>([]);
   cart = signal<CartItem[]>([]);
   loading = signal(false);
@@ -292,9 +295,16 @@ export class PosComponent implements OnInit {
   ngOnInit() {
     this.search$.pipe(debounceTime(300)).subscribe(() => this.reload());
     this.adminSvc.listBranches().subscribe(r => {
-      this.branches.set(r.results || []);
-      if (r.results?.length) {
-        this.branchId = r.results[0].id;
+      let list = r.results || [];
+      const u = this.auth.user();
+      // Gerente de sucursal: queda fijo a su sucursal.
+      if ((u?.role === 'BRANCH_MANAGER' || u?.role === 'SALESPERSON') && u.branch_id) {
+        list = list.filter(b => b.id === u.branch_id);
+        this.branchLocked = true;
+      }
+      this.branches.set(list);
+      if (list.length) {
+        this.branchId = list[0].id;
         this.reload();
       }
     });

@@ -1,10 +1,12 @@
-import { ChangeDetectionStrategy, Component, OnDestroy, OnInit, computed, signal } from '@angular/core';
+import { ChangeDetectionStrategy, Component, OnDestroy, OnInit, computed, inject, signal } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { RouterLink } from '@angular/router';
+import { PublicCatalogService } from '@shared/services/public-catalog.service';
+import { ZoneService } from '@shared/services/zone.service';
 
 interface HeroProduct {
   id: string; name: string; collection: string; tagline: string; price: number;
-  image: string; haloClass: string; gradient: string;
+  image: string; haloClass: string; gradient: string; productId?: number;
 }
 type HeroPhase = 'showcase';
 
@@ -97,7 +99,8 @@ type HeroPhase = 'showcase';
                   <p class="text-[10px] tracking-widest uppercase text-ink-500 dark:text-white/40 mb-1.5">Precio</p>
                   <p class="font-display text-4xl font-bold tracking-tight">\${{ currentProduct().price }}</p>
                 </div>
-                <a routerLink="/shop" class="btn-accent text-sm font-semibold px-7 py-3.5 group">
+                <a [routerLink]="currentProduct().productId ? ['/shop', currentProduct().productId] : '/shop'"
+                   class="btn-accent text-sm font-semibold px-7 py-3.5 group">
                   Añadir a la bolsa
                   <i class="fa-solid fa-arrow-right text-[10px] group-hover:translate-x-1 transition"></i>
                 </a>
@@ -137,7 +140,7 @@ type HeroPhase = 'showcase';
               <!-- Thumbnails con info -->
               <div class="overflow-x-auto scrollbar-hide">
                 <div class="flex gap-4 md:gap-5 justify-center min-w-fit px-1 py-1">
-                  @for (p of products; track p.id; let i = $index) {
+                  @for (p of products(); track p.id; let i = $index) {
                     <button (click)="setIndex(i)"
                             class="group relative flex flex-col items-stretch gap-3 transition-all duration-500"
                             [class.scale-105]="i === index()"
@@ -223,7 +226,7 @@ type HeroPhase = 'showcase';
 
             <!-- Dots indicators (extra layer) -->
             <div class="flex items-center justify-center gap-2 mt-8">
-              @for (p of products; track p.id; let i = $index) {
+              @for (p of products(); track p.id; let i = $index) {
                 <button (click)="setIndex(i)"
                         class="h-1.5 rounded-full transition-all duration-500"
                         [class.w-8]="i === index()"
@@ -242,8 +245,10 @@ type HeroPhase = 'showcase';
 })
 export class HeroSectionComponent implements OnInit, OnDestroy {
   isDark = false;
+  private catalog = inject(PublicCatalogService);
+  private zone = inject(ZoneService);
 
-  readonly products: HeroProduct[] = [
+  private readonly fallbackHero: HeroProduct[] = [
     { id: '01', name: 'Air Force Stealth', collection: 'Performance',
       tagline: 'Energía vibrante y confort premium. Diseñada para máximo rendimiento en cada pisada.',
       price: 200,
@@ -283,6 +288,8 @@ export class HeroSectionComponent implements OnInit, OnDestroy {
         'radial-gradient(70% 90% at 50% 100%, rgba(20,184,166,0.4) 0%, transparent 70%)' },
   ];
 
+  products = signal<HeroProduct[]>(this.fallbackHero);
+
   private readonly defaultGradient =
     'radial-gradient(60% 80% at 70% 30%, rgba(224,57,154,0.45) 0%, transparent 60%),' +
     'radial-gradient(50% 70% at 30% 60%, rgba(124,58,237,0.4) 0%, transparent 65%),' +
@@ -291,17 +298,43 @@ export class HeroSectionComponent implements OnInit, OnDestroy {
 
   phase = signal<HeroPhase>('showcase');
   index = signal(0);
-  currentProduct = computed(() => this.products[this.index()]);
+  currentProduct = computed(() => this.products()[this.index()]);
   currentGradient = computed(() => this.currentProduct().gradient);
   paddedIndex = computed(() => String(this.index() + 1).padStart(2, '0'));
-  paddedTotal = computed(() => String(this.products.length).padStart(2, '0'));
-  progressPercent = computed(() => ((this.index() + 1) / this.products.length) * 100);
+  paddedTotal = computed(() => String(this.products().length).padStart(2, '0'));
+  progressPercent = computed(() => ((this.index() + 1) / this.products().length) * 100);
 
   private rotationTimer?: ReturnType<typeof setInterval>;
   private userInteractedSinceShowcase = false;
 
   ngOnInit(): void {
+    this.loadFeatured();
     this.startAutoRotation();
+  }
+
+  private loadFeatured(): void {
+    const city = this.zone.city() || undefined;
+    this.catalog.listProducts({ sort: 'featured', city }).subscribe({
+      next: r => {
+        const items = (r.results || []).slice(0, 5);
+        if (!items.length) return;
+        const fb = this.fallbackHero;
+        const mapped: HeroProduct[] = items.map((p, i) => ({
+          id: String(i + 1).padStart(2, '0'),
+          productId: p.id,
+          name: p.name,
+          collection: p.category_name || p.brand_name,
+          tagline: `${p.brand_name} · disponible en tu ciudad. Calidad original Delux.`,
+          price: Number(p.base_price),
+          image: p.main_image_url || fb[i % fb.length].image,
+          haloClass: fb[i % fb.length].haloClass,
+          gradient: fb[i % fb.length].gradient,
+        }));
+        this.products.set(mapped);
+        this.index.set(0);
+      },
+      error: () => {},
+    });
   }
   ngOnDestroy(): void {
     if (this.rotationTimer) clearInterval(this.rotationTimer);
@@ -313,8 +346,8 @@ export class HeroSectionComponent implements OnInit, OnDestroy {
     }, 5500);
   }
   setIndex(i: number) { this.userInteractedSinceShowcase = true; this.index.set(i); }
-  next() { this.index.update((i) => (i + 1) % this.products.length); }
-  prev() { this.userInteractedSinceShowcase = true; this.index.update((i) => (i - 1 + this.products.length) % this.products.length); }
+  next() { this.index.update((i) => (i + 1) % this.products().length); }
+  prev() { this.userInteractedSinceShowcase = true; this.index.update((i) => (i - 1 + this.products().length) % this.products().length); }
 
   onImgError(ev: Event) {
     const img = ev.target as HTMLImageElement;

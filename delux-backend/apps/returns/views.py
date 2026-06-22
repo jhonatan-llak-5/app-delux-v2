@@ -7,7 +7,7 @@ from rest_framework.decorators import action
 from rest_framework.response import Response
 from rest_framework.views import APIView
 
-from apps.accounts.permissions import IsTenantAdmin
+from apps.accounts.permissions import IsBranchManager
 from apps.customers.me_views import get_or_create_customer_for_user
 from apps.orders.models import Order, OrderItem, OrderStatus
 from apps.inventory.models import Stock, StockMovement
@@ -58,15 +58,18 @@ class MeReturnsView(APIView):
 
 class AdminReturnViewSet(viewsets.ModelViewSet):
     serializer_class = ReturnSerializer
-    permission_classes = [permissions.IsAuthenticated, IsTenantAdmin]
+    permission_classes = [permissions.IsAuthenticated, IsBranchManager]
     filter_backends = [filters.SearchFilter, filters.OrderingFilter]
     search_fields = ['code', 'order__code', 'customer__full_name']
     ordering = ['-created_at']
 
     def get_queryset(self):
         qs = ReturnRequest.objects.select_related('order', 'customer').prefetch_related('items')
-        s = self.request.query_params.get('status')
-        if s: qs = qs.filter(status=s)
+        st = self.request.query_params.get('status')
+        if st: qs = qs.filter(status=st)
+        user = self.request.user
+        if getattr(user, 'role', None) == 'BRANCH_MANAGER' and user.branch_id:
+            qs = qs.filter(order__branch_id=user.branch_id)
         return qs
 
     @action(detail=True, methods=['post'])

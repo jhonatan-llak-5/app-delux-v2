@@ -1,12 +1,28 @@
-import { ChangeDetectionStrategy, Component, OnInit, inject, signal } from '@angular/core';
+import { ChangeDetectionStrategy, Component, OnInit, effect, inject, signal } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { RouterLink } from '@angular/router';
 import { HeroSectionComponent } from '@features/landing/components/hero-section/hero-section.component';
 import { PublicCatalogService, PublicProduct } from '@shared/services/public-catalog.service';
+import { PublicBranchesService } from '@shared/services/public-branches.service';
+import { ZoneService } from '@shared/services/zone.service';
 
 interface DropCard {
   id: number; name: string; brand: string; price: string; tag: string; image: string;
 }
+
+interface BranchCard {
+  code: string; name: string; city: string; address: string;
+  hours: string; products: number;
+}
+
+const FALLBACK_BRANCHES: BranchCard[] = [
+  { code: 'CENTRO', name: 'Delux Centro', city: 'Quito', address: 'Av. Amazonas N24-03 y Colón',
+    hours: 'Lun-Sáb · 10:00 a 20:00', products: 0 },
+  { code: 'GYE', name: 'Delux Mall del Sol', city: 'Guayaquil', address: 'C.C. Mall del Sol, Local 128',
+    hours: 'Lun-Dom · 10:00 a 22:00', products: 0 },
+  { code: 'CUENCA', name: 'Delux Cuenca', city: 'Cuenca', address: 'Av. Solano 5-23',
+    hours: 'Lun-Sáb · 10:00 a 19:00', products: 0 },
+];
 
 /**
  * Landing — Diseño consistente con auth (Instagram-like clean).
@@ -183,7 +199,7 @@ interface DropCard {
         </div>
 
         <div class="grid grid-cols-1 md:grid-cols-3 gap-5">
-          @for (br of branches; track br.code) {
+          @for (br of branches(); track br.code) {
             <div class="bg-white dark:bg-[#111111]
                         border border-ink-200 dark:border-white/[0.08]
                         rounded-2xl p-7
@@ -212,7 +228,7 @@ interface DropCard {
                 </div>
                 <div class="flex items-center gap-2 text-ink-600 dark:text-white/55 justify-end">
                   <i class="fa-solid fa-bag-shopping text-[#0095f6] text-[11px]"></i>
-                  <span>Retiro gratis</span>
+                  <span>{{ br.products > 0 ? br.products + ' productos' : 'Retiro gratis' }}</span>
                 </div>
               </div>
               <button class="w-full mt-5 inline-flex items-center justify-center gap-2 h-10 rounded-full
@@ -262,13 +278,27 @@ interface DropCard {
 })
 export class LandingHomeComponent implements OnInit {
   private catalog = inject(PublicCatalogService);
+  private branchSvc = inject(PublicBranchesService);
+  private zone = inject(ZoneService);
+
+  constructor() {
+    // Recarga los drops cuando el cliente cambia de ciudad.
+    effect(() => { const c = this.zone.city(); this.loadDrops(c); });
+  }
 
   drops = signal<DropCard[]>([]);
   loadingDrops = signal(true);
 
+  // Sucursales: arranca con un fallback y se reemplaza con las registradas en superadmin.
+  branches = signal<BranchCard[]>(FALLBACK_BRANCHES);
+
   ngOnInit(): void {
-    // Cargar 4 productos destacados desde el backend real
-    this.catalog.listProducts({ sort: 'featured' }).subscribe({
+    this.loadBranches();
+  }
+
+  private loadDrops(city: string | null): void {
+    this.loadingDrops.set(true);
+    this.catalog.listProducts({ sort: 'featured', city: city || undefined }).subscribe({
       next: r => {
         this.drops.set((r.results || []).slice(0, 4).map(p => ({
           id: p.id,
@@ -286,6 +316,23 @@ export class LandingHomeComponent implements OnInit {
 
   private tagLabel(t: string): string {
     return ({ NEW: 'Nuevo', DROP: 'Drop', SALE: 'Oferta', EXCLUSIVE: 'Exclusivo' } as any)[t] || 'Drop';
+  }
+
+  private loadBranches(): void {
+    this.branchSvc.list().subscribe({
+      next: r => {
+        const items = (r.results || []).map(b => ({
+          code: b.code,
+          name: b.name,
+          city: b.city,
+          address: b.address,
+          hours: b.opening_hours || 'Lun-Sab - 10:00 a 20:00',
+          products: b.products_count,
+        }));
+        if (items.length) this.branches.set(items);
+      },
+      error: () => {},
+    });
   }
 
   readonly categories = [
@@ -315,12 +362,4 @@ export class LandingHomeComponent implements OnInit {
     { icon: 'fa-rotate-left', title: 'Cambios sin estrés', description: 'Tienes 14 días para cambios y devoluciones. Sin preguntas, sin letra chica.' },
   ];
 
-  readonly branches = [
-    { code: 'CENTRO', name: 'Delux Centro', city: 'Quito', address: 'Av. Amazonas N24-03 y Colón',
-      hours: 'Lun-Sáb · 10:00 a 20:00' },
-    { code: 'NORTE', name: 'Delux Norte', city: 'Quito', address: 'C.C. Quicentro Shopping',
-      hours: 'Lun-Dom · 10:00 a 21:00' },
-    { code: 'CUENCA', name: 'Delux Cuenca', city: 'Cuenca', address: 'Av. Solano 5-23',
-      hours: 'Lun-Sáb · 10:00 a 19:00' },
-  ];
 }

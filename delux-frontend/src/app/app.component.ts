@@ -1,13 +1,14 @@
 import { ChangeDetectionStrategy, Component, OnInit, inject } from '@angular/core';
 import { RouterOutlet } from '@angular/router';
 import { NgxSonnerToaster } from 'ngx-sonner';
+import { ConfirmHostComponent } from '@shared/components/confirm/confirm-host.component';
 import { TenantService } from '@core/services/tenant.service';
 import { ThemeService } from '@core/services/theme.service';
 
 @Component({
   selector: 'dlx-root',
   standalone: true,
-  imports: [RouterOutlet, NgxSonnerToaster],
+  imports: [RouterOutlet, NgxSonnerToaster, ConfirmHostComponent],
   changeDetection: ChangeDetectionStrategy.OnPush,
   template: `
     <router-outlet />
@@ -18,6 +19,7 @@ import { ThemeService } from '@core/services/theme.service';
       [closeButton]="true"
       [expand]="false"
       [duration]="4000" />
+    <dlx-confirm-host />
   `,
 })
 export class AppComponent implements OnInit {

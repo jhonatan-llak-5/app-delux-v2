@@ -1,20 +1,28 @@
 import { ChangeDetectionStrategy, Component, OnInit, inject, signal } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
+import { Router, RouterLink } from '@angular/router';
 import { AdminService, AdminUser } from '@features/superadmin/services/admin.service';
+import { AuthService } from '@core/services/auth.service';
+import { NotifyService } from '@shared/services/notify.service';
 import { debounceTime, Subject } from 'rxjs';
 
 @Component({
   selector: 'dlx-users-list',
   standalone: true,
-  imports: [CommonModule, FormsModule],
+  imports: [CommonModule, FormsModule, RouterLink],
   changeDetection: ChangeDetectionStrategy.OnPush,
   template: `
-    <div class="flex items-end justify-between mb-6">
+    <div class="flex items-end justify-between gap-4 mb-6 flex-wrap">
       <div>
         <h1 class="text-2xl md:text-3xl font-bold tracking-tight">Usuarios</h1>
         <p class="text-slate-500 text-sm mt-1">Staff y clientes registrados en la plataforma.</p>
       </div>
+      <a routerLink="/app/admin/staff/new"
+         class="px-4 py-2.5 rounded-lg bg-[#1e40af] text-white text-sm font-semibold
+                hover:bg-[#1d4ed8] transition inline-flex items-center gap-2">
+        <i class="fa-solid fa-user-plus"></i> Nuevo usuario de sucursal
+      </a>
     </div>
 
     <div class="card p-4 mb-4 flex flex-wrap gap-3 items-center">
@@ -83,10 +91,20 @@ import { debounceTime, Subject } from 'rxjs';
                     </span>
                   </td>
                   <td class="px-5 py-3 text-right">
-                    <button class="btn-secondary text-xs" (click)="toggle(u)">
-                      <i class="fa-solid fa-power-off"></i>
-                      {{ u.is_active ? 'Desactivar' : 'Activar' }}
-                    </button>
+                    <div class="inline-flex items-center gap-2">
+                      @if (canImpersonate(u)) {
+                        <button class="text-xs font-semibold px-2.5 py-1.5 rounded-lg
+                                       bg-[#1e40af] text-white hover:bg-[#1d4ed8] transition
+                                       inline-flex items-center gap-1.5"
+                                (click)="impersonate(u)" title="Entrar como este usuario">
+                          <i class="fa-solid fa-right-to-bracket"></i> Acceder
+                        </button>
+                      }
+                      <button class="btn-secondary text-xs" (click)="toggle(u)">
+                        <i class="fa-solid fa-power-off"></i>
+                        {{ u.is_active ? 'Desactivar' : 'Activar' }}
+                      </button>
+                    </div>
                   </td>
                 </tr>
               }
@@ -99,6 +117,9 @@ import { debounceTime, Subject } from 'rxjs';
 })
 export class UsersListComponent implements OnInit {
   private admin = inject(AdminService);
+  private auth = inject(AuthService);
+  private router = inject(Router);
+  private notify = inject(NotifyService);
   users = signal<AdminUser[]>([]);
   loading = signal(true);
   search = signal('');
@@ -120,6 +141,21 @@ export class UsersListComponent implements OnInit {
 
   onSearch(v: string) { this.search.set(v); this.search$.next(); }
   onRole(v: string)   { this.role.set(v); this.fetch(); }
+
+  /** No tiene sentido impersonarse a uno mismo ni a cuentas inactivas. */
+  canImpersonate(u: AdminUser): boolean {
+    return u.is_active && u.id !== this.auth.user()?.id;
+  }
+
+  impersonate(u: AdminUser) {
+    this.admin.impersonate(u.id).subscribe({
+      next: (r) => {
+        this.auth.startImpersonation(r as any);
+        this.router.navigate(['/app']);
+      },
+      error: (e) => this.notify.error(e?.error?.detail || 'No se pudo acceder a la cuenta.'),
+    });
+  }
 
   toggle(u: AdminUser) {
     const op = u.is_active ? this.admin.deactivateUser(u.id) : this.admin.activateUser(u.id);

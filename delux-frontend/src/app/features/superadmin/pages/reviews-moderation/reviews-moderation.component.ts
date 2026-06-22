@@ -2,6 +2,8 @@ import { ChangeDetectionStrategy, Component, OnInit, inject, signal } from '@ang
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { ReviewsService, Review } from '@shared/services/reviews.service';
+import { ConfirmService } from '@shared/components/confirm/confirm.service';
+import { NotifyService } from '@shared/services/notify.service';
 import { StarRatingComponent } from '@shared/components/star-rating/star-rating.component';
 
 @Component({
@@ -104,6 +106,8 @@ import { StarRatingComponent } from '@shared/components/star-rating/star-rating.
 })
 export class ReviewsModerationComponent implements OnInit {
   private svc = inject(ReviewsService);
+  private confirm = inject(ConfirmService);
+  private notify = inject(NotifyService);
   items = signal<Review[]>([]);
   statusFilter = '';
   ratingFilter?: number;
@@ -125,8 +129,16 @@ export class ReviewsModerationComponent implements OnInit {
   }
   approve(r: Review) { this.svc.approve(r.id).subscribe(() => this.reload()); }
   reject(r: Review) { this.svc.reject(r.id).subscribe(() => this.reload()); }
-  remove(r: Review) {
-    if (!confirm('¿Eliminar reseña?')) return;
-    this.svc.delete(r.id).subscribe(() => this.reload());
+  async remove(r: Review) {
+    const ok = await this.confirm.ask({
+      title: 'Eliminar reseña',
+      message: '¿Eliminar esta reseña? Esta acción no se puede deshacer.',
+      variant: 'danger', confirmText: 'Eliminar',
+    });
+    if (!ok) return;
+    this.svc.delete(r.id).subscribe({
+      next: () => { this.notify.success('Reseña eliminada'); this.reload(); },
+      error: e => this.notify.fromServerError(e, 'No se pudo eliminar la reseña.'),
+    });
   }
 }

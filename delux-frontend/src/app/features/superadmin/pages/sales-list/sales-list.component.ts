@@ -5,6 +5,8 @@ import { RouterLink } from '@angular/router';
 import { debounceTime, Subject } from 'rxjs';
 
 import { Order, OrderService, OrderSummary } from '@features/superadmin/services/order.service';
+import { ConfirmService } from '@shared/components/confirm/confirm.service';
+import { NotifyService } from '@shared/services/notify.service';
 import { AdminService, AdminBranch } from '@features/superadmin/services/admin.service';
 import { generateVoucherPDF } from '@shared/utils/voucher-pdf.util';
 
@@ -157,6 +159,8 @@ import { generateVoucherPDF } from '@shared/utils/voucher-pdf.util';
 })
 export class SalesListComponent implements OnInit {
   private svc = inject(OrderService);
+  private confirm = inject(ConfirmService);
+  private notify = inject(NotifyService);
   private adminSvc = inject(AdminService);
 
   orders = signal<Order[]>([]);
@@ -212,8 +216,16 @@ export class SalesListComponent implements OnInit {
     this.svc.get(o.id).subscribe(full => generateVoucherPDF(full));
   }
 
-  cancel(o: Order) {
-    if (!confirm(`¿Cancelar la venta ${o.code}? Esta acción no devuelve el stock automáticamente.`)) return;
-    this.svc.cancel(o.id).subscribe(() => this.reload());
+  async cancel(o: Order) {
+    const ok = await this.confirm.ask({
+      title: 'Cancelar venta',
+      message: `¿Cancelar la venta ${o.code}? Esta acción no devuelve el stock automáticamente.`,
+      variant: 'danger', confirmText: 'Cancelar venta', cancelText: 'Volver',
+    });
+    if (!ok) return;
+    this.svc.cancel(o.id).subscribe({
+      next: () => { this.notify.success('Venta cancelada'); this.reload(); },
+      error: e => this.notify.fromServerError(e, 'No se pudo cancelar la venta.'),
+    });
   }
 }

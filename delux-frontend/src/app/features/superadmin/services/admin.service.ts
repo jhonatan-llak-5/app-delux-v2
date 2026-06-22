@@ -149,6 +149,11 @@ export class AdminService {
   }
   activateUser(id: number)   { return this.http.post(`${this.base}/users/${id}/activate/`, {}); }
   deactivateUser(id: number) { return this.http.post(`${this.base}/users/${id}/deactivate/`, {}); }
+  impersonate(id: number) {
+    return this.http.post<{ access: string; refresh: string; user: any; impersonated: boolean }>(
+      `${this.base}/users/${id}/impersonate/`, {},
+    );
+  }
 
   // ── Tenants
   listTenants(): Observable<Paged<AdminTenant>> {

@@ -1,12 +1,12 @@
 from django.db.models import Sum
 from rest_framework import filters, permissions, viewsets
-from apps.accounts.permissions import IsSuperadmin
+from apps.accounts.permissions import IsBranchManager
 from .models import Variant
 from .serializers import VariantSerializer, VariantCreateUpdateSerializer
 
 
 class AdminVariantViewSet(viewsets.ModelViewSet):
-    permission_classes = [permissions.IsAuthenticated, IsSuperadmin]
+    permission_classes = [permissions.IsAuthenticated, IsBranchManager]
     filter_backends = [filters.SearchFilter, filters.OrderingFilter]
     search_fields = ['sku', 'product__name', 'size', 'color']
     ordering_fields = ['sku', 'created_at']

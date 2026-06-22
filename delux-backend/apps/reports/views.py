@@ -11,7 +11,7 @@ from rest_framework.response import Response
 from rest_framework.views import APIView
 from rest_framework.viewsets import ViewSet
 
-from apps.accounts.permissions import IsTenantAdmin
+from apps.accounts.permissions import IsBranchManager
 from apps.orders.models import Order, OrderItem, OrderStatus
 
 
@@ -32,11 +32,15 @@ def base_orders_qs(request):
     branch = request.query_params.get('branch')
     if branch:
         qs = qs.filter(branch_id=branch)
+    # Aislamiento: gerente de sucursal solo ve la suya.
+    user = getattr(request, 'user', None)
+    if user and getattr(user, 'role', None) == 'BRANCH_MANAGER' and user.branch_id:
+        qs = qs.filter(branch_id=user.branch_id)
     return qs, from_d, to_d
 
 
 class ReportsViewSet(ViewSet):
-    permission_classes = [permissions.IsAuthenticated, IsTenantAdmin]
+    permission_classes = [permissions.IsAuthenticated, IsBranchManager]
 
     @action(detail=False, methods=['get'])
     def overview(self, request):
@@ -57,6 +61,8 @@ class ReportsViewSet(ViewSet):
                                         created_at__date__lte=prev_to)
         if request.query_params.get('branch'):
             prev_qs = prev_qs.filter(branch_id=request.query_params['branch'])
+        if getattr(request.user, 'role', None) == 'BRANCH_MANAGER' and request.user.branch_id:
+            prev_qs = prev_qs.filter(branch_id=request.user.branch_id)
         prev_revenue = prev_qs.aggregate(t=Sum('total'))['t'] or Decimal('0')
         prev_orders = prev_qs.count()
 
@@ -193,8 +199,15 @@ class ReportsViewSet(ViewSet):
     def low_stock(self, request):
         """Alertas de stock bajo (no requiere rango)."""
         from apps.inventory.models import Stock
+        _u = request.user
+        _branch = request.query_params.get('branch')
+        if getattr(_u, 'role', None) == 'BRANCH_MANAGER' and _u.branch_id:
+            _branch = _u.branch_id
+        stock_qs = Stock.objects.filter(quantity__lte=F('min_threshold'))
+        if _branch:
+            stock_qs = stock_qs.filter(branch_id=_branch)
         qs = (
-            Stock.objects.filter(quantity__lte=F('min_threshold'))
+            stock_qs
             .select_related('variant__product', 'branch')
             .order_by('quantity')[:20]
         )

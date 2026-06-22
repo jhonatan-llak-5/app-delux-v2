@@ -1,7 +1,7 @@
 from django.contrib.auth import get_user_model
 from django.db.models import Count, Sum, Q
 from django.utils import timezone
-from rest_framework import filters, permissions, viewsets
+from rest_framework import filters, permissions, status, viewsets
 from rest_framework.decorators import action
 from rest_framework.response import Response
 
@@ -39,6 +39,39 @@ class StaffViewSet(viewsets.ModelViewSet):
         if self.action in ('create', 'update', 'partial_update'):
             return StaffCreateSerializer
         return StaffSerializer
+
+    def create(self, request, *args, **kwargs):
+        serializer = self.get_serializer(data=request.data)
+        serializer.is_valid(raise_exception=True)
+        user = serializer.save()
+        plain = getattr(user, '_plain_password', None)
+
+        # Envío de credenciales por correo (best-effort; se omite si no hay SMTP).
+        emailed = False
+        try:
+            from apps.settings.models import PlatformSettings
+            cfg = PlatformSettings.load()
+            smtp_ok = bool(getattr(cfg, 'smtp_host', '')) and getattr(cfg, 'email_active', True)
+            if smtp_ok:
+                from .tasks import send_staff_credentials_email
+                origin = request.headers.get('Origin') or ''
+                login_url = (origin.rstrip('/') + '/auth/login') if origin else ''
+                send_staff_credentials_email.delay(
+                    user.email, user.full_name, plain or '',
+                    user.get_role_display(),
+                    user.branch.name if user.branch else '',
+                    login_url,
+                )
+                emailed = True
+        except Exception:
+            emailed = False
+
+        data = StaffSerializer(user).data
+        # Credenciales mostradas una sola vez al creador.
+        data['temp_password'] = plain
+        data['password_generated'] = getattr(user, '_password_generated', False)
+        data['credentials_emailed'] = emailed
+        return Response(data, status=status.HTTP_201_CREATED)
 
     @action(detail=True, methods=['post'])
     def toggle_active(self, request, pk=None):
