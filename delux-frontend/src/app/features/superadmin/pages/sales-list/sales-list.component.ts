@@ -1,7 +1,7 @@
 import { ChangeDetectionStrategy, Component, OnInit, inject, signal } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
-import { RouterLink } from '@angular/router';
+import { Router, RouterLink } from '@angular/router';
 import { debounceTime, Subject } from 'rxjs';
 
 import { Order, OrderService, OrderSummary } from '@features/superadmin/services/order.service';
@@ -159,6 +159,7 @@ import { generateVoucherPDF } from '@shared/utils/voucher-pdf.util';
 })
 export class SalesListComponent implements OnInit {
   private svc = inject(OrderService);
+  private router = inject(Router);
   private confirm = inject(ConfirmService);
   private notify = inject(NotifyService);
   private adminSvc = inject(AdminService);
@@ -213,7 +214,7 @@ export class SalesListComponent implements OnInit {
   }
 
   printVoucher(o: Order) {
-    this.svc.get(o.id).subscribe(full => generateVoucherPDF(full));
+    this.router.navigate(['/app/admin/sales', o.id, 'voucher']);
   }
 
   async cancel(o: Order) {

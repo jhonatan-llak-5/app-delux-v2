@@ -115,7 +115,8 @@ const COLLAPSED_KEY = 'dlx_sidebar_collapsed';
           <div data-tour="search" class="flex-1 max-w-md relative">
             <i class="fa-solid fa-magnifying-glass text-sm absolute left-3 top-1/2 -translate-y-1/2
                       text-slate-400 dark:text-white/40"></i>
-            <input placeholder="Buscar productos, pedidos, clientes..."
+            <input #searchBox placeholder="Buscar productos... (Enter)"
+                   (keydown.enter)="runSearch(searchBox.value); searchBox.value=''"
                    class="w-full pl-9 pr-3 py-2 rounded-lg
                           bg-slate-50 dark:bg-white/5
                           border border-transparent
@@ -351,6 +352,12 @@ export class DashboardLayoutComponent implements AfterViewInit {
   exitImpersonation(): void {
     this.auth.stopImpersonation();
     this.router.navigate(['/app/admin/users']);
+  }
+
+  runSearch(term: string): void {
+    const q = (term || '').trim();
+    if (!q) return;
+    this.router.navigate(['/app/admin/products'], { queryParams: { search: q } });
   }
 
   toggleCollapse() {

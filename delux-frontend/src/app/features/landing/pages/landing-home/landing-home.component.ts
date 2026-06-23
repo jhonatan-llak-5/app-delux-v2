@@ -15,6 +15,8 @@ interface BranchCard {
   hours: string; products: number;
 }
 
+const IMG_PLACEHOLDER = 'data:image/svg+xml,' + encodeURIComponent('<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 120 120">' + '<g fill="none" stroke="#9aa0ab" stroke-width="4" stroke-linejoin="round" stroke-linecap="round">' + '<rect x="32" y="44" width="56" height="40" rx="6"/>' + '<circle cx="60" cy="64" r="11"/>' + '<path d="M44 44l5-9h22l5 9"/>' + '</g></svg>');
+
 const FALLBACK_BRANCHES: BranchCard[] = [
   { code: 'CENTRO', name: 'Delux Centro', city: 'Quito', address: 'Av. Amazonas N24-03 y Colón',
     hours: 'Lun-Sáb · 10:00 a 20:00', products: 0 },
@@ -139,7 +141,7 @@ const FALLBACK_BRANCHES: BranchCard[] = [
                 </span>
                 <img [src]="d.image" [alt]="d.name"
                      class="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500"
-                     loading="lazy" crossorigin="anonymous" />
+                     loading="lazy" crossorigin="anonymous" (error)="onImgError($event)" />
               </div>
               <div class="p-5">
                 <p class="text-[11px] uppercase tracking-wider text-ink-500 dark:text-white/45 mb-1.5">
@@ -231,7 +233,8 @@ const FALLBACK_BRANCHES: BranchCard[] = [
                   <span>{{ br.products > 0 ? br.products + ' productos' : 'Retiro gratis' }}</span>
                 </div>
               </div>
-              <button class="w-full mt-5 inline-flex items-center justify-center gap-2 h-10 rounded-full
+              <button type="button" (click)="openMap(br)"
+                      class="w-full mt-5 inline-flex items-center justify-center gap-2 h-10 rounded-full
                              bg-ink-50 dark:bg-white/[0.06]
                              hover:bg-[#0095f6] hover:text-white
                              dark:hover:bg-[#0095f6] dark:hover:text-white
@@ -306,7 +309,7 @@ export class LandingHomeComponent implements OnInit {
           brand: p.brand_name,
           price: p.base_price,
           tag: this.tagLabel(p.tag),
-          image: p.main_image_url || 'https://images.unsplash.com/photo-1542291026-7eec264c27ff?w=600&q=85',
+          image: p.thumb_url || p.main_image_url || 'https://images.unsplash.com/photo-1542291026-7eec264c27ff?w=600&q=85',
         })));
         this.loadingDrops.set(false);
       },
@@ -316,6 +319,20 @@ export class LandingHomeComponent implements OnInit {
 
   private tagLabel(t: string): string {
     return ({ NEW: 'Nuevo', DROP: 'Drop', SALE: 'Oferta', EXCLUSIVE: 'Exclusivo' } as any)[t] || 'Drop';
+  }
+
+  onImgError(ev: Event) {
+    const img = ev.target as HTMLImageElement;
+    if (img.dataset['ph'] === '1') return;
+    img.dataset['ph'] = '1';
+    img.src = IMG_PLACEHOLDER;
+    img.classList.add('object-contain', 'p-6', 'opacity-70');
+    img.classList.remove('object-cover');
+  }
+
+  openMap(br: BranchCard): void {
+    const q = encodeURIComponent(`Delux ${br.name}, ${br.address}, ${br.city}, Ecuador`);
+    window.open(`https://www.google.com/maps/search/?api=1&query=${q}`, '_blank');
   }
 
   private loadBranches(): void {

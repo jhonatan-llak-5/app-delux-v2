@@ -51,6 +51,8 @@ class StaffCreateSerializer(serializers.ModelSerializer):
         validated_data['is_email_verified'] = True
         validated_data['is_active'] = True
         user = User.objects.create_user(password=password, **validated_data)
+        from apps.accounts.groups import sync_user_groups
+        sync_user_groups(user)
         # Se exponen al creador una sola vez (en la respuesta del POST).
         user._plain_password = password
         user._password_generated = not bool(provided)
@@ -63,4 +65,6 @@ class StaffCreateSerializer(serializers.ModelSerializer):
         if password:
             instance.set_password(password)
         instance.save()
+        from apps.accounts.groups import sync_user_groups
+        sync_user_groups(instance)
         return instance

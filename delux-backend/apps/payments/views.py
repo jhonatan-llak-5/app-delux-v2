@@ -1,5 +1,6 @@
 from decimal import Decimal
 from django.db import transaction
+from django.db.models import F
 from django.utils import timezone
 from rest_framework import permissions, status, viewsets
 from rest_framework.decorators import action
@@ -82,19 +83,46 @@ class CheckoutPayPhoneInitView(APIView):
                 if not variant:
                     return Response({'detail': f"Variante {it['variant_id']} no existe."}, status=400)
 
-                # Reservar stock (no decrementar — se hace en confirm)
+                # Reservar stock (no decrementar — se hace en confirm).
+                # PICKUP: debe estar en la sucursal elegida.
+                # SHIPPING: si la sucursal elegida no tiene, se despacha desde
+                # cualquier sucursal con stock disponible.
+                qty = it['quantity']
+                fulfillment = data.get('fulfillment', 'SHIPPING')
                 stock = Stock.objects.filter(
                     variant=variant, branch_id=data['branch_id']
                 ).first()
-                if not stock or stock.quantity - stock.reserved < it['quantity']:
-                    return Response({'detail': f'Stock insuficiente para {variant.sku}.'}, status=400)
-                stock.reserved += it['quantity']
-                stock.save(update_fields=['reserved', 'updated_at'])
+                has_local = stock and (stock.quantity - stock.reserved) >= qty
+                if has_local:
+                    chosen = stock
+                elif fulfillment == 'PICKUP':
+                    return Response(
+                        {'detail': f'Sin stock para retiro de {variant.product.name} '
+                                   f'({variant.size}/{variant.color}) en la sucursal elegida. '
+                                   f'Prueba con envío a domicilio.'},
+                        status=400,
+                    )
+                else:
+                    chosen = (Stock.objects
+                              .filter(variant=variant, tenant=tenant)
+                              .annotate(avail=F('quantity') - F('reserved'))
+                              .filter(avail__gte=qty)
+                              .order_by('-avail')
+                              .first())
+                    if not chosen:
+                        return Response(
+                            {'detail': f'Sin stock disponible para {variant.product.name} '
+                                       f'({variant.size}/{variant.color}) en ninguna sucursal.'},
+                            status=400,
+                        )
+                chosen.reserved += qty
+                chosen.save(update_fields=['reserved', 'updated_at'])
 
                 unit_price = variant.price_override or variant.product.base_price
                 item_subtotal = unit_price * it['quantity']
                 OrderItem.objects.create(
                     tenant=tenant, order=order, variant=variant,
+                    branch=chosen.branch,
                     product_name=variant.product.name,
                     sku=variant.sku, size=variant.size, color=variant.color,
                     quantity=it['quantity'], unit_price=unit_price,
@@ -141,8 +169,9 @@ class PayPhoneConfirmView(APIView):
             # Si exitoso: convertir reservaciones en OUT y crear movimientos
             if success:
                 for item in payment.order.items.all():
+                    item_branch = item.branch_id or payment.order.branch_id
                     stock = Stock.objects.select_for_update().filter(
-                        variant=item.variant, branch=payment.order.branch
+                        variant=item.variant, branch_id=item_branch
                     ).first()
                     if stock:
                         stock.reserved = max(0, stock.reserved - item.quantity)
@@ -157,8 +186,9 @@ class PayPhoneConfirmView(APIView):
             else:
                 # Liberar reservaciones
                 for item in payment.order.items.all():
+                    item_branch = item.branch_id or payment.order.branch_id
                     stock = Stock.objects.filter(
-                        variant=item.variant, branch=payment.order.branch
+                        variant=item.variant, branch_id=item_branch
                     ).first()
                     if stock:
                         stock.reserved = max(0, stock.reserved - item.quantity)

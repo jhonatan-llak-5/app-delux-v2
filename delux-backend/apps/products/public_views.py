@@ -77,6 +77,13 @@ class PublicProductsView(APIView):
         products = list(qs[:200])
         pids = [p.id for p in products]
 
+        # Miniatura principal por producto (para grilla / vistas pequeñas).
+        from .models import ProductImage
+        thumb_rows = (ProductImage.objects
+                      .filter(product_id__in=pids, is_main=True)
+                      .values('product_id', 'thumb_url', 'url'))
+        thumb_map = {r['product_id']: (r['thumb_url'] or r['url']) for r in thumb_rows}
+
         # Mapa de stock por ciudad o sucursal (para disponibilidad).
         stock_map = {}
         zone_active = False
@@ -101,6 +108,7 @@ class PublicProductsView(APIView):
                 'compare_at_price': str(p.compare_at_price) if p.compare_at_price else None,
                 'gender': p.gender, 'tag': p.tag,
                 'main_image_url': p.main_image_url,
+                'thumb_url': thumb_map.get(p.id) or p.main_image_url,
                 'is_featured': p.is_featured,
                 'branch_stock': stock if zone_active else None,
                 'available_in_city': (stock > 0) if zone_active else True,

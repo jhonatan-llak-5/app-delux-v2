@@ -71,6 +71,11 @@ export const SUPERADMIN_ROUTES: Routes = [
           import('./pages/sale-detail/sale-detail.component').then(m => m.SaleDetailComponent),
       },
       {
+        path: 'sales/:id/voucher',
+        loadComponent: () =>
+          import('./pages/voucher-preview/voucher-preview.component').then(m => m.VoucherPreviewComponent),
+      },
+      {
         path: 'staff',
         canActivate: [roleGuard(['SUPERADMIN', 'TENANT_ADMIN', 'BRANCH_MANAGER'])],
         loadComponent: () =>

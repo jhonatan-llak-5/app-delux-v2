@@ -8,7 +8,7 @@ from .models import Product, ProductImage
 class ProductImageSerializer(serializers.ModelSerializer):
     class Meta:
         model = ProductImage
-        fields = ('id', 'url', 'alt', 'sort_order', 'is_main')
+        fields = ('id', 'url', 'thumb_url', 'alt', 'sort_order', 'is_main')
         read_only_fields = ('id',)
 
 
@@ -50,6 +50,7 @@ class ProductSerializer(serializers.ModelSerializer):
 class ProductCreateUpdateSerializer(serializers.ModelSerializer):
     images = ProductImageSerializer(many=True, required=False)
     variants = serializers.ListField(child=serializers.DictField(), required=False, write_only=True)
+    initial_stock = serializers.ListField(child=serializers.DictField(), required=False, write_only=True)
 
     class Meta:
         model = Product
@@ -58,7 +59,7 @@ class ProductCreateUpdateSerializer(serializers.ModelSerializer):
             'brand', 'category', 'base_price', 'compare_at_price',
             'gender', 'status', 'tag', 'is_featured',
             'main_image_url', 'meta_title', 'meta_description',
-            'images', 'variants',
+            'images', 'variants', 'initial_stock',
         )
         extra_kwargs = {'slug': {'required': False, 'allow_blank': True}}
 
@@ -70,6 +71,7 @@ class ProductCreateUpdateSerializer(serializers.ModelSerializer):
     def create(self, validated_data):
         images_data = validated_data.pop('images', [])
         variants_data = validated_data.pop('variants', [])
+        stock_map = self._stock_map(validated_data.pop('initial_stock', []))
         # Tenant del usuario o primero activo (superadmin global)
         request = self.context.get('request')
         tenant = getattr(request.user, 'tenant', None) if request else None
@@ -81,12 +83,13 @@ class ProductCreateUpdateSerializer(serializers.ModelSerializer):
         for idx, img in enumerate(images_data):
             ProductImage.objects.create(product=product, sort_order=img.get('sort_order', idx), **{k: v for k, v in img.items() if k != 'sort_order'})
         if variants_data:
-            self._sync_variants(product, variants_data, tenant)
+            self._sync_variants(product, variants_data, tenant, stock_map)
         return product
 
     def update(self, instance, validated_data):
         images_data = validated_data.pop('images', None)
         variants_data = validated_data.pop('variants', None)
+        stock_map = self._stock_map(validated_data.pop('initial_stock', []))
         for k, v in validated_data.items():
             setattr(instance, k, v)
         instance.save()
@@ -100,10 +103,19 @@ class ProductCreateUpdateSerializer(serializers.ModelSerializer):
                     **{k: v for k, v in img.items() if k != 'sort_order'}
                 )
         if variants_data is not None:
-            self._sync_variants(instance, variants_data, instance.tenant)
+            self._sync_variants(instance, variants_data, instance.tenant, stock_map)
         return instance
 
-    def _sync_variants(self, product, variants, tenant):
+    def _stock_map(self, rows):
+        out = {}
+        for r in rows or []:
+            try:
+                out[int(r.get('branch'))] = max(0, int(r.get('quantity', 0)))
+            except (TypeError, ValueError):
+                continue
+        return out
+
+    def _sync_variants(self, product, variants, tenant, stock_map=None):
         """Crea/elimina variantes (talla x color) y stock 0 por sucursal."""
         import uuid
         from apps.variants.models import Variant
@@ -133,9 +145,10 @@ class ProductCreateUpdateSerializer(serializers.ModelSerializer):
                 size=size, color=color, is_active=True,
             )
             for b in branches:
+                qty = (stock_map or {}).get(b.id, 0)
                 Stock.objects.get_or_create(
                     tenant=tenant, variant=var, branch=b,
-                    defaults={'quantity': 0, 'min_threshold': 2},
+                    defaults={'quantity': qty, 'min_threshold': 2},
                 )
 
         desired_set = set(desired)

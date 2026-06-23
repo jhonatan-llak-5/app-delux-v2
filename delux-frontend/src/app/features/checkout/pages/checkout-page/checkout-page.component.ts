@@ -5,6 +5,7 @@ import { Router, RouterLink } from '@angular/router';
 
 import { CartService } from '@features/checkout/services/cart.service';
 import { CheckoutService } from '@features/checkout/services/checkout.service';
+import { NotifyService } from '@shared/services/notify.service';
 import { PublicBranchesService, PublicBranch } from '@shared/services/public-branches.service';
 import { ZoneService } from '@shared/services/zone.service';
 import { CouponService, CouponValidation } from '@features/superadmin/services/coupon.service';
@@ -232,6 +233,7 @@ import { CouponService, CouponValidation } from '@features/superadmin/services/c
 export class CheckoutPageComponent implements OnInit {
   cart = inject(CartService);
   private checkout = inject(CheckoutService);
+  private notify = inject(NotifyService);
   private branchSvc = inject(PublicBranchesService);
   zone = inject(ZoneService);
   private couponSvc = inject(CouponService);
@@ -313,6 +315,7 @@ export class CheckoutPageComponent implements OnInit {
         this.saving.set(false);
         if (r.error) {
           this.error.set(r.error);
+          this.notify.error(r.error);
           return;
         }
         // Guardar referencia para confirmación tras volver
@@ -331,7 +334,9 @@ export class CheckoutPageComponent implements OnInit {
       },
       error: e => {
         this.saving.set(false);
-        this.error.set(e?.error?.detail || 'Error al iniciar el pago.');
+        const msg = e?.error?.detail || 'Error al iniciar el pago.';
+        this.error.set(msg);
+        this.notify.error(msg);
       },
     });
   }

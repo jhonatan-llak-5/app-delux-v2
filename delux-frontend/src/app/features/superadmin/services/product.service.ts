@@ -6,6 +6,7 @@ import { environment } from '@env/environment';
 export interface ProductImage {
   id?: number;
   url: string;
+  thumb_url?: string;
   alt?: string;
   sort_order?: number;
   is_main?: boolean;
@@ -57,6 +58,7 @@ export interface ProductPayload {
   meta_description?: string;
   images?: ProductImage[];
   variants?: { size: string; color: string }[];
+  initial_stock?: { branch: number; quantity: number }[];
 }
 
 interface Paged<T> { count: number; results: T[]; }
@@ -66,10 +68,10 @@ export class ProductService {
   private http = inject(HttpClient);
   private base = `${environment.apiUrl}/admin/products`;
 
-  uploadImage(file: File): Observable<{ url: string; name: string }> {
+  uploadImage(file: File): Observable<{ url: string; thumb_url: string; name: string }> {
     const form = new FormData();
     form.append('image', file);
-    return this.http.post<{ url: string; name: string }>(`${this.base}/upload-image/`, form);
+    return this.http.post<{ url: string; thumb_url: string; name: string }>(`${this.base}/upload-image/`, form);
   }
 
   list(params: {

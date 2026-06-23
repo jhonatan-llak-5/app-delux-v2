@@ -1,7 +1,7 @@
 import { ChangeDetectionStrategy, Component, OnInit, inject, signal } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
-import { Router, RouterLink } from '@angular/router';
+import { Router, RouterLink, ActivatedRoute } from '@angular/router';
 import { debounceTime, Subject } from 'rxjs';
 
 import { Product, ProductService } from '@features/superadmin/services/product.service';
@@ -214,6 +214,7 @@ export class ProductsListComponent implements OnInit {
   private confirm = inject(ConfirmService);
   private notify = inject(NotifyService);
   private router = inject(Router);
+  private route = inject(ActivatedRoute);
 
   products = signal<Product[]>([]);
   brands = signal<Brand[]>([]);
@@ -229,6 +230,10 @@ export class ProductsListComponent implements OnInit {
 
   ngOnInit(): void {
     this.search$.pipe(debounceTime(300)).subscribe(() => this.reload());
+    this.route.queryParamMap.subscribe(pm => {
+      const q = pm.get('search');
+      if (q !== null && q !== this.search()) { this.search.set(q); this.reload(); }
+    });
     this.brandSvc.list({ search: '' }).subscribe(r => this.brands.set(r.results || []));
     this.catSvc.list().subscribe(r => this.categories.set(r.results || []));
     this.adminSvc.listBranches().subscribe(r => this.stores.set(r.results || []));

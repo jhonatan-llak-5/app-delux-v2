@@ -73,3 +73,23 @@ class TestPayPhoneView(APIView):
             'api_url': s.payphone_api_url,
             'store_id': s.payphone_store_id,
         })
+
+
+class PublicUploadConfigView(APIView):
+    """GET público: límites y extensiones permitidas para validar uploads.
+
+    Lo lee el frontend para validar tamaño/tipo ANTES de subir, con los mismos
+    parámetros que el backend valida. Fuente única de verdad = PlatformSettings.
+    """
+    permission_classes = [permissions.AllowAny]
+
+    def get(self, request):
+        c = PlatformSettings.load()
+        return Response({
+            'max_image_upload_mb': c.max_image_upload_mb,
+            'max_file_upload_mb': c.max_file_upload_mb,
+            'max_video_upload_mb': c.max_video_upload_mb,
+            'allowed_image_extensions': c.allowed_image_extensions,
+            'allowed_file_extensions': c.allowed_file_extensions,
+            'allowed_video_extensions': c.allowed_video_extensions,
+        })

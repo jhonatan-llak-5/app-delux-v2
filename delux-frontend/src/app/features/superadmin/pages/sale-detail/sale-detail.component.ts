@@ -28,10 +28,10 @@ import { generateVoucherPDF } from '@shared/utils/voucher-pdf.util';
           <a routerLink="/app/admin/sales" class="px-4 py-2 rounded-lg bg-slate-100 hover:bg-slate-200 text-sm">
             <i class="fa-solid fa-arrow-left"></i> Volver
           </a>
-          <button (click)="print()"
+          <a [routerLink]="['/app/admin/sales', o.id, 'voucher']"
                   class="px-4 py-2 rounded-lg bg-ink-950 text-white text-sm font-semibold hover:bg-ink-900">
-            <i class="fa-solid fa-print"></i> Imprimir voucher
-          </button>
+            <i class="fa-solid fa-print"></i> Ver / imprimir voucher
+          </a>
         </div>
       </div>
 

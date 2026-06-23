@@ -69,6 +69,7 @@ class ProductImage(TimestampedModel):
         Product, on_delete=models.CASCADE, related_name='images'
     )
     url = models.URLField()
+    thumb_url = models.URLField(blank=True)
     alt = models.CharField(max_length=160, blank=True)
     sort_order = models.PositiveSmallIntegerField(default=0)
     is_main = models.BooleanField(default=False)

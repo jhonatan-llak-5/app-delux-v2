@@ -6,7 +6,9 @@ import { ActivatedRoute, Router, RouterLink } from '@angular/router';
 import { Product, ProductImage, ProductPayload, ProductService } from '@features/superadmin/services/product.service';
 import { BrandService, Brand } from '@features/superadmin/services/brand.service';
 import { CategoryService, Category } from '@features/superadmin/services/category.service';
+import { AdminService, AdminBranch } from '@features/superadmin/services/admin.service';
 import { NotifyService } from '@shared/services/notify.service';
+import { FileValidatorService } from '@shared/services/file-validator.service';
 
 @Component({
   selector: 'dlx-product-form',
@@ -201,6 +203,30 @@ import { NotifyService } from '@shared/services/notify.service';
           </div>
         </div>
 
+        <!-- Disponibilidad inicial por sucursal -->
+        @if (!isEdit()) {
+          <div class="card p-6">
+            <h2 class="font-bold tracking-tight mb-1">Disponibilidad inicial por sucursal</h2>
+            <p class="text-xs text-slate-500 mb-4">
+              Cantidad inicial de cada variante nueva por sucursal. Déjalo en 0 si no quieres registrarlo ahí.
+              Lo puedes ajustar luego en Inventario.
+            </p>
+            <div class="space-y-2">
+              @for (b of branches(); track b.id) {
+                <div class="flex items-center justify-between gap-3 p-3 rounded-lg bg-slate-50 dark:bg-white/5">
+                  <div>
+                    <p class="font-semibold text-sm text-ink-950 dark:text-white">{{ b.name }}</p>
+                    <p class="text-xs text-slate-500">{{ b.city }}</p>
+                  </div>
+                  <input type="number" min="0" [ngModel]="branchStock[b.id] || 0"
+                         (ngModelChange)="branchStock[b.id] = +$event" [name]="'stock_' + b.id"
+                         class="w-24 px-3 py-2 rounded-lg bg-white dark:bg-ink-950 border border-slate-200 dark:border-white/10 text-sm text-right focus:outline-none focus:border-slate-400" />
+                </div>
+              }
+            </div>
+          </div>
+        }
+
         <!-- SEO -->
         <div class="card p-6 space-y-4">
           <h2 class="font-bold tracking-tight">SEO</h2>
@@ -338,6 +364,10 @@ export class ProductFormComponent implements OnInit {
   private route = inject(ActivatedRoute);
   private router = inject(Router);
   private notify = inject(NotifyService);
+  private adminSvc = inject(AdminService);
+  private fileValidator = inject(FileValidatorService);
+  branches = signal<AdminBranch[]>([]);
+  branchStock: Record<number, number> = {};
 
   brands = signal<Brand[]>([]);
   categories = signal<Category[]>([]);
@@ -371,6 +401,7 @@ export class ProductFormComponent implements OnInit {
   ngOnInit(): void {
     this.brandSvc.list({ search: '' }).subscribe(r => this.brands.set(r.results || []));
     this.catSvc.list().subscribe(r => this.categories.set(r.results || []));
+    this.adminSvc.listBranches().subscribe(r => this.branches.set(r.results || []));
     const id = this.route.snapshot.paramMap.get('id');
     if (id && id !== 'new') {
       this.productId.set(+id);
@@ -420,7 +451,13 @@ export class ProductFormComponent implements OnInit {
     input.value = '';
   }
   private uploadFiles(files: File[]) {
-    const imgs = files.filter(f => f.type.startsWith('image/'));
+    let imgs = files.filter(f => f.type.startsWith('image/'));
+    // Valida tamaño/tipo con la config del superadmin antes de subir.
+    imgs = imgs.filter(f => {
+      const r = this.fileValidator.validate(f, 'image');
+      if (!r.ok) this.notify.warning('Imagen no válida', { description: `${f.name}: ${r.reason}` });
+      return r.ok;
+    });
     if (!imgs.length) return;
     this.uploading.set(true);
     this.error.set(null);
@@ -429,7 +466,7 @@ export class ProductFormComponent implements OnInit {
       this.svc.uploadImage(file).subscribe({
         next: r => {
           const list = [...this.images()];
-          list.push({ url: r.url, alt: this.payload.name || 'producto', sort_order: list.length, is_main: list.length === 0 });
+          list.push({ url: r.url, thumb_url: r.thumb_url, alt: this.payload.name || 'producto', sort_order: list.length, is_main: list.length === 0 });
           this.images.set(list);
           if (--pending === 0) this.uploading.set(false);
         },
@@ -492,7 +529,13 @@ export class ProductFormComponent implements OnInit {
     const mainImg = this.images().find(i => i.is_main) || this.images()[0];
     if (mainImg) this.payload.main_image_url = mainImg.url;
 
-    const body: ProductPayload = { ...this.payload, images: this.images(), variants: this.buildVariants() };
+    const initialStock = Object.entries(this.branchStock)
+      .map(([branch, quantity]) => ({ branch: +branch, quantity: +quantity || 0 }))
+      .filter(x => x.quantity > 0);
+    const body: ProductPayload = {
+      ...this.payload, images: this.images(), variants: this.buildVariants(),
+      initial_stock: initialStock,
+    };
 
     const obs = this.isEdit()
       ? this.svc.update(this.productId()!, body)

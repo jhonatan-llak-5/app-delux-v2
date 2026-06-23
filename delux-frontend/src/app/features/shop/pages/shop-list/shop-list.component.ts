@@ -4,6 +4,8 @@ import { RouterLink } from '@angular/router';
 import { PublicCatalogService } from '@shared/services/public-catalog.service';
 import { ZoneService } from '@shared/services/zone.service';
 
+const IMG_PLACEHOLDER = 'data:image/svg+xml,' + encodeURIComponent('<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 120 120">' + '<g fill="none" stroke="#9aa0ab" stroke-width="4" stroke-linejoin="round" stroke-linecap="round">' + '<rect x="32" y="44" width="56" height="40" rx="6"/>' + '<circle cx="60" cy="64" r="11"/>' + '<path d="M44 44l5-9h22l5 9"/>' + '</g></svg>');
+
 interface Product {
   id: string; name: string; brand: string;
   category: 'zapatillas' | 'ropa' | 'mochilas' | 'accesorios';
@@ -353,7 +355,7 @@ products = signal<Product[]>([]);
           oldPrice: pp.compare_at_price ? Number(pp.compare_at_price) : undefined,
           colors: [],
           sizes: [],
-          image: pp.main_image_url || 'https://images.unsplash.com/photo-1542291026-7eec264c27ff?w=600&q=85',
+          image: pp.thumb_url || pp.main_image_url || 'https://images.unsplash.com/photo-1542291026-7eec264c27ff?w=600&q=85',
           tag: this.mapTag(pp.tag),
           gender: this.mapGender(pp.gender),
           available: pp.available_in_city !== false,
@@ -413,6 +415,10 @@ products = signal<Product[]>([]);
   }
   onImgError(ev: Event) {
     const img = ev.target as HTMLImageElement;
-    img.src = 'data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 200 250"><rect width="200" height="250" fill="%23cbd5e1"/></svg>';
+    if (img.dataset['ph'] === '1') return;
+    img.dataset['ph'] = '1';
+    img.src = IMG_PLACEHOLDER;
+    img.classList.add('object-contain', 'p-8', 'opacity-70');
+    img.classList.remove('object-cover');
   }
 }

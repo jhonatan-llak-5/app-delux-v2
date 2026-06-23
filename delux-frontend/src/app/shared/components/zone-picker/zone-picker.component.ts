@@ -61,13 +61,12 @@ import { ZoneService } from '@shared/services/zone.service';
               <div class="grid grid-cols-1 sm:grid-cols-2 gap-2.5">
                 @for (c of zone.cities(); track c.city) {
                   <button (click)="zone.setCity(c.city)"
-                          class="text-left p-4 rounded-2xl border transition group
-                                 hover:border-[#0095f6] hover:shadow-md"
+                          class="text-left p-4 rounded-2xl border transition group"
                           [class.border-ink-200]="zone.city() !== c.city"
                           [class.dark:border-white/10]="zone.city() !== c.city"
-                          [class.border-_0095f6]="zone.city() === c.city"
+                          [class.hover:border-[#0095f6]]="zone.city() !== c.city"
                           [style.border-color]="zone.city() === c.city ? '#0095f6' : ''"
-                          [class.bg-ink-50]="zone.city() === c.city">
+                          [style.background]="zone.city() === c.city ? 'rgba(0,149,246,0.12)' : ''">
                     <div class="flex items-center justify-between">
                       <span class="font-bold text-ink-950 dark:text-white">{{ c.city }}</span>
                       <i class="fa-solid fa-arrow-right text-[#0095f6] text-xs

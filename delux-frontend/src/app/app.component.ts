@@ -4,6 +4,7 @@ import { NgxSonnerToaster } from 'ngx-sonner';
 import { ConfirmHostComponent } from '@shared/components/confirm/confirm-host.component';
 import { TenantService } from '@core/services/tenant.service';
 import { ThemeService } from '@core/services/theme.service';
+import { FileValidatorService } from '@shared/services/file-validator.service';
 
 @Component({
   selector: 'dlx-root',
@@ -24,9 +25,11 @@ import { ThemeService } from '@core/services/theme.service';
 })
 export class AppComponent implements OnInit {
   private tenant = inject(TenantService);
+  private fileValidator = inject(FileValidatorService);
   theme = inject(ThemeService);
 
   ngOnInit() {
     this.tenant.load().subscribe({ error: () => {} });
+    this.fileValidator.loadConfig();
   }
 }

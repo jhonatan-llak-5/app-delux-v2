@@ -19,6 +19,7 @@ export interface PublicProduct {
   is_featured: boolean;
   branch_stock?: number | null;
   available_in_city?: boolean;
+  thumb_url?: string | null;
 }
 
 export interface PublicProductColor { name: string; hex: string; image: string; }

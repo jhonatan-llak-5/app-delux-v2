@@ -191,6 +191,25 @@ class Command(BaseCommand):
                 f'  sucursal admin -> {email} / 12345678  ({b.name})'
             ))
 
+        # Un vendedor de ejemplo (rol SALESPERSON) en la primera sucursal.
+        if branches:
+            seller, _ = User.objects.get_or_create(
+                email='vendedor@delux.ec',
+                defaults={'username': 'vendedor_delux'},
+            )
+            seller.set_password('12345678')
+            seller.full_name = 'Vendedor Delux'
+            seller.role = Role.SALESPERSON
+            seller.tenant = tenant
+            seller.branch = branches[0]
+            seller.commission_rate = 5
+            seller.is_active = True
+            seller.is_email_verified = True
+            seller.save()
+            self.stdout.write(self.style.SUCCESS(
+                f'  vendedor -> vendedor@delux.ec / 12345678  ({branches[0].name})'
+            ))
+
         brands = {}
         for i, b in enumerate(BRANDS_DATA):
             brand, _ = Brand.objects.update_or_create(
@@ -370,6 +389,13 @@ class Command(BaseCommand):
         self.stdout.write(self.style.SUCCESS(
             f' OK {len(catalog)} productos con galeria, variantes y stock'
         ))
+        # Grupos de Django por rol + sincronización
+        from apps.accounts.groups import ensure_groups, sync_user_groups
+        ensure_groups()
+        for _u in User.objects.all():
+            sync_user_groups(_u)
+        self.stdout.write(self.style.SUCCESS(' OK grupos por rol sincronizados'))
+
         self.stdout.write('Seed completado:')
         self.stdout.write(f'  Productos: {Product.objects.filter(tenant=tenant).count()}')
         self.stdout.write(f'  Imagenes:  {ProductImage.objects.filter(product__tenant=tenant).count()}')

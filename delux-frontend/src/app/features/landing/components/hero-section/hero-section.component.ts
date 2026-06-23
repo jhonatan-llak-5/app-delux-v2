@@ -1,4 +1,4 @@
-import { ChangeDetectionStrategy, Component, OnDestroy, OnInit, computed, inject, signal } from '@angular/core';
+import { ChangeDetectionStrategy, Component, OnDestroy, OnInit, computed, effect, inject, signal } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { RouterLink } from '@angular/router';
 import { PublicCatalogService } from '@shared/services/public-catalog.service';
@@ -6,7 +6,7 @@ import { ZoneService } from '@shared/services/zone.service';
 
 interface HeroProduct {
   id: string; name: string; collection: string; tagline: string; price: number;
-  image: string; haloClass: string; gradient: string; productId?: number;
+  image: string; thumb?: string; haloClass: string; gradient: string; productId?: number;
 }
 type HeroPhase = 'showcase';
 
@@ -64,17 +64,26 @@ type HeroPhase = 'showcase';
           <!-- Producto principal -->
           <div class="grid grid-cols-1 lg:grid-cols-12 gap-8 items-center">
             <div class="lg:col-span-7 relative h-[420px] md:h-[560px] grid place-items-center">
-              <span class="absolute wordmark text-[26vw] md:text-[18vw] leading-none select-none animate-liquid-wave pointer-events-none tracking-[-0.04em]">Delux</span>
-
               <div class="absolute w-[400px] h-[400px] md:w-[600px] md:h-[600px] rounded-full
                           blur-3xl animate-halo-pulse transition-colors duration-1000 opacity-50 dark:opacity-100"
                    [ngClass]="currentProduct().haloClass"></div>
 
               <div class="relative w-full max-w-3xl px-8 animate-tilt-float drop-shadow-editorial">
                 <div class="animate-product-enter" [attr.data-key]="index()">
-                  <img [src]="currentProduct().image" [alt]="currentProduct().name"
-                       class="w-full h-auto object-contain max-h-[460px] md:max-h-[560px]"
-                       loading="eager" crossorigin="anonymous" (error)="onImgError($event)" />
+                  @if (currentProduct().image && !imgError()) {
+                    <img [src]="currentProduct().image" [alt]="currentProduct().name"
+                         class="w-full h-auto object-contain max-h-[460px] md:max-h-[560px]"
+                         loading="eager" crossorigin="anonymous" (error)="imgError.set(true)" />
+                  } @else {
+                    <div class="grid place-items-center min-h-[300px] md:min-h-[420px] text-center">
+                      <div>
+                        <i class="fa-solid fa-shoe-prints text-white/15 text-[70px] md:text-[110px] mb-5"></i>
+                        <p class="font-display font-extrabold text-3xl md:text-5xl text-white/90 tracking-[-0.03em] leading-tight px-4">
+                          {{ currentProduct().name }}
+                        </p>
+                      </div>
+                    </div>
+                  }
                 </div>
               </div>
 
@@ -167,7 +176,7 @@ type HeroPhase = 'showcase';
                         <div class="absolute inset-0 bg-gradient-to-b from-transparent via-transparent to-black/40"></div>
 
                         <!-- Imagen -->
-                        <img [src]="p.image" [alt]="p.name"
+                        <img [src]="p.thumb || p.image" [alt]="p.name"
                              class="absolute inset-0 w-full h-full object-contain p-4 transition-transform duration-500
                                     group-hover:scale-110"
                              loading="lazy" crossorigin="anonymous" (error)="onImgError($event)" />
@@ -248,6 +257,13 @@ export class HeroSectionComponent implements OnInit, OnDestroy {
   private catalog = inject(PublicCatalogService);
   private zone = inject(ZoneService);
 
+  imgError = signal(false);
+
+  constructor() {
+    // Reinicia el estado de error de imagen al cambiar de producto.
+    effect(() => { this.index(); this.imgError.set(false); });
+  }
+
   private readonly fallbackHero: HeroProduct[] = [
     { id: '01', name: 'Air Force Stealth', collection: 'Performance',
       tagline: 'Energía vibrante y confort premium. Diseñada para máximo rendimiento en cada pisada.',
@@ -327,6 +343,7 @@ export class HeroSectionComponent implements OnInit, OnDestroy {
           tagline: `${p.brand_name} · disponible en tu ciudad. Calidad original Delux.`,
           price: Number(p.base_price),
           image: p.main_image_url || fb[i % fb.length].image,
+          thumb: p.thumb_url || p.main_image_url || fb[i % fb.length].image,
           haloClass: fb[i % fb.length].haloClass,
           gradient: fb[i % fb.length].gradient,
         }));
@@ -351,6 +368,14 @@ export class HeroSectionComponent implements OnInit, OnDestroy {
 
   onImgError(ev: Event) {
     const img = ev.target as HTMLImageElement;
-    img.src = 'data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 200 120"><rect width="200" height="120" fill="%23cbd5e1"/><text x="100" y="65" font-family="sans-serif" font-size="14" fill="%2364748b" text-anchor="middle">' + (img.alt || 'sneaker') + '</text></svg>';
+    if (img.dataset['fallback'] === '1') return;
+    img.dataset['fallback'] = '1';
+    const name = (img.alt || 'Producto').replace(/[<>&]/g, '');
+    const svg = '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 300 300">'
+      + '<rect width="300" height="300" fill="none"/>'
+      + '<text x="150" y="150" font-family="Inter,Arial,sans-serif" font-size="18" font-weight="700"'
+      + ' fill="#ffffff" fill-opacity="0.85" text-anchor="middle" dominant-baseline="middle">' + name + '</text>'
+      + '</svg>';
+    img.src = 'data:image/svg+xml,' + encodeURIComponent(svg);
   }
 }
