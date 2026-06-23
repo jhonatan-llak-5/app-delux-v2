@@ -8,6 +8,7 @@ import { WebSocketService } from '@core/services/websocket.service';
 import { DlxNotificationsBellComponent } from '@shared/ui';
 import { AppTourComponent } from '@shared/components/app-tour/app-tour.component';
 import { TourService } from '@shared/components/app-tour/tour.service';
+import { BrandingService } from '@core/services/branding.service';
 
 interface NavItem { label: string; icon: string; route: string; badge?: string; }
 interface NavGroup { title: string; items: NavItem[]; roles?: string[]; }
@@ -32,14 +33,19 @@ const COLLAPSED_KEY = 'dlx_sidebar_collapsed';
              [class.w-20]="collapsed()">
 
         <div class="h-16 flex items-center gap-2.5 px-4 border-b border-slate-200 dark:border-[#1e293b] shrink-0">
-          <div class="w-9 h-9 shrink-0 rounded-xl bg-gradient-to-br from-[#1e40af] to-[#1e3a8a]
-                      grid place-items-center font-display font-bold text-white
-                      shadow-md shadow-[#1e40af]/20">D</div>
-          @if (!collapsed()) {
-            <div class="flex-1 min-w-0">
-              <p class="font-display font-bold text-lg leading-none text-ink-950 dark:text-white truncate">Delux</p>
-              <p class="text-[10px] text-slate-500 dark:text-white/40 uppercase tracking-widest mt-0.5 truncate">{{ roleLabel() }}</p>
-            </div>
+          @if (branding.logoUrl()) {
+            <img [src]="branding.logoUrl()" [alt]="branding.siteName()"
+                 class="h-11 w-auto max-w-[200px] object-contain rounded-xl shrink-0" />
+          } @else {
+            <div class="w-9 h-9 shrink-0 rounded-xl bg-gradient-to-br from-[#1e40af] to-[#1e3a8a]
+                        grid place-items-center font-display font-bold text-white
+                        shadow-md shadow-[#1e40af]/20">{{ branding.siteName().charAt(0) }}</div>
+            @if (!collapsed()) {
+              <div class="flex-1 min-w-0">
+                <p class="font-display font-bold text-lg leading-none text-ink-950 dark:text-white truncate">{{ branding.siteName() }}</p>
+                <p class="text-[10px] text-slate-500 dark:text-white/40 uppercase tracking-widest mt-0.5 truncate">{{ roleLabel() }}</p>
+              </div>
+            }
           }
         </div>
 
@@ -246,6 +252,7 @@ export class DashboardLayoutComponent implements AfterViewInit {
   private router = inject(Router);
   private host = inject(ElementRef);
   private tour = inject(TourService);
+  branding = inject(BrandingService);
   theme = inject(ThemeService);
   ws = inject(WebSocketService);
 

@@ -2,6 +2,7 @@ import { ChangeDetectionStrategy, Component, ElementRef, HostListener, computed,
 import { CommonModule } from '@angular/common';
 import { Router, RouterLink, RouterLinkActive } from '@angular/router';
 import { ThemeService } from '@core/services/theme.service';
+import { BrandingService } from '@core/services/branding.service';
 import { AuthService } from '@core/services/auth.service';
 import { CartService } from '@features/checkout/services/cart.service';
 import { SearchOverlayComponent } from '@shared/components/search-overlay/search-overlay.component';
@@ -24,9 +25,16 @@ import { ZoneService } from '@shared/services/zone.service';
       <div class="max-w-[1600px] mx-auto px-6 md:px-10 h-20 flex items-center justify-between">
 
         <a routerLink="/" class="flex items-center gap-2.5 group">
-          <div class="w-9 h-9 rounded-xl bg-ink-950 dark:bg-white grid place-items-center
-                      font-display font-extrabold text-white dark:text-ink-950 text-base">D</div>
-          <span class="hidden sm:inline font-display font-bold text-lg tracking-tight text-ink-950 dark:text-white">Delux</span>
+          @if (branding.logoUrl()) {
+            <img [src]="branding.logoUrl()" [alt]="branding.siteName()"
+                 class="h-11 w-auto max-w-[190px] object-contain rounded-xl" />
+          } @else {
+            <div class="w-9 h-9 rounded-xl bg-ink-950 dark:bg-white grid place-items-center
+                        font-display font-extrabold text-white dark:text-ink-950 text-base">
+              {{ branding.siteName().charAt(0) }}
+            </div>
+            <span class="hidden sm:inline font-display font-bold text-lg tracking-tight text-ink-950 dark:text-white">{{ branding.siteName() }}</span>
+          }
         </a>
 
         <div class="hidden md:block">
@@ -142,7 +150,7 @@ import { ZoneService } from '@shared/services/zone.service';
             @if (cart.itemCount() > 0) {
               <span class="absolute -top-1 -right-1 min-w-[18px] h-[18px] px-1 rounded-full
                            bg-[#0095f6] text-white text-[11px] font-bold leading-none
-                           grid place-items-center ring-2 ring-white dark:ring-[#0a0a0a]
+                           grid place-items-center ring-2 ring-white dark:ring-slate-950
                            animate-pulse">
                 {{ cart.itemCount() > 99 ? '99+' : cart.itemCount() }}
               </span>
@@ -196,6 +204,7 @@ export class PublicNavbarComponent {
   theme = inject(ThemeService);
   cart = inject(CartService);
   zone = inject(ZoneService);
+  branding = inject(BrandingService);
   private auth = inject(AuthService);
   private router = inject(Router);
   private host = inject(ElementRef);

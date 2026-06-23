@@ -12,7 +12,7 @@ import { NotifyService } from '@shared/services/notify.service';
   changeDetection: ChangeDetectionStrategy.OnPush,
   template: `
     <!-- HEADER -->
-    <section class="bg-white dark:bg-[#0a0a0a] pt-32 pb-16">
+    <section class="bg-white dark:bg-slate-950 pt-32 pb-16">
       <div class="max-w-[1100px] mx-auto px-6 md:px-10 text-center">
         <p class="text-[12px] tracking-[0.25em] uppercase text-[#0095f6] font-semibold mb-4">
           Contacto
@@ -30,13 +30,13 @@ import { NotifyService } from '@shared/services/notify.service';
     </section>
 
     <!-- CANALES DE CONTACTO -->
-    <section class="bg-white dark:bg-[#0a0a0a] pb-20">
+    <section class="bg-white dark:bg-slate-950 pb-20">
       <div class="max-w-[1100px] mx-auto px-6 md:px-10">
         <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
           @for (ch of channels; track ch.title) {
             <a [href]="ch.link" target="_blank" rel="noopener"
                class="group block p-7 rounded-3xl
-                      bg-white dark:bg-[#111111]
+                      bg-white dark:bg-slate-800
                       border border-ink-200 dark:border-white/[0.08]
                       hover:border-[#0095f6] dark:hover:border-[#0095f6]
                       hover:shadow-lg hover:-translate-y-1
@@ -56,7 +56,7 @@ import { NotifyService } from '@shared/services/notify.service';
     </section>
 
     <!-- FORM + INFO -->
-    <section class="bg-ink-50 dark:bg-[#050505] py-24 md:py-32">
+    <section class="bg-ink-50 dark:bg-slate-900 py-24 md:py-32">
       <div class="max-w-[1100px] mx-auto px-6 md:px-10
                   grid grid-cols-1 lg:grid-cols-12 gap-12">
 
@@ -117,7 +117,7 @@ import { NotifyService } from '@shared/services/notify.service';
 
         <!-- Form derecha -->
         <div class="lg:col-span-7">
-          <form (ngSubmit)="submit()" class="bg-white dark:bg-[#111111]
+          <form (ngSubmit)="submit()" class="bg-white dark:bg-slate-800
                                               border border-ink-200 dark:border-white/[0.08]
                                               rounded-3xl p-8 md:p-10 space-y-4">
 
@@ -162,7 +162,7 @@ import { NotifyService } from '@shared/services/notify.service';
     </section>
 
     <!-- FAQ -->
-    <section class="bg-white dark:bg-[#0a0a0a] py-24 md:py-32">
+    <section class="bg-white dark:bg-slate-950 py-24 md:py-32">
       <div class="max-w-[900px] mx-auto px-6 md:px-10">
         <div class="text-center mb-14">
           <p class="text-[12px] tracking-[0.25em] uppercase text-[#0095f6] font-semibold mb-3">
@@ -176,7 +176,7 @@ import { NotifyService } from '@shared/services/notify.service';
 
         <div class="space-y-3">
           @for (item of faqs; track item.q) {
-            <details class="group rounded-2xl bg-ink-50 dark:bg-[#111111]
+            <details class="group rounded-2xl bg-ink-50 dark:bg-slate-800
                             border border-ink-200 dark:border-white/[0.08]
                             hover:border-[#0095f6] dark:hover:border-[#0095f6] transition">
               <summary class="flex items-center justify-between cursor-pointer list-none p-6">

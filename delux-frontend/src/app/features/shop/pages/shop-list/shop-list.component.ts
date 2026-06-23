@@ -22,7 +22,7 @@ interface Filter { categories: string[]; brands: string[]; sizes: string[]; pric
   changeDetection: ChangeDetectionStrategy.OnPush,
   template: `
     <!-- HEADER del shop — limpio centrado -->
-    <section class="bg-white dark:bg-[#0a0a0a] pt-32 pb-12 border-b border-ink-100 dark:border-white/[0.06]">
+    <section class="bg-white dark:bg-slate-950 pt-32 pb-12 border-b border-ink-100 dark:border-white/[0.06]">
       <div class="max-w-[1400px] mx-auto px-6 md:px-10">
         <p class="text-[12px] tracking-[0.25em] uppercase text-[#0095f6] font-semibold mb-3">
           Catálogo
@@ -41,7 +41,7 @@ interface Filter { categories: string[]; brands: string[]; sizes: string[]; pric
     </section>
 
     <!-- BARRA DE FILTROS HORIZONTAL (sticky) -->
-    <section class="sticky top-0 z-30 bg-white dark:bg-[#0a0a0a]
+    <section class="sticky top-0 z-30 bg-white dark:bg-slate-950
                     border-b border-ink-100 dark:border-white/[0.06]
                     backdrop-blur-md">
       <div class="max-w-[1400px] mx-auto px-6 md:px-10 py-4
@@ -101,7 +101,7 @@ interface Filter { categories: string[]; brands: string[]; sizes: string[]; pric
     </section>
 
     <!-- CONTENIDO -->
-    <section class="bg-white dark:bg-[#0a0a0a] py-10">
+    <section class="bg-white dark:bg-slate-950 py-10">
       <div class="max-w-[1400px] mx-auto px-6 md:px-10
                   grid grid-cols-1 lg:grid-cols-[260px_1fr] gap-10">
 
@@ -247,7 +247,7 @@ interface Filter { categories: string[]; brands: string[]; sizes: string[]; pric
                 }
                 <a [routerLink]="['/shop', p.id]"
                    class="group block rounded-2xl overflow-hidden
-                          bg-white dark:bg-[#111111]
+                          bg-white dark:bg-slate-800
                           border border-ink-100 dark:border-white/[0.06]
                           hover:border-[#0095f6] dark:hover:border-[#0095f6]
                           hover:shadow-lg hover:-translate-y-1

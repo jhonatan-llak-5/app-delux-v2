@@ -85,6 +85,13 @@ class PublicUploadConfigView(APIView):
 
     def get(self, request):
         c = PlatformSettings.load()
+
+        def _url(f):
+            try:
+                return f.url if f else None
+            except Exception:
+                return None
+
         return Response({
             'max_image_upload_mb': c.max_image_upload_mb,
             'max_file_upload_mb': c.max_file_upload_mb,
@@ -92,4 +99,8 @@ class PublicUploadConfigView(APIView):
             'allowed_image_extensions': c.allowed_image_extensions,
             'allowed_file_extensions': c.allowed_file_extensions,
             'allowed_video_extensions': c.allowed_video_extensions,
+            'site_name': c.site_name or c.platform_name or 'Delux',
+            'platform_tagline': c.platform_tagline,
+            'site_logo_url': _url(getattr(c, 'site_logo', None)),
+            'site_favicon_url': _url(getattr(c, 'site_favicon', None)),
         })

@@ -13,7 +13,7 @@ import { RouterLink } from '@angular/router';
   imports: [CommonModule, RouterLink],
   changeDetection: ChangeDetectionStrategy.OnPush,
   template: `
-    <div class="min-h-screen flex bg-white dark:bg-[#0a0a0a] transition-colors">
+    <div class="min-h-screen flex bg-white dark:bg-slate-950 transition-colors">
 
       <!-- ───── PANEL IZQUIERDO (hero visual) ───── -->
       <aside class="hidden lg:block relative w-[55%] overflow-hidden bg-[#0a0d14]">
@@ -60,7 +60,7 @@ import { RouterLink } from '@angular/router';
       </aside>
 
       <!-- ───── PANEL DERECHO (form clean) ───── -->
-      <main class="flex-1 flex flex-col bg-white dark:bg-[#0a0a0a]">
+      <main class="flex-1 flex flex-col bg-white dark:bg-slate-950">
 
         <!-- Top bar mobile -->
         <header class="lg:hidden px-6 py-5 flex items-center justify-between

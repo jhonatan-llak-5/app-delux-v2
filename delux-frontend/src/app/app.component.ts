@@ -5,6 +5,7 @@ import { ConfirmHostComponent } from '@shared/components/confirm/confirm-host.co
 import { TenantService } from '@core/services/tenant.service';
 import { ThemeService } from '@core/services/theme.service';
 import { FileValidatorService } from '@shared/services/file-validator.service';
+import { BrandingService } from '@core/services/branding.service';
 
 @Component({
   selector: 'dlx-root',
@@ -26,10 +27,12 @@ import { FileValidatorService } from '@shared/services/file-validator.service';
 export class AppComponent implements OnInit {
   private tenant = inject(TenantService);
   private fileValidator = inject(FileValidatorService);
+  private branding = inject(BrandingService);
   theme = inject(ThemeService);
 
   ngOnInit() {
     this.tenant.load().subscribe({ error: () => {} });
     this.fileValidator.loadConfig();
+    this.branding.load();
   }
 }

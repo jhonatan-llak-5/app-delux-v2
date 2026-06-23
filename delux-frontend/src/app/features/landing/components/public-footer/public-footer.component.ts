@@ -11,7 +11,7 @@ import { NotifyService } from '@shared/services/notify.service';
   imports: [CommonModule, FormsModule, RouterLink],
   changeDetection: ChangeDetectionStrategy.OnPush,
   template: `
-    <footer class="bg-white dark:bg-[#0a0a0a] border-t border-ink-100 dark:border-white/[0.06]">
+    <footer class="bg-white dark:bg-slate-950 border-t border-ink-100 dark:border-white/[0.06]">
 
       <!-- ─────── Newsletter strip (premium) ─────── -->
       <div class="border-b border-ink-100 dark:border-white/[0.06]">

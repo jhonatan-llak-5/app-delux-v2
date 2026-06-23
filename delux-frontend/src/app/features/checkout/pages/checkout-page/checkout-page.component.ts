@@ -254,10 +254,14 @@ export class CheckoutPageComponent implements OnInit {
   discount = signal(0);
 
   total = computed(() => Math.max(0, this.cart.subtotal() - this.discount()));
-  canPay = computed(() =>
-    this.cart.lines().length > 0 && this.branchId !== null &&
-    this.customer.full_name && this.customer.email && this.customer.phone
-  );
+
+  /** Método (no computed): se reevalúa en cada ciclo de detección,
+   *  así reacciona a los campos de cliente/sucursal que no son signals. */
+  canPay(): boolean {
+    return this.cart.lines().length > 0 && this.branchId !== null &&
+      !!this.customer.full_name.trim() && !!this.customer.email.trim() &&
+      !!this.customer.phone.trim();
+  }
 
   ngOnInit() {
     // Sucursales segun la ciudad elegida por el cliente (zona).

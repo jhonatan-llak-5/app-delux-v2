@@ -40,7 +40,7 @@ const FALLBACK_BRANCHES: BranchCard[] = [
     <dlx-hero-section />
 
     <!-- 2. CATEGORÍAS -->
-    <section class="bg-white dark:bg-[#0a0a0a] py-24 md:py-32">
+    <section class="bg-white dark:bg-slate-950 py-24 md:py-32">
       <div class="max-w-[1200px] mx-auto px-6 md:px-10">
 
         <!-- Header centrado -->
@@ -63,7 +63,7 @@ const FALLBACK_BRANCHES: BranchCard[] = [
           @for (cat of categories; track cat.slug) {
             <a [routerLink]="['/shop']" [queryParams]="{ category: cat.slug }"
                class="group block rounded-3xl overflow-hidden
-                      bg-white dark:bg-[#111111]
+                      bg-white dark:bg-slate-800
                       border border-ink-200 dark:border-white/[0.08]
                       hover:border-[#0095f6] dark:hover:border-[#0095f6]
                       hover:shadow-xl hover:-translate-y-1
@@ -93,7 +93,7 @@ const FALLBACK_BRANCHES: BranchCard[] = [
     </section>
 
     <!-- 3. DROPS DESTACADOS -->
-    <section class="bg-ink-50 dark:bg-[#050505] py-24 md:py-32">
+    <section class="bg-ink-50 dark:bg-slate-900 py-24 md:py-32">
       <div class="max-w-[1200px] mx-auto px-6 md:px-10">
 
         <div class="flex items-end justify-between mb-12 flex-wrap gap-6">
@@ -130,7 +130,7 @@ const FALLBACK_BRANCHES: BranchCard[] = [
           @for (d of drops(); track d.id) {
             <a [routerLink]="['/shop', d.id]"
                class="group block rounded-2xl overflow-hidden
-                      bg-white dark:bg-[#111111]
+                      bg-white dark:bg-slate-800
                       border border-ink-200 dark:border-white/[0.08]
                       hover:shadow-xl hover:-translate-y-1
                       transition-all duration-300">
@@ -162,7 +162,7 @@ const FALLBACK_BRANCHES: BranchCard[] = [
     </section>
 
     <!-- 4. BENEFICIOS / TRUST STRIP -->
-    <section class="bg-white dark:bg-[#0a0a0a] py-20 md:py-24">
+    <section class="bg-white dark:bg-slate-950 py-20 md:py-24">
       <div class="max-w-[1200px] mx-auto px-6 md:px-10">
         <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
           @for (b of benefits; track b.title) {
@@ -184,7 +184,7 @@ const FALLBACK_BRANCHES: BranchCard[] = [
     </section>
 
     <!-- 5. SUCURSALES -->
-    <section class="bg-ink-50 dark:bg-[#050505] py-24 md:py-32">
+    <section class="bg-ink-50 dark:bg-slate-900 py-24 md:py-32">
       <div class="max-w-[1200px] mx-auto px-6 md:px-10">
 
         <div class="text-center max-w-2xl mx-auto mb-14">
@@ -202,7 +202,7 @@ const FALLBACK_BRANCHES: BranchCard[] = [
 
         <div class="grid grid-cols-1 md:grid-cols-3 gap-5">
           @for (br of branches(); track br.code) {
-            <div class="bg-white dark:bg-[#111111]
+            <div class="bg-white dark:bg-slate-800
                         border border-ink-200 dark:border-white/[0.08]
                         rounded-2xl p-7
                         hover:shadow-lg hover:-translate-y-1
@@ -250,7 +250,7 @@ const FALLBACK_BRANCHES: BranchCard[] = [
     </section>
 
     <!-- 6. CTA FINAL -->
-    <section class="bg-white dark:bg-[#0a0a0a] py-28 md:py-40">
+    <section class="bg-white dark:bg-slate-950 py-28 md:py-40">
       <div class="max-w-[700px] mx-auto px-6 md:px-10 text-center">
         <h2 class="font-bold text-[40px] md:text-[56px] tracking-[-0.03em] leading-[1.05]
                    text-ink-950 dark:text-white">

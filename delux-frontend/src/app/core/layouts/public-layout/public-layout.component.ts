@@ -14,7 +14,7 @@ import { ZoneService } from '@shared/services/zone.service';
   template: `
     <dlx-splash-intro />
     <div class="min-h-screen flex flex-col
-                bg-white dark:bg-ink-950
+                bg-white dark:bg-slate-950
                 text-ink-900 dark:text-white
                 transition-colors duration-500">
       <dlx-public-navbar />

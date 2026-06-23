@@ -23,13 +23,19 @@ const EMPTY_PRODUCT: ProductVM = {
   colors: [], sizes: [], description: '',
 };
 
+const IMG_PLACEHOLDER = 'data:image/svg+xml,' + encodeURIComponent(
+  '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 120 120">'
+  + '<g fill="none" stroke="#9aa0ab" stroke-width="4" stroke-linejoin="round" stroke-linecap="round">'
+  + '<rect x="32" y="44" width="56" height="40" rx="6"/><circle cx="60" cy="64" r="11"/>'
+  + '<path d="M44 44l5-9h22l5 9"/></g></svg>');
+
 @Component({
   selector: 'dlx-product-detail',
   standalone: true,
   imports: [CommonModule, RouterLink, ProductReviewsComponent],
   changeDetection: ChangeDetectionStrategy.OnPush,
   template: `
-    <div class="bg-white dark:bg-[#0a0a0a]">
+    <div class="bg-white dark:bg-slate-950">
       <section class="max-w-[1300px] mx-auto px-6 md:px-10 pt-28 pb-20">
 
         <!-- Breadcrumb -->
@@ -62,7 +68,7 @@ const EMPTY_PRODUCT: ProductVM = {
                             : 'border-transparent opacity-60 hover:opacity-100'">
                     <img [src]="img" [alt]="product().name + ' ' + (i+1)"
                          class="w-full h-full object-cover bg-ink-100 dark:bg-white/[0.04]"
-                         loading="lazy" crossorigin="anonymous" />
+                         loading="lazy" crossorigin="anonymous" (error)="onImgError($event)" />
                   </button>
                 }
               </div>
@@ -77,7 +83,7 @@ const EMPTY_PRODUCT: ProductVM = {
                      class="w-full h-full object-cover transition-transform duration-300"
                      [class.scale-150]="zoomed()"
                      [style.transform-origin]="zoomOrigin()"
-                     loading="eager" crossorigin="anonymous" />
+                     loading="eager" crossorigin="anonymous" (error)="onImgError($event)" />
 
                 @if (product().tag) {
                   <span class="absolute top-5 left-5 px-3 py-1.5 rounded-full
@@ -129,10 +135,12 @@ const EMPTY_PRODUCT: ProductVM = {
 
             <!-- Rating -->
             <div class="flex items-center gap-3 mt-5">
-              <div class="flex gap-0.5 text-amber-400">
+              <div class="flex gap-0.5">
                 @for (s of [1,2,3,4,5]; track s) {
                   <i class="fa-solid fa-star text-[13px]"
-                     [class.opacity-25]="s > Math.round(product().rating)"></i>
+                     [class.text-amber-400]="s <= Math.round(product().rating)"
+                     [class.text-ink-300]="s > Math.round(product().rating)"
+                     [class.dark:text-white/15]="s > Math.round(product().rating)"></i>
                 }
               </div>
               <span class="text-[13px] text-ink-600 dark:text-white/55">
@@ -179,7 +187,7 @@ const EMPTY_PRODUCT: ProductVM = {
                             [class.ring-2]="i === activeColorIdx()"
                             [class.ring-offset-2]="i === activeColorIdx()"
                             [class.ring-offset-white]="i === activeColorIdx()"
-                            [class.dark:ring-offset-[#0a0a0a]]="i === activeColorIdx()"
+                            [class.dark:ring-offset-slate-950]="i === activeColorIdx()"
                             [style.background-color]="c.hex"
                             [style.--tw-ring-color]="i === activeColorIdx() ? '#0095f6' : ''">
                       @if (i === activeColorIdx()) {
@@ -388,6 +396,15 @@ export class ProductDetailComponent implements OnInit {
     { id: 'env', title: 'Envío y devoluciones',
       body: 'Envío gratis a todo el país en pedidos sobre $50. Recibe en 24-72 horas en Quito y Guayaquil. Cambios sin costo durante los primeros 14 días, sin preguntas.' },
   ]);
+
+  onImgError(ev: Event) {
+    const img = ev.target as HTMLImageElement;
+    if (img.dataset['ph'] === '1') return;
+    img.dataset['ph'] = '1';
+    img.src = IMG_PLACEHOLDER;
+    img.classList.add('object-contain', 'p-6', 'opacity-70');
+    img.classList.remove('object-cover');
+  }
 
   isDarkColor(hex: string): boolean {
     const h = (hex || '').replace('#', '');

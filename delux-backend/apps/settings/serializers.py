@@ -42,15 +42,12 @@ class PlatformSettingsSerializer(serializers.ModelSerializer):
         token = getattr(instance, 'payphone_token', '')
         data['payphone_token_masked'] = ('••••••••' + token[-4:]) if token else ''
         # URLs absolutas de archivos
-        request = self.context.get('request')
         for fld in ('site_logo', 'site_favicon'):
             f = getattr(instance, fld, None)
             try:
-                url = f.url if f else None
+                url = f.url if f else None  # relativa: /media/... (proxy la sirve)
             except Exception:
                 url = None
-            if url and request:
-                url = request.build_absolute_uri(url)
             data[fld + '_url'] = url
         return data
 
