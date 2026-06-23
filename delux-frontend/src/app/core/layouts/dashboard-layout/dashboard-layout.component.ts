@@ -35,7 +35,9 @@ const COLLAPSED_KEY = 'dlx_sidebar_collapsed';
         <div class="h-16 flex items-center gap-2.5 px-4 border-b border-slate-200 dark:border-[#1e293b] shrink-0">
           @if (branding.logoUrl()) {
             <img [src]="branding.logoUrl()" [alt]="branding.siteName()"
-                 class="h-11 w-auto max-w-[200px] object-contain rounded-xl shrink-0" />
+                 class="h-11 w-auto max-w-[230px] object-contain rounded-xl shrink-0 block dark:hidden" />
+            <img [src]="branding.logoUrlDark()" [alt]="branding.siteName()"
+                 class="h-11 w-auto max-w-[230px] object-contain rounded-xl shrink-0 hidden dark:block" />
           } @else {
             <div class="w-9 h-9 shrink-0 rounded-xl bg-gradient-to-br from-[#1e40af] to-[#1e3a8a]
                         grid place-items-center font-display font-bold text-white

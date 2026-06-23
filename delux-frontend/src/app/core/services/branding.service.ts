@@ -22,10 +22,13 @@ export class BrandingService {
 
   /** Logo horizontal por defecto (empaquetado). Se usa si no se subió uno en Ajustes. */
   private readonly defaultLogo = 'assets/images/brand-logo.png';
+  private readonly defaultLogoDark = 'assets/images/brand-logo-dark.png';
 
   readonly siteName = computed(() => this._cfg()?.site_name || 'Delux');
   readonly tagline = computed(() => this._cfg()?.platform_tagline || '');
   readonly logoUrl = computed(() => this._cfg()?.site_logo_url || this.defaultLogo);
+  /** Variante para fondos oscuros (texto claro). Si hay logo subido, se usa el mismo. */
+  readonly logoUrlDark = computed(() => this._cfg()?.site_logo_url || this.defaultLogoDark);
   readonly faviconUrl = computed(() => this._cfg()?.site_favicon_url || null);
 
   /** Llamar una vez al iniciar la app. */

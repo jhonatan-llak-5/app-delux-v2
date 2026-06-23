@@ -27,7 +27,9 @@ import { ZoneService } from '@shared/services/zone.service';
         <a routerLink="/" class="flex items-center gap-2.5 group">
           @if (branding.logoUrl()) {
             <img [src]="branding.logoUrl()" [alt]="branding.siteName()"
-                 class="h-11 w-auto max-w-[190px] object-contain rounded-xl" />
+                 class="h-11 w-auto max-w-[230px] object-contain rounded-xl block dark:hidden" />
+            <img [src]="branding.logoUrlDark()" [alt]="branding.siteName()"
+                 class="h-11 w-auto max-w-[230px] object-contain rounded-xl hidden dark:block" />
           } @else {
             <div class="w-9 h-9 rounded-xl bg-ink-950 dark:bg-white grid place-items-center
                         font-display font-extrabold text-white dark:text-ink-950 text-base">
