@@ -12,7 +12,7 @@ import { RevealOnScrollDirective } from '@shared/directives/reveal-on-scroll.dir
   imports: [CommonModule, FormsModule, RevealOnScrollDirective],
   changeDetection: ChangeDetectionStrategy.OnPush,
   template: `
-    <section class="relative max-w-[1600px] mx-auto px-6 md:px-10 py-32 bg-white dark:bg-ink-950">
+    <section class="relative max-w-[1600px] mx-auto px-6 md:px-10 py-20 md:py-32 bg-white dark:bg-ink-950">
       <div class="relative overflow-hidden rounded-3xl border
                   border-ink-200 dark:border-white/10
                   bg-gradient-to-br from-ink-50 to-white

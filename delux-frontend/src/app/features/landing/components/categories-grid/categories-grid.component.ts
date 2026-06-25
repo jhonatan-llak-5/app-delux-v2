@@ -11,7 +11,7 @@ interface Category { slug: string; name: string; caption: string; number: string
   imports: [CommonModule, RouterLink, RevealOnScrollDirective],
   changeDetection: ChangeDetectionStrategy.OnPush,
   template: `
-    <section class="relative max-w-[1600px] mx-auto px-6 md:px-10 py-32
+    <section class="relative max-w-[1600px] mx-auto px-6 md:px-10 py-20 md:py-32
                     bg-white dark:bg-ink-950 transition-colors">
       <div class="grid grid-cols-1 lg:grid-cols-12 gap-8 mb-16 reveal" dlxReveal>
         <div class="lg:col-span-7">

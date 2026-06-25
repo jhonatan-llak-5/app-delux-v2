@@ -542,3 +542,15 @@ html.dark .scrollbar-thin::-webkit-scrollbar-thumb { background: rgba(255,255,25
 .animate-slide-down { animation: slideDown 0.2s ease-out; }
 @keyframes fadeIn { from { opacity: 0; } to { opacity: 1; } }
 .animate-fade-in { animation: fadeIn 0.3s ease-out; }
+
+/* Drawers móviles (off-canvas) */
+@keyframes slideInLeft {
+  from { opacity: 0; transform: translateX(-100%); }
+  to   { opacity: 1; transform: translateX(0); }
+}
+.animate-slide-in-left { animation: slideInLeft 0.25s ease-out; }
+@keyframes slideInRight {
+  from { opacity: 0; transform: translateX(100%); }
+  to   { opacity: 1; transform: translateX(0); }
+}
+.animate-slide-in-right { animation: slideInRight 0.25s ease-out; }

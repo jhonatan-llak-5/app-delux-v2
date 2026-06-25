@@ -90,6 +90,60 @@ const COLLAPSED_KEY = 'dlx_sidebar_collapsed';
         </nav>
       </aside>
 
+      <!-- ═══════════ SIDEBAR MÓVIL (off-canvas) ═══════════ -->
+      @if (mobileOpen()) {
+        <div class="fixed inset-0 z-[60] lg:hidden">
+          <div class="absolute inset-0 bg-ink-950/60 backdrop-blur-sm animate-fade-in"
+               (click)="closeMobile()"></div>
+          <aside class="absolute left-0 top-0 h-full w-72 max-w-[82vw] flex flex-col
+                        bg-white dark:bg-[#0f172a] border-r border-slate-200 dark:border-[#1e293b]
+                        shadow-2xl animate-slide-in-left">
+            <div class="h-16 flex items-center justify-between gap-2 px-4 border-b border-slate-200 dark:border-[#1e293b] shrink-0">
+              <div class="flex items-center gap-2 min-w-0">
+                @if (branding.logoUrl()) {
+                  <img [src]="branding.logoUrl()" [alt]="branding.siteName()"
+                       class="h-8 w-auto max-w-[150px] object-contain rounded-lg block dark:hidden" />
+                  <img [src]="branding.logoUrlDark()" [alt]="branding.siteName()"
+                       class="h-8 w-auto max-w-[150px] object-contain rounded-lg hidden dark:block" />
+                } @else {
+                  <span class="font-display font-bold text-lg text-ink-950 dark:text-white truncate">{{ branding.siteName() }}</span>
+                }
+              </div>
+              <button (click)="closeMobile()" aria-label="Cerrar menú"
+                      class="w-9 h-9 grid place-items-center rounded-lg text-slate-500 dark:text-white/60
+                             hover:bg-slate-100 dark:hover:bg-white/10">
+                <i class="fa-solid fa-xmark"></i>
+              </button>
+            </div>
+            <nav class="flex-1 overflow-y-auto px-3 py-4 space-y-6 scrollbar-thin">
+              @for (group of visibleGroups(); track group.title) {
+                <div>
+                  <p class="px-3 text-[10px] uppercase tracking-widest text-slate-400 dark:text-white/40 font-semibold mb-2">
+                    {{ group.title }}
+                  </p>
+                  <ul class="space-y-0.5">
+                    @for (item of group.items; track item.label) {
+                      <li>
+                        <a [routerLink]="item.route" (click)="closeMobile()"
+                           routerLinkActive="!bg-[#1e40af]/8 !text-[#1e40af] dark:!bg-[#2563eb]/15 dark:!text-[#60a5fa] font-semibold !border-l-[3px] !border-[#1e40af] dark:!border-[#3b82f6]"
+                           [routerLinkActiveOptions]="{ exact: false }"
+                           class="flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm border-l-[3px] border-transparent
+                                  text-slate-600 dark:text-white/70
+                                  hover:bg-slate-50 dark:hover:bg-white/5 hover:text-ink-950 dark:hover:text-white transition-colors">
+                          <i class="fa-solid {{ item.icon }} w-4 text-center shrink-0"></i>
+                          <span class="flex-1 truncate">{{ item.label }}</span>
+                          @if (item.badge) { <span class="eg-badge eg-badge-brand">{{ item.badge }}</span> }
+                        </a>
+                      </li>
+                    }
+                  </ul>
+                </div>
+              }
+            </nav>
+          </aside>
+        </div>
+      }
+
       <!-- ═══════════ MAIN ═══════════ -->
       <div class="flex-1 flex flex-col min-w-0">
 
@@ -112,7 +166,7 @@ const COLLAPSED_KEY = 'dlx_sidebar_collapsed';
                        bg-white/95 dark:bg-[#0f172a]/95 backdrop-blur-md
                        border-b border-slate-200 dark:border-[#1e293b]">
 
-          <button (click)="toggleCollapse()"
+          <button (click)="headerMenuClick()"
                   class="w-10 h-10 grid place-items-center rounded-lg
                          text-slate-600 dark:text-white/70
                          hover:bg-slate-100 dark:hover:bg-white/10 hover:text-ink-950 dark:hover:text-white
@@ -279,6 +333,7 @@ export class DashboardLayoutComponent implements AfterViewInit {
     typeof window !== 'undefined' && localStorage.getItem(COLLAPSED_KEY) === '1'
   );
   profileOpen = signal(false);
+  mobileOpen = signal(false);
 
   userName = computed(() => this.auth.user()?.full_name ?? 'Usuario');
   userEmail = computed(() => this.auth.user()?.email ?? '');
@@ -368,6 +423,17 @@ export class DashboardLayoutComponent implements AfterViewInit {
     if (!q) return;
     this.router.navigate(['/app/admin/products'], { queryParams: { search: q } });
   }
+
+  /** En móvil abre el drawer; en desktop colapsa/expande el sidebar fijo. */
+  headerMenuClick() {
+    if (typeof window !== 'undefined' && window.innerWidth < 1024) {
+      this.mobileOpen.set(true);
+    } else {
+      this.toggleCollapse();
+    }
+  }
+
+  closeMobile() { this.mobileOpen.set(false); }
 
   toggleCollapse() {
     const next = !this.collapsed();

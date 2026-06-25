@@ -11,7 +11,7 @@ interface Branch { id: string; name: string; city: string; address: string;
   imports: [CommonModule, RevealOnScrollDirective],
   changeDetection: ChangeDetectionStrategy.OnPush,
   template: `
-    <section id="branches" class="relative max-w-[1600px] mx-auto px-6 md:px-10 py-32
+    <section id="branches" class="relative max-w-[1600px] mx-auto px-6 md:px-10 py-20 md:py-32
                                    bg-ink-25 dark:bg-ink-900">
       <div class="grid grid-cols-1 lg:grid-cols-12 gap-8 mb-16 reveal" dlxReveal>
         <div class="lg:col-span-7">

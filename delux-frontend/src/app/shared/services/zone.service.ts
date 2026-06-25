@@ -1,5 +1,6 @@
-import { Injectable, computed, inject, signal } from '@angular/core';
+import { Injectable, computed, effect, inject, signal } from '@angular/core';
 import { PublicBranchesService, PublicBranch } from './public-branches.service';
+import { SplashService } from './splash.service';
 
 const ZONE_KEY = 'dlx_zone_city';
 
@@ -18,11 +19,24 @@ export interface ZoneCity {
 @Injectable({ providedIn: 'root' })
 export class ZoneService {
   private branchSvc = inject(PublicBranchesService);
+  private splash = inject(SplashService);
 
   private _branches = signal<PublicBranch[]>([]);
   private _city = signal<string | null>(this.readCity());
   private _loaded = signal(false);
   pickerOpen = signal(false);
+  /** Intención de auto-abrir el picker en cuanto el splash termine. */
+  private _wantAutoOpen = signal(false);
+
+  constructor() {
+    // Abre el selector de ciudad SOLO cuando el splash ya terminó.
+    effect(() => {
+      if (this.splash.done() && this._wantAutoOpen() && !this._city()) {
+        this.pickerOpen.set(true);
+        this._wantAutoOpen.set(false);
+      }
+    });
+  }
 
   readonly branches = computed(() => this._branches());
   readonly city = computed(() => this._city());
@@ -54,7 +68,7 @@ export class ZoneService {
   /** Carga las sucursales una sola vez; abre el selector si no hay ciudad. */
   load(autoOpen = true): void {
     if (this._loaded()) {
-      if (autoOpen && !this._city()) this.pickerOpen.set(true);
+      if (autoOpen && !this._city()) this._wantAutoOpen.set(true);
       return;
     }
     this.branchSvc.list().subscribe({
@@ -66,7 +80,7 @@ export class ZoneService {
         if (cur && !this.cities().some(c => c.city === cur)) {
           this._city.set(null);
         }
-        if (autoOpen && !this._city()) this.pickerOpen.set(true);
+        if (autoOpen && !this._city()) this._wantAutoOpen.set(true);
       },
       error: () => this._loaded.set(true),
     });

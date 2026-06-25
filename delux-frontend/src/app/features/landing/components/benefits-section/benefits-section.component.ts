@@ -10,7 +10,7 @@ interface Benefit { icon: string; title: string; desc: string; number: string; }
   imports: [CommonModule, RevealOnScrollDirective],
   changeDetection: ChangeDetectionStrategy.OnPush,
   template: `
-    <section class="relative max-w-[1600px] mx-auto px-6 md:px-10 py-32
+    <section class="relative max-w-[1600px] mx-auto px-6 md:px-10 py-20 md:py-32
                     border-y border-ink-200 dark:border-white/10
                     bg-white dark:bg-ink-950">
       <div class="grid grid-cols-1 lg:grid-cols-12 gap-12">

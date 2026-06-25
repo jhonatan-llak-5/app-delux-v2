@@ -8,7 +8,7 @@ import { RevealOnScrollDirective } from '@shared/directives/reveal-on-scroll.dir
   imports: [CommonModule, RevealOnScrollDirective],
   changeDetection: ChangeDetectionStrategy.OnPush,
   template: `
-    <section class="relative max-w-[1600px] mx-auto px-6 md:px-10 py-32
+    <section class="relative max-w-[1600px] mx-auto px-6 md:px-10 py-20 md:py-32
                     border-y border-ink-200 dark:border-white/10
                     bg-ink-25 dark:bg-ink-900">
       <div class="text-center max-w-3xl mx-auto mb-20 reveal" dlxReveal>

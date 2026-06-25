@@ -1,6 +1,7 @@
 import { ChangeDetectionStrategy, Component, OnInit, inject, signal } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { BrandingService } from '@core/services/branding.service';
+import { SplashService } from '@shared/services/splash.service';
 
 const STORAGE_KEY = 'dlx_splash_seen';
 
@@ -56,6 +57,7 @@ const STORAGE_KEY = 'dlx_splash_seen';
 })
 export class SplashIntroComponent implements OnInit {
   protected readonly branding = inject(BrandingService);
+  private readonly splash = inject(SplashService);
   protected readonly siteName = this.branding.siteName;
   visible = signal(false);
 
@@ -63,9 +65,12 @@ export class SplashIntroComponent implements OnInit {
     if (typeof window === 'undefined') return;
     // Solo mostrar la PRIMERA vez por sesión del navegador
     const seen = sessionStorage.getItem(STORAGE_KEY);
-    if (seen) return;
+    if (seen) { this.splash.markDone(); return; }
     sessionStorage.setItem(STORAGE_KEY, '1');
     this.visible.set(true);
-    setTimeout(() => this.visible.set(false), 3200);
+    setTimeout(() => {
+      this.visible.set(false);
+      this.splash.markDone();
+    }, 3200);
   }
 }
