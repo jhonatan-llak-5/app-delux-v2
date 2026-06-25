@@ -2,6 +2,7 @@ import { ChangeDetectionStrategy, Component, OnInit, inject, signal } from '@ang
 import { CommonModule } from '@angular/common';
 import { ActivatedRoute, RouterLink } from '@angular/router';
 import { Order, OrderService } from '@features/superadmin/services/order.service';
+import { environment } from '@env/environment';
 import { generateVoucherPDF } from '@shared/utils/voucher-pdf.util';
 
 @Component({
@@ -31,6 +32,10 @@ import { generateVoucherPDF } from '@shared/utils/voucher-pdf.util';
           <a [routerLink]="['/app/admin/sales', o.id, 'voucher']"
                   class="px-4 py-2 rounded-lg bg-ink-950 text-white text-sm font-semibold hover:bg-ink-900">
             <i class="fa-solid fa-print"></i> Ver / imprimir voucher
+          </a>
+          <a [href]="receiptUrl(o.code)" target="_blank" rel="noopener"
+                  class="px-4 py-2 rounded-lg bg-[#1e40af] text-white text-sm font-semibold hover:opacity-90">
+            <i class="fa-solid fa-qrcode"></i> Comprobante (PDF)
           </a>
         </div>
       </div>
@@ -137,6 +142,7 @@ import { generateVoucherPDF } from '@shared/utils/voucher-pdf.util';
 })
 export class SaleDetailComponent implements OnInit {
   private svc = inject(OrderService);
+  receiptUrl(code: string): string { return `${environment.apiUrl}/admin/checkout/receipt/${code}/`; }
   private route = inject(ActivatedRoute);
 
   order = signal<Order | null>(null);

@@ -7,6 +7,8 @@ interface BrandConfig {
   platform_tagline?: string;
   site_logo_url?: string | null;
   site_favicon_url?: string | null;
+  payphone_available?: boolean;
+  cod_enabled?: boolean;
 }
 
 /**
@@ -30,6 +32,9 @@ export class BrandingService {
   /** Variante para fondos oscuros (texto claro). Si hay logo subido, se usa el mismo. */
   readonly logoUrlDark = computed(() => this._cfg()?.site_logo_url || this.defaultLogoDark);
   readonly faviconUrl = computed(() => this._cfg()?.site_favicon_url || null);
+  /** Métodos de pago disponibles (según config del superadmin). */
+  readonly payphoneAvailable = computed(() => this._cfg()?.payphone_available === true);
+  readonly codEnabled = computed(() => this._cfg()?.cod_enabled !== false);
 
   /** Llamar una vez al iniciar la app. */
   load(): void {

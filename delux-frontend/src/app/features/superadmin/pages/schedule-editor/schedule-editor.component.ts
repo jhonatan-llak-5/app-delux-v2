@@ -78,15 +78,11 @@ const WEEKDAYS = [
                     </td>
                     <td class="px-4 py-3">
                       <input type="time" [(ngModel)]="d.open_time" [disabled]="d.is_closed"
-                             class="px-3 py-2 rounded-lg bg-slate-50 border border-slate-200
-                                    focus:bg-white focus:border-slate-400 focus:outline-none text-sm
-                                    disabled:opacity-40 disabled:cursor-not-allowed" />
+                             class="eg-input disabled:opacity-40 disabled:cursor-not-allowed" />
                     </td>
                     <td class="px-4 py-3">
                       <input type="time" [(ngModel)]="d.close_time" [disabled]="d.is_closed"
-                             class="px-3 py-2 rounded-lg bg-slate-50 border border-slate-200
-                                    focus:bg-white focus:border-slate-400 focus:outline-none text-sm
-                                    disabled:opacity-40 disabled:cursor-not-allowed" />
+                             class="eg-input disabled:opacity-40 disabled:cursor-not-allowed" />
                     </td>
                     <td class="px-4 py-3 text-center">
                       <label class="inline-flex items-center cursor-pointer">

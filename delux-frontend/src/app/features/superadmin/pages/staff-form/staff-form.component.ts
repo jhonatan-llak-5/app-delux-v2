@@ -30,39 +30,34 @@ import { AdminService, AdminBranch } from '@features/superadmin/services/admin.s
 
           <div class="grid grid-cols-2 gap-4">
             <div>
-              <label class="block text-xs font-semibold uppercase tracking-wider text-slate-600 mb-1.5">Nombre completo *</label>
+              <label class="eg-label">Nombre completo *</label>
               <input [(ngModel)]="payload.full_name" name="full_name" required maxlength="160"
-                     class="w-full px-3 py-2.5 rounded-lg bg-slate-50 border border-slate-200
-                            focus:bg-white focus:border-slate-400 focus:outline-none text-sm" />
+                     class="eg-input" />
             </div>
             <div>
-              <label class="block text-xs font-semibold uppercase tracking-wider text-slate-600 mb-1.5">Email *</label>
+              <label class="eg-label">Email *</label>
               <input [(ngModel)]="payload.email" name="email" type="email" required
                      [disabled]="isEdit()"
-                     class="w-full px-3 py-2.5 rounded-lg bg-slate-50 border border-slate-200
-                            focus:bg-white focus:border-slate-400 focus:outline-none text-sm disabled:bg-slate-100 disabled:text-slate-400" />
+                     class="eg-input disabled:bg-slate-100 disabled:text-slate-400" />
             </div>
             <div>
-              <label class="block text-xs font-semibold uppercase tracking-wider text-slate-600 mb-1.5">Teléfono</label>
+              <label class="eg-label">Teléfono</label>
               <input [(ngModel)]="payload.phone" name="phone" maxlength="30"
-                     class="w-full px-3 py-2.5 rounded-lg bg-slate-50 border border-slate-200
-                            focus:bg-white focus:border-slate-400 focus:outline-none text-sm"
+                     class="eg-input"
                      placeholder="+593 99 999 9999" />
             </div>
             <div>
-              <label class="block text-xs font-semibold uppercase tracking-wider text-slate-600 mb-1.5">Cédula / Documento</label>
+              <label class="eg-label">Cédula / Documento</label>
               <input [(ngModel)]="payload.document_id" name="document_id" maxlength="30"
-                     class="w-full px-3 py-2.5 rounded-lg bg-slate-50 border border-slate-200
-                            focus:bg-white focus:border-slate-400 focus:outline-none text-sm font-mono" />
+                     class="eg-input font-mono" />
             </div>
           </div>
 
           @if (!isEdit()) {
             <div>
-              <label class="block text-xs font-semibold uppercase tracking-wider text-slate-600 mb-1.5">Contraseña inicial</label>
+              <label class="eg-label">Contraseña inicial</label>
               <input [(ngModel)]="payload.password" name="password" type="text" minlength="8"
-                     class="w-full px-3 py-2.5 rounded-lg bg-slate-50 border border-slate-200
-                            focus:bg-white focus:border-slate-400 focus:outline-none text-sm font-mono"
+                     class="eg-input font-mono"
                      placeholder="Mínimo 8 caracteres (se genera automáticamente si vacío)" />
               <p class="text-[10px] text-slate-400 mt-1">
                 Si lo dejas en blanco, se genera una contraseña aleatoria. El usuario debe cambiarla en su primer login.
@@ -107,7 +102,7 @@ import { AdminService, AdminBranch } from '@features/superadmin/services/admin.s
           <h2 class="font-bold tracking-tight">Rol y asignación</h2>
 
           <div>
-            <label class="block text-xs font-semibold uppercase tracking-wider text-slate-600 mb-1.5">Rol *</label>
+            <label class="eg-label">Rol *</label>
             <div class="grid grid-cols-2 gap-2">
               <button type="button" (click)="payload.role = 'SALESPERSON'"
                       class="px-3 py-3 rounded-lg border text-sm font-semibold transition"
@@ -133,31 +128,28 @@ import { AdminService, AdminBranch } from '@features/superadmin/services/admin.s
           </div>
 
           <div>
-            <label class="block text-xs font-semibold uppercase tracking-wider text-slate-600 mb-1.5">Sucursal asignada *</label>
+            <label class="eg-label">Sucursal asignada *</label>
             <select [(ngModel)]="payload.branch" name="branch" required
-                    class="w-full px-3 py-2.5 rounded-lg bg-slate-50 border border-slate-200
-                           focus:bg-white focus:border-slate-400 focus:outline-none text-sm">
+                    class="eg-input">
               <option [ngValue]="null">— Seleccionar —</option>
               @for (b of branches(); track b.id) { <option [ngValue]="b.id">{{ b.name }} · {{ b.city }}</option> }
             </select>
           </div>
 
           <div>
-            <label class="block text-xs font-semibold uppercase tracking-wider text-slate-600 mb-1.5">Fecha de ingreso</label>
+            <label class="eg-label">Fecha de ingreso</label>
             <input [(ngModel)]="payload.hire_date" name="hire_date" type="date"
-                   class="w-full px-3 py-2.5 rounded-lg bg-slate-50 border border-slate-200
-                          focus:bg-white focus:border-slate-400 focus:outline-none text-sm" />
+                   class="eg-input" />
           </div>
 
           <div>
-            <label class="block text-xs font-semibold uppercase tracking-wider text-slate-600 mb-1.5">
+            <label class="eg-label">
               Comisión por venta (%)
             </label>
             <div class="relative">
               <input type="number" [(ngModel)]="payload.commission_rate" name="commission_rate"
                      min="0" max="100" step="0.5"
-                     class="w-full px-3 py-2.5 rounded-lg bg-slate-50 border border-slate-200
-                            focus:bg-white focus:border-slate-400 focus:outline-none text-sm pr-8" />
+                     class="eg-input pr-8" />
               <span class="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 text-sm">%</span>
             </div>
             <p class="text-[10px] text-slate-400 mt-1">

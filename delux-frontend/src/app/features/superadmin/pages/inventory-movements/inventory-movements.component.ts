@@ -21,12 +21,12 @@ import { AdminService, AdminBranch } from '@features/superadmin/services/admin.s
 
     <div class="card p-4 mb-4 flex flex-wrap gap-3 items-center">
       <select [(ngModel)]="branchFilter" (change)="reload()"
-              class="px-3 py-2 rounded-lg bg-slate-50 border border-transparent focus:bg-white focus:border-slate-300 focus:outline-none text-sm">
+              class="eg-input border-transparent">
         <option [ngValue]="null">Todas las sucursales</option>
         @for (b of branches(); track b.id) { <option [ngValue]="b.id">{{ b.name }}</option> }
       </select>
       <select [(ngModel)]="typeFilter" (change)="reload()"
-              class="px-3 py-2 rounded-lg bg-slate-50 border border-transparent focus:bg-white focus:border-slate-300 focus:outline-none text-sm">
+              class="eg-input border-transparent">
         <option value="">Todos los tipos</option>
         <option value="IN">Entradas</option>
         <option value="OUT">Salidas</option>

@@ -46,7 +46,7 @@ import { ShippingService, Shipment } from '@shared/services/shipping.service';
         <i class="fa-solid fa-magnifying-glass text-sm absolute left-3 top-1/2 -translate-y-1/2 text-slate-400"></i>
         <input placeholder="Buscar por tracking, orden, destinatario..."
                [(ngModel)]="search" (ngModelChange)="reload()"
-               class="w-full pl-9 pr-3 py-2 rounded-lg bg-slate-50 border border-transparent text-sm focus:bg-white focus:border-slate-300 focus:outline-none" />
+               class="eg-input pl-9 pr-3 border-transparent" />
       </div>
       <select [(ngModel)]="statusFilter" (change)="reload()"
               class="px-3 py-2 rounded-lg bg-slate-50 border border-transparent text-sm">

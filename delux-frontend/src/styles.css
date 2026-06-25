@@ -1,4 +1,5 @@
 @import '@fortawesome/fontawesome-free/css/all.min.css';
+@import 'leaflet/dist/leaflet.css';
 
 @tailwind base;
 @tailwind components;
@@ -514,6 +515,10 @@ html.dark .scrollbar-thin::-webkit-scrollbar-thumb { background: rgba(255,255,25
 .dlx-dashboard input:focus,
 .dlx-dashboard select:focus,
 .dlx-dashboard textarea:focus {
+  /* Forzamos el fondo del tema en focus: neutraliza cualquier `focus:bg-white`
+     (utilidad Tailwind) que dejaba los campos en blanco al enfocar en dark. */
+  background-color: var(--dash-input);
+  color: var(--dash-text);
   border-color: var(--dash-primary);
   box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.15);
   outline: none;
@@ -554,3 +559,25 @@ html.dark .scrollbar-thin::-webkit-scrollbar-thumb { background: rgba(255,255,25
   to   { opacity: 1; transform: translateX(0); }
 }
 .animate-slide-in-right { animation: slideInRight 0.25s ease-out; }
+
+/* ============================================================
+ * Autocompletado del navegador (Chrome/WebKit)
+ * Evita el fondo blanco/amarillo del autofill, respetando el tema.
+ * ============================================================ */
+input:-webkit-autofill,
+input:-webkit-autofill:hover,
+input:-webkit-autofill:focus,
+input:-webkit-autofill:active,
+textarea:-webkit-autofill,
+select:-webkit-autofill,
+.eg-input:-webkit-autofill,
+.eg-input:-webkit-autofill:focus,
+.dlx-dashboard input:-webkit-autofill,
+.dlx-dashboard input:-webkit-autofill:focus {
+  -webkit-box-shadow: 0 0 0 1000px var(--dash-input) inset !important;
+  box-shadow: 0 0 0 1000px var(--dash-input) inset !important;
+  -webkit-text-fill-color: var(--dash-text) !important;
+  caret-color: var(--dash-text);
+  border-color: var(--dash-input-bord) !important;
+  transition: background-color 9999s ease-in-out 0s;
+}

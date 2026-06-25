@@ -1,4 +1,5 @@
-import { ChangeDetectionStrategy, Component, OnInit, computed, inject, signal } from '@angular/core';
+import { AfterViewInit, ChangeDetectionStrategy, ChangeDetectorRef, Component, OnInit, computed, effect, inject, signal } from '@angular/core';
+import * as L from 'leaflet';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { Router, RouterLink } from '@angular/router';
@@ -8,6 +9,7 @@ import { CheckoutService } from '@features/checkout/services/checkout.service';
 import { NotifyService } from '@shared/services/notify.service';
 import { PublicBranchesService, PublicBranch } from '@shared/services/public-branches.service';
 import { ZoneService } from '@shared/services/zone.service';
+import { BrandingService } from '@core/services/branding.service';
 import { CouponService, CouponValidation } from '@features/superadmin/services/coupon.service';
 
 @Component({
@@ -70,7 +72,7 @@ import { CouponService, CouponValidation } from '@features/superadmin/services/c
 
               <!-- Tipo de entrega -->
               <div class="grid grid-cols-2 gap-3 mb-4">
-                <button type="button" (click)="fulfillment = 'SHIPPING'"
+                <button type="button" (click)="fulfillment = 'SHIPPING'; onShippingSelected()"
                         class="p-3 rounded-xl border-2 text-left transition flex items-center gap-3"
                         [class.border-accent-500]="fulfillment === 'SHIPPING'"
                         [class.bg-accent-50]="fulfillment === 'SHIPPING'"
@@ -113,6 +115,35 @@ import { CouponService, CouponValidation } from '@features/superadmin/services/c
                   </button>
                 }
               </div>
+
+              @if (fulfillment === 'SHIPPING') {
+                <div class="mt-5 pt-5 border-t border-ink-200 dark:border-white/10">
+                  <label class="block text-xs font-semibold uppercase tracking-wider text-ink-500 dark:text-white/50 mb-2">
+                    Dirección de entrega *
+                  </label>
+                  <div class="flex gap-2 mb-3">
+                    <input [(ngModel)]="shippingAddress" name="ship_addr"
+                           placeholder="Calle, número, referencia..."
+                           class="flex-1 px-3 py-2.5 rounded-xl bg-ink-50 dark:bg-white/5
+                                  border border-ink-200 dark:border-white/10 text-sm
+                                  text-ink-950 dark:text-white focus:outline-none" />
+                    <button type="button" (click)="useMyLocation()" [disabled]="locating()"
+                            class="px-3 py-2.5 rounded-xl bg-ink-950 dark:bg-white text-white dark:text-ink-950
+                                   text-xs font-semibold inline-flex items-center gap-2 disabled:opacity-50 shrink-0">
+                      @if (locating()) { <i class="fa-solid fa-spinner fa-spin"></i> }
+                      @else { <i class="fa-solid fa-location-crosshairs"></i> }
+                      Mi ubicación
+                    </button>
+                  </div>
+                  <div id="dlx-ship-map"
+                       class="w-full h-56 rounded-xl overflow-hidden border border-ink-200 dark:border-white/10
+                              bg-ink-100 dark:bg-white/5"></div>
+                  <p class="text-[11px] text-ink-500 dark:text-white/50 mt-2">
+                    <i class="fa-solid fa-circle-info"></i>
+                    Toca el mapa o arrastra el pin para ubicar tu dirección exacta.
+                  </p>
+                </div>
+              }
             </div>
 
             <!-- 3. Pago -->
@@ -122,17 +153,64 @@ import { CouponService, CouponValidation } from '@features/superadmin/services/c
                 <h2 class="font-display font-bold text-xl text-ink-950 dark:text-white">Método de pago</h2>
               </div>
 
-              <div class="p-5 rounded-xl border-2 border-violet-400 bg-violet-50 dark:bg-violet-500/10">
-                <div class="flex items-center gap-3">
-                  <div class="w-12 h-12 rounded-lg bg-violet-600 text-white grid place-items-center">
-                    <i class="fa-solid fa-mobile-screen text-xl"></i>
+              <div class="space-y-3">
+                <!-- Contra entrega -->
+                <button type="button" (click)="paymentMethod.set('COD')"
+                        class="w-full text-left p-5 rounded-xl border-2 transition flex items-center gap-3"
+                        [class.border-emerald-400]="paymentMethod()==='COD'"
+                        [class.bg-emerald-50]="paymentMethod()==='COD'"
+                        [class.dark:bg-emerald-500/10]="paymentMethod()==='COD'"
+                        [class.border-ink-200]="paymentMethod()!=='COD'"
+                        [class.dark:border-white/10]="paymentMethod()!=='COD'">
+                  <div class="w-12 h-12 rounded-lg bg-emerald-600 text-white grid place-items-center shrink-0">
+                    <i class="fa-solid fa-hand-holding-dollar text-xl"></i>
                   </div>
                   <div class="flex-1">
-                    <p class="font-bold text-ink-950 dark:text-white">PayPhone</p>
-                    <p class="text-xs text-ink-700 dark:text-white/70">Tarjeta de crédito, débito o PayPhone wallet</p>
+                    <p class="font-bold text-ink-950 dark:text-white">Pago contra entrega</p>
+                    <p class="text-xs text-ink-700 dark:text-white/70">Paga en efectivo al recibir tu pedido</p>
                   </div>
-                  <i class="fa-solid fa-circle-check text-violet-600 text-xl"></i>
-                </div>
+                  <i class="fa-solid text-xl"
+                     [class.fa-circle-check]="paymentMethod()==='COD'" [class.text-emerald-600]="paymentMethod()==='COD'"
+                     [class.fa-circle]="paymentMethod()!=='COD'" [class.text-ink-300]="paymentMethod()!=='COD'"></i>
+                </button>
+
+                <!-- PayPhone (bloqueado si no hay claves configuradas) -->
+                @if (branding.payphoneAvailable()) {
+                  <button type="button" (click)="paymentMethod.set('PAYPHONE')"
+                          class="w-full text-left p-5 rounded-xl border-2 transition flex items-center gap-3"
+                          [class.border-violet-400]="paymentMethod()==='PAYPHONE'"
+                          [class.bg-violet-50]="paymentMethod()==='PAYPHONE'"
+                          [class.dark:bg-violet-500/10]="paymentMethod()==='PAYPHONE'"
+                          [class.border-ink-200]="paymentMethod()!=='PAYPHONE'"
+                          [class.dark:border-white/10]="paymentMethod()!=='PAYPHONE'">
+                    <div class="w-12 h-12 rounded-lg bg-violet-600 text-white grid place-items-center shrink-0">
+                      <i class="fa-solid fa-mobile-screen text-xl"></i>
+                    </div>
+                    <div class="flex-1">
+                      <p class="font-bold text-ink-950 dark:text-white">PayPhone</p>
+                      <p class="text-xs text-ink-700 dark:text-white/70">Tarjeta de crédito, débito o PayPhone wallet</p>
+                    </div>
+                    <i class="fa-solid text-xl"
+                       [class.fa-circle-check]="paymentMethod()==='PAYPHONE'" [class.text-violet-600]="paymentMethod()==='PAYPHONE'"
+                       [class.fa-circle]="paymentMethod()!=='PAYPHONE'" [class.text-ink-300]="paymentMethod()!=='PAYPHONE'"></i>
+                  </button>
+                } @else {
+                  <div class="w-full p-5 rounded-xl border-2 border-dashed border-ink-200 dark:border-white/10
+                              bg-ink-50 dark:bg-white/5 flex items-center gap-3 opacity-80 cursor-not-allowed">
+                    <div class="w-12 h-12 rounded-lg bg-ink-300 dark:bg-white/10 text-white grid place-items-center shrink-0">
+                      <i class="fa-solid fa-mobile-screen text-xl"></i>
+                    </div>
+                    <div class="flex-1">
+                      <p class="font-bold text-ink-500 dark:text-white/50">
+                        PayPhone
+                        <span class="ml-1 px-2 py-0.5 rounded-full bg-amber-100 text-amber-700
+                                     dark:bg-amber-500/20 dark:text-amber-300 text-[10px] font-bold uppercase tracking-wider">Próximamente</span>
+                      </p>
+                      <p class="text-xs text-ink-400 dark:text-white/40">Tarjeta de crédito, débito o wallet — disponible pronto</p>
+                    </div>
+                    <i class="fa-solid fa-lock text-ink-300 dark:text-white/30"></i>
+                  </div>
+                }
               </div>
 
               @if (error()) {
@@ -215,13 +293,19 @@ import { CouponService, CouponValidation } from '@features/superadmin/services/c
               <button type="button" (click)="payNow()" [disabled]="!canPay() || saving()"
                       class="w-full mt-5 btn-accent text-sm font-semibold py-4 disabled:opacity-50">
                 @if (saving()) { <i class="fa-solid fa-spinner fa-spin"></i> Procesando... }
-                @else {
+                @else if (paymentMethod()==='COD') {
+                  <i class="fa-solid fa-bag-shopping"></i> Confirmar pedido · \${{ total().toFixed(2) }}
+                } @else {
                   <i class="fa-solid fa-lock"></i> Pagar \${{ total().toFixed(2) }}
                 }
               </button>
 
               <p class="text-[10px] text-ink-500 dark:text-white/40 mt-3 text-center">
-                Serás redirigido a PayPhone para completar el pago.
+                @if (paymentMethod()==='COD') {
+                  Pagarás en efectivo al recibir tu pedido.
+                } @else {
+                  Serás redirigido a PayPhone para completar el pago.
+                }
               </p>
             </div>
           </aside>
@@ -230,20 +314,47 @@ import { CouponService, CouponValidation } from '@features/superadmin/services/c
     </section>
   `,
 })
-export class CheckoutPageComponent implements OnInit {
+export class CheckoutPageComponent implements OnInit, AfterViewInit {
   cart = inject(CartService);
   private checkout = inject(CheckoutService);
   private notify = inject(NotifyService);
   private branchSvc = inject(PublicBranchesService);
   zone = inject(ZoneService);
+  branding = inject(BrandingService);
   private couponSvc = inject(CouponService);
   private router = inject(Router);
+  private cdr = inject(ChangeDetectorRef);
+
+  constructor() {
+    // El paso 2 (sucursales) reacciona a la ciudad de la zona: si cambia
+    // (chip del navbar o ubicación del mapa), recarga las sucursales.
+    effect(() => {
+      const city = this.zone.city() || undefined;
+      this.loadBranches(city);
+    });
+  }
+
+  private loadBranches(city?: string) {
+    this.branchSvc.list(city).subscribe(r => {
+      const list = r.results || [];
+      this.branches.set(list);
+      this.branchId = list.length ? list[0].id : null;
+      this.cdr.markForCheck();
+    });
+  }
 
   branches = signal<PublicBranch[]>([]);
   branchId: number | null = null;
   fulfillment: 'SHIPPING' | 'PICKUP' = 'SHIPPING';
   saving = signal(false);
   error = signal<string | null>(null);
+  paymentMethod = signal<'PAYPHONE' | 'COD'>('COD');
+  shippingAddress = '';
+  shipLat = signal<number | null>(null);
+  shipLng = signal<number | null>(null);
+  locating = signal(false);
+  private map: any = null;
+  private marker: any = null;
 
   customer = { full_name: '', email: '', phone: '', document_id: '' };
 
@@ -260,18 +371,122 @@ export class CheckoutPageComponent implements OnInit {
   canPay(): boolean {
     return this.cart.lines().length > 0 && this.branchId !== null &&
       !!this.customer.full_name.trim() && !!this.customer.email.trim() &&
-      !!this.customer.phone.trim();
+      !!this.customer.phone.trim() &&
+      (this.fulfillment !== 'SHIPPING' || !!this.shippingAddress.trim());
+  }
+
+  ngAfterViewInit() {
+    if (this.fulfillment === 'SHIPPING') this.onShippingSelected();
+  }
+
+  onShippingSelected() {
+    setTimeout(() => this.initShipMap(), 150);
+  }
+
+  private ensureLeafletCss() {
+    if (typeof document === 'undefined') return;
+    if (document.getElementById('leaflet-css-cdn')) return;
+    const link = document.createElement('link');
+    link.id = 'leaflet-css-cdn';
+    link.rel = 'stylesheet';
+    link.href = 'https://unpkg.com/leaflet@1.9.4/dist/leaflet.css';
+    document.head.appendChild(link);
+  }
+
+  private initShipMap() {
+    if (typeof document === 'undefined') return;
+    this.ensureLeafletCss();
+    const el = document.getElementById('dlx-ship-map');
+    if (!el) return;
+    if (this.map) { this.map.invalidateSize(); return; }
+    const center: [number, number] = [this.shipLat() ?? -0.1807, this.shipLng() ?? -78.4678];
+    this.map = L.map(el, { center, zoom: 13, scrollWheelZoom: false });
+    L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+      maxZoom: 19, attribution: 'OpenStreetMap contributors',
+    }).addTo(this.map);
+    const icon = L.divIcon({
+      html: '<i class="fa-solid fa-location-dot" style="color:#dc2626;font-size:30px"></i>',
+      className: '', iconSize: [30, 30], iconAnchor: [15, 30],
+    });
+    this.marker = L.marker(center, { draggable: true, icon }).addTo(this.map);
+    this.marker.on('dragend', () => {
+      const p = this.marker.getLatLng();
+      this.setCoords(p.lat, p.lng);
+    });
+    this.map.on('click', (e: any) => {
+      this.marker.setLatLng(e.latlng);
+      this.setCoords(e.latlng.lat, e.latlng.lng);
+    });
+    // Recalcula el tamaño cuando el contenedor ya tiene dimensiones (evita el
+    // mapa "a medias" cuando se renderiza dentro de un bloque que recién aparece).
+    setTimeout(() => this.map && this.map.invalidateSize(), 250);
+    setTimeout(() => this.map && this.map.invalidateSize(), 700);
+  }
+
+  private setCoords(lat: number, lng: number) {
+    this.shipLat.set(lat);
+    this.shipLng.set(lng);
+    this.reverseGeocode(lat, lng);
+  }
+
+  private async reverseGeocode(lat: number, lng: number) {
+    try {
+      const r = await fetch(
+        `https://nominatim.openstreetmap.org/reverse?format=json&addressdetails=1&lat=${lat}&lon=${lng}`,
+        { headers: { 'Accept': 'application/json' } });
+      const j = await r.json();
+      if (j && j.display_name) { this.shippingAddress = j.display_name; }
+      if (j && j.address) { this.applyDetectedCity(j.address); }
+      this.cdr.markForCheck();
+    } catch { /* sin conexión a Nominatim: el usuario escribe manual */ }
+  }
+
+  /** Si la ubicación cae en una ciudad con sucursales, cambia la zona/sucursal. */
+  private applyDetectedCity(nAddr: any) {
+    const cands = [nAddr.city, nAddr.town, nAddr.village, nAddr.county,
+                   nAddr.state_district, nAddr.state].filter(Boolean);
+    const cities = this.zone.cities().map(c => c.city);
+    for (const cn of cands) {
+      const match = cities.find(c => c.toLowerCase() === String(cn).toLowerCase());
+      if (match) {
+        if (this.zone.city() !== match) {
+          this.zone.setCity(match);  // el effect recarga las sucursales del paso 2
+        }
+        return;
+      }
+    }
+  }
+
+  useMyLocation() {
+    if (typeof navigator === 'undefined' || !navigator.geolocation) {
+      this.notify.warning('Geolocalización no disponible en este dispositivo.');
+      return;
+    }
+    this.locating.set(true);
+    navigator.geolocation.getCurrentPosition(
+      pos => {
+        this.locating.set(false);
+        const { latitude, longitude } = pos.coords;
+        this.initShipMap();
+        if (this.map) { this.map.setView([latitude, longitude], 16); this.marker?.setLatLng([latitude, longitude]); }
+        this.setCoords(latitude, longitude);
+      },
+      () => { this.locating.set(false); this.notify.warning('No pudimos obtener tu ubicación. Ubícala en el mapa.'); },
+      { enableHighAccuracy: true, timeout: 8000 },
+    );
+  }
+
+  private shippingPayload() {
+    return this.fulfillment === 'SHIPPING'
+      ? { address: this.shippingAddress, latitude: this.shipLat(), longitude: this.shipLng() }
+      : undefined;
   }
 
   ngOnInit() {
-    // Sucursales segun la ciudad elegida por el cliente (zona).
+    // Método por defecto: PayPhone si está configurado; si no, contra entrega.
+    this.paymentMethod.set(this.branding.payphoneAvailable() ? 'PAYPHONE' : 'COD');
+    // Carga las ciudades/sucursales de la zona; el effect cargará el paso 2.
     this.zone.load(false);
-    const city = this.zone.city() || undefined;
-    this.branchSvc.list(city).subscribe(r => {
-      const list = r.results || [];
-      this.branches.set(list);
-      if (list.length) this.branchId = list[0].id;
-    });
   }
 
   applyCoupon() {
@@ -303,6 +518,7 @@ export class CheckoutPageComponent implements OnInit {
 
   payNow() {
     if (!this.canPay() || !this.branchId) return;
+    if (this.paymentMethod() === 'COD') { this.placeCOD(); return; }
     this.saving.set(true);
     this.error.set(null);
     const returnUrl = `${window.location.origin}/checkout/result`;
@@ -314,6 +530,7 @@ export class CheckoutPageComponent implements OnInit {
       discount: this.discount(),
       coupon_code: this.appliedCoupon()?.code,
       return_url: returnUrl,
+      shipping_address: this.shippingPayload(),
     }).subscribe({
       next: r => {
         this.saving.set(false);
@@ -339,6 +556,35 @@ export class CheckoutPageComponent implements OnInit {
       error: e => {
         this.saving.set(false);
         const msg = e?.error?.detail || 'Error al iniciar el pago.';
+        this.error.set(msg);
+        this.notify.error(msg);
+      },
+    });
+  }
+
+  private placeCOD() {
+    this.saving.set(true);
+    this.error.set(null);
+    this.checkout.placeCOD({
+      branch_id: this.branchId!,
+      fulfillment: this.fulfillment,
+      customer_data: this.customer,
+      items: this.cart.lines().map(l => ({ variant_id: l.variant_id, quantity: l.quantity })),
+      discount: this.discount(),
+      coupon_code: this.appliedCoupon()?.code,
+      shipping_address: this.shippingPayload(),
+    }).subscribe({
+      next: r => {
+        this.saving.set(false);
+        if (r.error) { this.error.set(r.error); this.notify.error(r.error); return; }
+        this.notify.success('¡Pedido registrado!');
+        this.router.navigate(['/checkout/result'], {
+          queryParams: { success: 'true', code: r.order_code, cod: 'true', track: r.tracking_code || '' },
+        });
+      },
+      error: e => {
+        this.saving.set(false);
+        const msg = e?.error?.detail || 'No se pudo registrar el pedido.';
         this.error.set(msg);
         this.notify.error(msg);
       },

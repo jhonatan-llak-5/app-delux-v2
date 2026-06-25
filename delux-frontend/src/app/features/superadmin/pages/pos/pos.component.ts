@@ -57,8 +57,7 @@ interface CartItem {
             <i class="fa-solid fa-magnifying-glass text-sm absolute left-3 top-1/2 -translate-y-1/2 text-slate-400"></i>
             <input placeholder="Buscar por SKU, producto..."
                    [ngModel]="search()" (ngModelChange)="onSearch($event)"
-                   class="w-full pl-9 pr-3 py-2 rounded-lg bg-slate-50 border border-transparent
-                          focus:bg-white focus:border-slate-300 focus:outline-none text-sm" />
+                   class="eg-input pl-9 pr-3 border-transparent" />
           </div>
         </div>
 
@@ -203,14 +202,14 @@ interface CartItem {
           </h2>
           <div class="space-y-2">
             <input [(ngModel)]="customerData.full_name" placeholder="Nombre completo"
-                   class="w-full px-3 py-2 rounded-lg bg-slate-50 border border-slate-200 text-sm focus:bg-white focus:border-slate-400 focus:outline-none" />
+                   class="eg-input" />
             <input [(ngModel)]="customerData.email" type="email" placeholder="email@ejemplo.com"
-                   class="w-full px-3 py-2 rounded-lg bg-slate-50 border border-slate-200 text-sm focus:bg-white focus:border-slate-400 focus:outline-none" />
+                   class="eg-input" />
             <div class="grid grid-cols-2 gap-2">
               <input [(ngModel)]="customerData.phone" placeholder="Teléfono"
-                     class="w-full px-3 py-2 rounded-lg bg-slate-50 border border-slate-200 text-sm focus:bg-white focus:border-slate-400 focus:outline-none" />
+                     class="eg-input" />
               <input [(ngModel)]="customerData.document_id" placeholder="Cédula / RUC"
-                     class="w-full px-3 py-2 rounded-lg bg-slate-50 border border-slate-200 text-sm focus:bg-white focus:border-slate-400 focus:outline-none" />
+                     class="eg-input" />
             </div>
           </div>
         </div>

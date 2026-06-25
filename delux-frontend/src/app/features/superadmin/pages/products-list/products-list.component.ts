@@ -70,21 +70,20 @@ import { NotifyService } from '@shared/services/notify.service';
         <i class="fa-solid fa-magnifying-glass text-sm absolute left-3 top-1/2 -translate-y-1/2 text-slate-400"></i>
         <input placeholder="Buscar por nombre, slug o descripción..."
                [ngModel]="search()" (ngModelChange)="onSearch($event)"
-               class="w-full pl-9 pr-3 py-2 rounded-lg bg-slate-50 border border-transparent
-                      focus:bg-white focus:border-slate-300 focus:outline-none text-sm" />
+               class="eg-input pl-9 pr-3 border-transparent" />
       </div>
       <select [(ngModel)]="brandFilter" (change)="reload()"
-              class="px-3 py-2 rounded-lg bg-slate-50 border border-transparent focus:bg-white focus:border-slate-300 focus:outline-none text-sm">
+              class="eg-input border-transparent">
         <option [ngValue]="null">Todas las marcas</option>
         @for (b of brands(); track b.id) { <option [ngValue]="b.id">{{ b.name }}</option> }
       </select>
       <select [(ngModel)]="categoryFilter" (change)="reload()"
-              class="px-3 py-2 rounded-lg bg-slate-50 border border-transparent focus:bg-white focus:border-slate-300 focus:outline-none text-sm">
+              class="eg-input border-transparent">
         <option [ngValue]="null">Todas las categorías</option>
         @for (c of categories(); track c.id) { <option [ngValue]="c.id">{{ c.name }}</option> }
       </select>
       <select [(ngModel)]="statusFilter" (change)="reload()"
-              class="px-3 py-2 rounded-lg bg-slate-50 border border-transparent focus:bg-white focus:border-slate-300 focus:outline-none text-sm">
+              class="eg-input border-transparent">
         <option value="">Todos los estados</option>
         <option value="PUBLISHED">Publicados</option>
         <option value="DRAFT">Borradores</option>
@@ -92,7 +91,7 @@ import { NotifyService } from '@shared/services/notify.service';
         <option value="ARCHIVED">Archivados</option>
       </select>
       <select [(ngModel)]="branchFilter" (change)="reload()" title="Filtrar por tienda"
-              class="px-3 py-2 rounded-lg bg-slate-50 border border-transparent focus:bg-white focus:border-slate-300 focus:outline-none text-sm">
+              class="eg-input border-transparent">
         <option [ngValue]="null">Todas las tiendas</option>
         @for (b of stores(); track b.id) { <option [ngValue]="b.id">{{ b.name }} · {{ b.city }}</option> }
       </select>

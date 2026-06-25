@@ -24,15 +24,15 @@ import { Coupon, CouponPayload, CouponService } from '@features/superadmin/servi
 
         <form (ngSubmit)="save()" #f="ngForm" class="px-6 py-5 space-y-4">
           <div>
-            <label class="block text-xs font-semibold uppercase tracking-wider text-slate-600 mb-1.5">Código *</label>
+            <label class="eg-label">Código *</label>
             <input [(ngModel)]="payload.code" name="code" required maxlength="40"
-                   class="w-full px-3 py-2.5 rounded-lg bg-slate-50 border border-slate-200 focus:bg-white focus:border-slate-400 focus:outline-none text-sm font-mono uppercase"
+                   class="eg-input font-mono uppercase"
                    placeholder="VERANO2026" />
             <p class="text-[10px] text-slate-400 mt-1">Los clientes ingresarán este código al pagar.</p>
           </div>
 
           <div>
-            <label class="block text-xs font-semibold uppercase tracking-wider text-slate-600 mb-1.5">Tipo de descuento *</label>
+            <label class="eg-label">Tipo de descuento *</label>
             <div class="grid grid-cols-2 gap-2">
               <button type="button" (click)="payload.type = 'PERCENT'"
                       class="px-3 py-3 rounded-lg border text-sm font-semibold transition"
@@ -57,37 +57,37 @@ import { Coupon, CouponPayload, CouponService } from '@features/superadmin/servi
 
           <div class="grid grid-cols-2 gap-3">
             <div>
-              <label class="block text-xs font-semibold uppercase tracking-wider text-slate-600 mb-1.5">
+              <label class="eg-label">
                 Valor * {{ payload.type === 'PERCENT' ? '(%)' : '($)' }}
               </label>
               <input type="number" [(ngModel)]="payload.value" name="value" required min="0" step="0.01"
                      [max]="payload.type === 'PERCENT' ? 100 : null"
-                     class="w-full px-3 py-2.5 rounded-lg bg-slate-50 border border-slate-200 focus:bg-white focus:border-slate-400 focus:outline-none text-sm" />
+                     class="eg-input" />
             </div>
             <div>
-              <label class="block text-xs font-semibold uppercase tracking-wider text-slate-600 mb-1.5">Compra mínima ($)</label>
+              <label class="eg-label">Compra mínima ($)</label>
               <input type="number" [(ngModel)]="payload.min_purchase" name="min_purchase" min="0" step="0.01"
-                     class="w-full px-3 py-2.5 rounded-lg bg-slate-50 border border-slate-200 focus:bg-white focus:border-slate-400 focus:outline-none text-sm" />
+                     class="eg-input" />
             </div>
           </div>
 
           <div>
-            <label class="block text-xs font-semibold uppercase tracking-wider text-slate-600 mb-1.5">Límite de usos</label>
+            <label class="eg-label">Límite de usos</label>
             <input type="number" [(ngModel)]="payload.usage_limit" name="usage_limit" min="1"
-                   class="w-full px-3 py-2.5 rounded-lg bg-slate-50 border border-slate-200 focus:bg-white focus:border-slate-400 focus:outline-none text-sm"
+                   class="eg-input"
                    placeholder="Vacío = sin límite" />
           </div>
 
           <div class="grid grid-cols-2 gap-3">
             <div>
-              <label class="block text-xs font-semibold uppercase tracking-wider text-slate-600 mb-1.5">Inicio</label>
+              <label class="eg-label">Inicio</label>
               <input type="datetime-local" [(ngModel)]="payload.starts_at" name="starts_at"
-                     class="w-full px-3 py-2.5 rounded-lg bg-slate-50 border border-slate-200 focus:bg-white focus:border-slate-400 focus:outline-none text-xs" />
+                     class="eg-input text-xs" />
             </div>
             <div>
-              <label class="block text-xs font-semibold uppercase tracking-wider text-slate-600 mb-1.5">Fin</label>
+              <label class="eg-label">Fin</label>
               <input type="datetime-local" [(ngModel)]="payload.ends_at" name="ends_at"
-                     class="w-full px-3 py-2.5 rounded-lg bg-slate-50 border border-slate-200 focus:bg-white focus:border-slate-400 focus:outline-none text-xs" />
+                     class="eg-input text-xs" />
             </div>
           </div>
 

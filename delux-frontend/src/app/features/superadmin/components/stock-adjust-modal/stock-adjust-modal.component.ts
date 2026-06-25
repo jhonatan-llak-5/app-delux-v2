@@ -55,7 +55,7 @@ import { Stock, InventoryService } from '@features/superadmin/services/inventory
           </div>
 
           <div>
-            <label class="block text-xs font-semibold uppercase tracking-wider text-slate-600 mb-1.5">Operación</label>
+            <label class="eg-label">Operación</label>
             <div class="grid grid-cols-3 gap-2">
               <button type="button" (click)="setType('IN')"
                       class="px-3 py-2 rounded-lg text-xs font-semibold border transition"
@@ -88,7 +88,7 @@ import { Stock, InventoryService } from '@features/superadmin/services/inventory
           </div>
 
           <div>
-            <label class="block text-xs font-semibold uppercase tracking-wider text-slate-600 mb-1.5">Cantidad</label>
+            <label class="eg-label">Cantidad</label>
             <div class="flex items-center gap-2">
               <button type="button" (click)="absQty.set(Math.max(1, absQty() - 1))"
                       class="w-10 h-10 rounded-lg bg-slate-100 hover:bg-slate-200 grid place-items-center">
@@ -96,8 +96,7 @@ import { Stock, InventoryService } from '@features/superadmin/services/inventory
               </button>
               <input type="number" [ngModel]="absQty()" (ngModelChange)="absQty.set(+$event || 0)"
                      min="1"
-                     class="flex-1 text-center px-3 py-2.5 rounded-lg bg-slate-50 border border-slate-200
-                            focus:bg-white focus:border-slate-400 focus:outline-none text-lg font-bold" />
+                     class="eg-input flex-1 text-center text-lg font-bold" />
               <button type="button" (click)="absQty.set(absQty() + 1)"
                       class="w-10 h-10 rounded-lg bg-slate-100 hover:bg-slate-200 grid place-items-center">
                 <i class="fa-solid fa-plus text-sm"></i>
@@ -106,10 +105,9 @@ import { Stock, InventoryService } from '@features/superadmin/services/inventory
           </div>
 
           <div>
-            <label class="block text-xs font-semibold uppercase tracking-wider text-slate-600 mb-1.5">Nota (opcional)</label>
+            <label class="eg-label">Nota (opcional)</label>
             <input [(ngModel)]="note" maxlength="240"
-                   class="w-full px-3 py-2.5 rounded-lg bg-slate-50 border border-slate-200
-                          focus:bg-white focus:border-slate-400 focus:outline-none text-sm"
+                   class="eg-input"
                    placeholder="ej. Recepción de pedido #1234" />
           </div>
 

@@ -63,8 +63,7 @@ import { CategoryFormModalComponent } from '@features/superadmin/components/cate
         <i class="fa-solid fa-magnifying-glass text-sm absolute left-3 top-1/2 -translate-y-1/2 text-slate-400"></i>
         <input [ngModel]="search()" (ngModelChange)="search.set($event)"
                placeholder="Buscar categoría por nombre o slug..."
-               class="w-full pl-9 pr-3 py-2 rounded-lg bg-slate-50 border border-transparent
-                      focus:bg-white focus:border-slate-300 focus:outline-none text-sm" />
+               class="eg-input pl-9 pr-3 border-transparent" />
       </div>
       <label class="flex items-center gap-2 text-sm cursor-pointer">
         <input type="checkbox" [(ngModel)]="onlyActive" (change)="reload()" class="w-4 h-4 accent-emerald-500" />

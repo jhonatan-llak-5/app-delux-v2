@@ -22,6 +22,7 @@ export interface CheckoutInitPayload {
   coupon_code?: string;
   return_url: string;
   notes?: string;
+  shipping_address?: { address: string; latitude: number | null; longitude: number | null };
 }
 
 export interface CheckoutInitResponse {
@@ -32,6 +33,7 @@ export interface CheckoutInitResponse {
   reference?: string;
   payment_id?: number;
   sandbox?: boolean;
+  tracking_code?: string | null;
   error?: string;
 }
 
@@ -49,6 +51,11 @@ export class CheckoutService {
 
   initPayPhone(payload: CheckoutInitPayload): Observable<CheckoutInitResponse> {
     return this.http.post<CheckoutInitResponse>(`${this.base}/checkout/payphone/init/`, payload);
+  }
+
+  /** Crea el pedido con pago contra entrega (sin pasarela). */
+  placeCOD(payload: Omit<CheckoutInitPayload, 'return_url'>): Observable<CheckoutInitResponse> {
+    return this.http.post<CheckoutInitResponse>(`${this.base}/checkout/cod/`, payload);
   }
 
   confirmPayPhone(payment_id: number, success: boolean, raw?: any): Observable<CheckoutConfirmResponse> {

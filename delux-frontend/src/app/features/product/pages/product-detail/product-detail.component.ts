@@ -175,7 +175,7 @@ const IMG_PLACEHOLDER = 'data:image/svg+xml,' + encodeURIComponent(
               <div class="mt-7">
                 <div class="flex items-center justify-between mb-3.5">
                   <h3 class="text-[13px] font-bold text-ink-950 dark:text-white">
-                    Color: <span class="font-normal text-ink-600 dark:text-white/55">{{ activeColor()?.name }}</span>
+                    Color: <span class="font-normal text-ink-600 dark:text-white/55">{{ activeColor().name }}</span>
                   </h3>
                 </div>
                 <div class="flex gap-3 flex-wrap">

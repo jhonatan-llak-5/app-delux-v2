@@ -27,35 +27,31 @@ interface FlatOption { id: number; label: string; depth: number; }
 
         <form (ngSubmit)="submit()" #form="ngForm" class="px-6 py-5 space-y-4">
           <div>
-            <label class="block text-xs font-semibold uppercase tracking-wider text-slate-600 mb-1.5">Nombre *</label>
+            <label class="eg-label">Nombre *</label>
             <input [(ngModel)]="payload.name" name="name" required maxlength="80"
-                   class="w-full px-3 py-2.5 rounded-lg bg-slate-50 border border-slate-200
-                          focus:bg-white focus:border-slate-400 focus:outline-none text-sm"
+                   class="eg-input"
                    placeholder="ej. Zapatillas" />
           </div>
 
           <div class="grid grid-cols-2 gap-4">
             <div>
-              <label class="block text-xs font-semibold uppercase tracking-wider text-slate-600 mb-1.5">Slug</label>
+              <label class="eg-label">Slug</label>
               <input [(ngModel)]="payload.slug" name="slug" maxlength="80"
-                     class="w-full px-3 py-2.5 rounded-lg bg-slate-50 border border-slate-200
-                            focus:bg-white focus:border-slate-400 focus:outline-none text-sm font-mono"
+                     class="eg-input font-mono"
                      placeholder="auto" />
               <p class="text-[10px] text-slate-400 mt-1">Se genera automáticamente si está vacío.</p>
             </div>
             <div>
-              <label class="block text-xs font-semibold uppercase tracking-wider text-slate-600 mb-1.5">Orden</label>
+              <label class="eg-label">Orden</label>
               <input type="number" [(ngModel)]="payload.sort_order" name="sort_order" min="0" max="999"
-                     class="w-full px-3 py-2.5 rounded-lg bg-slate-50 border border-slate-200
-                            focus:bg-white focus:border-slate-400 focus:outline-none text-sm" />
+                     class="eg-input" />
             </div>
           </div>
 
           <div>
-            <label class="block text-xs font-semibold uppercase tracking-wider text-slate-600 mb-1.5">Categoría padre</label>
+            <label class="eg-label">Categoría padre</label>
             <select [(ngModel)]="payload.parent" name="parent"
-                    class="w-full px-3 py-2.5 rounded-lg bg-slate-50 border border-slate-200
-                           focus:bg-white focus:border-slate-400 focus:outline-none text-sm">
+                    class="eg-input">
               <option [ngValue]="null">— Categoría raíz —</option>
               @for (opt of parentOptions(); track opt.id) {
                 <option [ngValue]="opt.id">{{ opt.label }}</option>
@@ -64,9 +60,9 @@ interface FlatOption { id: number; label: string; depth: number; }
           </div>
 
           <div>
-            <label class="block text-xs font-semibold uppercase tracking-wider text-slate-600 mb-1.5">Ícono FontAwesome</label>
+            <label class="eg-label">Ícono FontAwesome</label>
             <div class="flex gap-2">
-              <div class="w-11 h-11 grid place-items-center rounded-lg bg-slate-100 border border-slate-200">
+              <div class="w-11 h-11 grid place-items-center rounded-lg bg-slate-100 dark:bg-white/5 border border-slate-200 dark:border-white/10">
                 @if (payload.icon) {
                   <i class="fa-solid {{ payload.icon }} text-slate-700"></i>
                 } @else {
@@ -74,8 +70,7 @@ interface FlatOption { id: number; label: string; depth: number; }
                 }
               </div>
               <input [(ngModel)]="payload.icon" name="icon" maxlength="40"
-                     class="flex-1 px-3 py-2.5 rounded-lg bg-slate-50 border border-slate-200
-                            focus:bg-white focus:border-slate-400 focus:outline-none text-sm font-mono"
+                     class="eg-input font-mono flex-1"
                      placeholder="fa-shoe-prints" />
             </div>
             <p class="text-[10px] text-slate-400 mt-1">
@@ -83,7 +78,7 @@ interface FlatOption { id: number; label: string; depth: number; }
             </p>
           </div>
 
-          <label class="flex items-center gap-3 cursor-pointer p-3 rounded-lg bg-slate-50 hover:bg-slate-100 transition">
+          <label class="flex items-center gap-3 cursor-pointer p-3 rounded-lg bg-slate-50 dark:bg-white/5 hover:bg-slate-100 dark:hover:bg-white/10 transition">
             <input type="checkbox" [(ngModel)]="payload.is_active" name="is_active"
                    class="w-4 h-4 accent-emerald-500" />
             <div>

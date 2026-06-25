@@ -30,11 +30,10 @@ import { debounceTime, Subject } from 'rxjs';
         <i class="fa-solid fa-magnifying-glass text-sm absolute left-3 top-1/2 -translate-y-1/2 text-slate-400"></i>
         <input placeholder="Buscar por nombre o correo..."
                [ngModel]="search()" (ngModelChange)="onSearch($event)"
-               class="w-full pl-9 pr-3 py-2 rounded-lg bg-slate-50 border border-transparent
-                      focus:bg-white focus:border-slate-300 focus:outline-none text-sm" />
+               class="eg-input pl-9 pr-3 border-transparent" />
       </div>
       <select [ngModel]="role()" (ngModelChange)="onRole($event)"
-              class="px-3 py-2 rounded-lg bg-slate-50 border border-transparent focus:bg-white focus:border-slate-300 focus:outline-none text-sm">
+              class="eg-input border-transparent">
         <option value="">Todos los roles</option>
         <option value="SUPERADMIN">Superadmin</option>
         <option value="TENANT_ADMIN">Admin Tenant</option>

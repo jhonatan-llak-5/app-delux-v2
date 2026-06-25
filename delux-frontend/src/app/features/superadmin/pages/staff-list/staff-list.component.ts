@@ -56,16 +56,15 @@ import { AdminService, AdminBranch } from '@features/superadmin/services/admin.s
         <i class="fa-solid fa-magnifying-glass text-sm absolute left-3 top-1/2 -translate-y-1/2 text-slate-400"></i>
         <input placeholder="Buscar por nombre, email, teléfono..."
                [ngModel]="search()" (ngModelChange)="onSearch($event)"
-               class="w-full pl-9 pr-3 py-2 rounded-lg bg-slate-50 border border-transparent
-                      focus:bg-white focus:border-slate-300 focus:outline-none text-sm" />
+               class="eg-input pl-9 pr-3 border-transparent" />
       </div>
       <select [(ngModel)]="branchFilter" (change)="reload()"
-              class="px-3 py-2 rounded-lg bg-slate-50 border border-transparent focus:bg-white focus:border-slate-300 focus:outline-none text-sm">
+              class="eg-input border-transparent">
         <option [ngValue]="null">Todas las sucursales</option>
         @for (b of branches(); track b.id) { <option [ngValue]="b.id">{{ b.name }}</option> }
       </select>
       <select [(ngModel)]="roleFilter" (change)="reload()"
-              class="px-3 py-2 rounded-lg bg-slate-50 border border-transparent focus:bg-white focus:border-slate-300 focus:outline-none text-sm">
+              class="eg-input border-transparent">
         <option value="">Todos los roles</option>
         <option value="BRANCH_MANAGER">Gerentes</option>
         <option value="SALESPERSON">Vendedores</option>

@@ -23,25 +23,25 @@ import { Customer, CustomerPayload, CustomerService } from '@features/superadmin
 
         <form (ngSubmit)="save()" #f="ngForm" class="px-6 py-5 space-y-4">
           <div>
-            <label class="block text-xs font-semibold uppercase tracking-wider text-slate-600 mb-1.5">Nombre completo *</label>
+            <label class="eg-label">Nombre completo *</label>
             <input [(ngModel)]="payload.full_name" name="full_name" required maxlength="160"
-                   class="w-full px-3 py-2.5 rounded-lg bg-slate-50 border border-slate-200 focus:bg-white focus:border-slate-400 focus:outline-none text-sm" />
+                   class="eg-input" />
           </div>
           <div>
-            <label class="block text-xs font-semibold uppercase tracking-wider text-slate-600 mb-1.5">Email *</label>
+            <label class="eg-label">Email *</label>
             <input [(ngModel)]="payload.email" name="email" type="email" required
-                   class="w-full px-3 py-2.5 rounded-lg bg-slate-50 border border-slate-200 focus:bg-white focus:border-slate-400 focus:outline-none text-sm" />
+                   class="eg-input" />
           </div>
           <div class="grid grid-cols-2 gap-3">
             <div>
-              <label class="block text-xs font-semibold uppercase tracking-wider text-slate-600 mb-1.5">Teléfono</label>
+              <label class="eg-label">Teléfono</label>
               <input [(ngModel)]="payload.phone" name="phone" maxlength="30"
-                     class="w-full px-3 py-2.5 rounded-lg bg-slate-50 border border-slate-200 focus:bg-white focus:border-slate-400 focus:outline-none text-sm" />
+                     class="eg-input" />
             </div>
             <div>
-              <label class="block text-xs font-semibold uppercase tracking-wider text-slate-600 mb-1.5">Cédula</label>
+              <label class="eg-label">Cédula</label>
               <input [(ngModel)]="payload.document_id" name="document_id" maxlength="30"
-                     class="w-full px-3 py-2.5 rounded-lg bg-slate-50 border border-slate-200 focus:bg-white focus:border-slate-400 focus:outline-none text-sm font-mono" />
+                     class="eg-input font-mono" />
             </div>
           </div>
           <label class="flex items-center gap-3 cursor-pointer p-3 rounded-lg bg-emerald-50 hover:bg-emerald-100 transition">

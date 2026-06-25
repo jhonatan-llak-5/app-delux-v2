@@ -141,3 +141,34 @@ def notify_welcome(user, code):
             'code': code,
         },
     )
+
+
+def notify_order_received(order):
+    """Email al cliente con el comprobante (link PDF) y, si aplica, seguimiento."""
+    import os
+    cust = getattr(order, 'customer', None)
+    if not cust or not getattr(cust, 'email', ''):
+        return
+    base = (os.getenv('FRONTEND_URL') or '').rstrip('/')
+    receipt_url = f'{base}/api/v1/admin/checkout/receipt/{order.code}/'
+    tracking_url = ''
+    try:
+        from apps.shipping.models import Shipment
+        sh = Shipment.objects.filter(order=order).first()
+        if sh:
+            tracking_url = f'{base}/tracking/{sh.tracking_code}'
+    except Exception:
+        pass
+    send_html_email(
+        to_email=cust.email,
+        subject=f'Recibimos tu pedido {order.code} 🛍️',
+        template='order_receipt',
+        ctx={
+            'customer_name': getattr(cust, 'full_name', '') or 'Cliente',
+            'order_code': order.code,
+            'order_total': order.total,
+            'branch_name': getattr(order.branch, 'name', '') or '',
+            'receipt_url': receipt_url,
+            'tracking_url': tracking_url,
+        },
+    )

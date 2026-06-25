@@ -7,10 +7,7 @@ import { FormsModule } from '@angular/forms';
 import { ActivatedRoute } from '@angular/router';
 import { environment } from '@env/environment';
 import { ShippingService, PublicTracking, PublicTrackingEvent } from '@shared/services/shipping.service';
-
-// Leaflet se carga dinámicamente.
-// El usuario debe correr: npm install leaflet @types/leaflet
-type LeafletNs = any;
+import * as L from 'leaflet';
 
 @Component({
   selector: 'dlx-tracking-page',
@@ -33,7 +30,6 @@ export class TrackingPageComponent implements OnInit, AfterViewInit, OnDestroy {
   lastUpdate = signal<Date | null>(null);
 
   private ws: WebSocket | null = null;
-  private leaflet: LeafletNs | null = null;
   private map: any = null;
   private originMarker: any = null;
   private destMarker: any = null;
@@ -144,12 +140,6 @@ export class TrackingPageComponent implements OnInit, AfterViewInit, OnDestroy {
     const hasDest   = !!(dest   && dest.latitude   != null && dest.longitude   != null);
     if (!hasOrigin && !hasDest) return;
 
-    if (!this.leaflet) {
-      const modName: string = 'leaflet';
-      this.leaflet = await import(/* webpackIgnore: true */ modName as any);
-    }
-    const L = this.leaflet!;
-
     if (this.map) { this.map.remove(); this.map = null; }
 
     const center: [number, number] = hasOrigin
@@ -208,19 +198,19 @@ export class TrackingPageComponent implements OnInit, AfterViewInit, OnDestroy {
   }
 
   private addEventMarker(lat: number, lon: number, label: string) {
-    if (!this.map || !this.leaflet) return;
-    this.leaflet.circleMarker([lat, lon], {
+    if (!this.map) return;
+    L.circleMarker([lat, lon], {
       radius: 6, color: '#1e40af', fillColor: '#3b82f6', fillOpacity: 0.7,
     }).bindPopup('<b>' + label + '</b>').addTo(this.map);
   }
 
   private updateCourierMarker(lat: number, lon: number) {
-    if (!this.map || !this.leaflet) return;
+    if (!this.map) return;
     if (this.courierMarker) {
       this.courierMarker.setLatLng([lat, lon]);
     } else {
-      this.courierMarker = this.leaflet.marker([lat, lon], {
-        icon: this.colorIcon(this.leaflet, '#f59e0b', 'fa-truck'),
+      this.courierMarker = L.marker([lat, lon], {
+        icon: this.colorIcon(L, '#f59e0b', 'fa-truck'),
       }).addTo(this.map).bindPopup('<b>Repartidor</b><br>En ruta');
     }
   }

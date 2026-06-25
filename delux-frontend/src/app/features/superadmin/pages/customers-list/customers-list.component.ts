@@ -52,7 +52,7 @@ import { CustomerFormModalComponent } from '@features/superadmin/components/cust
         <i class="fa-solid fa-magnifying-glass text-sm absolute left-3 top-1/2 -translate-y-1/2 text-slate-400"></i>
         <input placeholder="Buscar por nombre, email, teléfono, cédula..."
                [ngModel]="search()" (ngModelChange)="onSearch($event)"
-               class="w-full pl-9 pr-3 py-2 rounded-lg bg-slate-50 border border-transparent focus:bg-white focus:border-slate-300 focus:outline-none text-sm" />
+               class="eg-input pl-9 pr-3 border-transparent" />
       </div>
     </div>
 

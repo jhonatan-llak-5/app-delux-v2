@@ -8,7 +8,7 @@ from rest_framework.response import Response
 from rest_framework.views import APIView
 
 from apps.accounts.permissions import IsBranchManager
-from .models import Shipment, ShipmentEvent, ShipmentStatus
+from .models import Shipment, ShipmentEvent, ShipmentStatus, Carrier
 from .serializers import ShipmentSerializer
 from .realtime import push_courier_moved, push_shipment_event
 
@@ -64,6 +64,48 @@ def _serialize_public(s: Shipment) -> dict:
             'created_at': e.created_at,
         } for e in s.events.order_by('-created_at')],
     }
+
+
+
+def auto_create_shipment(order, address=None):
+    """Crea el envío de un pedido WEB a domicilio si aún no existe.
+
+    `address` (opcional) = dict {address, latitude, longitude} con la
+    dirección de entrega elegida por el cliente (manual / ubicación / mapa).
+    Da al cliente un tracking_code de inmediato para seguir los estados.
+    Solo aplica a pedidos SHIPPING; los de retiro (PICKUP) no llevan envío.
+    """
+    from apps.orders.models import FulfillmentType
+    if order.fulfillment != FulfillmentType.SHIPPING:
+        return None
+    existing = Shipment.objects.filter(order=order).first()
+    if existing:
+        return existing
+    cust = order.customer
+    branch = order.branch
+    address = address or {}
+    addr_text = (address.get('address') or '').strip() or (order.notes or '').strip()
+    lat = address.get('latitude')
+    lon = address.get('longitude')
+    sh = Shipment.objects.create(
+        tenant=order.tenant, order=order,
+        tracking_code=gen_tracking(),
+        carrier=Carrier.INHOUSE,
+        status=ShipmentStatus.CREATED,
+        recipient_name=(getattr(cust, 'full_name', '') or 'Cliente'),
+        recipient_phone=(getattr(cust, 'phone', '') or ''),
+        address_line1=(addr_text or 'Direccion por coordinar')[:200],
+        city=(getattr(branch, 'city', '') or ''),
+        country='Ecuador',
+        dest_latitude=lat if lat not in (None, '') else None,
+        dest_longitude=lon if lon not in (None, '') else None,
+    )
+    ShipmentEvent.objects.create(
+        tenant=order.tenant, shipment=sh,
+        status=ShipmentStatus.CREATED,
+        description='Pedido recibido. Estamos preparando tu envio.',
+    )
+    return sh
 
 
 class PublicTrackingView(APIView):

@@ -103,4 +103,7 @@ class PublicUploadConfigView(APIView):
             'platform_tagline': c.platform_tagline,
             'site_logo_url': _url(getattr(c, 'site_logo', None)),
             'site_favicon_url': _url(getattr(c, 'site_favicon', None)),
+            'payphone_available': bool(
+                c.payphone_enabled and c.payphone_token and c.payphone_store_id),
+            'cod_enabled': True,
         })

@@ -37,7 +37,7 @@ import { AdminService, AdminBranch } from '@features/superadmin/services/admin.s
 
           <div class="grid grid-cols-[1fr_auto_1fr] items-end gap-3">
             <div>
-              <label class="block text-xs font-semibold uppercase tracking-wider text-slate-600 mb-1.5">Desde</label>
+              <label class="eg-label">Desde</label>
               <div class="p-3 rounded-lg bg-rose-50 border border-rose-200">
                 <p class="text-sm font-semibold">{{ stock.branch_name }}</p>
                 <p class="text-xs text-slate-500">{{ stock.quantity }} disponibles</p>
@@ -45,10 +45,9 @@ import { AdminService, AdminBranch } from '@features/superadmin/services/admin.s
             </div>
             <i class="fa-solid fa-arrow-right text-slate-400 mb-3"></i>
             <div>
-              <label class="block text-xs font-semibold uppercase tracking-wider text-slate-600 mb-1.5">Hacia</label>
+              <label class="eg-label">Hacia</label>
               <select [(ngModel)]="toBranchId"
-                      class="w-full px-3 py-2.5 rounded-lg bg-emerald-50 border border-emerald-200
-                             focus:bg-white focus:border-emerald-400 focus:outline-none text-sm">
+                      class="eg-input">
                 <option [ngValue]="null">— Sucursal destino —</option>
                 @for (b of otherBranches(); track b.id) {
                   <option [ngValue]="b.id">{{ b.name }} ({{ b.code }})</option>
@@ -58,7 +57,7 @@ import { AdminService, AdminBranch } from '@features/superadmin/services/admin.s
           </div>
 
           <div>
-            <label class="block text-xs font-semibold uppercase tracking-wider text-slate-600 mb-1.5">Cantidad a transferir</label>
+            <label class="eg-label">Cantidad a transferir</label>
             <div class="flex items-center gap-2">
               <button type="button" (click)="qty.set(Math.max(1, qty() - 1))"
                       class="w-10 h-10 rounded-lg bg-slate-100 hover:bg-slate-200 grid place-items-center">
@@ -66,8 +65,7 @@ import { AdminService, AdminBranch } from '@features/superadmin/services/admin.s
               </button>
               <input type="number" [ngModel]="qty()" (ngModelChange)="qty.set(+$event || 0)"
                      [max]="stock.quantity" min="1"
-                     class="flex-1 text-center px-3 py-2.5 rounded-lg bg-slate-50 border border-slate-200
-                            focus:bg-white focus:border-slate-400 focus:outline-none text-lg font-bold" />
+                     class="eg-input flex-1 text-center text-lg font-bold" />
               <button type="button" (click)="qty.set(Math.min(stock.quantity, qty() + 1))"
                       class="w-10 h-10 rounded-lg bg-slate-100 hover:bg-slate-200 grid place-items-center">
                 <i class="fa-solid fa-plus text-sm"></i>
@@ -81,10 +79,9 @@ import { AdminService, AdminBranch } from '@features/superadmin/services/admin.s
           </div>
 
           <div>
-            <label class="block text-xs font-semibold uppercase tracking-wider text-slate-600 mb-1.5">Nota (opcional)</label>
+            <label class="eg-label">Nota (opcional)</label>
             <input [(ngModel)]="note" maxlength="240"
-                   class="w-full px-3 py-2.5 rounded-lg bg-slate-50 border border-slate-200
-                          focus:bg-white focus:border-slate-400 focus:outline-none text-sm"
+                   class="eg-input"
                    placeholder="ej. Reabastecimiento mensual" />
           </div>
 

@@ -39,3 +39,17 @@ def notify_low_stock(stock):
         'branch_id': stock.branch.id,
         'quantity': stock.quantity,
     })
+
+
+def notify_new_order(order):
+    """Nuevo pedido WEB (p. ej. contra entrega). Notifica al panel en vivo."""
+    broadcast_admin({
+        'type': 'new_order',
+        'title': '🛍️ Nuevo pedido',
+        'message': f'Pedido {order.code} - ${order.total} ({order.branch.name})',
+        'order_id': order.id,
+        'order_code': order.code,
+        'order_total': str(order.total),
+        'branch_name': order.branch.name,
+        'channel': order.channel,
+    })

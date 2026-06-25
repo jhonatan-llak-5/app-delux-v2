@@ -33,6 +33,8 @@ export class NotificationsService {
   private lastSeenWsId = 0;
   private readonly kindMap: Record<string, NotifKind> = {
     sale_created: 'sale',
+    new_sale: 'sale',
+    new_order: 'order',
     user_registered: 'user',
     low_stock: 'low_stock',
     order_placed: 'order',

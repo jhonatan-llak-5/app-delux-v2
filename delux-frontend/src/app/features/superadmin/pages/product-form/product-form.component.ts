@@ -34,24 +34,21 @@ import { FileValidatorService } from '@shared/services/file-validator.service';
         <div class="card p-6 space-y-4">
           <h2 class="font-bold tracking-tight">Información básica</h2>
           <div>
-            <label class="block text-xs font-semibold uppercase tracking-wider text-slate-600 mb-1.5">Nombre *</label>
+            <label class="eg-label">Nombre *</label>
             <input [(ngModel)]="payload.name" name="name" required maxlength="160"
-                   class="w-full px-3 py-2.5 rounded-lg bg-slate-50 border border-slate-200
-                          focus:bg-white focus:border-slate-400 focus:outline-none text-sm" />
+                   class="eg-input" />
           </div>
           <div class="grid grid-cols-2 gap-4">
             <div>
-              <label class="block text-xs font-semibold uppercase tracking-wider text-slate-600 mb-1.5">Slug</label>
+              <label class="eg-label">Slug</label>
               <input [(ngModel)]="payload.slug" name="slug" maxlength="180"
-                     class="w-full px-3 py-2.5 rounded-lg bg-slate-50 border border-slate-200
-                            focus:bg-white focus:border-slate-400 focus:outline-none text-sm font-mono"
+                     class="eg-input font-mono"
                      placeholder="auto" />
             </div>
             <div>
-              <label class="block text-xs font-semibold uppercase tracking-wider text-slate-600 mb-1.5">Género</label>
+              <label class="eg-label">Género</label>
               <select [(ngModel)]="payload.gender" name="gender"
-                      class="w-full px-3 py-2.5 rounded-lg bg-slate-50 border border-slate-200
-                             focus:bg-white focus:border-slate-400 focus:outline-none text-sm">
+                      class="eg-input">
                 <option value="UNISEX">Unisex</option>
                 <option value="MEN">Hombre</option>
                 <option value="WOMEN">Mujer</option>
@@ -60,16 +57,14 @@ import { FileValidatorService } from '@shared/services/file-validator.service';
             </div>
           </div>
           <div>
-            <label class="block text-xs font-semibold uppercase tracking-wider text-slate-600 mb-1.5">Descripción corta</label>
+            <label class="eg-label">Descripción corta</label>
             <input [(ngModel)]="payload.short_description" name="short_description" maxlength="240"
-                   class="w-full px-3 py-2.5 rounded-lg bg-slate-50 border border-slate-200
-                          focus:bg-white focus:border-slate-400 focus:outline-none text-sm" />
+                   class="eg-input" />
           </div>
           <div>
-            <label class="block text-xs font-semibold uppercase tracking-wider text-slate-600 mb-1.5">Descripción larga</label>
+            <label class="eg-label">Descripción larga</label>
             <textarea [(ngModel)]="payload.description" name="description" rows="5"
-                      class="w-full px-3 py-2.5 rounded-lg bg-slate-50 border border-slate-200
-                             focus:bg-white focus:border-slate-400 focus:outline-none text-sm"></textarea>
+                      class="eg-input"></textarea>
           </div>
         </div>
 
@@ -140,8 +135,7 @@ import { FileValidatorService } from '@shared/services/file-validator.service';
           <!-- Añadir por URL -->
           <div class="flex gap-2">
             <input [(ngModel)]="newImgUrl" name="newImgUrl" type="url" placeholder="https://imagen.com/foto.jpg"
-                   class="flex-1 px-3 py-2.5 rounded-lg bg-slate-50 border border-slate-200
-                          focus:bg-white focus:border-slate-400 focus:outline-none text-sm" />
+                   class="eg-input flex-1" />
             <button type="button" (click)="addImg()" [disabled]="!newImgUrl"
                     class="px-4 py-2.5 rounded-lg bg-slate-900 text-white text-sm font-semibold hover:bg-slate-800 disabled:opacity-40">
               <i class="fa-solid fa-plus"></i> Añadir
@@ -176,7 +170,7 @@ import { FileValidatorService } from '@shared/services/file-validator.service';
           <div class="flex gap-2 mb-5">
             <input [(ngModel)]="newSize" name="newSize" (keydown.enter)="$event.preventDefault(); addSize()"
                    placeholder="Ej: 42, M, XL" maxlength="20"
-                   class="flex-1 px-3 py-2 rounded-lg bg-slate-50 border border-slate-200 focus:bg-white focus:border-slate-400 focus:outline-none text-sm" />
+                   class="eg-input flex-1" />
             <button type="button" (click)="addSize()" [disabled]="!newSize.trim()"
                     class="px-4 py-2 rounded-lg bg-slate-900 text-white text-sm font-semibold hover:bg-slate-800 disabled:opacity-40">Añadir</button>
           </div>
@@ -197,7 +191,7 @@ import { FileValidatorService } from '@shared/services/file-validator.service';
           <div class="flex gap-2">
             <input [(ngModel)]="newColor" name="newColor" (keydown.enter)="$event.preventDefault(); addColor()"
                    placeholder="Ej: Negro, Azul marino" maxlength="40"
-                   class="flex-1 px-3 py-2 rounded-lg bg-slate-50 border border-slate-200 focus:bg-white focus:border-slate-400 focus:outline-none text-sm" />
+                   class="eg-input flex-1" />
             <button type="button" (click)="addColor()" [disabled]="!newColor.trim()"
                     class="px-4 py-2 rounded-lg bg-slate-900 text-white text-sm font-semibold hover:bg-slate-800 disabled:opacity-40">Añadir</button>
           </div>
@@ -231,16 +225,14 @@ import { FileValidatorService } from '@shared/services/file-validator.service';
         <div class="card p-6 space-y-4">
           <h2 class="font-bold tracking-tight">SEO</h2>
           <div>
-            <label class="block text-xs font-semibold uppercase tracking-wider text-slate-600 mb-1.5">Meta título</label>
+            <label class="eg-label">Meta título</label>
             <input [(ngModel)]="payload.meta_title" name="meta_title" maxlength="160"
-                   class="w-full px-3 py-2.5 rounded-lg bg-slate-50 border border-slate-200
-                          focus:bg-white focus:border-slate-400 focus:outline-none text-sm" />
+                   class="eg-input" />
           </div>
           <div>
-            <label class="block text-xs font-semibold uppercase tracking-wider text-slate-600 mb-1.5">Meta descripción</label>
+            <label class="eg-label">Meta descripción</label>
             <textarea [(ngModel)]="payload.meta_description" name="meta_description" rows="2" maxlength="240"
-                      class="w-full px-3 py-2.5 rounded-lg bg-slate-50 border border-slate-200
-                             focus:bg-white focus:border-slate-400 focus:outline-none text-sm"></textarea>
+                      class="eg-input"></textarea>
           </div>
         </div>
       </div>
@@ -251,10 +243,9 @@ import { FileValidatorService } from '@shared/services/file-validator.service';
           <h2 class="font-bold tracking-tight">Publicación</h2>
 
           <div>
-            <label class="block text-xs font-semibold uppercase tracking-wider text-slate-600 mb-1.5">Estado</label>
+            <label class="eg-label">Estado</label>
             <select [(ngModel)]="payload.status" name="status"
-                    class="w-full px-3 py-2.5 rounded-lg bg-slate-50 border border-slate-200
-                           focus:bg-white focus:border-slate-400 focus:outline-none text-sm">
+                    class="eg-input">
               <option value="DRAFT">Borrador</option>
               <option value="PUBLISHED">Publicado</option>
               <option value="PAUSED">Pausado</option>
@@ -263,10 +254,9 @@ import { FileValidatorService } from '@shared/services/file-validator.service';
           </div>
 
           <div>
-            <label class="block text-xs font-semibold uppercase tracking-wider text-slate-600 mb-1.5">Etiqueta</label>
+            <label class="eg-label">Etiqueta</label>
             <select [(ngModel)]="payload.tag" name="tag"
-                    class="w-full px-3 py-2.5 rounded-lg bg-slate-50 border border-slate-200
-                           focus:bg-white focus:border-slate-400 focus:outline-none text-sm">
+                    class="eg-input">
               <option value="">— Ninguna —</option>
               <option value="NEW">Nuevo</option>
               <option value="DROP">Drop</option>
@@ -290,20 +280,18 @@ import { FileValidatorService } from '@shared/services/file-validator.service';
           <h2 class="font-bold tracking-tight">Organización</h2>
 
           <div>
-            <label class="block text-xs font-semibold uppercase tracking-wider text-slate-600 mb-1.5">Marca *</label>
+            <label class="eg-label">Marca *</label>
             <select [(ngModel)]="payload.brand" name="brand" required
-                    class="w-full px-3 py-2.5 rounded-lg bg-slate-50 border border-slate-200
-                           focus:bg-white focus:border-slate-400 focus:outline-none text-sm">
+                    class="eg-input">
               <option [ngValue]="null">— Seleccionar —</option>
               @for (b of brands(); track b.id) { <option [ngValue]="b.id">{{ b.name }}</option> }
             </select>
           </div>
 
           <div>
-            <label class="block text-xs font-semibold uppercase tracking-wider text-slate-600 mb-1.5">Categoría *</label>
+            <label class="eg-label">Categoría *</label>
             <select [(ngModel)]="payload.category" name="category" required
-                    class="w-full px-3 py-2.5 rounded-lg bg-slate-50 border border-slate-200
-                           focus:bg-white focus:border-slate-400 focus:outline-none text-sm">
+                    class="eg-input">
               <option [ngValue]="null">— Seleccionar —</option>
               @for (c of categories(); track c.id) {
                 <option [ngValue]="c.id">{{ c.parent_name ? c.parent_name + ' → ' : '' }}{{ c.name }}</option>
@@ -315,21 +303,19 @@ import { FileValidatorService } from '@shared/services/file-validator.service';
         <div class="card p-6 space-y-4">
           <h2 class="font-bold tracking-tight">Precio</h2>
           <div>
-            <label class="block text-xs font-semibold uppercase tracking-wider text-slate-600 mb-1.5">Precio base *</label>
+            <label class="eg-label">Precio base *</label>
             <div class="relative">
               <span class="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400 text-sm">$</span>
               <input type="number" [(ngModel)]="payload.base_price" name="base_price" required min="0" step="0.01"
-                     class="w-full pl-7 pr-3 py-2.5 rounded-lg bg-slate-50 border border-slate-200
-                            focus:bg-white focus:border-slate-400 focus:outline-none text-sm" />
+                     class="eg-input pl-7 pr-3" />
             </div>
           </div>
           <div>
-            <label class="block text-xs font-semibold uppercase tracking-wider text-slate-600 mb-1.5">Precio comparativo</label>
+            <label class="eg-label">Precio comparativo</label>
             <div class="relative">
               <span class="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400 text-sm">$</span>
               <input type="number" [(ngModel)]="payload.compare_at_price" name="compare_at_price" min="0" step="0.01"
-                     class="w-full pl-7 pr-3 py-2.5 rounded-lg bg-slate-50 border border-slate-200
-                            focus:bg-white focus:border-slate-400 focus:outline-none text-sm"
+                     class="eg-input pl-7 pr-3"
                      placeholder="Opcional" />
             </div>
             <p class="text-[10px] text-slate-400 mt-1">Para mostrar como descuento.</p>

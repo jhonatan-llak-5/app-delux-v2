@@ -37,13 +37,13 @@ import { Brand, BrandPayload } from '@features/superadmin/services/brand.service
             <label class="block">
               <span class="text-xs font-bold uppercase tracking-widest text-slate-600">Nombre *</span>
               <input required [(ngModel)]="form.name" name="name" placeholder="Nike"
-                     class="dlx-input" />
+                     class="eg-input" />
             </label>
 
             <label class="block">
               <span class="text-xs font-bold uppercase tracking-widest text-slate-600">Slug</span>
               <input [(ngModel)]="form.slug" name="slug" placeholder="nike"
-                     class="dlx-input" />
+                     class="eg-input" />
               <span class="text-[10px] text-slate-400 mt-1 block">Si vacío, se genera del nombre.</span>
             </label>
           </div>
@@ -51,7 +51,7 @@ import { Brand, BrandPayload } from '@features/superadmin/services/brand.service
           <label class="block">
             <span class="text-xs font-bold uppercase tracking-widest text-slate-600">Descripción</span>
             <textarea [(ngModel)]="form.description" name="description" rows="3"
-                      class="dlx-input"
+                      class="eg-input"
                       placeholder="Descripción breve de la marca"></textarea>
           </label>
 
@@ -59,7 +59,7 @@ import { Brand, BrandPayload } from '@features/superadmin/services/brand.service
             <label class="block">
               <span class="text-xs font-bold uppercase tracking-widest text-slate-600">URL del logo</span>
               <input [(ngModel)]="form.logo_url" name="logo_url"
-                     class="dlx-input"
+                     class="eg-input"
                      placeholder="https://..." />
               @if (form.logo_url) {
                 <div class="logo-frame mt-2 inline-flex h-14 w-32 rounded-lg p-2 items-center justify-center">
@@ -73,7 +73,7 @@ import { Brand, BrandPayload } from '@features/superadmin/services/brand.service
             <label class="block">
               <span class="text-xs font-bold uppercase tracking-widest text-slate-600">URL logo dark</span>
               <input [(ngModel)]="form.logo_dark_url" name="logo_dark_url"
-                     class="dlx-input"
+                     class="eg-input"
                      placeholder="https://..." />
               @if (form.logo_dark_url) {
                 <div class="mt-2 inline-flex h-14 w-32 rounded-lg p-2 items-center justify-center bg-ink-900">
@@ -89,26 +89,26 @@ import { Brand, BrandPayload } from '@features/superadmin/services/brand.service
             <label class="block">
               <span class="text-xs font-bold uppercase tracking-widest text-slate-600">País de origen</span>
               <input [(ngModel)]="form.country_of_origin" name="country" placeholder="Estados Unidos"
-                     class="dlx-input" />
+                     class="eg-input" />
             </label>
 
             <label class="block">
               <span class="text-xs font-bold uppercase tracking-widest text-slate-600">Año fundación</span>
               <input type="number" [(ngModel)]="form.founded_year" name="founded_year"
-                     placeholder="1964" class="dlx-input" />
+                     placeholder="1964" class="eg-input" />
             </label>
 
             <label class="block">
               <span class="text-xs font-bold uppercase tracking-widest text-slate-600">Orden</span>
               <input type="number" [(ngModel)]="form.sort_order" name="sort_order" placeholder="0"
-                     class="dlx-input" />
+                     class="eg-input" />
             </label>
           </div>
 
           <label class="block">
             <span class="text-xs font-bold uppercase tracking-widest text-slate-600">Sitio web</span>
             <input [(ngModel)]="form.website" name="website" placeholder="https://nike.com"
-                   class="dlx-input" />
+                   class="eg-input" />
           </label>
 
           <div class="flex flex-wrap gap-6 pt-2">
@@ -135,13 +135,6 @@ import { Brand, BrandPayload } from '@features/superadmin/services/brand.service
       </div>
     </div>
   `,
-  styles: [`
-    .dlx-input {
-      @apply mt-1 w-full px-3 py-2.5 rounded-lg bg-slate-50 border border-slate-200
-             text-sm text-slate-900 placeholder:text-slate-400
-             focus:outline-none focus:border-slate-400 focus:bg-white transition;
-    }
-  `],
 })
 export class BrandFormModalComponent {
   @Input() brand: Brand | null = null;
