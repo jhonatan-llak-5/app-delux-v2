@@ -428,12 +428,16 @@ export class DashboardLayoutComponent implements AfterViewInit {
   headerMenuClick() {
     if (typeof window !== 'undefined' && window.innerWidth < 1024) {
       this.mobileOpen.set(true);
+      this.lockScroll(true);
     } else {
       this.toggleCollapse();
     }
   }
 
-  closeMobile() { this.mobileOpen.set(false); }
+  closeMobile() { this.mobileOpen.set(false); this.lockScroll(false); }
+  private lockScroll(on: boolean) {
+    if (typeof document !== 'undefined') document.body.style.overflow = on ? 'hidden' : '';
+  }
 
   toggleCollapse() {
     const next = !this.collapsed();

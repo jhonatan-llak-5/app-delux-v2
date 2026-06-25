@@ -165,6 +165,8 @@ import { ZoneService } from '@shared/services/zone.service';
         </div>
       </div>
 
+    </header>
+
       @if (open()) {
         <div class="md:hidden fixed inset-0 z-[60]">
           <div class="absolute inset-0 bg-ink-950/60 backdrop-blur-sm animate-fade-in" (click)="close()"></div>
@@ -224,8 +226,6 @@ import { ZoneService } from '@shared/services/zone.service';
         </div>
       }
 
-    </header>
-
     @if (searchOpen()) {
       <dlx-search-overlay (close)="searchOpen.set(false)" />
     }
@@ -269,8 +269,11 @@ export class PublicNavbarComponent {
     return typeof window !== 'undefined' && !!localStorage.getItem('dlx_access_token');
   }
 
-  toggle() { this.open.update(v => !v); }
-  close() { this.open.set(false); }
+  toggle() { this.open.update(v => !v); this.lockScroll(this.open()); }
+  close() { this.open.set(false); this.lockScroll(false); }
+  private lockScroll(on: boolean) {
+    if (typeof document !== 'undefined') document.body.style.overflow = on ? 'hidden' : '';
+  }
 
   logout() {
     this.accountOpen.set(false);
