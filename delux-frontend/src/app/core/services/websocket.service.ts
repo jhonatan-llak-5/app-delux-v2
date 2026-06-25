@@ -24,10 +24,8 @@ export class WebSocketService {
   connect() {
     if (this.socket && this.socket.readyState <= 1) return;
     // Derivar URL: si apiUrl es http(s)://X/api/v1 → ws(s)://X/ws/admin/notifications/
-    const apiUrl = environment.apiUrl;
-    const wsUrl = apiUrl
-      .replace(/^http/, 'ws')
-      .replace('/api/v1', '') + '/ws/admin/notifications/';
+    // Mismo origen que la página: http(s)://host  ->  ws(s)://host/ws/...
+    const wsUrl = location.origin.replace(/^http/, 'ws') + '/ws/admin/notifications/';
     try {
       this.socket = new WebSocket(wsUrl);
       this.socket.onopen = () => this.connected.set(true);

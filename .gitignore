@@ -20,3 +20,4 @@ delux-backend/**/__pycache__/
 delux-backend/.venv/
 delux-backend/media/
 delux-backend/staticfiles/
+.env.prod

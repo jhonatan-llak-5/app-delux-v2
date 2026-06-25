@@ -1,0 +1,103 @@
+# ============================================================================
+# Delux — Stack de PRODUCCIÓN
+# Solo se publica UN puerto al host: ${WEB_PORT:-8080} (la web/nginx).
+# Postgres, Redis, backend, websocket y celery quedan INTERNOS (no chocan
+# con otros servicios del servidor). Variables: archivo .env (APP_ENV define el sufijo).
+# ============================================================================
+
+name: delux_${APP_ENV:-staging}
+
+services:
+
+  postgres:
+    image: postgres:16-alpine
+    container_name: delux_postgres_${APP_ENV:-staging}
+    environment:
+      POSTGRES_DB: ${DB_NAME}
+      POSTGRES_USER: ${DB_USER}
+      POSTGRES_PASSWORD: ${DB_PASSWORD}
+    volumes:
+      - delux_pg_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${DB_USER} -d ${DB_NAME}"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    restart: unless-stopped
+
+  redis:
+    image: redis:7-alpine
+    container_name: delux_redis_${APP_ENV:-staging}
+    restart: unless-stopped
+
+  backend:
+    build:
+      context: ./delux-backend
+      args:
+        REQUIREMENTS: prod.txt
+    image: delux_backend:${APP_ENV:-staging}
+    container_name: delux_backend_${APP_ENV:-staging}
+    command: >
+      sh -c "python manage.py migrate --noinput &&
+             python manage.py collectstatic --noinput &&
+             gunicorn config.wsgi:application --bind 0.0.0.0:8000 --workers 3 --timeout 120"
+    env_file: .env
+    volumes:
+      - backend_media:/app/media
+      - backend_static:/app/static
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_started
+    restart: unless-stopped
+
+  websocket:
+    image: delux_backend:${APP_ENV:-staging}
+    container_name: delux_websocket_${APP_ENV:-staging}
+    command: daphne -b 0.0.0.0 -p 8001 config.asgi:application
+    env_file: .env
+    depends_on:
+      - backend
+      - redis
+    restart: unless-stopped
+
+  celery:
+    image: delux_backend:${APP_ENV:-staging}
+    container_name: delux_celery_${APP_ENV:-staging}
+    command: celery -A config worker -l info
+    env_file: .env
+    depends_on:
+      - backend
+      - redis
+    restart: unless-stopped
+
+  celery-beat:
+    image: delux_backend:${APP_ENV:-staging}
+    container_name: delux_celery_beat_${APP_ENV:-staging}
+    command: celery -A config beat -l info
+    env_file: .env
+    depends_on:
+      - backend
+      - redis
+    restart: unless-stopped
+
+  web:
+    build:
+      context: ./delux-frontend
+    image: delux_frontend:${APP_ENV:-staging}
+    container_name: delux_frontend_${APP_ENV:-staging}
+    ports:
+      - "${WEB_PORT:-8080}:80"
+    volumes:
+      - backend_media:/var/www/media:ro
+      - backend_static:/var/www/static:ro
+    depends_on:
+      - backend
+      - websocket
+    restart: unless-stopped
+
+volumes:
+  delux_pg_data:
+  backend_media:
+  backend_static:

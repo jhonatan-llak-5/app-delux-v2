@@ -76,7 +76,8 @@ export class TrackingPageComponent implements OnInit, AfterViewInit, OnDestroy {
   }
 
   private connectWs(code: string) {
-    const url = `${environment.wsUrl}/tracking/${code}/`;
+    const wsBase = location.origin.replace(/^http/, 'ws');
+    const url = `${wsBase}/ws/tracking/${code}/`;
     try {
       this.ws = new WebSocket(url);
       this.ws.onopen = () => this.wsConnected.set(true);
