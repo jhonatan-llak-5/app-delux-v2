@@ -1,7 +1,8 @@
-import { ChangeDetectionStrategy, Component, Input } from '@angular/core';
+import { ChangeDetectionStrategy, Component, Input, inject } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { Location } from '@angular/common';
 import { RouterLink } from '@angular/router';
+import { BrandingService } from '@core/services/branding.service';
 
 /**
  * AuthShell — Hero visual izq + form clean derecho (estilo Instagram exacto).
@@ -31,10 +32,9 @@ import { RouterLink } from '@angular/router';
 
         <div class="relative h-full flex flex-col justify-between p-12 xl:p-16 text-white">
 
-          <a routerLink="/" class="flex items-center gap-2.5 w-fit">
-            <div class="w-10 h-10 rounded-xl bg-white grid place-items-center
-                        font-bold text-ink-950 text-lg">D</div>
-            <span class="font-bold text-xl tracking-tight">Delux</span>
+          <a routerLink="/" class="flex items-center w-fit">
+            <img [src]="branding.logoUrlDark()" [alt]="branding.siteName()"
+                 class="h-9 w-auto max-w-[200px] object-contain" />
           </a>
 
           <div class="max-w-xl">
@@ -50,7 +50,7 @@ import { RouterLink } from '@angular/router';
           </div>
 
           <div class="flex items-center justify-between text-[12px] text-white/50">
-            <span>© 2026 Delux · Quito, Ecuador</span>
+            <span>© 2026 {{ branding.siteName() }} · Quito, Ecuador</span>
             <div class="flex items-center gap-4">
               <a routerLink="/contact" class="hover:text-white transition">Ayuda</a>
               <a routerLink="/" class="hover:text-white transition">Privacidad</a>
@@ -65,10 +65,11 @@ import { RouterLink } from '@angular/router';
         <!-- Top bar mobile -->
         <header class="lg:hidden px-6 py-5 flex items-center justify-between
                        border-b border-ink-100 dark:border-white/[0.06]">
-          <a routerLink="/" class="flex items-center gap-2.5">
-            <div class="w-9 h-9 rounded-xl bg-ink-950 dark:bg-white grid place-items-center
-                        font-bold text-white dark:text-ink-950 text-base">D</div>
-            <span class="font-bold text-lg tracking-tight text-ink-950 dark:text-white">Delux</span>
+          <a routerLink="/" class="flex items-center">
+            <img [src]="branding.logoUrl()" [alt]="branding.siteName()"
+                 class="h-8 w-auto max-w-[170px] object-contain block dark:hidden" />
+            <img [src]="branding.logoUrlDark()" [alt]="branding.siteName()"
+                 class="h-8 w-auto max-w-[170px] object-contain hidden dark:block" />
           </a>
         </header>
 
@@ -97,6 +98,7 @@ import { RouterLink } from '@angular/router';
   `,
 })
 export class AuthShellComponent {
+  protected readonly branding = inject(BrandingService);
   @Input() title = '';
   @Input() subtitle = '';
 }

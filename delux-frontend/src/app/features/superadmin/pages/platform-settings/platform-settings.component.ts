@@ -4,6 +4,7 @@ import { FormsModule, ReactiveFormsModule, FormBuilder, Validators } from '@angu
 import { AdminService, PlatformSettings } from '@features/superadmin/services/admin.service';
 import { NotifyService } from '@shared/services/notify.service';
 import { FileValidatorService } from '@shared/services/file-validator.service';
+import { BrandingService } from '@core/services/branding.service';
 
 type TabId = 'email' | 'recaptcha' | 'brand' | 'uploads' | 'payments';
 type ExtControl = 'allowed_image_extensions' | 'allowed_file_extensions' | 'allowed_video_extensions';
@@ -516,6 +517,7 @@ export class PlatformSettingsComponent implements OnInit {
   private admin = inject(AdminService);
   private notify = inject(NotifyService);
   validator = inject(FileValidatorService);
+  private branding = inject(BrandingService);
 
   readonly imageExtensionOptions = IMAGE_EXTENSIONS;
   readonly fileExtensionOptions = FILE_EXTENSIONS;
@@ -678,6 +680,8 @@ export class PlatformSettingsComponent implements OnInit {
     this.clearLogo();
     this.clearFavicon();
     this.saving.set(false);
+    // Refresca el branding global (logo, favicon, nombre) sin recargar la página.
+    this.branding.load();
     this.notify.success('Configuración guardada');
   }
 
