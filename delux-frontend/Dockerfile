@@ -7,9 +7,11 @@
 FROM node:20-alpine AS build
 WORKDIR /app
 
-# Instala dependencias con el lockfile (reproducible)
+# Instala dependencias. Usamos `npm install` (no `npm ci`) porque el
+# package-lock.json puede haberse generado en otro SO y faltarle binarios
+# nativos específicos de Linux (@emnapi, @rollup/rollup-linux-*, etc.).
 COPY package*.json ./
-RUN npm ci
+RUN npm install --no-audit --no-fund
 
 # Copia el código y compila en modo producción
 COPY . .
