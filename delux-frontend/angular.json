@@ -19,7 +19,10 @@
         "build": {
           "builder": "@angular-devkit/build-angular:application",
           "options": {
-            "outputPath": "dist/delux-frontend",
+            "outputPath": {
+              "base": "dist/delux-frontend",
+              "media": "ng-media"
+            },
             "index": "src/index.html",
             "browser": "src/main.ts",
             "polyfills": ["zone.js"],
