@@ -172,6 +172,18 @@ export class AdminService {
   branchCatalog(id: number): Observable<AdminBranchCatalogResponse> {
     return this.http.get<AdminBranchCatalogResponse>(`${this.base}/branches/${id}/catalog/`);
   }
+  createBranch(payload: Partial<AdminBranch> & { tenant_slug?: string }): Observable<AdminBranch> {
+    return this.http.post<AdminBranch>(`${this.base}/branches/`, payload);
+  }
+  updateBranch(id: number, payload: Partial<AdminBranch>): Observable<AdminBranch> {
+    return this.http.patch<AdminBranch>(`${this.base}/branches/${id}/`, payload);
+  }
+  deleteBranch(id: number): Observable<void> {
+    return this.http.delete<void>(`${this.base}/branches/${id}/`);
+  }
+  branchUsage(id: number): Observable<{ products_count: number; staff_count: number; orders_count: number }> {
+    return this.http.get<{ products_count: number; staff_count: number; orders_count: number }>(`${this.base}/branches/${id}/usage/`);
+  }
 
   // ── Settings (singleton de configuración global)
   getSettings(): Observable<PlatformSettings> {

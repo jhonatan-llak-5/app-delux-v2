@@ -9,7 +9,7 @@ export interface StaffUser {
   full_name: string;
   phone: string;
   document_id: string;
-  role: 'BRANCH_MANAGER' | 'SALESPERSON';
+  role: 'TENANT_ADMIN' | 'BRANCH_MANAGER' | 'SALESPERSON';
   role_label: string;
   tenant: number | null;
   branch: number | null;
@@ -27,7 +27,7 @@ export interface StaffPayload {
   full_name: string;
   phone?: string;
   document_id?: string;
-  role: 'BRANCH_MANAGER' | 'SALESPERSON';
+  role: 'TENANT_ADMIN' | 'BRANCH_MANAGER' | 'SALESPERSON';
   branch: number;
   commission_rate?: number;
   hire_date?: string | null;

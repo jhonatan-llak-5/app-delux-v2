@@ -103,7 +103,20 @@ import { AdminService, AdminBranch } from '@features/superadmin/services/admin.s
 
           <div>
             <label class="eg-label">Rol *</label>
-            <div class="grid grid-cols-2 gap-2">
+            <div class="grid grid-cols-1 gap-2">
+              <button type="button" (click)="payload.role = 'TENANT_ADMIN'"
+                      class="px-3 py-3 rounded-lg border text-sm font-semibold transition text-left flex items-center gap-3"
+                      [class.bg-blue-100]="payload.role === 'TENANT_ADMIN'"
+                      [class.border-blue-400]="payload.role === 'TENANT_ADMIN'"
+                      [class.text-blue-700]="payload.role === 'TENANT_ADMIN'"
+                      [class.border-slate-200]="payload.role !== 'TENANT_ADMIN'"
+                      [class.text-slate-600]="payload.role !== 'TENANT_ADMIN'">
+                <i class="fa-solid fa-shield-halved"></i>
+                <span>
+                  <span class="block">Admin de tienda</span>
+                  <span class="block text-[11px] font-normal opacity-70">Acceso total excepto Configuración del sitio</span>
+                </span>
+              </button>
               <button type="button" (click)="payload.role = 'SALESPERSON'"
                       class="px-3 py-3 rounded-lg border text-sm font-semibold transition"
                       [class.bg-sky-100]="payload.role === 'SALESPERSON'"
@@ -127,14 +140,16 @@ import { AdminService, AdminBranch } from '@features/superadmin/services/admin.s
             </div>
           </div>
 
-          <div>
-            <label class="eg-label">Sucursal asignada *</label>
-            <select [(ngModel)]="payload.branch" name="branch" required
-                    class="eg-input">
-              <option [ngValue]="null">— Seleccionar —</option>
-              @for (b of branches(); track b.id) { <option [ngValue]="b.id">{{ b.name }} · {{ b.city }}</option> }
-            </select>
-          </div>
+          @if (payload.role !== 'TENANT_ADMIN') {
+            <div>
+              <label class="eg-label">Sucursal asignada *</label>
+              <select [(ngModel)]="payload.branch" name="branch" required
+                      class="eg-input">
+                <option [ngValue]="null">— Seleccionar —</option>
+                @for (b of branches(); track b.id) { <option [ngValue]="b.id">{{ b.name }} · {{ b.city }}</option> }
+              </select>
+            </div>
+          }
 
           <div>
             <label class="eg-label">Fecha de ingreso</label>

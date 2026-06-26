@@ -352,7 +352,7 @@ export class DashboardLayoutComponent implements AfterViewInit {
   readonly allGroups: NavGroup[] = [
     {
       title: 'Plataforma',
-      roles: ['SUPERADMIN'],
+      roles: ['SUPERADMIN', 'TENANT_ADMIN'],
       items: [
         { label: 'Panel global',  icon: 'fa-shield-halved', route: '/app/admin/overview' },
         { label: 'Tiendas',       icon: 'fa-store',          route: '/app/admin/tenants' },
@@ -376,7 +376,7 @@ export class DashboardLayoutComponent implements AfterViewInit {
     },
     {
       title: 'Mi local',
-      roles: ['TENANT_ADMIN', 'BRANCH_MANAGER'],
+      roles: ['BRANCH_MANAGER'],
       items: [
         { label: 'Panel',        icon: 'fa-gauge-high',     route: '/app/admin/overview' },
         { label: 'Productos',    icon: 'fa-box',            route: '/app/admin/products' },
@@ -406,7 +406,15 @@ export class DashboardLayoutComponent implements AfterViewInit {
 
   visibleGroups = computed(() => {
     const role = this.auth.user()?.role;
-    return this.allGroups.filter(g => !g.roles || (role && g.roles.includes(role)));
+    return this.allGroups
+      .filter(g => !g.roles || (role && g.roles.includes(role)))
+      .map(g => ({
+        ...g,
+        // La Configuración del sitio es exclusiva del superadmin.
+        items: role === 'SUPERADMIN'
+          ? g.items
+          : g.items.filter(it => it.route !== '/app/admin/settings'),
+      }));
   });
 
   // ── Impersonación

@@ -3,7 +3,7 @@ from rest_framework import filters, permissions, status, viewsets
 from rest_framework.decorators import action
 from rest_framework.response import Response
 
-from apps.accounts.permissions import IsSuperadmin
+from apps.accounts.permissions import IsTenantAdmin
 
 from .models import Brand
 from .serializers import BrandSerializer, BrandCreateUpdateSerializer
@@ -11,7 +11,7 @@ from .serializers import BrandSerializer, BrandCreateUpdateSerializer
 
 class AdminBrandViewSet(viewsets.ModelViewSet):
     """CRUD completo de marcas (solo Superadmin)."""
-    permission_classes = [permissions.IsAuthenticated, IsSuperadmin]
+    permission_classes = [permissions.IsAuthenticated, IsTenantAdmin]
     filter_backends = [filters.SearchFilter, filters.OrderingFilter]
     search_fields = ['name', 'slug', 'country_of_origin']
     ordering_fields = ['name', 'sort_order', 'created_at', 'products_count']

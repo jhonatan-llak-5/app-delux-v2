@@ -14,13 +14,13 @@ export const SUPERADMIN_ROUTES: Routes = [
       },
       {
         path: 'brands',
-        canActivate: [roleGuard(['SUPERADMIN'])],
+        canActivate: [roleGuard(['SUPERADMIN', 'TENANT_ADMIN'])],
         loadComponent: () =>
           import('./pages/brands-list/brands-list.component').then(m => m.BrandsListComponent),
       },
       {
         path: 'categories',
-        canActivate: [roleGuard(['SUPERADMIN'])],
+        canActivate: [roleGuard(['SUPERADMIN', 'TENANT_ADMIN'])],
         loadComponent: () =>
           import('./pages/categories-tree/categories-tree.component').then(m => m.CategoriesTreeComponent),
       },
@@ -111,7 +111,7 @@ export const SUPERADMIN_ROUTES: Routes = [
       },
       {
         path: 'coupons',
-        canActivate: [roleGuard(['SUPERADMIN'])],
+        canActivate: [roleGuard(['SUPERADMIN', 'TENANT_ADMIN'])],
         loadComponent: () =>
           import('./pages/coupons-list/coupons-list.component').then(m => m.CouponsListComponent),
       },
@@ -141,25 +141,25 @@ export const SUPERADMIN_ROUTES: Routes = [
       },
       {
         path: 'users',
-        canActivate: [roleGuard(['SUPERADMIN'])],
+        canActivate: [roleGuard(['SUPERADMIN', 'TENANT_ADMIN'])],
         loadComponent: () =>
           import('./pages/users-list/users-list.component').then(m => m.UsersListComponent),
       },
       {
         path: 'tenants',
-        canActivate: [roleGuard(['SUPERADMIN'])],
+        canActivate: [roleGuard(['SUPERADMIN', 'TENANT_ADMIN'])],
         loadComponent: () =>
           import('./pages/tenants-list/tenants-list.component').then(m => m.TenantsListComponent),
       },
       {
         path: 'tenants/:slug/branches',
-        canActivate: [roleGuard(['SUPERADMIN'])],
+        canActivate: [roleGuard(['SUPERADMIN', 'TENANT_ADMIN'])],
         loadComponent: () =>
           import('./pages/tenant-branches/tenant-branches.component').then(m => m.TenantBranchesComponent),
       },
       {
         path: 'branches/:id/catalog',
-        canActivate: [roleGuard(['SUPERADMIN'])],
+        canActivate: [roleGuard(['SUPERADMIN', 'TENANT_ADMIN'])],
         loadComponent: () =>
           import('./pages/branch-catalog/branch-catalog.component').then(m => m.BranchCatalogComponent),
       },
