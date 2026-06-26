@@ -1,8 +1,9 @@
-import { ChangeDetectionStrategy, Component, inject, signal } from '@angular/core';
+import { AfterViewInit, ChangeDetectionStrategy, Component, inject, signal } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { Router, RouterLink } from '@angular/router';
 import { AuthService } from '@core/services/auth.service';
+import { BrandingService } from '@core/services/branding.service';
 import { AuthShellComponent } from '@features/auth/components/auth-shell/auth-shell.component';
 
 @Component({
@@ -12,54 +13,74 @@ import { AuthShellComponent } from '@features/auth/components/auth-shell/auth-sh
   changeDetection: ChangeDetectionStrategy.OnPush,
   template: `
     <dlx-auth-shell title="Crear cuenta en Delux">
-      <form (ngSubmit)="submit()" #f="ngForm" class="space-y-2.5">
+      <form (ngSubmit)="submit()" #f="ngForm" class="space-y-3">
 
-        <input [(ngModel)]="form.email" name="email" type="email" required
-               autocomplete="email" placeholder="Correo electrónico"
-               class="input-modern" />
+        <div>
+          <label class="block text-[12px] font-semibold text-ink-700 dark:text-white/70 mb-1">Correo electrónico <span class="text-rose-500">*</span></label>
+          <input [(ngModel)]="form.email" name="email" type="email" required (ngModelChange)="persist()"
+                 autocomplete="email" placeholder="tucorreo@ejemplo.com" class="input-modern" />
+        </div>
 
-        <input [(ngModel)]="form.full_name" name="full_name" required minlength="2" maxlength="160"
-               autocomplete="name" placeholder="Nombre completo"
-               class="input-modern" />
+        <div>
+          <label class="block text-[12px] font-semibold text-ink-700 dark:text-white/70 mb-1">Nombre completo <span class="text-rose-500">*</span></label>
+          <input [(ngModel)]="form.full_name" name="full_name" required minlength="2" maxlength="160" (ngModelChange)="persist()"
+                 autocomplete="name" placeholder="Tu nombre y apellido" class="input-modern" />
+        </div>
 
-        <input [(ngModel)]="form.username" name="username" required minlength="3" maxlength="40"
-               autocomplete="username" placeholder="Nombre de usuario"
-               (ngModelChange)="form.username = $event.toLowerCase()"
-               class="input-modern" />
+        <div>
+          <label class="block text-[12px] font-semibold text-ink-700 dark:text-white/70 mb-1">Nombre de usuario <span class="text-rose-500">*</span></label>
+          <input [(ngModel)]="form.username" name="username" required minlength="3" maxlength="40"
+                 autocomplete="username" placeholder="solo minúsculas, sin espacios"
+                 (ngModelChange)="form.username = $event.toLowerCase(); persist()" class="input-modern" />
+        </div>
 
-        <div class="input-modern-wrap">
-          <input [(ngModel)]="form.password" name="password" [type]="show() ? 'text' : 'password'"
-                 required minlength="8" autocomplete="new-password"
-                 placeholder="Contraseña"
-                 class="input-modern" />
-          @if (form.password) {
-            <button type="button" (click)="show.set(!show())" tabindex="-1"
-                    class="input-modern-trailing"
-                    style="font-size:13px;font-weight:600;">
-              {{ show() ? 'Ocultar' : 'Mostrar' }}
-            </button>
+        <div>
+          <label class="block text-[12px] font-semibold text-ink-700 dark:text-white/70 mb-1">Contraseña <span class="text-rose-500">*</span></label>
+          <div class="input-modern-wrap">
+            <input [(ngModel)]="form.password" name="password" [type]="show() ? 'text' : 'password'"
+                   required minlength="8" autocomplete="new-password"
+                   (focus)="pwFocused.set(true)" placeholder="Crea una contraseña segura" class="input-modern" />
+            @if (form.password) {
+              <button type="button" (click)="show.set(!show())" tabindex="-1"
+                      class="input-modern-trailing" style="font-size:13px;font-weight:600;">
+                {{ show() ? 'Ocultar' : 'Mostrar' }}
+              </button>
+            }
+          </div>
+
+          @if (pwFocused() || form.password) {
+            <div class="mt-2 p-3 rounded-xl bg-ink-50 dark:bg-white/5 border border-ink-100 dark:border-white/10">
+              <p class="text-[11px] font-semibold text-ink-600 dark:text-white/60 mb-1.5">Tu contraseña debe tener:</p>
+              <ul class="space-y-1">
+                @for (r of pwRules(); track r.label) {
+                  <li class="flex items-center gap-2 text-[12px]"
+                      [class.text-emerald-600]="r.ok" [class.text-ink-400]="!r.ok" [class.dark:text-white/40]="!r.ok">
+                    <i class="fa-solid text-[10px]" [class.fa-circle-check]="r.ok" [class.fa-circle]="!r.ok"></i>
+                    {{ r.label }}
+                  </li>
+                }
+              </ul>
+            </div>
           }
         </div>
 
-        <p class="text-[12px] text-ink-500 dark:text-white/55 text-center leading-relaxed pt-2">
+        @if (branding.recaptchaSiteKey()) {
+          <div id="dlx-recaptcha" class="flex justify-center pt-1"></div>
+        }
+
+        <p class="text-[12px] text-ink-500 dark:text-white/55 text-center leading-relaxed pt-1">
           Al registrarte aceptas nuestros
-          <a routerLink="/" class="text-[#0095f6]">términos</a>
-          y la
-          <a routerLink="/" class="text-[#0095f6]">política de privacidad</a>.
+          <a href="/terms" target="_blank" rel="noopener" class="text-[#0095f6]">términos</a> y la
+          <a href="/privacy" target="_blank" rel="noopener" class="text-[#0095f6]">política de privacidad</a>.
         </p>
 
         @if (error()) {
-          <p class="text-rose-600 dark:text-rose-400 text-[13px] text-center pt-1">
-            {{ error() }}
-          </p>
+          <p class="text-rose-600 dark:text-rose-400 text-[13px] text-center pt-1">{{ error() }}</p>
         }
 
-        <button type="submit" [disabled]="!f.valid || loading()" class="btn-modern-primary mt-2">
-          @if (loading()) {
-            <i class="fa-solid fa-spinner fa-spin"></i> Creando...
-          } @else {
-            Registrarte
-          }
+        <button type="submit" [disabled]="!f.valid || !passwordValid() || loading()" class="btn-modern-primary mt-2">
+          @if (loading()) { <i class="fa-solid fa-spinner fa-spin"></i> Creando... }
+          @else { Registrarte }
         </button>
       </form>
 
@@ -75,25 +96,93 @@ import { AuthShellComponent } from '@features/auth/components/auth-shell/auth-sh
     </dlx-auth-shell>
   `,
 })
-export class RegisterComponent {
+export class RegisterComponent implements AfterViewInit {
   private auth = inject(AuthService);
   private router = inject(Router);
+  branding = inject(BrandingService);
+  private widgetId: number | null = null;
 
   form = { full_name: '', username: '', email: '', password: '' };
+  private readonly STORE = 'dlx_register_form';
   show = signal(false);
+  pwFocused = signal(false);
   loading = signal(false);
   error = signal<string | null>(null);
 
+  pwRules() {
+    const p = this.form.password || '';
+    return [
+      { label: 'Al menos 8 caracteres', ok: p.length >= 8 },
+      { label: 'Una letra mayúscula', ok: /[A-Z]/.test(p) },
+      { label: 'Una letra minúscula', ok: /[a-z]/.test(p) },
+      { label: 'Un número', ok: /[0-9]/.test(p) },
+    ];
+  }
+  passwordValid(): boolean { return this.pwRules().every(r => r.ok); }
+
+  ngAfterViewInit(): void {
+    this.restore();
+    if (this.branding.recaptchaSiteKey()) {
+      setTimeout(() => this.renderRecaptcha(), 300);
+    }
+  }
+
+  persist(): void {
+    if (typeof sessionStorage === 'undefined') return;
+    const { full_name, username, email } = this.form;
+    sessionStorage.setItem(this.STORE, JSON.stringify({ full_name, username, email }));
+  }
+
+  private restore(): void {
+    if (typeof sessionStorage === 'undefined') return;
+    try {
+      const raw = sessionStorage.getItem(this.STORE);
+      if (raw) { const d = JSON.parse(raw); this.form = { ...this.form, ...d }; }
+    } catch {}
+  }
+
+  private renderRecaptcha(retries = 20): void {
+    if (typeof document === 'undefined') return;
+    const g = (window as any).grecaptcha;
+    const el = document.getElementById('dlx-recaptcha');
+    if (!el) return;
+    if (!document.getElementById('recaptcha-script')) {
+      const sc = document.createElement('script');
+      sc.id = 'recaptcha-script';
+      sc.src = 'https://www.google.com/recaptcha/api.js?render=explicit';
+      sc.async = true; sc.defer = true;
+      document.head.appendChild(sc);
+    }
+    if (g && g.render && el.childElementCount === 0) {
+      try { this.widgetId = g.render(el, { sitekey: this.branding.recaptchaSiteKey() }); } catch {}
+      return;
+    }
+    if (retries > 0) setTimeout(() => this.renderRecaptcha(retries - 1), 250);
+  }
+
+  private resetCaptcha(): void {
+    const g = (window as any).grecaptcha;
+    if (g && this.widgetId !== null) { try { g.reset(this.widgetId); } catch {} }
+  }
+
   submit() {
+    let token = '';
+    if (this.branding.recaptchaSiteKey()) {
+      const g = (window as any).grecaptcha;
+      token = (g && this.widgetId !== null ? g.getResponse(this.widgetId) : '') || '';
+      if (!token) { this.error.set('Por favor completa el reCAPTCHA.'); return; }
+    }
     this.loading.set(true);
     this.error.set(null);
-    this.auth.register(this.form).subscribe({
+    this.auth.register({ ...this.form, recaptcha_token: token }).subscribe({
       next: () => {
         this.loading.set(false);
+        if (typeof sessionStorage !== 'undefined') sessionStorage.removeItem(this.STORE);
         this.router.navigate(['/auth/activate'], { queryParams: { email: this.form.email } });
       },
       error: e => {
         this.loading.set(false);
+        this.resetCaptcha();
         const err = e?.error || {};
         const msg = err.detail || err.email?.[0] || err.username?.[0] || err.password?.[0] || 'No pudimos crear la cuenta.';
         this.error.set(msg);

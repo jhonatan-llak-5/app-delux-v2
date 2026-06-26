@@ -8,7 +8,7 @@ def send_activation_email(user_email: str, name: str, code: str, minutes: int = 
     send_html_email(
         to_email=user_email,
         subject='Activa tu cuenta en Delux ✨',
-        template='welcome',
+        template='activation',
         ctx={'user_name': name or 'cliente', 'code': code},
         text_fallback=f'Tu codigo es: {code}',
     )

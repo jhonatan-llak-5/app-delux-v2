@@ -106,4 +106,5 @@ class PublicUploadConfigView(APIView):
             'payphone_available': bool(
                 c.payphone_enabled and c.payphone_token and c.payphone_store_id),
             'cod_enabled': True,
+            'recaptcha_site_key': c.recaptcha_site_key or '',
         })

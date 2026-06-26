@@ -58,7 +58,7 @@ export class AuthService {
       .pipe(tap((r) => this.persist(r)));
   }
 
-  register(payload: { full_name: string; username: string; email: string; password: string }) {
+  register(payload: { full_name: string; username: string; email: string; password: string; recaptcha_token?: string }) {
     return this.http.post<{ detail: string; email: string }>(
       `${this.base}/register/`, payload,
     );

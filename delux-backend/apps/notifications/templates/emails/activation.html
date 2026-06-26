@@ -1,0 +1,21 @@
+{% extends 'emails/_base.html' %}
+{% block body %}
+<div style="display:inline-block;background:linear-gradient(135deg,#2E6FE6 0%,#1e3a8a 100%);padding:16px;border-radius:18px;margin-bottom:22px;">
+  <div style="font-size:30px;color:#fff;">✉️</div>
+</div>
+<h1 style="font-family:'Bricolage Grotesque',Georgia,serif;font-size:30px;font-weight:700;letter-spacing:-0.03em;margin:0 0 10px;line-height:1.15;color:#06080f;">
+  Verifica tu correo
+</h1>
+<p style="font-size:15px;color:#4c5466;line-height:1.6;margin:0 0 26px;">
+  Hola {{ user_name }}, usa este código para activar tu cuenta. Vence en 15 minutos.
+</p>
+
+<div style="background:#f5f6f8;border:1px dashed #cdd1d9;border-radius:20px;padding:26px;text-align:center;margin-bottom:24px;">
+  <div style="font-size:10px;letter-spacing:0.45em;color:#737c8c;text-transform:uppercase;font-weight:700;margin-bottom:12px;">Tu código</div>
+  <div style="font-family:'JetBrains Mono',monospace;font-weight:800;font-size:40px;letter-spacing:0.35em;color:#1e3a8a;line-height:1;">{{ code }}</div>
+</div>
+
+<p style="font-size:13px;color:#737c8c;line-height:1.6;margin:0;text-align:center;">
+  Si no creaste esta cuenta, puedes ignorar este correo.
+</p>
+{% endblock %}

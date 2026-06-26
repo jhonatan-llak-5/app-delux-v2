@@ -1,4 +1,4 @@
-import { ChangeDetectionStrategy, Component, OnInit, inject, signal } from '@angular/core';
+import { ChangeDetectionStrategy, Component, OnInit, inject, signal , OnDestroy} from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { ActivatedRoute, Router, RouterLink } from '@angular/router';
@@ -70,11 +70,13 @@ import { AuthShellComponent } from '@features/auth/components/auth-shell/auth-sh
       </form>
 
       <div footer class="text-center mt-6 space-y-3">
-        <button type="button" (click)="resend()" [disabled]="resending() || !email"
+        <button type="button" (click)="resend()" [disabled]="resending() || !email || cooldown() > 0"
                 class="text-[14px] font-semibold text-[#0095f6]
                        hover:underline disabled:opacity-40">
           @if (resending()) {
             Enviando...
+          } @else if (cooldown() > 0) {
+            Reenviar en {{ cooldown() }}s
           } @else {
             Reenviar código
           }
@@ -89,7 +91,7 @@ import { AuthShellComponent } from '@features/auth/components/auth-shell/auth-sh
     </dlx-auth-shell>
   `,
 })
-export class ActivateComponent implements OnInit {
+export class ActivateComponent implements OnInit, OnDestroy {
   private auth = inject(AuthService);
   private route = inject(ActivatedRoute);
   private router = inject(Router);
@@ -100,10 +102,26 @@ export class ActivateComponent implements OnInit {
   resending = signal(false);
   success = signal(false);
   error = signal<string | null>(null);
+  cooldown = signal(0);
+  private timer: any = null;
 
   code = () => this.digits.join('');
 
-  ngOnInit() { this.email = this.route.snapshot.queryParamMap.get('email') || ''; }
+  private startCooldown(secs = 60) {
+    this.cooldown.set(secs);
+    if (this.timer) clearInterval(this.timer);
+    this.timer = setInterval(() => {
+      this.cooldown.update(v => v - 1);
+      if (this.cooldown() <= 0 && this.timer) { clearInterval(this.timer); this.timer = null; }
+    }, 1000);
+  }
+
+  ngOnDestroy() { if (this.timer) clearInterval(this.timer); }
+
+  ngOnInit() {
+    this.email = this.route.snapshot.queryParamMap.get('email') || '';
+    this.startCooldown(60);
+  }
 
   onDigitInput(i: number, ev: Event) {
     const v = (ev.target as HTMLInputElement).value.replace(/[^0-9]/g, '').slice(-1);
@@ -147,10 +165,17 @@ export class ActivateComponent implements OnInit {
   }
 
   resend() {
+    if (this.cooldown() > 0) return;
     this.resending.set(true);
+    this.error.set(null);
     this.auth.resendCode(this.email).subscribe({
-      next: () => this.resending.set(false),
-      error: () => this.resending.set(false),
+      next: () => { this.resending.set(false); this.startCooldown(60); },
+      error: (e) => {
+        this.resending.set(false);
+        const wait = e?.error?.retry_after;
+        if (wait) { this.startCooldown(wait); }
+        else { this.error.set(e?.error?.detail || 'No se pudo reenviar el código.'); }
+      },
     });
   }
 }

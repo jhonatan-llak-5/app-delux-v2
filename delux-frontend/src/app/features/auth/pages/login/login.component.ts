@@ -53,12 +53,6 @@ import { AuthShellComponent } from '@features/auth/components/auth-shell/auth-sh
       </form>
 
       <div footer class="mt-12 space-y-3">
-        <button type="button" disabled
-                class="btn-modern-secondary opacity-50 cursor-not-allowed">
-          <i class="fa-brands fa-facebook text-[#0866ff]"></i>
-          Iniciar sesión con Facebook
-        </button>
-
         <a routerLink="/auth/register" class="btn-modern-ghost">
           Crear una cuenta
         </a>

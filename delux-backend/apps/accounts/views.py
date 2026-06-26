@@ -35,6 +35,14 @@ class RegisterView(APIView):
     permission_classes = [permissions.AllowAny]
 
     def post(self, request):
+        from .recaptcha import verify_recaptcha
+        token = request.data.get('recaptcha_token', '')
+        ip = request.META.get('REMOTE_ADDR', '')
+        if not verify_recaptcha(token, ip):
+            return Response(
+                {'detail': 'Verificación reCAPTCHA fallida. Inténtalo de nuevo.'},
+                status=status.HTTP_400_BAD_REQUEST,
+            )
         serializer = RegisterSerializer(data=request.data)
         serializer.is_valid(raise_exception=True)
         user = serializer.save()
@@ -79,6 +87,18 @@ class ResendCodeView(APIView):
         if user.is_email_verified:
             return Response({'detail': 'La cuenta ya esta activada.'},
                             status=status.HTTP_400_BAD_REQUEST)
+        # Cooldown de 60s entre envios (deriva el ultimo envio de la expiracion).
+        from datetime import timedelta
+        from django.utils import timezone
+        if user.activation_expires_at:
+            last_sent = user.activation_expires_at - timedelta(minutes=15)
+            elapsed = (timezone.now() - last_sent).total_seconds()
+            if elapsed < 60:
+                wait = int(60 - elapsed)
+                return Response(
+                    {'detail': f'Espera {wait}s para reenviar el codigo.', 'retry_after': wait},
+                    status=status.HTTP_429_TOO_MANY_REQUESTS,
+                )
         code = assign_activation_code(user)
         send_activation_email.delay(user.email, user.full_name, code)
         return Response({'detail': 'Reenviamos el codigo.'},

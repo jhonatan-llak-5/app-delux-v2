@@ -12,7 +12,12 @@ const CONTENT: Record<string, LegalContent> = {
       { h: 'Uso del sitio', p: 'Delux es una tienda de calzado, ropa y accesorios con sucursales en Quito, Guayaquil y Cuenca. Al comprar, declaras que la información proporcionada es veraz.' },
       { h: 'Precios y disponibilidad', p: 'Los precios se muestran en dólares (USD) e incluyen impuestos. La disponibilidad depende del stock de la sucursal de tu ciudad; los productos sin stock local pueden ofrecerse para envío.' },
       { h: 'Pagos', p: 'Los pagos se procesan de forma segura mediante PayPhone. No almacenamos los datos de tu tarjeta.' },
-      { h: 'Entregas y retiro', p: 'Puedes elegir envío a domicilio o retiro en la sucursal de tu ciudad. Los tiempos se indican en el checkout.' },
+      { h: 'Entregas y retiro', p: 'Puedes elegir envío a domicilio o retiro en la sucursal de tu ciudad. Los tiempos se indican en el checkout. En el envío a domicilio debes proporcionar una dirección válida y estar disponible para recibir el pedido.' },
+      { h: 'Devoluciones y cambios', p: 'Aceptamos cambios y devoluciones de productos en buen estado, con su empaque original y dentro del plazo indicado en la sección de devoluciones de tu cuenta. Algunos artículos pueden estar excluidos por higiene.' },
+      { h: 'Cuenta del cliente', p: 'Eres responsable de mantener la confidencialidad de tu contraseña y de la actividad de tu cuenta. Notifícanos cualquier uso no autorizado.' },
+      { h: 'Propiedad intelectual', p: 'Las marcas, logos, imágenes y contenidos del sitio pertenecen a Delux o a sus respectivos titulares. No está permitido su uso sin autorización.' },
+      { h: 'Cambios a los términos', p: 'Podemos actualizar estos términos cuando sea necesario. La versión vigente es la publicada en esta página.' },
+      { h: 'Contacto', p: 'Para cualquier duda sobre estos términos, escríbenos desde la página de contacto.' },
     ],
   },
   privacy: {
@@ -21,7 +26,12 @@ const CONTENT: Record<string, LegalContent> = {
     sections: [
       { h: 'Datos que recopilamos', p: 'Nombre, correo, teléfono y dirección para procesar tus pedidos y contactarte.' },
       { h: 'Uso de los datos', p: 'Usamos tus datos para gestionar compras, envíos, soporte y —si te suscribes— para enviarte novedades. No los vendemos a terceros.' },
-      { h: 'Tus derechos', p: 'Puedes acceder, corregir o eliminar tus datos escribiéndonos desde la página de contacto.' },
+      { h: 'Tus derechos', p: 'Puedes acceder, corregir o eliminar tus datos, así como retirar tu consentimiento, escribiéndonos desde la página de contacto.' },
+      { h: 'Seguridad', p: 'Aplicamos medidas técnicas y organizativas razonables para proteger tu información. Los pagos se procesan por canales seguros y no almacenamos los datos de tu tarjeta.' },
+      { h: 'Conservación', p: 'Conservamos tus datos el tiempo necesario para cumplir con los fines descritos y con las obligaciones legales aplicables.' },
+      { h: 'Menores de edad', p: 'El registro está dirigido a personas mayores de edad. Si eres menor, usa el sitio con la supervisión de un adulto responsable.' },
+      { h: 'Cookies', p: 'Usamos cookies necesarias y de preferencia. Revisa nuestra Política de cookies para más detalle.' },
+      { h: 'Contacto', p: 'Si tienes preguntas sobre el tratamiento de tus datos, contáctanos desde la página de contacto.' },
     ],
   },
   cookies: {

@@ -9,6 +9,7 @@ interface BrandConfig {
   site_favicon_url?: string | null;
   payphone_available?: boolean;
   cod_enabled?: boolean;
+  recaptcha_site_key?: string;
 }
 
 /**
@@ -35,6 +36,7 @@ export class BrandingService {
   /** Métodos de pago disponibles (según config del superadmin). */
   readonly payphoneAvailable = computed(() => this._cfg()?.payphone_available === true);
   readonly codEnabled = computed(() => this._cfg()?.cod_enabled !== false);
+  readonly recaptchaSiteKey = computed(() => this._cfg()?.recaptcha_site_key || '');
 
   /** Llamar una vez al iniciar la app. */
   load(): void {
