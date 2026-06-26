@@ -9,6 +9,7 @@ from .permissions import IsSuperadmin
 from .serializers import (
     ActivationSerializer,
     AdminUserSerializer,
+    AdminUserUpdateSerializer,
     ForgotPasswordSerializer,
     LoginSerializer,
     RegisterSerializer,
@@ -26,6 +27,36 @@ class LoginView(APIView):
     permission_classes = [permissions.AllowAny]
 
     def post(self, request):
+        from django.db.models import Q
+        from django.utils import timezone
+
+        identifier = (request.data.get('identifier') or '').strip()
+        password = request.data.get('password') or ''
+        user_obj = User.objects.filter(
+            Q(email__iexact=identifier) | Q(username__iexact=identifier)
+        ).first()
+
+        # Credenciales correctas pero cuenta SIN verificar el correo: no la
+        # bloqueamos como "credenciales invalidas" (Django rechaza is_active=False).
+        # La enviamos a ingresar el codigo y reenviamos uno si no hay vigente.
+        if (user_obj and not user_obj.is_email_verified
+                and user_obj.check_password(password)):
+            has_valid_code = bool(
+                user_obj.activation_code and user_obj.activation_expires_at
+                and timezone.now() <= user_obj.activation_expires_at
+            )
+            if not has_valid_code:
+                code = assign_activation_code(user_obj)
+                dispatch(send_activation_email, user_obj.email,
+                         user_obj.full_name, code)
+            return Response(
+                {'detail': 'Tu cuenta aun no esta verificada. Ingresa el codigo '
+                           'que te enviamos al correo.',
+                 'code': 'email_not_verified',
+                 'email': user_obj.email},
+                status=status.HTTP_403_FORBIDDEN,
+            )
+
         serializer = LoginSerializer(data=request.data, context={'request': request})
         serializer.is_valid(raise_exception=True)
         return Response(serializer.validated_data, status=status.HTTP_200_OK)
@@ -167,7 +198,27 @@ class AdminUserViewSet(viewsets.ModelViewSet):
         role = self.request.query_params.get('role')
         if role:
             qs = qs.filter(role=role)
+        # Clasificacion por tipo: clientes (rol CUSTOMER) vs sistema (resto).
+        kind = self.request.query_params.get('kind')
+        if kind == 'clients':
+            qs = qs.filter(role='CUSTOMER')
+        elif kind == 'system':
+            qs = qs.exclude(role='CUSTOMER')
         return qs
+
+    def get_serializer_class(self):
+        if self.action in ('update', 'partial_update'):
+            return AdminUserUpdateSerializer
+        return AdminUserSerializer
+
+    def update(self, request, *args, **kwargs):
+        partial = kwargs.pop('partial', False)
+        instance = self.get_object()
+        serializer = self.get_serializer(instance, data=request.data, partial=partial)
+        serializer.is_valid(raise_exception=True)
+        self.perform_update(serializer)
+        # Devolver la fila completa (rol, tienda, estado) para refrescar la tabla.
+        return Response(AdminUserSerializer(instance).data)
 
     @action(detail=True, methods=['post'])
     def activate(self, request, pk=None):

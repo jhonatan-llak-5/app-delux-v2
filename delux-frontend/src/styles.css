@@ -294,6 +294,28 @@ select.eg-input {
 }
 textarea.eg-input { height: auto; padding: 12px 14px; min-height: 110px; resize: vertical; }
 
+/* Barra de filtros de los módulos de administración.
+   El buscador (con .relative/flex-1) crece y los <select> quedan compactos
+   (ancho según contenido) en vez de estirarse a todo el ancho de la página. */
+/* Item activo del menú lateral: usa el color principal por rol (var --dash-primary),
+   así el cliente lo ve rosa y el resto azul, sin tocar cada componente. */
+.nav-active {
+  background-color: color-mix(in srgb, var(--dash-primary) 10%, transparent) !important;
+  color: var(--dash-primary) !important;
+  border-left-color: var(--dash-primary) !important;
+  font-weight: 600 !important;
+}
+
+.filter-bar select.eg-input {
+  width: auto;
+  min-width: 10.5rem;
+  max-width: 16rem;
+  flex: 0 0 auto;
+}
+@media (max-width: 640px) {
+  .filter-bar select.eg-input { width: 100%; max-width: none; flex: 1 1 100%; }
+}
+
 /* Botones admin */
 .eg-btn-primary {
   display: inline-flex; align-items: center; justify-content: center; gap: 8px;

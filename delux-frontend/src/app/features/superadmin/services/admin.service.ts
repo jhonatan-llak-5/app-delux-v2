@@ -7,6 +7,8 @@ export interface AdminUser {
   id: number;
   email: string;
   full_name: string;
+  phone?: string;
+  document_id?: string;
   role: 'SUPERADMIN' | 'TENANT_ADMIN' | 'BRANCH_MANAGER' | 'SALESPERSON' | 'CUSTOMER';
   tenant_id: number | null;
   tenant_name: string | null;
@@ -141,10 +143,11 @@ export class AdminService {
   private base = `${environment.apiUrl}/admin`;
 
   // ── Users
-  listUsers(params: { role?: string; search?: string } = {}): Observable<Paged<AdminUser>> {
+  listUsers(params: { role?: string; search?: string; kind?: 'system' | 'clients' } = {}): Observable<Paged<AdminUser>> {
     let p = new HttpParams();
     if (params.role)   p = p.set('role', params.role);
     if (params.search) p = p.set('search', params.search);
+    if (params.kind)   p = p.set('kind', params.kind);
     return this.http.get<Paged<AdminUser>>(`${this.base}/users/`, { params: p });
   }
   activateUser(id: number)   { return this.http.post(`${this.base}/users/${id}/activate/`, {}); }
@@ -153,6 +156,14 @@ export class AdminService {
     return this.http.post<{ access: string; refresh: string; user: any; impersonated: boolean }>(
       `${this.base}/users/${id}/impersonate/`, {},
     );
+  }
+  /** Editar datos basicos de una cuenta (email, nombre, telefono, documento)
+   *  y opcionalmente la contrasena. El rol NO se cambia aqui. */
+  updateUser(id: number, payload: {
+    email?: string; full_name?: string; phone?: string;
+    document_id?: string; password?: string;
+  }): Observable<AdminUser> {
+    return this.http.patch<AdminUser>(`${this.base}/users/${id}/`, payload);
   }
 
   // ── Tenants

@@ -1,5 +1,6 @@
 import { Routes } from '@angular/router';
 import { authGuard } from '@core/guards/auth.guard';
+import { roleGuard } from '@core/guards/role.guard';
 
 export const DASHBOARD_ROUTES: Routes = [
   {
@@ -29,6 +30,19 @@ export const DASHBOARD_ROUTES: Routes = [
         path: 'admin',
         loadChildren: () =>
           import('@features/superadmin/superadmin.routes').then(m => m.SUPERADMIN_ROUTES),
+      },
+
+      // Cuenta del cliente dentro del mismo layout de administración.
+      {
+        path: 'account',
+        canActivate: [roleGuard(['CUSTOMER'])],
+        children: [
+          { path: '', pathMatch: 'full', redirectTo: 'profile' },
+          { path: 'profile',   loadComponent: () => import('@features/account/pages/profile-tab/profile-tab.component').then(m => m.ProfileTabComponent) },
+          { path: 'addresses', loadComponent: () => import('@features/account/pages/addresses-tab/addresses-tab.component').then(m => m.AddressesTabComponent) },
+          { path: 'orders',    loadComponent: () => import('@features/account/pages/orders-tab/orders-tab.component').then(m => m.OrdersTabComponent) },
+          { path: 'wishlist',  loadComponent: () => import('@features/account/pages/wishlist-tab/wishlist-tab.component').then(m => m.WishlistTabComponent) },
+        ],
       },
     ]
   }

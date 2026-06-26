@@ -112,31 +112,37 @@ import { parseApiError } from '@shared/utils/api-error.util';
                       [class.text-blue-700]="payload.role === 'TENANT_ADMIN'"
                       [class.border-slate-200]="payload.role !== 'TENANT_ADMIN'"
                       [class.text-slate-600]="payload.role !== 'TENANT_ADMIN'">
-                <i class="fa-solid fa-shield-halved"></i>
+                <i class="fa-solid fa-shield-halved w-5 text-center"></i>
                 <span>
                   <span class="block">Admin de tienda</span>
                   <span class="block text-[11px] font-normal opacity-70">Acceso total excepto Configuración del sitio</span>
                 </span>
               </button>
-              <button type="button" (click)="payload.role = 'SALESPERSON'"
-                      class="px-3 py-3 rounded-lg border text-sm font-semibold transition"
-                      [class.bg-sky-100]="payload.role === 'SALESPERSON'"
-                      [class.border-sky-400]="payload.role === 'SALESPERSON'"
-                      [class.text-sky-700]="payload.role === 'SALESPERSON'"
-                      [class.border-slate-200]="payload.role !== 'SALESPERSON'"
-                      [class.text-slate-600]="payload.role !== 'SALESPERSON'">
-                <i class="fa-solid fa-user-tag block mb-1"></i>
-                Vendedor
-              </button>
               <button type="button" (click)="payload.role = 'BRANCH_MANAGER'"
-                      class="px-3 py-3 rounded-lg border text-sm font-semibold transition"
+                      class="px-3 py-3 rounded-lg border text-sm font-semibold transition text-left flex items-center gap-3"
                       [class.bg-violet-100]="payload.role === 'BRANCH_MANAGER'"
                       [class.border-violet-400]="payload.role === 'BRANCH_MANAGER'"
                       [class.text-violet-700]="payload.role === 'BRANCH_MANAGER'"
                       [class.border-slate-200]="payload.role !== 'BRANCH_MANAGER'"
                       [class.text-slate-600]="payload.role !== 'BRANCH_MANAGER'">
-                <i class="fa-solid fa-user-tie block mb-1"></i>
-                Gerente
+                <i class="fa-solid fa-user-tie w-5 text-center"></i>
+                <span>
+                  <span class="block">Gerente</span>
+                  <span class="block text-[11px] font-normal opacity-70">Gestiona su sucursal: equipo, stock y ventas</span>
+                </span>
+              </button>
+              <button type="button" (click)="payload.role = 'SALESPERSON'"
+                      class="px-3 py-3 rounded-lg border text-sm font-semibold transition text-left flex items-center gap-3"
+                      [class.bg-sky-100]="payload.role === 'SALESPERSON'"
+                      [class.border-sky-400]="payload.role === 'SALESPERSON'"
+                      [class.text-sky-700]="payload.role === 'SALESPERSON'"
+                      [class.border-slate-200]="payload.role !== 'SALESPERSON'"
+                      [class.text-slate-600]="payload.role !== 'SALESPERSON'">
+                <i class="fa-solid fa-user-tag w-5 text-center"></i>
+                <span>
+                  <span class="block">Vendedor</span>
+                  <span class="block text-[11px] font-normal opacity-70">Acceso al punto de venta de su sucursal</span>
+                </span>
               </button>
             </div>
           </div>

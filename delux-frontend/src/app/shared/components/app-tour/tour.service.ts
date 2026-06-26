@@ -53,19 +53,14 @@ export class TourService {
       body: 'Tu resumen ejecutivo: ventas del día, stock crítico, pedidos y métricas clave de toda la plataforma.',
     },
     {
+      target: '[data-tour="nav-users"]', placement: 'right', icon: 'fa-users',
+      title: 'Usuarios',
+      body: 'Tu módulo central de personas: el equipo interno (Sistema) y los clientes de la plataforma, con edición de datos, contraseñas y accesos.',
+    },
+    {
       target: '[data-tour="nav-tenants"]', placement: 'right', icon: 'fa-store',
       title: 'Tiendas',
       body: 'Administra los tenants (tiendas) de la plataforma y sus sucursales: Quito, Guayaquil y Cuenca.',
-    },
-    {
-      target: '[data-tour="nav-brands"]', placement: 'right', icon: 'fa-tags',
-      title: 'Marcas',
-      body: 'Crea y edita las marcas del catálogo (Nike, Adidas, Jordan…) con logo y descripción.',
-    },
-    {
-      target: '[data-tour="nav-categories"]', placement: 'right', icon: 'fa-folder-tree',
-      title: 'Categorías',
-      body: 'Organiza el catálogo en categorías y subcategorías para que los clientes encuentren todo fácil.',
     },
     {
       target: '[data-tour="nav-products"]', placement: 'right', icon: 'fa-box',
@@ -88,36 +83,6 @@ export class TourService {
       body: 'Historial de ventas online y en tienda, con su detalle, pagos y estado.',
     },
     {
-      target: '[data-tour="nav-staff"]', placement: 'right', icon: 'fa-user-tie',
-      title: 'Equipo',
-      body: 'Gestiona al personal: gerentes de sucursal y vendedores, con sus roles y permisos.',
-    },
-    {
-      target: '[data-tour="nav-schedules"]', placement: 'right', icon: 'fa-clock',
-      title: 'Horarios',
-      body: 'Define los horarios de atención de cada sucursal por día de la semana.',
-    },
-    {
-      target: '[data-tour="nav-customers"]', placement: 'right', icon: 'fa-user-group',
-      title: 'Clientes',
-      body: 'Base de clientes con su historial de compras y datos de contacto.',
-    },
-    {
-      target: '[data-tour="nav-coupons"]', placement: 'right', icon: 'fa-ticket',
-      title: 'Cupones',
-      body: 'Crea descuentos y promociones por porcentaje o monto, con vigencia y límites de uso.',
-    },
-    {
-      target: '[data-tour="nav-reports"]', placement: 'right', icon: 'fa-chart-line',
-      title: 'Reportes',
-      body: 'Gráficas de ingresos, productos más vendidos y desempeño por sucursal para decidir mejor.',
-    },
-    {
-      target: '[data-tour="nav-reviews"]', placement: 'right', icon: 'fa-comment-dots',
-      title: 'Reseñas',
-      body: 'Modera las reseñas y calificaciones que dejan los clientes en los productos.',
-    },
-    {
       target: '[data-tour="nav-shipments"]', placement: 'right', icon: 'fa-truck',
       title: 'Envíos',
       body: 'Sigue los despachos y su tracking en vivo, desde la sucursal hasta el cliente.',
@@ -128,9 +93,34 @@ export class TourService {
       body: 'Gestiona solicitudes de cambio y devolución, con su estado y reingreso a stock.',
     },
     {
-      target: '[data-tour="nav-users"]', placement: 'right', icon: 'fa-users',
-      title: 'Usuarios',
-      body: 'Administra todas las cuentas de usuario de la plataforma y sus accesos.',
+      target: '[data-tour="nav-categories"]', placement: 'right', icon: 'fa-folder-tree',
+      title: 'Categorías',
+      body: 'Organiza el catálogo en categorías y subcategorías para que los clientes encuentren todo fácil.',
+    },
+    {
+      target: '[data-tour="nav-brands"]', placement: 'right', icon: 'fa-tags',
+      title: 'Marcas',
+      body: 'Crea y edita las marcas del catálogo (Nike, Adidas, Jordan…) con logo y descripción.',
+    },
+    {
+      target: '[data-tour="nav-coupons"]', placement: 'right', icon: 'fa-ticket',
+      title: 'Cupones',
+      body: 'Crea descuentos y promociones por porcentaje o monto, con vigencia y límites de uso.',
+    },
+    {
+      target: '[data-tour="nav-schedules"]', placement: 'right', icon: 'fa-clock',
+      title: 'Horarios',
+      body: 'Define los horarios de atención de cada sucursal por día de la semana.',
+    },
+    {
+      target: '[data-tour="nav-reviews"]', placement: 'right', icon: 'fa-comment-dots',
+      title: 'Reseñas',
+      body: 'Modera las reseñas y calificaciones que dejan los clientes en los productos.',
+    },
+    {
+      target: '[data-tour="nav-reports"]', placement: 'right', icon: 'fa-chart-line',
+      title: 'Reportes',
+      body: 'Gráficas de ingresos, productos más vendidos y desempeño por sucursal para decidir mejor.',
     },
     {
       target: '[data-tour="nav-settings"]', placement: 'right', icon: 'fa-gear',

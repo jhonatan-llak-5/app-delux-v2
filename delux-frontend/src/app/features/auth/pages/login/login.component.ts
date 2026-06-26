@@ -87,11 +87,19 @@ export class LoginComponent {
         } else if (role === 'SALESPERSON') {
           this.router.navigate(['/app/admin/pos']);
         } else {
-          this.router.navigate(['/account']);
+          this.router.navigate(['/app/account/profile']);
         }
       },
       error: e => {
         this.loading.set(false);
+        // Cuenta con credenciales correctas pero sin verificar: ir a ingresar el código.
+        const body: any = e?.error ?? {};
+        const code = body?.code ?? body?.error?.code;
+        const email = body?.email ?? body?.error?.email;
+        if (e?.status === 403 && (code === 'email_not_verified' || email)) {
+          this.router.navigate(['/auth/activate'], { queryParams: { email } });
+          return;
+        }
         // Mensaje genérico por seguridad: no revelamos si falló el correo o la clave.
         this.error.set(parseApiError(e).message || 'Datos incorrectos. Verifica e intenta de nuevo.');
       },

@@ -34,9 +34,12 @@ class LoginSerializer(serializers.Serializer):
         if not user_obj:
             raise serializers.ValidationError({'detail': 'Credenciales invalidas.'})
 
+        # USERNAME_FIELD del modelo es 'email', por eso ModelBackend identifica
+        # por email. Pasamos el email del usuario hallado (no el username), o las
+        # cuentas registradas con username != email nunca podrian iniciar sesion.
         user = authenticate(
             request=self.context.get('request'),
-            username=user_obj.username,
+            username=user_obj.email,
             password=attrs['password'],
         )
         if not user:
@@ -125,6 +128,48 @@ class AdminUserSerializer(serializers.ModelSerializer):
         model = User
         fields = (
             'id', 'email', 'username', 'full_name', 'role',
+            'phone', 'document_id',
             'tenant_id', 'tenant_name', 'branch_id', 'branch_name',
             'is_email_verified', 'is_active', 'date_joined', 'last_login',
         )
+
+
+class AdminUserUpdateSerializer(serializers.ModelSerializer):
+    """Edicion de datos basicos de una cuenta por el superadmin.
+
+    Permite cambiar el email (validando que no exista en otra cuenta), el
+    nombre, el telefono y el documento, y opcionalmente la contrasena.
+    El ROL y la asignacion de tienda/sucursal NO se modifican aqui.
+    """
+    password = serializers.CharField(
+        write_only=True, required=False, allow_blank=True, min_length=8,
+    )
+
+    class Meta:
+        model = User
+        fields = ('email', 'full_name', 'phone', 'document_id', 'password')
+
+    def validate_email(self, v):
+        v = (v or '').strip().lower()
+        if not v:
+            raise serializers.ValidationError('El correo es obligatorio.')
+        qs = User.objects.filter(email__iexact=v)
+        if self.instance is not None:
+            qs = qs.exclude(pk=self.instance.pk)
+        if qs.exists():
+            raise serializers.ValidationError('Ese correo ya esta en uso por otra cuenta.')
+        return v
+
+    def validate_password(self, v):
+        if v:
+            validate_password(v)
+        return v
+
+    def update(self, instance, validated_data):
+        password = validated_data.pop('password', None)
+        for field, value in validated_data.items():
+            setattr(instance, field, value)
+        if password:
+            instance.set_password(password)
+        instance.save()
+        return instance

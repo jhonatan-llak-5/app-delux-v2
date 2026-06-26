@@ -141,9 +141,9 @@ export const SUPERADMIN_ROUTES: Routes = [
       },
       {
         path: 'users',
-        canActivate: [roleGuard(['SUPERADMIN', 'TENANT_ADMIN'])],
+        canActivate: [roleGuard(['SUPERADMIN'])],
         loadComponent: () =>
-          import('./pages/users-list/users-list.component').then(m => m.UsersListComponent),
+          import('./pages/users-hub/users-hub.component').then(m => m.UsersHubComponent),
       },
       {
         path: 'tenants',

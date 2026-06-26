@@ -3,30 +3,20 @@ import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { Category, CategoryPayload, CategoryService } from '@features/superadmin/services/category.service';
 import { parseApiError } from '@shared/utils/api-error.util';
+import { DlxModalComponent } from '@shared/ui/modal.component';
 
 interface FlatOption { id: number; label: string; depth: number; }
 
 @Component({
   selector: 'dlx-category-form-modal',
   standalone: true,
-  imports: [CommonModule, FormsModule],
+  imports: [CommonModule, FormsModule, DlxModalComponent],
   changeDetection: ChangeDetectionStrategy.OnPush,
   template: `
-    <div class="fixed inset-0 z-50 grid place-items-center bg-black/50 backdrop-blur-sm p-4 animate-fade-in"
-         (click)="onBackdrop($event)">
-      <div class="w-full max-w-lg rounded-2xl bg-white border border-slate-200 shadow-2xl"
-           role="dialog" aria-modal="true">
-        <div class="flex items-center justify-between px-6 py-4 border-b border-slate-200">
-          <h2 class="text-lg font-bold tracking-tight">
-            {{ category ? 'Editar categoría' : 'Nueva categoría' }}
-          </h2>
-          <button type="button" (click)="close.emit()"
-                  class="w-9 h-9 grid place-items-center rounded-lg hover:bg-slate-100" aria-label="Cerrar">
-            <i class="fa-solid fa-xmark"></i>
-          </button>
-        </div>
-
-        <form (ngSubmit)="submit()" #form="ngForm" class="px-6 py-5 space-y-4">
+    <dlx-modal [open]="true" [maxWidth]="560"
+               [title]="category ? 'Editar categoría' : 'Nueva categoría'"
+               (closed)="close.emit()">
+      <form (ngSubmit)="submit()" #form="ngForm" class="space-y-4">
           <div>
             <label class="eg-label">Nombre *</label>
             <input [(ngModel)]="payload.name" name="name" required maxlength="80"
@@ -106,9 +96,8 @@ interface FlatOption { id: number; label: string; depth: number; }
               }
             </button>
           </div>
-        </form>
-      </div>
-    </div>
+      </form>
+    </dlx-modal>
   `,
 })
 export class CategoryFormModalComponent implements OnInit {

@@ -19,7 +19,7 @@ import { AdminService, AdminBranch } from '@features/superadmin/services/admin.s
     <h1 class="text-2xl md:text-3xl font-bold tracking-tight mb-1">Historial de movimientos</h1>
     <p class="text-slate-500 text-sm mb-6">Auditoría completa de entradas, salidas, ajustes y transferencias.</p>
 
-    <div class="card p-4 mb-4 flex flex-wrap gap-3 items-center">
+    <div class="card p-4 mb-4 flex flex-wrap gap-3 items-center filter-bar">
       <select [(ngModel)]="branchFilter" (change)="reload()"
               class="eg-input border-transparent">
         <option [ngValue]="null">Todas las sucursales</option>

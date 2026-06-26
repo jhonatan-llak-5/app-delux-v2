@@ -1,5 +1,6 @@
 import { ChangeDetectionStrategy, Component, EventEmitter, Input, OnInit, Output, inject, signal } from '@angular/core';
 import { CommonModule } from '@angular/common';
+import { DlxModalComponent } from '@shared/ui/modal.component';
 import { FormsModule } from '@angular/forms';
 import { Coupon, CouponPayload, CouponService } from '@features/superadmin/services/coupon.service';
 import { parseApiError } from '@shared/utils/api-error.util';
@@ -7,23 +8,13 @@ import { parseApiError } from '@shared/utils/api-error.util';
 @Component({
   selector: 'dlx-coupon-form-modal',
   standalone: true,
-  imports: [CommonModule, FormsModule],
+  imports: [CommonModule, FormsModule, DlxModalComponent],
   changeDetection: ChangeDetectionStrategy.OnPush,
   template: `
-    <div class="fixed inset-0 z-50 grid place-items-center bg-black/50 backdrop-blur-sm p-4 animate-fade-in"
-         (click)="onBackdrop($event)">
-      <div class="w-full max-w-md rounded-2xl bg-white shadow-2xl">
-        <div class="flex items-center justify-between px-6 py-4 border-b border-slate-200">
-          <h2 class="text-lg font-bold tracking-tight">
-            <i class="fa-solid fa-ticket text-violet-500"></i>
-            {{ coupon ? 'Editar cupón' : 'Nuevo cupón' }}
-          </h2>
-          <button (click)="close.emit()" class="w-9 h-9 grid place-items-center rounded-lg hover:bg-slate-100">
-            <i class="fa-solid fa-xmark"></i>
-          </button>
-        </div>
-
-        <form (ngSubmit)="save()" #f="ngForm" class="px-6 py-5 space-y-4">
+    <dlx-modal [open]="true" [maxWidth]="480"
+               [title]="coupon ? 'Editar cupón' : 'Nuevo cupón'"
+               (closed)="close.emit()">
+      <form (ngSubmit)="save()" #f="ngForm" class="space-y-4">
           <div>
             <label class="eg-label">Código *</label>
             <input [(ngModel)]="payload.code" name="code" required maxlength="40"
@@ -114,8 +105,7 @@ import { parseApiError } from '@shared/utils/api-error.util';
             </button>
           </div>
         </form>
-      </div>
-    </div>
+    </dlx-modal>
   `,
 })
 export class CouponFormModalComponent implements OnInit {

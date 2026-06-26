@@ -44,6 +44,8 @@ def create_web_order(tenant, data):
             'document_id': cd.get('document_id', ''),
         },
     )
+    from apps.customers.utils import link_customer_to_user
+    link_customer_to_user(customer)
 
     today = timezone.now().strftime('%Y%m%d')
     seq = Order.objects.filter(

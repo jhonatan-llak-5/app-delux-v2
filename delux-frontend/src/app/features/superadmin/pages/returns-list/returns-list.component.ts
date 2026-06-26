@@ -39,7 +39,7 @@ import { NotifyService } from '@shared/services/notify.service';
       </div>
     </div>
 
-    <div class="card p-4 mb-4 flex gap-2 items-center flex-wrap">
+    <div class="card p-4 mb-4 flex gap-2 items-center flex-wrap filter-bar">
       <select [(ngModel)]="statusFilter" (change)="reload()"
               class="px-3 py-2 rounded-lg bg-slate-50 border border-transparent text-sm">
         <option value="">Todos los estados</option>

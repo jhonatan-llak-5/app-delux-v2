@@ -1,4 +1,4 @@
-import { ChangeDetectionStrategy, Component, computed, inject, signal, HostListener, ElementRef, AfterViewInit } from '@angular/core';
+import { ChangeDetectionStrategy, Component, computed, effect, inject, signal, HostListener, ElementRef, AfterViewInit } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { RouterLink, RouterLinkActive, RouterOutlet, Router } from '@angular/router';
 import { AuthService } from '@core/services/auth.service';
@@ -10,7 +10,7 @@ import { AppTourComponent } from '@shared/components/app-tour/app-tour.component
 import { TourService } from '@shared/components/app-tour/tour.service';
 import { BrandingService } from '@core/services/branding.service';
 
-interface NavItem { label: string; icon: string; route: string; badge?: string; }
+interface NavItem { label: string; icon: string; route: string; badge?: string; only?: string[]; exact?: boolean; }
 interface NavGroup { title: string; items: NavItem[]; roles?: string[]; }
 
 const COLLAPSED_KEY = 'dlx_sidebar_collapsed';
@@ -39,13 +39,15 @@ const COLLAPSED_KEY = 'dlx_sidebar_collapsed';
             <img [src]="branding.logoUrlDark()" [alt]="branding.siteName()"
                  class="h-9 w-auto max-w-[180px] object-contain rounded-xl shrink-0 hidden dark:block" />
           } @else {
-            <div class="w-9 h-9 shrink-0 rounded-xl bg-gradient-to-br from-[#1e40af] to-[#1e3a8a]
+            <div class="w-9 h-9 shrink-0 rounded-xl bg-gradient-to-br from-[var(--dash-primary)] to-[var(--dash-primary-d)]
                         grid place-items-center font-display font-bold text-white
-                        shadow-md shadow-[#1e40af]/20">{{ branding.siteName().charAt(0) }}</div>
+                        shadow-md">{{ branding.siteName().charAt(0) }}</div>
             @if (!collapsed()) {
               <div class="flex-1 min-w-0">
                 <p class="font-display font-bold text-lg leading-none text-ink-950 dark:text-white truncate">{{ branding.siteName() }}</p>
-                <p class="text-[10px] text-slate-500 dark:text-white/40 uppercase tracking-widest mt-0.5 truncate">{{ roleLabel() }}</p>
+                <span class="inline-flex items-center gap-1 mt-1 px-2 py-0.5 rounded-full text-[10px] font-bold uppercase tracking-wider {{ roleBadge().cls }}">
+                  <i class="fa-solid {{ roleBadge().icon }}"></i> {{ roleBadge().label }}
+                </span>
               </div>
             }
           }
@@ -64,8 +66,8 @@ const COLLAPSED_KEY = 'dlx_sidebar_collapsed';
                   <li>
                     <a [routerLink]="item.route"
                        [attr.data-tour]="tourKey(item.route)"
-                       routerLinkActive="!bg-[#1e40af]/8 !text-[#1e40af] dark:!bg-[#2563eb]/15 dark:!text-[#60a5fa] font-semibold !border-l-[3px] !border-[#1e40af] dark:!border-[#3b82f6]"
-                       [routerLinkActiveOptions]="{ exact: false }"
+                       routerLinkActive="nav-active"
+                       [routerLinkActiveOptions]="{ exact: !!item.exact }"
                        [title]="collapsed() ? item.label : ''"
                        class="flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm
                               border-l-[3px] border-transparent
@@ -208,7 +210,7 @@ const COLLAPSED_KEY = 'dlx_sidebar_collapsed';
             <button (click)="profileOpen.set(!profileOpen())"
                     class="flex items-center gap-2 pl-1 pr-2 py-1 rounded-full
                            hover:bg-slate-100 dark:hover:bg-white/10 transition">
-              <div class="w-9 h-9 shrink-0 rounded-full bg-gradient-to-br from-[#1e40af] to-[#3b82f6]
+              <div class="w-9 h-9 shrink-0 rounded-full bg-gradient-to-br from-[var(--dash-primary)] to-[var(--dash-primary-d)]
                           grid place-items-center text-white font-bold text-sm">
                 {{ initials() }}
               </div>
@@ -231,7 +233,7 @@ const COLLAPSED_KEY = 'dlx_sidebar_collapsed';
                 <div class="p-4 border-b border-slate-100 dark:border-white/10
                             bg-gradient-to-br from-slate-50 to-white dark:from-white/5 dark:to-transparent">
                   <div class="flex items-center gap-3">
-                    <div class="w-12 h-12 rounded-full bg-gradient-to-br from-[#1e40af] to-[#3b82f6]
+                    <div class="w-12 h-12 rounded-full bg-gradient-to-br from-[var(--dash-primary)] to-[var(--dash-primary-d)]
                                 grid place-items-center text-white font-bold">
                       {{ initials() }}
                     </div>
@@ -241,33 +243,34 @@ const COLLAPSED_KEY = 'dlx_sidebar_collapsed';
                     </div>
                   </div>
                   <span class="inline-flex items-center gap-1.5 mt-3 px-2.5 py-1 rounded-full
-                               bg-accent-100 dark:bg-accent-500/20
-                               text-accent-700 dark:text-accent-300 text-[10px] font-bold uppercase tracking-widest">
-                    <i class="fa-solid fa-shield-halved"></i> {{ roleLabel() }}
+                               text-[10px] font-bold uppercase tracking-widest {{ roleBadge().cls }}">
+                    <i class="fa-solid {{ roleBadge().icon }}"></i> {{ roleBadge().label }}
                   </span>
                 </div>
 
                 <!-- Acciones -->
                 <div class="p-2">
-                  <a routerLink="/account" (click)="profileOpen.set(false)"
+                  <a routerLink="/app/account/profile" (click)="profileOpen.set(false)"
                      class="flex items-center gap-3 px-3 py-2.5 rounded-lg
                             text-sm text-slate-700 dark:text-white/80
                             hover:bg-slate-100 dark:hover:bg-white/5 transition">
                     <i class="fa-solid fa-user w-4 text-center text-slate-400 dark:text-white/40"></i>
                     Mi cuenta
                   </a>
-                  <a routerLink="/app/admin/settings" (click)="profileOpen.set(false)"
-                     class="flex items-center gap-3 px-3 py-2.5 rounded-lg
-                            text-sm text-slate-700 dark:text-white/80
-                            hover:bg-slate-100 dark:hover:bg-white/5 transition">
-                    <i class="fa-solid fa-gear w-4 text-center text-slate-400 dark:text-white/40"></i>
-                    Configuración
-                  </a>
+                  @if (isSuperadmin()) {
+                    <a routerLink="/app/admin/settings" (click)="profileOpen.set(false)"
+                       class="flex items-center gap-3 px-3 py-2.5 rounded-lg
+                              text-sm text-slate-700 dark:text-white/80
+                              hover:bg-slate-100 dark:hover:bg-white/5 transition">
+                      <i class="fa-solid fa-gear w-4 text-center text-slate-400 dark:text-white/40"></i>
+                      Configuración
+                    </a>
+                  }
                   <button (click)="startTour()"
                      class="w-full flex items-center gap-3 px-3 py-2.5 rounded-lg
                             text-sm text-slate-700 dark:text-white/80
                             hover:bg-slate-100 dark:hover:bg-white/5 transition">
-                    <i class="fa-solid fa-route w-4 text-center text-[#1e40af] dark:text-[#60a5fa]"></i>
+                    <i class="fa-solid fa-route w-4 text-center text-[var(--dash-primary)]"></i>
                     Hacer tour del app
                   </button>
                   <a routerLink="/" (click)="profileOpen.set(false)"
@@ -312,6 +315,25 @@ export class DashboardLayoutComponent implements AfterViewInit {
   theme = inject(ThemeService);
   ws = inject(WebSocketService);
 
+  constructor() {
+    // Color principal por rol: rosa para clientes, azul para el resto.
+    effect(() => this.applyRoleTheme(this.auth.user()?.role));
+  }
+
+  private applyRoleTheme(role?: string | null): void {
+    if (typeof document === 'undefined') return;
+    const root = document.documentElement;
+    if (role === 'CUSTOMER') {
+      root.style.setProperty('--dash-primary', '#ec4899');
+      root.style.setProperty('--dash-primary-d', '#db2777');
+      root.style.setProperty('--dash-primary-l', '#fce7f3');
+    } else {
+      root.style.removeProperty('--dash-primary');
+      root.style.removeProperty('--dash-primary-d');
+      root.style.removeProperty('--dash-primary-l');
+    }
+  }
+
   ngAfterViewInit(): void {
     // Auto-inicia el tour la primera vez (se guarda en localStorage).
     this.tour.maybeAutoStart();
@@ -345,6 +367,21 @@ export class DashboardLayoutComponent implements AfterViewInit {
       BRANCH_MANAGER: 'Gerente Sucursal', SALESPERSON: 'Vendedor', CUSTOMER: 'Cliente',
     } as Record<string, string>)[r ?? ''] ?? 'Admin';
   });
+
+  isSuperadmin = computed(() => this.auth.user()?.role === 'SUPERADMIN');
+
+  /** Distintivo (brand) que identifica el tipo de cuenta en el layout. */
+  roleBadge = computed(() => {
+    const r = this.auth.user()?.role ?? 'CUSTOMER';
+    const map: Record<string, { label: string; icon: string; cls: string }> = {
+      SUPERADMIN:     { label: 'Superadmin', icon: 'fa-crown',         cls: 'bg-violet-100 text-violet-700 dark:bg-violet-500/20 dark:text-violet-300' },
+      TENANT_ADMIN:   { label: 'Admin',      icon: 'fa-shield-halved', cls: 'bg-sky-100 text-sky-700 dark:bg-sky-500/20 dark:text-sky-300' },
+      BRANCH_MANAGER: { label: 'Gerente',    icon: 'fa-user-tie',      cls: 'bg-emerald-100 text-emerald-700 dark:bg-emerald-500/20 dark:text-emerald-300' },
+      SALESPERSON:    { label: 'Vendedor',   icon: 'fa-user-tag',      cls: 'bg-amber-100 text-amber-700 dark:bg-amber-500/20 dark:text-amber-300' },
+      CUSTOMER:       { label: 'Cliente',    icon: 'fa-user',          cls: 'bg-pink-100 text-pink-700 dark:bg-pink-500/20 dark:text-pink-300' },
+    };
+    return map[r] ?? map['CUSTOMER'];
+  });
   initials = computed(() =>
     this.userName().split(' ').map(s => s[0]).slice(0, 2).join('').toUpperCase()
   );
@@ -355,22 +392,22 @@ export class DashboardLayoutComponent implements AfterViewInit {
       roles: ['SUPERADMIN', 'TENANT_ADMIN'],
       items: [
         { label: 'Panel global',  icon: 'fa-shield-halved', route: '/app/admin/overview' },
+        { label: 'Usuarios',      icon: 'fa-users',          route: '/app/admin/users', only: ['SUPERADMIN'] },
+        { label: 'Equipo',        icon: 'fa-user-tie',       route: '/app/admin/staff', only: ['TENANT_ADMIN'] },
+        { label: 'Clientes',      icon: 'fa-user-group',     route: '/app/admin/customers', only: ['TENANT_ADMIN'] },
         { label: 'Tiendas',       icon: 'fa-store',          route: '/app/admin/tenants' },
-        { label: 'Marcas',        icon: 'fa-tags',           route: '/app/admin/brands' },
-        { label: 'Categorías',    icon: 'fa-folder-tree',    route: '/app/admin/categories' },
         { label: 'Productos',     icon: 'fa-box',            route: '/app/admin/products' },
         { label: 'Inventario',    icon: 'fa-boxes-stacked',  route: '/app/admin/inventory' },
         { label: 'POS',           icon: 'fa-cash-register',  route: '/app/admin/pos' },
         { label: 'Ventas',        icon: 'fa-receipt',        route: '/app/admin/sales' },
-        { label: 'Equipo',        icon: 'fa-user-tie',       route: '/app/admin/staff' },
-        { label: 'Horarios',      icon: 'fa-clock',          route: '/app/admin/schedules' },
-        { label: 'Clientes',      icon: 'fa-user-group',     route: '/app/admin/customers' },
-        { label: 'Cupones',       icon: 'fa-ticket',         route: '/app/admin/coupons' },
-        { label: 'Reportes',      icon: 'fa-chart-line',     route: '/app/admin/reports' },
-        { label: 'Reseñas',       icon: 'fa-comment-dots',   route: '/app/admin/reviews' },
         { label: 'Envíos',        icon: 'fa-truck',          route: '/app/admin/shipments' },
         { label: 'Devoluciones',  icon: 'fa-rotate-left',    route: '/app/admin/returns' },
-        { label: 'Usuarios',      icon: 'fa-users',          route: '/app/admin/users' },
+        { label: 'Categorías',    icon: 'fa-folder-tree',    route: '/app/admin/categories' },
+        { label: 'Marcas',        icon: 'fa-tags',           route: '/app/admin/brands' },
+        { label: 'Cupones',       icon: 'fa-ticket',         route: '/app/admin/coupons' },
+        { label: 'Horarios',      icon: 'fa-clock',          route: '/app/admin/schedules' },
+        { label: 'Reseñas',       icon: 'fa-comment-dots',   route: '/app/admin/reviews' },
+        { label: 'Reportes',      icon: 'fa-chart-line',     route: '/app/admin/reports' },
         { label: 'Configuración', icon: 'fa-gear',           route: '/app/admin/settings' },
       ],
     },
@@ -379,17 +416,17 @@ export class DashboardLayoutComponent implements AfterViewInit {
       roles: ['BRANCH_MANAGER'],
       items: [
         { label: 'Panel',        icon: 'fa-gauge-high',     route: '/app/admin/overview' },
-        { label: 'Productos',    icon: 'fa-box',            route: '/app/admin/products' },
-        { label: 'Inventario',   icon: 'fa-boxes-stacked',  route: '/app/admin/inventory' },
+        { label: 'Equipo',       icon: 'fa-user-tie',       route: '/app/admin/staff' },
+        { label: 'Clientes',     icon: 'fa-user-group',     route: '/app/admin/customers' },
         { label: 'POS',          icon: 'fa-cash-register',  route: '/app/admin/pos' },
         { label: 'Ventas',       icon: 'fa-receipt',        route: '/app/admin/sales' },
-        { label: 'Equipo',       icon: 'fa-user-tie',       route: '/app/admin/staff' },
-        { label: 'Horarios',     icon: 'fa-clock',          route: '/app/admin/schedules' },
-        { label: 'Clientes',     icon: 'fa-user-group',     route: '/app/admin/customers' },
-        { label: 'Reportes',     icon: 'fa-chart-line',     route: '/app/admin/reports' },
-        { label: 'Reseñas',      icon: 'fa-comment-dots',   route: '/app/admin/reviews' },
+        { label: 'Productos',    icon: 'fa-box',            route: '/app/admin/products' },
+        { label: 'Inventario',   icon: 'fa-boxes-stacked',  route: '/app/admin/inventory' },
         { label: 'Envíos',       icon: 'fa-truck',          route: '/app/admin/shipments' },
         { label: 'Devoluciones', icon: 'fa-rotate-left',    route: '/app/admin/returns' },
+        { label: 'Horarios',     icon: 'fa-clock',          route: '/app/admin/schedules' },
+        { label: 'Reseñas',      icon: 'fa-comment-dots',   route: '/app/admin/reviews' },
+        { label: 'Reportes',     icon: 'fa-chart-line',     route: '/app/admin/reports' },
       ],
     },
     {
@@ -402,6 +439,17 @@ export class DashboardLayoutComponent implements AfterViewInit {
         { label: 'Inventario',  icon: 'fa-boxes-stacked',  route: '/app/admin/inventory' },
       ],
     },
+    {
+      title: 'Mi cuenta',
+      roles: ['CUSTOMER'],
+      items: [
+        { label: 'Mi perfil',     icon: 'fa-user',         route: '/app/account/profile' },
+        { label: 'Mis compras',   icon: 'fa-receipt',      route: '/app/account/orders' },
+        { label: 'Favoritos',     icon: 'fa-heart',        route: '/app/account/wishlist' },
+        { label: 'Direcciones',   icon: 'fa-location-dot', route: '/app/account/addresses' },
+        { label: 'Ir a la tienda',icon: 'fa-store',        route: '/', exact: true },
+      ],
+    },
   ];
 
   visibleGroups = computed(() => {
@@ -410,10 +458,11 @@ export class DashboardLayoutComponent implements AfterViewInit {
       .filter(g => !g.roles || (role && g.roles.includes(role)))
       .map(g => ({
         ...g,
-        // La Configuración del sitio es exclusiva del superadmin.
-        items: role === 'SUPERADMIN'
-          ? g.items
-          : g.items.filter(it => it.route !== '/app/admin/settings'),
+        items: g.items.filter(it =>
+          // Visibilidad por item (rol) y Configuración exclusiva del superadmin.
+          (!it.only || (role != null && it.only.includes(role))) &&
+          (role === 'SUPERADMIN' || it.route !== '/app/admin/settings')
+        ),
       }));
   });
 
@@ -429,6 +478,10 @@ export class DashboardLayoutComponent implements AfterViewInit {
   runSearch(term: string): void {
     const q = (term || '').trim();
     if (!q) return;
+    if (this.auth.user()?.role === 'CUSTOMER') {
+      this.router.navigate(['/shop'], { queryParams: { search: q } });
+      return;
+    }
     this.router.navigate(['/app/admin/products'], { queryParams: { search: q } });
   }
 

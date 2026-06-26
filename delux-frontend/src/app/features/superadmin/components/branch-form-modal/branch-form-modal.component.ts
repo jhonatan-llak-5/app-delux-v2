@@ -1,5 +1,6 @@
 import { ChangeDetectionStrategy, Component, EventEmitter, Input, Output, signal } from '@angular/core';
 import { CommonModule } from '@angular/common';
+import { DlxModalComponent } from '@shared/ui/modal.component';
 import { FormsModule } from '@angular/forms';
 import { AdminBranch } from '@features/superadmin/services/admin.service';
 
@@ -20,23 +21,13 @@ export interface BranchPayload {
 @Component({
   selector: 'dlx-branch-form-modal',
   standalone: true,
-  imports: [CommonModule, FormsModule],
+  imports: [CommonModule, FormsModule, DlxModalComponent],
   changeDetection: ChangeDetectionStrategy.OnPush,
   template: `
-    <div class="fixed inset-0 z-[120] flex items-center justify-center p-4">
-      <div class="absolute inset-0 bg-ink-950/60 backdrop-blur-sm" (click)="cancel.emit()"></div>
-      <div class="relative w-full max-w-2xl max-h-[90vh] overflow-y-auto rounded-2xl
-                  bg-white dark:bg-[#0f172a] border border-slate-200 dark:border-white/10 shadow-2xl">
-        <header class="sticky top-0 bg-white dark:bg-[#0f172a] px-6 py-4 border-b border-slate-200 dark:border-white/10 flex items-center justify-between z-10">
-          <h2 class="font-bold text-lg text-ink-950 dark:text-white">
-            {{ branch ? 'Editar sucursal' : 'Nueva sucursal' }}
-          </h2>
-          <button (click)="cancel.emit()" class="w-8 h-8 grid place-items-center rounded-lg text-slate-400 hover:bg-slate-100 dark:hover:bg-white/10">
-            <i class="fa-solid fa-xmark"></i>
-          </button>
-        </header>
-
-        <form (ngSubmit)="submit()" class="p-6 space-y-4">
+    <dlx-modal [open]="true" [maxWidth]="680"
+               [title]="branch ? 'Editar sucursal' : 'Nueva sucursal'"
+               (closed)="cancel.emit()">
+      <form (ngSubmit)="submit()" class="space-y-4">
           <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
             <div>
               <label class="eg-label">Código *</label>
@@ -119,8 +110,7 @@ export interface BranchPayload {
             </button>
           </div>
         </form>
-      </div>
-    </div>
+    </dlx-modal>
   `,
 })
 export class BranchFormModalComponent {

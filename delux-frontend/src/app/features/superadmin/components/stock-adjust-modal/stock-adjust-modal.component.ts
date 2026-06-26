@@ -1,5 +1,6 @@
 import { ChangeDetectionStrategy, Component, EventEmitter, Input, Output, inject, signal } from '@angular/core';
 import { CommonModule } from '@angular/common';
+import { DlxModalComponent } from '@shared/ui/modal.component';
 import { FormsModule } from '@angular/forms';
 import { Stock, InventoryService } from '@features/superadmin/services/inventory.service';
 import { parseApiError } from '@shared/utils/api-error.util';
@@ -7,20 +8,13 @@ import { parseApiError } from '@shared/utils/api-error.util';
 @Component({
   selector: 'dlx-stock-adjust-modal',
   standalone: true,
-  imports: [CommonModule, FormsModule],
+  imports: [CommonModule, FormsModule, DlxModalComponent],
   changeDetection: ChangeDetectionStrategy.OnPush,
   template: `
-    <div class="fixed inset-0 z-50 grid place-items-center bg-black/50 backdrop-blur-sm p-4 animate-fade-in"
-         (click)="onBackdrop($event)">
-      <div class="w-full max-w-md rounded-2xl bg-white border border-slate-200 shadow-2xl">
-        <div class="flex items-center justify-between px-6 py-4 border-b border-slate-200">
-          <h2 class="text-lg font-bold tracking-tight">Ajustar stock</h2>
-          <button type="button" (click)="close.emit()" class="w-9 h-9 grid place-items-center rounded-lg hover:bg-slate-100">
-            <i class="fa-solid fa-xmark"></i>
-          </button>
-        </div>
-
-        <div class="px-6 py-5 space-y-4">
+    <dlx-modal [open]="true" [maxWidth]="480"
+               [title]="'Ajustar stock'"
+               (closed)="close.emit()">
+      <div class="space-y-4">
           <div class="flex items-center gap-3 p-3 rounded-lg bg-slate-50">
             <img [src]="stock.product_main_image" [alt]="stock.product_name"
                  class="w-14 h-14 rounded-lg object-cover bg-white"
@@ -130,8 +124,7 @@ import { parseApiError } from '@shared/utils/api-error.util';
             </button>
           </div>
         </div>
-      </div>
-    </div>
+    </dlx-modal>
   `,
 })
 export class StockAdjustModalComponent {

@@ -1,32 +1,19 @@
 import { ChangeDetectionStrategy, Component, EventEmitter, Input, Output, signal } from '@angular/core';
 import { CommonModule } from '@angular/common';
+import { DlxModalComponent } from '@shared/ui/modal.component';
 import { FormsModule } from '@angular/forms';
 import { Brand, BrandPayload } from '@features/superadmin/services/brand.service';
 
 @Component({
   selector: 'dlx-brand-form-modal',
   standalone: true,
-  imports: [CommonModule, FormsModule],
+  imports: [CommonModule, FormsModule, DlxModalComponent],
   changeDetection: ChangeDetectionStrategy.OnPush,
   template: `
-    <div class="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm
-                p-4 animate-fade-in" (click)="cancel.emit()">
-      <div class="bg-white rounded-2xl max-w-2xl w-full max-h-[90vh] overflow-y-auto"
-           (click)="$event.stopPropagation()">
-        <!-- Header -->
-        <header class="sticky top-0 bg-white border-b border-slate-200 px-6 py-4
-                       flex items-center justify-between z-10">
-          <h2 class="font-display font-bold text-xl">
-            {{ brand ? 'Editar marca' : 'Nueva marca' }}
-          </h2>
-          <button (click)="cancel.emit()" class="w-9 h-9 grid place-items-center
-                                                   rounded-lg hover:bg-slate-100" aria-label="Cerrar">
-            <i class="fa-solid fa-xmark"></i>
-          </button>
-        </header>
-
-        <!-- Body -->
-        <form (ngSubmit)="submit()" class="p-6 space-y-5">
+    <dlx-modal [open]="true" [maxWidth]="680"
+               [title]="brand ? 'Editar marca' : 'Nueva marca'"
+               (closed)="cancel.emit()">
+      <form (ngSubmit)="submit()" class="space-y-5">
           @if (error()) {
             <div class="p-3 rounded-lg bg-rose-50 border border-rose-200 text-rose-700 text-sm">
               {{ error() }}
@@ -132,8 +119,7 @@ import { Brand, BrandPayload } from '@features/superadmin/services/brand.service
             </button>
           </div>
         </form>
-      </div>
-    </div>
+    </dlx-modal>
   `,
 })
 export class BrandFormModalComponent {

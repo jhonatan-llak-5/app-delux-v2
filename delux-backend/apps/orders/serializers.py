@@ -86,6 +86,8 @@ class POSCheckoutSerializer(serializers.Serializer):
                         'document_id': cd.get('document_id', ''),
                     },
                 )
+                from apps.customers.utils import link_customer_to_user
+                link_customer_to_user(customer)
 
         with transaction.atomic():
             today = timezone.now().strftime('%Y%m%d')

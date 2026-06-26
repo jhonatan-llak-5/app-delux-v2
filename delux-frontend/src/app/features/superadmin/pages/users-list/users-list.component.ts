@@ -1,4 +1,4 @@
-import { ChangeDetectionStrategy, Component, OnInit, inject, signal } from '@angular/core';
+import { ChangeDetectionStrategy, Component, OnInit, computed, inject, input, signal } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { Router, RouterLink } from '@angular/router';
@@ -7,41 +7,54 @@ import { AuthService } from '@core/services/auth.service';
 import { NotifyService } from '@shared/services/notify.service';
 import { debounceTime, Subject } from 'rxjs';
 import { parseApiError } from '@shared/utils/api-error.util';
+import { DlxModalComponent } from '@shared/ui/modal.component';
+
+type Scope = 'system' | 'clients' | 'all';
 
 @Component({
   selector: 'dlx-users-list',
   standalone: true,
-  imports: [CommonModule, FormsModule, RouterLink],
+  imports: [CommonModule, FormsModule, RouterLink, DlxModalComponent],
   changeDetection: ChangeDetectionStrategy.OnPush,
   template: `
     <div class="flex items-end justify-between gap-4 mb-6 flex-wrap">
       <div>
-        <h1 class="text-2xl md:text-3xl font-bold tracking-tight">Usuarios</h1>
-        <p class="text-slate-500 text-sm mt-1">Staff y clientes registrados en la plataforma.</p>
+        <h1 class="text-2xl md:text-3xl font-bold tracking-tight">{{ ui().title }}</h1>
+        <p class="text-slate-500 text-sm mt-1">{{ ui().subtitle }}</p>
       </div>
-      <a routerLink="/app/admin/staff/new"
-         class="px-4 py-2.5 rounded-lg bg-[#1e40af] text-white text-sm font-semibold
-                hover:bg-[#1d4ed8] transition inline-flex items-center gap-2">
-        <i class="fa-solid fa-user-plus"></i> Nuevo usuario de sucursal
-      </a>
+      <div class="flex items-center gap-2 flex-wrap">
+        <a [routerLink]="ui().advancedRoute"
+           class="text-sm font-semibold text-[#1e40af] hover:underline inline-flex items-center gap-1.5">
+          <i class="fa-solid fa-arrow-up-right-from-square text-xs"></i> {{ ui().advancedLabel }}
+        </a>
+        @if (scope() !== 'clients') {
+          <a routerLink="/app/admin/staff/new"
+             class="px-4 py-2.5 rounded-lg bg-[#1e40af] text-white text-sm font-semibold
+                    hover:bg-[#1d4ed8] transition inline-flex items-center gap-2">
+            <i class="fa-solid fa-user-plus"></i> Nuevo usuario de sucursal
+          </a>
+        }
+      </div>
     </div>
 
-    <div class="card p-4 mb-4 flex flex-wrap gap-3 items-center">
+    <div class="card p-4 mb-4 flex flex-wrap gap-3 items-center filter-bar">
       <div class="relative flex-1 min-w-64">
-        <i class="fa-solid fa-magnifying-glass text-sm absolute left-3 top-1/2 -translate-y-1/2 text-slate-400"></i>
+        <i class="fa-solid fa-magnifying-glass text-sm absolute left-3 top-1/2 -translate-y-1/2 text-slate-400 pointer-events-none"></i>
         <input placeholder="Buscar por nombre o correo..."
                [ngModel]="search()" (ngModelChange)="onSearch($event)"
-               class="eg-input pl-9 pr-3 border-transparent" />
+               class="eg-input has-icon-left pr-3 border-transparent" />
       </div>
-      <select [ngModel]="role()" (ngModelChange)="onRole($event)"
-              class="eg-input border-transparent">
-        <option value="">Todos los roles</option>
-        <option value="SUPERADMIN">Superadmin</option>
-        <option value="TENANT_ADMIN">Admin Tenant</option>
-        <option value="BRANCH_MANAGER">Gerente Sucursal</option>
-        <option value="SALESPERSON">Vendedor</option>
-        <option value="CUSTOMER">Cliente</option>
-      </select>
+      @if (scope() !== 'clients') {
+        <select [ngModel]="role()" (ngModelChange)="onRole($event)"
+                class="eg-input border-transparent">
+          <option value="">Todos los roles</option>
+          <option value="SUPERADMIN">Superadmin</option>
+          <option value="TENANT_ADMIN">Admin Tenant</option>
+          <option value="BRANCH_MANAGER">Gerente Sucursal</option>
+          <option value="SALESPERSON">Vendedor</option>
+          @if (scope() === 'all') { <option value="CUSTOMER">Cliente</option> }
+        </select>
+      }
     </div>
 
     <div class="card overflow-hidden">
@@ -100,6 +113,9 @@ import { parseApiError } from '@shared/utils/api-error.util';
                           <i class="fa-solid fa-right-to-bracket"></i> Acceder
                         </button>
                       }
+                      <button class="btn-secondary text-xs" (click)="openEdit(u)" title="Editar datos">
+                        <i class="fa-solid fa-pen"></i> Editar
+                      </button>
                       <button class="btn-secondary text-xs" (click)="toggle(u)">
                         <i class="fa-solid fa-power-off"></i>
                         {{ u.is_active ? 'Desactivar' : 'Activar' }}
@@ -113,9 +129,60 @@ import { parseApiError } from '@shared/utils/api-error.util';
         </table>
       </div>
     </div>
+
+    @if (editing(); as ed) {
+      <dlx-modal [open]="true" [maxWidth]="480" title="Editar usuario" (closed)="closeEdit()">
+          <p class="text-xs text-slate-500 mb-4">
+            <span class="inline-flex items-center px-2 py-0.5 rounded-full font-semibold"
+                  [ngClass]="roleClass(ed.role)">{{ roleLabel(ed.role) }}</span>
+            <span class="ml-1">El rol no se puede cambiar desde aquí.</span>
+          </p>
+
+          <label class="block text-sm font-medium mb-1">Correo <span class="text-rose-500">*</span></label>
+          <input type="email" autocomplete="off" [(ngModel)]="form.email" class="eg-input w-full" />
+          @if (fieldErrors()['email']) { <p class="text-rose-600 text-xs mt-1">{{ fieldErrors()['email'] }}</p> }
+
+          <label class="block text-sm font-medium mb-1 mt-3">Nombre completo</label>
+          <input [(ngModel)]="form.full_name" class="eg-input w-full" />
+          @if (fieldErrors()['full_name']) { <p class="text-rose-600 text-xs mt-1">{{ fieldErrors()['full_name'] }}</p> }
+
+          <div class="grid grid-cols-2 gap-3 mt-3">
+            <div>
+              <label class="block text-sm font-medium mb-1">Teléfono</label>
+              <input [(ngModel)]="form.phone" class="eg-input w-full" />
+              @if (fieldErrors()['phone']) { <p class="text-rose-600 text-xs mt-1">{{ fieldErrors()['phone'] }}</p> }
+            </div>
+            <div>
+              <label class="block text-sm font-medium mb-1">Documento</label>
+              <input [(ngModel)]="form.document_id" class="eg-input w-full" />
+              @if (fieldErrors()['document_id']) { <p class="text-rose-600 text-xs mt-1">{{ fieldErrors()['document_id'] }}</p> }
+            </div>
+          </div>
+
+          <label class="block text-sm font-medium mb-1 mt-3">Nueva contraseña</label>
+          <input type="password" autocomplete="new-password" [(ngModel)]="form.password"
+                 placeholder="Déjalo vacío para no cambiarla" class="eg-input w-full" />
+          <p class="text-[11px] text-slate-400 mt-1">Mínimo 8 caracteres. Solo se cambia si escribes algo.</p>
+          @if (fieldErrors()['password']) { <p class="text-rose-600 text-xs mt-1">{{ fieldErrors()['password'] }}</p> }
+
+          @if (formError()) { <p class="text-rose-600 text-sm mt-3">{{ formError() }}</p> }
+
+          <div class="flex justify-end gap-2 mt-6">
+            <button class="btn-secondary text-sm" (click)="closeEdit()" [disabled]="saving()">Cancelar</button>
+            <button class="px-4 py-2 rounded-lg bg-[#1e40af] text-white text-sm font-semibold
+                           hover:bg-[#1d4ed8] transition disabled:opacity-60"
+                    (click)="save()" [disabled]="saving()">
+              {{ saving() ? 'Guardando...' : 'Guardar cambios' }}
+            </button>
+          </div>
+      </dlx-modal>
+    }
   `,
 })
 export class UsersListComponent implements OnInit {
+  /** Clasificación: 'system' (equipo interno), 'clients' (rol Cliente) o 'all'. */
+  scope = input<Scope>('all');
+
   private admin = inject(AdminService);
   private auth = inject(AuthService);
   private router = inject(Router);
@@ -126,6 +193,34 @@ export class UsersListComponent implements OnInit {
   role = signal('');
   private search$ = new Subject<void>();
 
+  // Edición
+  editing = signal<AdminUser | null>(null);
+  saving = signal(false);
+  fieldErrors = signal<Record<string, string>>({});
+  formError = signal<string | null>(null);
+  form = { email: '', full_name: '', phone: '', document_id: '', password: '' };
+
+  ui = computed(() => {
+    switch (this.scope()) {
+      case 'clients':
+        return {
+          title: 'Clientes', subtitle: 'Cuentas registradas con rol Cliente en la plataforma.',
+          advancedLabel: 'Ver CRM y compras', advancedRoute: '/app/admin/customers',
+        };
+      case 'system':
+        return {
+          title: 'Usuarios del sistema',
+          subtitle: 'Equipo interno: administradores, gerentes y vendedores.',
+          advancedLabel: 'Gestión de personal (comisiones)', advancedRoute: '/app/admin/staff',
+        };
+      default:
+        return {
+          title: 'Usuarios', subtitle: 'Staff y clientes registrados en la plataforma.',
+          advancedLabel: 'Equipo', advancedRoute: '/app/admin/staff',
+        };
+    }
+  });
+
   ngOnInit(): void {
     this.search$.pipe(debounceTime(300)).subscribe(() => this.fetch());
     this.fetch();
@@ -133,7 +228,9 @@ export class UsersListComponent implements OnInit {
 
   fetch() {
     this.loading.set(true);
-    this.admin.listUsers({ search: this.search(), role: this.role() }).subscribe({
+    const sc = this.scope();
+    const kind = sc === 'clients' ? 'clients' : sc === 'system' ? 'system' : undefined;
+    this.admin.listUsers({ search: this.search(), role: this.role(), kind }).subscribe({
       next: (r) => { this.users.set(r.results); this.loading.set(false); },
       error: () => this.loading.set(false),
     });
@@ -160,6 +257,50 @@ export class UsersListComponent implements OnInit {
   toggle(u: AdminUser) {
     const op = u.is_active ? this.admin.deactivateUser(u.id) : this.admin.activateUser(u.id);
     op.subscribe(() => this.fetch());
+  }
+
+  openEdit(u: AdminUser) {
+    this.editing.set(u);
+    this.fieldErrors.set({});
+    this.formError.set(null);
+    this.form = {
+      email: u.email || '',
+      full_name: u.full_name || '',
+      phone: u.phone || '',
+      document_id: u.document_id || '',
+      password: '',
+    };
+  }
+
+  closeEdit() { this.editing.set(null); }
+
+  save() {
+    const u = this.editing();
+    if (!u) return;
+    this.saving.set(true);
+    this.fieldErrors.set({});
+    this.formError.set(null);
+    const payload: { email: string; full_name: string; phone: string; document_id: string; password?: string } = {
+      email: this.form.email.trim(),
+      full_name: this.form.full_name.trim(),
+      phone: this.form.phone.trim(),
+      document_id: this.form.document_id.trim(),
+    };
+    if (this.form.password) payload.password = this.form.password;
+    this.admin.updateUser(u.id, payload).subscribe({
+      next: () => {
+        this.saving.set(false);
+        this.notify.success('Usuario actualizado');
+        this.closeEdit();
+        this.fetch();
+      },
+      error: (e) => {
+        this.saving.set(false);
+        const { fieldErrors, message } = parseApiError(e);
+        this.fieldErrors.set(fieldErrors);
+        this.formError.set(Object.keys(fieldErrors).length ? null : (message || 'No se pudo guardar.'));
+      },
+    });
   }
 
   roleLabel(r: AdminUser['role']) {
