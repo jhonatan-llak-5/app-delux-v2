@@ -4,6 +4,7 @@ import { FormsModule } from '@angular/forms';
 import { ActivatedRoute, Router, RouterLink } from '@angular/router';
 import { AuthService } from '@core/services/auth.service';
 import { AuthShellComponent } from '@features/auth/components/auth-shell/auth-shell.component';
+import { parseApiError } from '@shared/utils/api-error.util';
 
 @Component({
   selector: 'dlx-reset-password',
@@ -158,7 +159,7 @@ export class ResetPasswordComponent implements OnInit {
       },
       error: e => {
         this.loading.set(false);
-        this.error.set(e?.error?.detail || 'No pudimos restablecer la contraseña.');
+        this.error.set(parseApiError(e).message || 'No pudimos restablecer la contraseña.');
       },
     });
   }

@@ -5,6 +5,7 @@ import { AdminService, AdminBranch, AdminTenant } from '@features/superadmin/ser
 import { BranchFormModalComponent, BranchPayload } from '@features/superadmin/components/branch-form-modal/branch-form-modal.component';
 import { ConfirmService } from '@shared/components/confirm/confirm.service';
 import { NotifyService } from '@shared/services/notify.service';
+import { parseApiError } from '@shared/utils/api-error.util';
 
 @Component({
   selector: 'dlx-tenant-branches',
@@ -173,7 +174,7 @@ export class TenantBranchesComponent implements OnInit {
         this.reload();
       },
       error: (e) => {
-        const msg = e?.error?.detail || 'No se pudo guardar la sucursal.';
+        const msg = parseApiError(e).message || 'No se pudo guardar la sucursal.';
         this.modal?.setError(typeof msg === 'string' ? msg : 'No se pudo guardar.');
       },
     });
@@ -198,7 +199,7 @@ export class TenantBranchesComponent implements OnInit {
       if (!ok) return;
       this.admin.updateBranch(b.id, { is_active: false }).subscribe({
         next: () => { this.notify.success('Sucursal desactivada'); this.reload(); },
-        error: (e) => this.notify.error(e?.error?.detail || 'No se pudo desactivar.'),
+        error: (e) => this.notify.error(parseApiError(e).message || 'No se pudo desactivar.'),
       });
       return;
     }
@@ -220,7 +221,7 @@ export class TenantBranchesComponent implements OnInit {
     if (!ok) return;
     this.admin.deleteBranch(b.id).subscribe({
       next: () => { this.notify.success('Sucursal eliminada'); this.reload(); },
-      error: (e) => this.notify.error(e?.error?.detail || 'No se pudo eliminar (puede tener pedidos asociados).'),
+      error: (e) => this.notify.error(parseApiError(e).message || 'No se pudo eliminar (puede tener pedidos asociados).'),
     });
   }
 
@@ -228,7 +229,7 @@ export class TenantBranchesComponent implements OnInit {
     const next = !b.is_active;
     this.admin.updateBranch(b.id, { is_active: next }).subscribe({
       next: () => { this.notify.success(next ? 'Sucursal activada' : 'Sucursal desactivada'); this.reload(); },
-      error: (e) => this.notify.error(e?.error?.detail || 'No se pudo actualizar.'),
+      error: (e) => this.notify.error(parseApiError(e).message || 'No se pudo actualizar.'),
     });
   }
 }

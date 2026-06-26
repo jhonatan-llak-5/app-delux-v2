@@ -2,6 +2,7 @@ import { ChangeDetectionStrategy, Component, EventEmitter, Input, Output, inject
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { Stock, InventoryService } from '@features/superadmin/services/inventory.service';
+import { parseApiError } from '@shared/utils/api-error.util';
 
 @Component({
   selector: 'dlx-stock-adjust-modal',
@@ -166,7 +167,7 @@ export class StockAdjustModalComponent {
       next: r => { this.saving.set(false); this.saved.emit(r.quantity); },
       error: e => {
         this.saving.set(false);
-        this.error.set(e?.error?.detail || 'Error al ajustar');
+        this.error.set(parseApiError(e).message || 'Error al ajustar');
       },
     });
   }

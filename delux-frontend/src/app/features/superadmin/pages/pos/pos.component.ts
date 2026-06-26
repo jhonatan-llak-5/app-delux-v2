@@ -9,6 +9,7 @@ import { OrderService, Order } from '@features/superadmin/services/order.service
 import { AdminService, AdminBranch } from '@features/superadmin/services/admin.service';
 import { CouponService, CouponValidation } from '@features/superadmin/services/coupon.service';
 import { generateVoucherPDF } from '@shared/utils/voucher-pdf.util';
+import { parseApiError } from '@shared/utils/api-error.util';
 
 interface CartItem {
   variant_id: number;
@@ -384,7 +385,7 @@ export class PosComponent implements OnInit {
       },
       error: e => {
         this.validatingCoupon.set(false);
-        this.couponError.set(e?.error?.detail || 'Cupón no válido');
+        this.couponError.set(parseApiError(e).message || 'Cupón no válido');
       },
     });
   }
@@ -412,7 +413,7 @@ export class PosComponent implements OnInit {
       },
       error: e => {
         this.saving.set(false);
-        const detail = e?.error?.detail
+        const detail = parseApiError(e).message
           || (e?.error?.items ? JSON.stringify(e.error.items) : null)
           || 'Error al procesar venta';
         this.error.set(detail);

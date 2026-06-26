@@ -5,6 +5,7 @@ import { ActivatedRoute, Router, RouterLink } from '@angular/router';
 
 import { StaffService, StaffPayload, SalesMetrics } from '@features/superadmin/services/staff.service';
 import { AdminService, AdminBranch } from '@features/superadmin/services/admin.service';
+import { parseApiError } from '@shared/utils/api-error.util';
 
 @Component({
   selector: 'dlx-staff-form',
@@ -315,7 +316,7 @@ export class StaffFormComponent implements OnInit {
       },
       error: e => {
         this.saving.set(false);
-        this.error.set(e?.error?.detail || JSON.stringify(e?.error || {}) || 'Error al guardar');
+        this.error.set(parseApiError(e).message || 'Error al guardar');
       },
     });
   }

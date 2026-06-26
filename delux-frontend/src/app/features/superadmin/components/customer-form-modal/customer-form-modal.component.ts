@@ -2,6 +2,7 @@ import { ChangeDetectionStrategy, Component, EventEmitter, Input, OnInit, Output
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { Customer, CustomerPayload, CustomerService } from '@features/superadmin/services/customer.service';
+import { parseApiError } from '@shared/utils/api-error.util';
 
 @Component({
   selector: 'dlx-customer-form-modal',
@@ -107,7 +108,7 @@ export class CustomerFormModalComponent implements OnInit {
       : this.svc.create(this.payload);
     obs.subscribe({
       next: c => { this.saving.set(false); this.saved.emit(c); },
-      error: e => { this.saving.set(false); this.error.set(e?.error?.detail || 'Error al guardar'); },
+      error: e => { this.saving.set(false); this.error.set(parseApiError(e).message || 'Error al guardar'); },
     });
   }
 

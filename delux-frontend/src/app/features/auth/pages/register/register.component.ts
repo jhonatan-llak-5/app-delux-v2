@@ -4,6 +4,7 @@ import { FormsModule } from '@angular/forms';
 import { Router, RouterLink } from '@angular/router';
 import { AuthService } from '@core/services/auth.service';
 import { BrandingService } from '@core/services/branding.service';
+import { parseApiError } from '@shared/utils/api-error.util';
 import { AuthShellComponent } from '@features/auth/components/auth-shell/auth-shell.component';
 
 @Component({
@@ -19,12 +20,14 @@ import { AuthShellComponent } from '@features/auth/components/auth-shell/auth-sh
           <label class="block text-[12px] font-semibold text-ink-700 dark:text-white/70 mb-1">Correo electrónico <span class="text-rose-500">*</span></label>
           <input [(ngModel)]="form.email" name="email" type="email" required (ngModelChange)="persist()"
                  autocomplete="email" placeholder="tucorreo@ejemplo.com" class="input-modern" />
+          @if (fieldErrors()['email']) { <p class="text-rose-600 dark:text-rose-400 text-[12px] mt-1">{{ fieldErrors()['email'] }}</p> }
         </div>
 
         <div>
           <label class="block text-[12px] font-semibold text-ink-700 dark:text-white/70 mb-1">Nombre completo <span class="text-rose-500">*</span></label>
           <input [(ngModel)]="form.full_name" name="full_name" required minlength="2" maxlength="160" (ngModelChange)="persist()"
                  autocomplete="name" placeholder="Tu nombre y apellido" class="input-modern" />
+          @if (fieldErrors()['full_name']) { <p class="text-rose-600 dark:text-rose-400 text-[12px] mt-1">{{ fieldErrors()['full_name'] }}</p> }
         </div>
 
         <div>
@@ -32,6 +35,7 @@ import { AuthShellComponent } from '@features/auth/components/auth-shell/auth-sh
           <input [(ngModel)]="form.username" name="username" required minlength="3" maxlength="40"
                  autocomplete="username" placeholder="solo minúsculas, sin espacios"
                  (ngModelChange)="form.username = $event.toLowerCase(); persist()" class="input-modern" />
+          @if (fieldErrors()['username']) { <p class="text-rose-600 dark:text-rose-400 text-[12px] mt-1">{{ fieldErrors()['username'] }}</p> }
         </div>
 
         <div>
@@ -62,6 +66,7 @@ import { AuthShellComponent } from '@features/auth/components/auth-shell/auth-sh
               </ul>
             </div>
           }
+          @if (fieldErrors()['password']) { <p class="text-rose-600 dark:text-rose-400 text-[12px] mt-1">{{ fieldErrors()['password'] }}</p> }
         </div>
 
         @if (branding.recaptchaSiteKey()) {
@@ -108,6 +113,7 @@ export class RegisterComponent implements AfterViewInit {
   pwFocused = signal(false);
   loading = signal(false);
   error = signal<string | null>(null);
+  fieldErrors = signal<Record<string, string>>({});
 
   pwRules() {
     const p = this.form.password || '';
@@ -128,6 +134,7 @@ export class RegisterComponent implements AfterViewInit {
   }
 
   persist(): void {
+    if (Object.keys(this.fieldErrors()).length) this.fieldErrors.set({});
     if (typeof sessionStorage === 'undefined') return;
     const { full_name, username, email } = this.form;
     sessionStorage.setItem(this.STORE, JSON.stringify({ full_name, username, email }));
@@ -183,9 +190,10 @@ export class RegisterComponent implements AfterViewInit {
       error: e => {
         this.loading.set(false);
         this.resetCaptcha();
-        const err = e?.error || {};
-        const msg = err.detail || err.email?.[0] || err.username?.[0] || err.password?.[0] || 'No pudimos crear la cuenta.';
-        this.error.set(msg);
+        const { fieldErrors, message } = parseApiError(e);
+        this.fieldErrors.set(fieldErrors);
+        // Solo mostramos el mensaje general si NO hay errores por campo.
+        this.error.set(Object.keys(fieldErrors).length ? null : (message || 'No pudimos crear la cuenta.'));
       },
     });
   }

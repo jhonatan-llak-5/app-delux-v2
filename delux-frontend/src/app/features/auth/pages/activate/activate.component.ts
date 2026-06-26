@@ -4,6 +4,7 @@ import { FormsModule } from '@angular/forms';
 import { ActivatedRoute, Router, RouterLink } from '@angular/router';
 import { AuthService } from '@core/services/auth.service';
 import { AuthShellComponent } from '@features/auth/components/auth-shell/auth-shell.component';
+import { parseApiError } from '@shared/utils/api-error.util';
 
 @Component({
   selector: 'dlx-activate',
@@ -159,7 +160,7 @@ export class ActivateComponent implements OnInit, OnDestroy {
       },
       error: e => {
         this.loading.set(false);
-        this.error.set(e?.error?.detail || 'Código inválido o expirado.');
+        this.error.set(parseApiError(e).message || 'Código inválido o expirado.');
       },
     });
   }

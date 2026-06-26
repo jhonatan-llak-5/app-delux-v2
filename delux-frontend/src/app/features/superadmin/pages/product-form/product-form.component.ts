@@ -9,6 +9,7 @@ import { CategoryService, Category } from '@features/superadmin/services/categor
 import { AdminService, AdminBranch } from '@features/superadmin/services/admin.service';
 import { NotifyService } from '@shared/services/notify.service';
 import { FileValidatorService } from '@shared/services/file-validator.service';
+import { parseApiError } from '@shared/utils/api-error.util';
 
 @Component({
   selector: 'dlx-product-form',
@@ -456,7 +457,7 @@ export class ProductFormComponent implements OnInit {
           this.images.set(list);
           if (--pending === 0) this.uploading.set(false);
         },
-        error: e => { this.error.set(e?.error?.detail || 'No se pudo subir una imagen.'); if (--pending === 0) this.uploading.set(false); },
+        error: e => { this.error.set(parseApiError(e).message || 'No se pudo subir una imagen.'); if (--pending === 0) this.uploading.set(false); },
       });
     }
   }
@@ -535,7 +536,7 @@ export class ProductFormComponent implements OnInit {
       },
       error: e => {
         this.saving.set(false);
-        const detail = e?.error?.detail || JSON.stringify(e?.error || {}) || 'Error al guardar';
+        const detail = parseApiError(e).message || 'Error al guardar';
         this.error.set(detail);
       },
     });

@@ -3,6 +3,7 @@ import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { ScheduleService, BranchSchedule } from '@features/superadmin/services/schedule.service';
 import { AdminService, AdminBranch } from '@features/superadmin/services/admin.service';
+import { parseApiError } from '@shared/utils/api-error.util';
 
 interface DayRow {
   weekday: number;
@@ -235,7 +236,7 @@ export class ScheduleEditorComponent implements OnInit {
       next: () => { this.saving.set(false); this.savedAt.set(new Date()); },
       error: e => {
         this.saving.set(false);
-        this.error.set(e?.error?.detail || 'Error al guardar');
+        this.error.set(parseApiError(e).message || 'Error al guardar');
       },
     });
   }

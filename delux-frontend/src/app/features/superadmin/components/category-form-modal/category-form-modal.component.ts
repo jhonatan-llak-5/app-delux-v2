@@ -2,6 +2,7 @@ import { ChangeDetectionStrategy, Component, EventEmitter, Input, OnInit, Output
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { Category, CategoryPayload, CategoryService } from '@features/superadmin/services/category.service';
+import { parseApiError } from '@shared/utils/api-error.util';
 
 interface FlatOption { id: number; label: string; depth: number; }
 
@@ -169,7 +170,7 @@ export class CategoryFormModalComponent implements OnInit {
       next: cat => { this.saving.set(false); this.saved.emit(cat); },
       error: e => {
         this.saving.set(false);
-        const detail = e?.error?.detail || JSON.stringify(e?.error || {}) || 'Error al guardar';
+        const detail = parseApiError(e).message || 'Error al guardar';
         this.error.set(detail);
       },
     });

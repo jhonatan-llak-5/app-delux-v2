@@ -3,6 +3,7 @@ import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { Stock, InventoryService } from '@features/superadmin/services/inventory.service';
 import { AdminService, AdminBranch } from '@features/superadmin/services/admin.service';
+import { parseApiError } from '@shared/utils/api-error.util';
 
 @Component({
   selector: 'dlx-transfer-modal',
@@ -147,7 +148,7 @@ export class TransferModalComponent implements OnInit {
       next: () => { this.saving.set(false); this.saved.emit(); },
       error: e => {
         this.saving.set(false);
-        this.error.set(e?.error?.detail || 'Error en transferencia');
+        this.error.set(parseApiError(e).message || 'Error en transferencia');
       },
     });
   }

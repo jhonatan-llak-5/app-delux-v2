@@ -2,6 +2,7 @@ import { ChangeDetectionStrategy, Component, EventEmitter, Input, OnInit, Output
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { Coupon, CouponPayload, CouponService } from '@features/superadmin/services/coupon.service';
+import { parseApiError } from '@shared/utils/api-error.util';
 
 @Component({
   selector: 'dlx-coupon-form-modal',
@@ -156,7 +157,7 @@ export class CouponFormModalComponent implements OnInit {
       next: () => { this.saving.set(false); this.saved.emit(); },
       error: e => {
         this.saving.set(false);
-        this.error.set(e?.error?.detail || JSON.stringify(e?.error || {}) || 'Error al guardar');
+        this.error.set(parseApiError(e).message || 'Error al guardar');
       },
     });
   }

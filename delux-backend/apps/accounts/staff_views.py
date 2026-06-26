@@ -53,10 +53,11 @@ class StaffViewSet(viewsets.ModelViewSet):
             cfg = PlatformSettings.load()
             smtp_ok = bool(getattr(cfg, 'smtp_host', '')) and getattr(cfg, 'email_active', True)
             if smtp_ok:
-                from .tasks import send_staff_credentials_email
+                from .tasks import dispatch, send_staff_credentials_email
                 origin = request.headers.get('Origin') or ''
                 login_url = (origin.rstrip('/') + '/auth/login') if origin else ''
-                send_staff_credentials_email.delay(
+                dispatch(
+                    send_staff_credentials_email,
                     user.email, user.full_name, plain or '',
                     user.get_role_display(),
                     user.branch.name if user.branch else '',

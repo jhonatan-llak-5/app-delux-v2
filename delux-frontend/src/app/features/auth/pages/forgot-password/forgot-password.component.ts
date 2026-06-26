@@ -4,6 +4,7 @@ import { FormsModule } from '@angular/forms';
 import { RouterLink } from '@angular/router';
 import { AuthService } from '@core/services/auth.service';
 import { AuthShellComponent } from '@features/auth/components/auth-shell/auth-shell.component';
+import { parseApiError } from '@shared/utils/api-error.util';
 
 @Component({
   selector: 'dlx-forgot-password',
@@ -92,7 +93,7 @@ export class ForgotPasswordComponent {
       next: () => { this.loading.set(false); this.sent.set(true); },
       error: e => {
         this.loading.set(false);
-        this.error.set(e?.error?.detail || 'No pudimos procesar la solicitud.');
+        this.error.set(parseApiError(e).message || 'No pudimos procesar la solicitud.');
       },
     });
   }

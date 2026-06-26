@@ -6,6 +6,7 @@ import { AdminService, AdminUser } from '@features/superadmin/services/admin.ser
 import { AuthService } from '@core/services/auth.service';
 import { NotifyService } from '@shared/services/notify.service';
 import { debounceTime, Subject } from 'rxjs';
+import { parseApiError } from '@shared/utils/api-error.util';
 
 @Component({
   selector: 'dlx-users-list',
@@ -152,7 +153,7 @@ export class UsersListComponent implements OnInit {
         this.auth.startImpersonation(r as any);
         this.router.navigate(['/app']);
       },
-      error: (e) => this.notify.error(e?.error?.detail || 'No se pudo acceder a la cuenta.'),
+      error: (e) => this.notify.error(parseApiError(e).message || 'No se pudo acceder a la cuenta.'),
     });
   }
 

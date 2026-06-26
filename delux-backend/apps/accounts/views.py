@@ -17,7 +17,7 @@ from .serializers import (
     UserSerializer,
 )
 from .services import activate_user, assign_activation_code, is_activation_valid
-from .tasks import send_activation_email, send_password_reset_email
+from .tasks import dispatch, send_activation_email, send_password_reset_email
 
 User = get_user_model()
 
@@ -47,7 +47,7 @@ class RegisterView(APIView):
         serializer.is_valid(raise_exception=True)
         user = serializer.save()
         code = assign_activation_code(user)
-        send_activation_email.delay(user.email, user.full_name, code)
+        dispatch(send_activation_email, user.email, user.full_name, code)
         return Response(
             {'detail': 'Te enviamos un codigo de activacion al correo.',
              'email': user.email},
@@ -100,7 +100,7 @@ class ResendCodeView(APIView):
                     status=status.HTTP_429_TOO_MANY_REQUESTS,
                 )
         code = assign_activation_code(user)
-        send_activation_email.delay(user.email, user.full_name, code)
+        dispatch(send_activation_email, user.email, user.full_name, code)
         return Response({'detail': 'Reenviamos el codigo.'},
                         status=status.HTTP_200_OK)
 
@@ -117,7 +117,7 @@ class ForgotPasswordView(APIView):
             return Response({'detail': 'Si la cuenta existe, recibiras un correo.'},
                             status=status.HTTP_200_OK)
         code = assign_activation_code(user)
-        send_password_reset_email.delay(user.email, user.full_name, code)
+        dispatch(send_password_reset_email, user.email, user.full_name, code)
         return Response({'detail': 'Si la cuenta existe, recibiras un correo.'},
                         status=status.HTTP_200_OK)
 

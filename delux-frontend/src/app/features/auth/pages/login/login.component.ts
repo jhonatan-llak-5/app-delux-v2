@@ -4,6 +4,7 @@ import { FormsModule } from '@angular/forms';
 import { Router, RouterLink } from '@angular/router';
 import { AuthService } from '@core/services/auth.service';
 import { AuthShellComponent } from '@features/auth/components/auth-shell/auth-shell.component';
+import { parseApiError } from '@shared/utils/api-error.util';
 
 @Component({
   selector: 'dlx-login',
@@ -91,7 +92,8 @@ export class LoginComponent {
       },
       error: e => {
         this.loading.set(false);
-        this.error.set(e?.error?.detail || 'Datos incorrectos. Verifica e intenta de nuevo.');
+        // Mensaje genérico por seguridad: no revelamos si falló el correo o la clave.
+        this.error.set(parseApiError(e).message || 'Datos incorrectos. Verifica e intenta de nuevo.');
       },
     });
   }
