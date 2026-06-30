@@ -78,7 +78,13 @@ def kiosk_product(request):
             matched = v.id
     if not product:
         return Response({'found': False, 'code': code})
-    return Response({'found': True, **_product_payload(product, matched)})
+    from apps.branches.models import Branch
+    token = (request.query_params.get('token') or '').strip()
+    branch = Branch.objects.filter(kiosk_token=token, is_active=True).first() if token else None
+    payload = _product_payload(product, matched)
+    payload['current_branch_id'] = branch.id if branch else None
+    payload['current_branch_name'] = branch.name if branch else None
+    return Response({'found': True, **payload})
 
 
 @api_view(['GET'])
@@ -88,6 +94,9 @@ def kiosk_search(request):
     q = (request.query_params.get('q') or '').strip()
     if not q:
         return Response({'results': []})
+    from apps.branches.models import Branch
+    token = (request.query_params.get('token') or '').strip()
+    branch = Branch.objects.filter(kiosk_token=token, is_active=True).first() if token else None
     prods = (Product.objects.filter(tenant=tenant)
              .filter(Q(name__icontains=q) | Q(short_description__icontains=q)
                      | Q(description__icontains=q)
@@ -95,15 +104,31 @@ def kiosk_search(request):
              .select_related('brand').distinct()[:30])
     out = []
     for p in prods:
-        agg = Stock.objects.filter(variant__product=p).aggregate(
-            q=Sum('quantity'), r=Sum('reserved'))
-        total = max((agg['q'] or 0) - (agg['r'] or 0), 0)
+        total = 0
+        branch_av = 0
+        other = []
+        for st in Stock.objects.filter(variant__product=p).select_related('branch'):
+            av = max(st.quantity - st.reserved, 0)
+            total += av
+            if branch and st.branch_id == branch.id:
+                branch_av += av
+            elif av > 0 and st.branch:
+                other.append(st.branch.name)
         out.append({
             'id': p.id, 'name': p.name, 'brand': p.brand.name,
             'image': p.main_image_url, 'base_price': p.base_price,
             'total_available': total,
+            'branch_available': branch_av if branch else total,
+            'in_branch': (branch_av > 0) if branch else True,
+            'other_branches': sorted(set(other)),
         })
-    return Response({'results': out})
+    if branch:
+        out.sort(key=lambda x: (0 if x['in_branch'] else 1, -x['branch_available']))
+    return Response({
+        'results': out,
+        'branch_id': branch.id if branch else None,
+        'branch_name': branch.name if branch else None,
+    })
 
 
 @api_view(['GET'])

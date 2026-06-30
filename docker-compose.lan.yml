@@ -1,20 +1,27 @@
 # ============================================================================
 # Override para PROBAR EN RED LOCAL (tablet/celular) — sirve el frontend por
-# HTTPS para que el ESCÁNER DE CÁMARA funcione (getUserMedia/BarcodeDetector
+# HTTPS para que el ESCANER DE CAMARA funcione (getUserMedia/BarcodeDetector
 # requieren contexto seguro fuera de localhost).
 #
 # Uso:
 #   docker compose -f docker-compose.yml -f docker-compose.lan.yml up -d frontend
 #
-# Luego, desde la tablet (misma red Wi-Fi), abre:
+# Luego, desde la tablet/telefono (misma red Wi-Fi), abre:
 #   https://IP-DE-TU-PC:4004
 # Acepta el aviso de certificado (es autofirmado) y listo.
-#   - Escáner de barras: usar Chrome en Android (BarcodeDetector no existe en iOS/Safari).
+#   - Escaner de barras: usar Chrome en Android (BarcodeDetector no existe en iOS/Safari).
+#
+# El certificado autofirmado ya esta generado en delux-frontend/.cert/.
+# Para regenerarlo:
+#   cd delux-frontend && openssl req -x509 -newkey rsa:2048 -nodes \
+#     -keyout .cert/key.pem -out .cert/cert.pem -days 825 \
+#     -subj "/CN=Delux Local" -addext "subjectAltName=DNS:localhost,IP:127.0.0.1"
 # ============================================================================
 
 services:
   frontend:
     command: >
       sh -c "npm install &&
-             npx ng serve --host 0.0.0.0 --port 4200 --ssl
+             npx ng serve --host 0.0.0.0 --port 4200
+             --ssl --ssl-cert .cert/cert.pem --ssl-key .cert/key.pem
              --disable-host-check --poll 2000"

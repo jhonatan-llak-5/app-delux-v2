@@ -2,6 +2,13 @@ import { Injectable, computed, signal } from '@angular/core';
 
 export type TourPlacement = 'top' | 'bottom' | 'left' | 'right' | 'center';
 
+export function resolveTourEl(selector: string): HTMLElement | null {
+  if (typeof document === 'undefined') return null;
+  const els = Array.from(document.querySelectorAll<HTMLElement>(selector));
+  const visible = els.find(e => e.offsetParent !== null && e.getBoundingClientRect().height > 0);
+  return visible || els[0] || null;
+}
+
 export interface TourStep {
   /** Selector del elemento a resaltar. `null` => paso centrado (sin spotlight). */
   target: string | null;
@@ -182,7 +189,7 @@ export class TourService {
   /** Corre un set de pasos específico (tour contextual de una pantalla). */
   runSteps(steps: TourStep[]): void {
     const applicable = steps.filter(
-      s => !s.target || (typeof document !== 'undefined' && !!document.querySelector(s.target))
+      s => !s.target || !!resolveTourEl(s.target)
     );
     if (!applicable.length) return;
     this._steps.set(applicable);
@@ -194,7 +201,7 @@ export class TourService {
   /** Inicia el tour, conservando sólo pasos aplicables al DOM actual. */
   start(): void {
     const applicable = this.catalog.filter(
-      s => !s.target || (typeof document !== 'undefined' && !!document.querySelector(s.target))
+      s => !s.target || !!resolveTourEl(s.target)
     );
     if (!applicable.length) return;
     this._steps.set(this.orderByMenu(applicable));
@@ -208,8 +215,8 @@ export class TourService {
     if (typeof document === 'undefined') return steps;
     const isNav = (s: TourStep) => !!s.target && s.target.includes('"nav-');
     const top = (sel: string | null) => {
-      const el = sel ? document.querySelector(sel) : null;
-      return el ? (el as HTMLElement).getBoundingClientRect().top : 0;
+      const el = sel ? resolveTourEl(sel) : null;
+      return el ? el.getBoundingClientRect().top : 0;
     };
     const navSorted = steps.filter(isNav).sort((a, b) => top(a.target) - top(b.target));
     const result: TourStep[] = [];

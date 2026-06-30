@@ -13,6 +13,7 @@ export interface KioskProduct {
   id?: number; name?: string; brand?: string; category?: string; kind?: string;
   image?: string; images?: string[]; base_price?: string | number; description?: string;
   total_available?: number; matched_variant_id?: number | null; variants?: KioskVariant[];
+  current_branch_id?: number | null; current_branch_name?: string | null;
 }
 export interface KioskFeatured {
   id: number; name: string; brand: string; image: string;
@@ -26,6 +27,7 @@ export interface KioskInfo {
 export interface KioskSearchItem {
   id: number; name: string; brand: string; image: string;
   base_price: string | number; total_available: number;
+  branch_available?: number; in_branch?: boolean; other_branches?: string[];
 }
 
 @Injectable({ providedIn: 'root' })
@@ -33,16 +35,18 @@ export class KioskService {
   private http = inject(HttpClient);
   private base = `${environment.apiUrl}/kiosk`;
 
-  product(opts: { code?: string; id?: number }): Observable<KioskProduct> {
+  product(opts: { code?: string; id?: number; token?: string }): Observable<KioskProduct> {
     let p = new HttpParams();
     if (opts.code) p = p.set('code', opts.code);
     if (opts.id) p = p.set('id', String(opts.id));
+    if (opts.token) p = p.set('token', opts.token);
     return this.http.get<KioskProduct>(`${this.base}/product/`, { params: p });
   }
 
-  search(q: string): Observable<{ results: KioskSearchItem[] }> {
-    return this.http.get<{ results: KioskSearchItem[] }>(
-      `${this.base}/search/`, { params: new HttpParams().set('q', q) });
+  search(q: string, token?: string): Observable<{ results: KioskSearchItem[] }> {
+    let p = new HttpParams().set('q', q);
+    if (token) p = p.set('token', token);
+    return this.http.get<{ results: KioskSearchItem[] }>(`${this.base}/search/`, { params: p });
   }
 
   info(token: string): Observable<KioskInfo> {

@@ -1,7 +1,9 @@
-import { ChangeDetectionStrategy, Component, computed, effect, inject, signal, HostListener, ElementRef, AfterViewInit } from '@angular/core';
+import { ChangeDetectionStrategy, Component, computed, effect, inject, signal, HostListener, ElementRef, AfterViewInit, OnDestroy } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { RouterLink, RouterLinkActive, RouterOutlet, Router } from '@angular/router';
 import { AuthService } from '@core/services/auth.service';
+import { AdminService } from '@features/superadmin/services/admin.service';
+import { NotifyService } from '@shared/services/notify.service';
 import { ThemeService } from '@core/services/theme.service';
 import { ToastHostComponent } from '@shared/components/toast-host/toast-host.component';
 import { WebSocketService } from '@core/services/websocket.service';
@@ -65,7 +67,8 @@ const COLLAPSED_KEY = 'dlx_sidebar_collapsed';
               <ul class="space-y-0.5">
                 @for (item of group.items; track item.label) {
                   <li>
-                    <a [routerLink]="item.route"
+                    <a [routerLink]="item.route === '/kiosko' ? null : item.route"
+                       (click)="onNav(item)"
                        [attr.data-tour]="tourKey(item.route)"
                        routerLinkActive="nav-active"
                        [routerLinkActiveOptions]="{ exact: !!item.exact }"
@@ -98,7 +101,7 @@ const COLLAPSED_KEY = 'dlx_sidebar_collapsed';
         <div class="fixed inset-0 z-[60] lg:hidden">
           <div class="absolute inset-0 bg-ink-950/60 backdrop-blur-sm animate-fade-in"
                (click)="closeMobile()"></div>
-          <aside class="absolute left-0 top-0 h-full w-72 max-w-[82vw] flex flex-col
+          <aside data-tour="sidebar" class="absolute left-0 top-0 h-full w-72 max-w-[82vw] flex flex-col
                         bg-white dark:bg-[#0f172a] border-r border-slate-200 dark:border-[#1e293b]
                         shadow-2xl animate-slide-in-left">
             <div class="h-16 flex items-center justify-between gap-2 px-4 border-b border-slate-200 dark:border-[#1e293b] shrink-0">
@@ -127,7 +130,8 @@ const COLLAPSED_KEY = 'dlx_sidebar_collapsed';
                   <ul class="space-y-0.5">
                     @for (item of group.items; track item.label) {
                       <li>
-                        <a [routerLink]="item.route" (click)="closeMobile()"
+                        <a [routerLink]="item.route === '/kiosko' ? null : item.route" (click)="onNav(item, true)"
+                           [attr.data-tour]="tourKey(item.route)"
                            routerLinkActive="!bg-[#1e40af]/8 !text-[#1e40af] dark:!bg-[#2563eb]/15 dark:!text-[#60a5fa] font-semibold !border-l-[3px] !border-[#1e40af] dark:!border-[#3b82f6]"
                            [routerLinkActiveOptions]="{ exact: false }"
                            class="flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm border-l-[3px] border-transparent
@@ -227,6 +231,15 @@ const COLLAPSED_KEY = 'dlx_sidebar_collapsed';
               }
             </div>
           }
+
+          <!-- Pantalla completa (efecto F11) -->
+          <button (click)="toggleFullscreen()" data-tour="fullscreen"
+                  class="w-10 h-10 grid place-items-center rounded-lg
+                         text-slate-600 dark:text-white/70
+                         hover:bg-slate-100 dark:hover:bg-white/10 hover:text-ink-950 dark:hover:text-white transition"
+                  [title]="isFullscreen() ? 'Salir de pantalla completa' : 'Pantalla completa'">
+            <i class="fa-solid" [class.fa-expand]="!isFullscreen()" [class.fa-compress]="isFullscreen()"></i>
+          </button>
 
           <!-- Theme toggle -->
           <button (click)="theme.toggle()" data-tour="theme"
@@ -341,8 +354,10 @@ const COLLAPSED_KEY = 'dlx_sidebar_collapsed';
     <dlx-app-tour />
   `,
 })
-export class DashboardLayoutComponent implements AfterViewInit {
+export class DashboardLayoutComponent implements AfterViewInit, OnDestroy {
   private auth = inject(AuthService);
+  private adminSvc = inject(AdminService);
+  private notify = inject(NotifyService);
   private router = inject(Router);
   private host = inject(ElementRef);
   private tour = inject(TourService);
@@ -351,11 +366,37 @@ export class DashboardLayoutComponent implements AfterViewInit {
   branchOpen = signal(false);
   theme = inject(ThemeService);
   ws = inject(WebSocketService);
+  isFullscreen = signal(false);
+  private fsHandler = () => {
+    this.isFullscreen.set(typeof document !== 'undefined' && !!document.fullscreenElement);
+  };
+  toggleFullscreen(): void {
+    if (typeof document === 'undefined') return;
+    try {
+      if (!document.fullscreenElement) {
+        const el: any = document.documentElement;
+        (el.requestFullscreen || el.webkitRequestFullscreen || el.msRequestFullscreen)?.call(el);
+      } else {
+        (document.exitFullscreen || (document as any).webkitExitFullscreen || (document as any).msExitFullscreen)?.call(document);
+      }
+    } catch { /* fullscreen no disponible */ }
+  }
+  ngOnDestroy(): void {
+    if (typeof document !== 'undefined') document.removeEventListener('fullscreenchange', this.fsHandler);
+  }
 
   constructor() {
     // Color principal por rol: rosa para clientes, azul para el resto.
     effect(() => this.applyRoleTheme(this.auth.user()?.role));
     this.branchCtx.load();
+    // En móvil/tablet: abrir el drawer cuando el tour muestra el menú.
+    effect(() => {
+      if (!this.tour.active()) return;
+      if (typeof window === 'undefined' || window.innerWidth >= 1024) return;
+      const step = this.tour.current();
+      const inMenu = !!step?.target && (step.target.includes('"nav-') || step.target.includes('"sidebar"'));
+      this.mobileOpen.set(inMenu);
+    });
   }
 
   pickBranch(id: number | null): void {
@@ -378,6 +419,7 @@ export class DashboardLayoutComponent implements AfterViewInit {
   }
 
   ngAfterViewInit(): void {
+    if (typeof document !== 'undefined') document.addEventListener('fullscreenchange', this.fsHandler);
     // Auto-inicia el tour la primera vez (se guarda en localStorage).
     this.tour.maybeAutoStart();
   }
@@ -392,6 +434,29 @@ export class DashboardLayoutComponent implements AfterViewInit {
   tourKey(route: string): string {
     const seg = route.split('/').filter(Boolean).pop() || 'item';
     return 'nav-' + seg;
+  }
+
+  /** Clicks de navegación: el item "Kiosko" abre el kiosko de la sucursal. */
+  onNav(item: NavItem, mobile = false): void {
+    if (mobile) this.closeMobile();
+    if (item.route === '/kiosko') this.openKiosk();
+  }
+
+  /** Abre el kiosko de la sucursal del usuario (o la seleccionada) en una pestaña nueva. */
+  openKiosk(): void {
+    const branchId = this.auth.user()?.branch_id ?? this.branchCtx.current() ?? null;
+    this.adminSvc.listBranches().subscribe({
+      next: (r) => {
+        const list = r.results || [];
+        const b = (branchId != null ? list.find(x => x.id === branchId) : null) || list[0];
+        if (b?.kiosk_token && typeof window !== 'undefined') {
+          window.open('/kiosko/' + b.kiosk_token, '_blank');
+        } else {
+          this.notify.error('No se encontró el kiosko de la sucursal.');
+        }
+      },
+      error: (e) => this.notify.fromServerError(e, 'No se pudo abrir el kiosko.'),
+    });
   }
 
   collapsed = signal<boolean>(

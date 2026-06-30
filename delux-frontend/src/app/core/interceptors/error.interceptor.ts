@@ -32,19 +32,7 @@ export const errorInterceptor: HttpInterceptorFn = (req, next) => {
         notify.error(message || 'Ocurrió un error en el servidor. Inténtalo más tarde.');
       }
 
-      if (err?.status === 401) {
-        const hadSession =
-          typeof window !== 'undefined' && !!localStorage.getItem('dlx_access_token');
-        const onPublic = isPublicRoute(router.url);
-
-        if (hadSession && typeof window !== 'undefined') {
-          localStorage.removeItem('dlx_access_token');
-          localStorage.removeItem('dlx_refresh_token');
-        }
-        if (hadSession && !onPublic) {
-          router.navigate(['/auth/login']);
-        }
-      }
+      // El 401 lo maneja authInterceptor (refresh automático del token).
       return throwError(() => err);
     })
   );

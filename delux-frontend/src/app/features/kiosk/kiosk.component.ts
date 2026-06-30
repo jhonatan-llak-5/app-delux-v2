@@ -15,7 +15,24 @@ import { ThemeService } from '@core/services/theme.service';
   template: `
     <div class="min-h-screen bg-slate-50 dark:bg-[#0a0e17] text-slate-900 dark:text-white transition-colors">
 
-      @if (locked()) {
+      @if (notFound()) {
+        <div class="min-h-screen grid place-items-center p-6">
+          <div class="w-full max-w-md text-center rounded-3xl p-10
+                      bg-white dark:bg-[#121826] border border-slate-200 dark:border-white/10 shadow-2xl">
+            <div class="w-16 h-16 rounded-2xl mx-auto mb-5 grid place-items-center bg-rose-100 dark:bg-rose-500/15 text-rose-500">
+              <i class="fa-solid fa-link-slash text-2xl"></i>
+            </div>
+            <h2 class="text-xl font-bold">Kiosko no encontrado</h2>
+            <p class="text-sm text-slate-500 dark:text-white/50 mt-2">
+              Este enlace no es válido. Abre el kiosko desde el enlace de tu sucursal
+              (incluye un código de acceso en la URL).
+            </p>
+            <a routerLink="/" class="inline-block mt-6 text-[#1e40af] dark:text-[#7aa2ff] font-semibold hover:underline">
+              <i class="fa-solid fa-house"></i> Ir al inicio
+            </a>
+          </div>
+        </div>
+      } @else if (locked()) {
         <div class="flex-1 grid place-items-center p-6">
           <div class="w-full max-w-sm text-center rounded-3xl p-10
                       bg-white dark:bg-[#121826] border border-slate-200 dark:border-white/10 shadow-2xl">
@@ -289,7 +306,10 @@ import { ThemeService } from '@core/services/theme.service';
                           <div class="flex flex-wrap gap-1.5">
                             @for (s of v.stocks; track s.branch) {
                               <span class="px-2.5 py-1 rounded-full text-xs font-medium"
+                                    [class.ring-2]="d.current_branch_name && s.branch === d.current_branch_name"
+                                    [class.ring-[#1e40af]]="d.current_branch_name && s.branch === d.current_branch_name"
                                     [ngClass]="s.available > 0 ? 'bg-emerald-100 dark:bg-emerald-500/15 text-emerald-700 dark:text-emerald-300' : 'bg-slate-100 dark:bg-white/10 text-slate-400 dark:text-white/40'">
+                                @if (d.current_branch_name && s.branch === d.current_branch_name) { <i class="fa-solid fa-location-dot"></i> }
                                 {{ s.branch }}: {{ s.available }}
                               </span>
                             }
@@ -424,6 +444,7 @@ export class KioskComponent implements OnInit, OnDestroy {
   token = signal<string | null>(null);
   branchName = signal<string | null>(null);
   locked = signal(false);
+  notFound = signal(false);
   pinError = signal<string | null>(null);
   pin = '';
   private pendingCode: string | null = null;
@@ -457,19 +478,21 @@ export class KioskComponent implements OnInit, OnDestroy {
     const token = this.route.snapshot.paramMap.get('token');
     this.token.set(token);
     this.pendingCode = this.route.snapshot.queryParamMap.get('code');
-    if (token) {
-      this.svc.info(token).subscribe({
-        next: (i) => {
-          if (i.found) this.branchName.set(i.branch_name || null);
-          const unlocked = typeof window !== 'undefined' && sessionStorage.getItem('dlx_kiosk_' + token) === '1';
-          if (i.found && i.pin_required && !unlocked) this.locked.set(true);
-          else this.afterUnlock();
-        },
-        error: () => this.afterUnlock(),
-      });
-    } else {
-      this.afterUnlock();
+    if (!token) {
+      // El kiosko solo es accesible por su enlace con token de sucursal.
+      this.notFound.set(true);
+      return;
     }
+    this.svc.info(token).subscribe({
+      next: (i) => {
+        if (!i.found) { this.notFound.set(true); return; }
+        this.branchName.set(i.branch_name || null);
+        const unlocked = typeof window !== 'undefined' && sessionStorage.getItem('dlx_kiosk_' + token) === '1';
+        if (i.pin_required && !unlocked) this.locked.set(true);
+        else this.afterUnlock();
+      },
+      error: () => this.notFound.set(true),
+    });
     this.svc.featured().subscribe({
       next: (r) => { this.featured.set(r.results); this.startAttract(); },
       error: () => {},
@@ -522,7 +545,7 @@ export class KioskComponent implements OnInit, OnDestroy {
     this.detail.set(null);
     this.loading.set(true);
     this.searched.set(true);
-    this.svc.search(q).subscribe({
+    this.svc.search(q, this.token() || undefined).subscribe({
       next: (r) => { this.results.set(r.results); this.loading.set(false); },
       error: () => { this.results.set([]); this.loading.set(false); },
     });
@@ -531,7 +554,7 @@ export class KioskComponent implements OnInit, OnDestroy {
   lookup(code: string): void {
     this.results.set([]);
     this.loading.set(true);
-    this.svc.product({ code }).subscribe({
+    this.svc.product({ code, token: this.token() || undefined }).subscribe({
       next: (d) => { this.detail.set(d); this.loading.set(false); },
       error: () => { this.detail.set({ found: false, code }); this.loading.set(false); },
     });
@@ -539,7 +562,7 @@ export class KioskComponent implements OnInit, OnDestroy {
 
   loadById(id: number): void {
     this.loading.set(true);
-    this.svc.product({ id }).subscribe({
+    this.svc.product({ id, token: this.token() || undefined }).subscribe({
       next: (d) => { this.detail.set(d); this.loading.set(false); },
       error: () => this.loading.set(false),
     });

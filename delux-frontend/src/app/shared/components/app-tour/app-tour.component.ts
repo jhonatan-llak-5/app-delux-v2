@@ -2,7 +2,7 @@ import {
   ChangeDetectionStrategy, Component, HostListener, effect, inject, signal,
 } from '@angular/core';
 import { CommonModule } from '@angular/common';
-import { TourService } from './tour.service';
+import { TourService, resolveTourEl } from './tour.service';
 
 interface Box { top: number; left: number; width: number; height: number; }
 
@@ -135,7 +135,7 @@ export class AppTourComponent {
       const step = this.tour.current();
       if (!active || !step) { this.box.set(null); return; }
       // Espera a que el DOM/scroll se asiente.
-      setTimeout(() => this.layout(), 30);
+      setTimeout(() => this.layout(), 70);
     });
   }
 
@@ -172,7 +172,7 @@ export class AppTourComponent {
       return;
     }
 
-    const el = document.querySelector(step.target) as HTMLElement | null;
+    const el = resolveTourEl(step.target);
     if (!el) { this.box.set(null); return; }
 
     el.scrollIntoView({ behavior: 'smooth', block: 'nearest', inline: 'nearest' });

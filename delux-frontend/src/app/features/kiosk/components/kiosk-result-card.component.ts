@@ -31,6 +31,11 @@ import { KioskSearchItem } from '../kiosk.service';
             <span class="text-sm text-slate-500 dark:text-white/50">{{ item.total_available }} disp.</span>
           }
         </div>
+        @if (item.in_branch === false && (item.other_branches?.length || 0) > 0) {
+          <p class="text-[11px] text-amber-600 dark:text-amber-400 mt-1 truncate">
+            <i class="fa-solid fa-store"></i> En otra sucursal: {{ item.other_branches?.join(', ') }}
+          </p>
+        }
       </div>
     </button>
   `,
