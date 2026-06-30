@@ -143,6 +143,40 @@ def notify_welcome(user, code):
     )
 
 
+def notify_pos_receipt(order):
+    """Envía el comprobante de una venta POS al email del cliente (si es válido)."""
+    from django.core.validators import validate_email
+    from django.core.exceptions import ValidationError
+    cust = getattr(order, 'customer', None)
+    email = (getattr(cust, 'email', '') or '').strip()
+    if not email:
+        return
+    try:
+        validate_email(email)
+    except ValidationError:
+        return
+    try:
+        order_date = order.created_at.strftime('%d/%m/%Y %H:%M')
+    except Exception:
+        order_date = ''
+    send_html_email(
+        to_email=email,
+        subject=f'Comprobante de tu compra {order.code} 🧾',
+        template='pos_receipt',
+        ctx={
+            'customer_name': getattr(cust, 'full_name', '') or 'Cliente',
+            'order_code': order.code,
+            'order_date': order_date,
+            'branch_name': getattr(order.branch, 'name', '') or '',
+            'items': order.items.all(),
+            'order_subtotal': order.subtotal,
+            'order_tax': order.tax,
+            'order_discount': order.discount,
+            'order_total': order.total,
+        },
+    )
+
+
 def notify_order_received(order):
     """Email al cliente con el comprobante (link PDF) y, si aplica, seguimiento."""
     import os

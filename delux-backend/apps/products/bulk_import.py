@@ -32,7 +32,7 @@ from apps.branches.models import Branch
 from apps.categories.models import Category
 from apps.tenants.models import Tenant
 
-from .models import Product, ProductImage, ProductStatus, ProductTag
+from .models import Product, ProductImage, ProductStatus, ProductTag, ProductKind
 
 
 # ============================================================
@@ -43,6 +43,7 @@ COLUMNS: List[Dict[str, Any]] = [
     {'key': 'slug',                'label': 'Slug (opcional)',     'required': False, 'width': 28},
     {'key': 'brand_slug',          'label': 'Marca (slug)',        'required': True,  'width': 18},
     {'key': 'category_slug',       'label': 'Categoría (slug)',    'required': True,  'width': 20},
+    {'key': 'kind',                'label': 'Tipo',                'required': False, 'width': 12},
     {'key': 'base_price',          'label': 'Precio base',         'required': True,  'width': 12},
     {'key': 'compare_at_price',    'label': 'Precio comparado',    'required': False, 'width': 14},
     {'key': 'gender',              'label': 'Género',              'required': False, 'width': 12},
@@ -55,6 +56,8 @@ COLUMNS: List[Dict[str, Any]] = [
     {'key': 'colors',              'label': 'Colores (sep |)',     'required': False, 'width': 22},
     {'key': 'stock_per_variant',   'label': 'Stock por variante',  'required': False, 'width': 12},
     {'key': 'stock_branch_code',   'label': 'Sucursal stock (code)','required': False,'width': 18},
+    {'key': 'cost',                'label': 'Costo (compra)',      'required': False, 'width': 12},
+    {'key': 'supplier',            'label': 'Proveedor',           'required': False, 'width': 22},
     {'key': 'main_image_url',      'label': 'URL imagen principal','required': False, 'width': 40},
     {'key': 'extra_images_urls',   'label': 'URLs extras (sep |)', 'required': False, 'width': 40},
 ]
@@ -63,6 +66,7 @@ GENDER_CHOICES  = ['UNISEX', 'MEN', 'WOMEN', 'KIDS']
 STATUS_CHOICES  = [s.value for s in ProductStatus]
 TAG_CHOICES     = [''] + [t.value for t in ProductTag]
 BOOL_CHOICES    = ['true', 'false']
+KIND_CHOICES    = [k.value for k in ProductKind]
 
 HEADER_FILL = PatternFill(start_color='FF1E40AF', end_color='FF1E40AF', fill_type='solid')
 HEADER_FONT = Font(color='FFFFFFFF', bold=True, size=11)
@@ -103,6 +107,7 @@ def build_template_xlsx(tenant: Optional[Tenant] = None) -> bytes:
         'slug': 'nike-air-force-1-07',
         'brand_slug': 'nike',
         'category_slug': 'zapatillas',
+        'kind': 'CALZADO',
         'base_price': 119.90,
         'compare_at_price': 139.90,
         'gender': 'UNISEX',
@@ -115,6 +120,8 @@ def build_template_xlsx(tenant: Optional[Tenant] = None) -> bytes:
         'colors': 'Blanco|Negro',
         'stock_per_variant': 10,
         'stock_branch_code': 'PRINCIPAL',
+        'cost': 45.00,
+        'supplier': 'Proveedor Ejemplo',
         'main_image_url': 'https://ejemplo.com/af1-main.jpg',
         'extra_images_urls': 'https://ejemplo.com/af1-2.jpg|https://ejemplo.com/af1-3.jpg',
     }
@@ -146,6 +153,7 @@ def build_template_xlsx(tenant: Optional[Tenant] = None) -> bytes:
     add_dv(f'"{",".join(STATUS_CHOICES)}"', 'status')
     add_dv(f'"{",".join([t for t in TAG_CHOICES if t])}"', 'tag')
     add_dv(f'"{",".join(BOOL_CHOICES)}"', 'is_featured')
+    add_dv(f'"{",".join(KIND_CHOICES)}"', 'kind')
 
     # ---- Hoja 2: Catálogos (referencia) ----
     cat_ws = wb.create_sheet('Catálogos')
@@ -173,6 +181,9 @@ def build_template_xlsx(tenant: Optional[Tenant] = None) -> bytes:
         '4. Para variantes: separa tallas y colores con barra vertical |  (ej: 38|39|40).',
         '   Se crearán todas las combinaciones (talla × color).',
         '5. Para stock inicial: indica cantidad por variante y el code de la sucursal.',
+        '   - Costo: costo de compra (para márgenes). Proveedor: nombre (se crea solo).',
+        '   - Tipo: CALZADO, ROPA, GORRA, MOCHILA, BISUTERIA, ACCESORIO u OTRO.',
+        '   - El código interno (P########) se genera automáticamente por variante.',
         '6. Imágenes:',
         '   - main_image_url: URL principal.',
         '   - extra_images_urls: URLs adicionales separadas por |',
@@ -315,6 +326,27 @@ def validate_rows(rows: List[Dict[str, Any]], tenant: Optional[Tenant] = None) -
         feat = row.get('is_featured')
         row['is_featured'] = str(feat).strip().lower() in ('true', '1', 'sí', 'si', 'yes')
 
+        # Tipo de producto
+        kind = (row.get('kind') or 'OTRO').upper()
+        if kind not in KIND_CHOICES:
+            warnings.append(f'Tipo "{kind}" inválido — se usa OTRO.')
+            kind = 'OTRO'
+        row['kind'] = kind
+
+        # Costo
+        cost = row.get('cost')
+        if cost is not None:
+            try:
+                row['cost'] = Decimal(str(cost))
+            except (InvalidOperation, TypeError):
+                warnings.append(f'Costo "{cost}" inválido — se usa 0.')
+                row['cost'] = Decimal('0')
+        else:
+            row['cost'] = Decimal('0')
+
+        # Proveedor (texto libre, opcional)
+        row['supplier'] = (str(row.get('supplier')).strip() if row.get('supplier') else '')
+
         # Variantes: parsear listas
         sizes = _parse_pipe_list(row.get('sizes'))
         colors = _parse_pipe_list(row.get('colors'))
@@ -425,11 +457,32 @@ def commit_rows(
     tenant: Optional[Tenant] = None,
 ) -> Dict[str, Any]:
     """Crea productos válidos; ignora filas en error. Retorna resumen."""
+    from django.utils import timezone
     from apps.variants.models import Variant
-    from apps.inventory.models import Stock
+    from apps.inventory.models import Stock, StockMovement, Supplier, Reception, ReceptionItem
+    from apps.inventory.services import next_sku_number
 
     if tenant is None:
         tenant = Tenant.objects.filter(is_active=True).first()
+
+    seq = next_sku_number(tenant)
+    receptions: Dict[int, Any] = {}
+
+    def _get_reception(branch, supplier):
+        rec = receptions.get(branch.id)
+        if rec is None:
+            rec = Reception.objects.create(
+                tenant=tenant, branch=branch, supplier=supplier,
+                status='COMMITTED', committed_at=timezone.now(),
+                note='Importación masiva',
+            )
+            rec.code = f'REC-{timezone.now():%Y%m%d}-{rec.pk:04d}'
+            rec.save(update_fields=['code'])
+            receptions[branch.id] = rec
+        elif supplier and rec.supplier_id is None:
+            rec.supplier = supplier
+            rec.save(update_fields=['supplier'])
+        return rec
 
     image_map = image_map or {}
     brands = {b.slug: b for b in Brand.objects.all()}
@@ -463,6 +516,7 @@ def commit_rows(
             tag=row['tag'],
             is_featured=row['is_featured'],
             main_image_url=row.get('main_image_url') or '',
+            kind=row.get('kind') or 'OTRO',
         )
         existing_slugs.add(product.slug)
 
@@ -485,20 +539,32 @@ def commit_rows(
         stock_qty = row.get('stock_per_variant') or 0
         branch = branches.get(row.get('stock_branch_code') or '')
 
+        cost = row.get('cost') or Decimal('0')
+        sup_name = (row.get('supplier') or '').strip()
+        supplier_obj = (Supplier.objects.get_or_create(tenant=tenant, name=sup_name)[0]
+                        if sup_name else None)
+
         for s in sizes:
             for c in colors:
-                sku_parts = [product.slug[:20]]
-                if s: sku_parts.append(s)
-                if c: sku_parts.append(slugify(c)[:10])
-                sku = '-'.join(sku_parts)[:40]
+                sku = f'P{seq:08d}'
+                seq += 1
                 variant = Variant.objects.create(
                     tenant=tenant, product=product,
-                    sku=sku, size=s, color=c,
+                    sku=sku, size=s, color=c, cost=cost,
                 )
                 if stock_qty > 0 and branch:
-                    Stock.objects.create(
+                    stock = Stock.objects.create(
                         tenant=tenant, variant=variant, branch=branch,
                         quantity=stock_qty,
+                    )
+                    StockMovement.objects.create(
+                        tenant=tenant, stock=stock, type=StockMovement.TYPE_IN,
+                        quantity=stock_qty, note='Importación masiva',
+                    )
+                    rec = _get_reception(branch, supplier_obj)
+                    ReceptionItem.objects.create(
+                        tenant=tenant, reception=rec, variant=variant,
+                        quantity=stock_qty, unit_cost=cost,
                     )
 
         created.append({'row': row['__row__'], 'id': product.id, 'slug': product.slug, 'name': product.name})

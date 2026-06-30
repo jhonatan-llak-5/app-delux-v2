@@ -1,5 +1,6 @@
 import { ChangeDetectionStrategy, Component, OnInit, inject, signal } from '@angular/core';
 import { CommonModule } from '@angular/common';
+import { RowActionsComponent, RowAction } from '@shared/ui/row-actions.component';
 import { FormsModule } from '@angular/forms';
 import { Router, RouterLink } from '@angular/router';
 import { debounceTime, Subject } from 'rxjs';
@@ -13,7 +14,7 @@ import { generateVoucherPDF } from '@shared/utils/voucher-pdf.util';
 @Component({
   selector: 'dlx-sales-list',
   standalone: true,
-  imports: [CommonModule, FormsModule, RouterLink],
+  imports: [CommonModule, FormsModule, RouterLink, RowActionsComponent],
   changeDetection: ChangeDetectionStrategy.OnPush,
   template: `
     <div class="flex items-end justify-between gap-4 mb-6">
@@ -131,22 +132,7 @@ import { generateVoucherPDF } from '@shared/utils/voucher-pdf.util';
                   </span>
                 </td>
                 <td class="px-5 py-3 text-right">
-                  <div class="inline-flex gap-1">
-                    <a [routerLink]="['/app/admin/sales', o.id]"
-                       class="w-8 h-8 grid place-items-center rounded-lg hover:bg-slate-100 transition text-slate-500" title="Ver">
-                      <i class="fa-solid fa-eye text-xs"></i>
-                    </a>
-                    <button (click)="printVoucher(o)" title="Imprimir voucher"
-                            class="w-8 h-8 grid place-items-center rounded-lg hover:bg-violet-100 hover:text-violet-700 transition text-slate-500">
-                      <i class="fa-solid fa-print text-xs"></i>
-                    </button>
-                    @if (o.status === 'PAID') {
-                      <button (click)="cancel(o)" title="Cancelar"
-                              class="w-8 h-8 grid place-items-center rounded-lg hover:bg-rose-100 hover:text-rose-700 transition text-slate-500">
-                        <i class="fa-solid fa-ban text-xs"></i>
-                      </button>
-                    }
-                  </div>
+                  <dlx-row-actions [actions]="rowActions(o)" />
                 </td>
               </tr>
             }
@@ -210,6 +196,14 @@ export class SalesListComponent implements OnInit {
       CANCELLED: 'bg-rose-100 text-rose-700',
       REFUNDED: 'bg-rose-100 text-rose-700',
     } as any)[s] || 'bg-slate-100 text-slate-700';
+  }
+
+  rowActions(o: Order): RowAction[] {
+    return [
+      { label: 'Ver', icon: 'fa-eye', link: ['/app/admin/sales', o.id] },
+      { label: 'Imprimir voucher', icon: 'fa-print', run: () => this.printVoucher(o) },
+      { label: 'Cancelar venta', icon: 'fa-ban', variant: 'danger', hidden: o.status !== 'PAID', run: () => this.cancel(o) },
+    ];
   }
 
   printVoucher(o: Order) {

@@ -9,6 +9,11 @@ export const DASHBOARD_ROUTES: Routes = [
     children: [
       { path: '', pathMatch: 'full', redirectTo: 'admin/overview' },
       {
+        path: 'profile',
+        loadComponent: () =>
+          import('@features/profile/profile.component').then(m => m.ProfileComponent),
+      },
+      {
         path: 'dashboard',
         loadComponent: () =>
           import('./pages/dashboard-home/dashboard-home.component').then(m => m.DashboardHomeComponent)

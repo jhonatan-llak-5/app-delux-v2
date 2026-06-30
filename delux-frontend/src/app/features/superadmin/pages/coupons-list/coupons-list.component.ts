@@ -22,7 +22,7 @@ import { CouponFormModalComponent } from '@features/superadmin/components/coupon
         <p class="text-slate-500 text-sm mt-1">Descuentos por código para canalizar campañas.</p>
       </div>
       <button (click)="openCreate()"
-              class="px-4 py-2.5 rounded-lg bg-ink-950 text-white text-sm font-semibold hover:bg-ink-900 flex items-center gap-2">
+              class="px-4 py-2.5 rounded-lg bg-[#1e40af] text-white text-sm font-semibold hover:bg-[#1e3a8a] flex items-center gap-2">
         <i class="fa-solid fa-plus"></i> Nuevo cupón
       </button>
     </div>

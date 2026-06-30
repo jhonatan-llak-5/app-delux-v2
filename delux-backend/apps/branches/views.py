@@ -29,10 +29,21 @@ class AdminBranchViewSet(viewsets.ModelViewSet):
         tenant_slug = self.request.query_params.get('tenant_slug')
         if tenant_slug:
             qs = qs.filter(tenant__slug=tenant_slug)
+
+        # Alcance por rol: admin de tienda ve su tienda; gerente solo su sucursal.
+        u = self.request.user
+        role_u = getattr(u, 'role', None)
+        if role_u == 'TENANT_ADMIN' and u.tenant_id:
+            qs = qs.filter(tenant_id=u.tenant_id)
+        elif role_u == 'BRANCH_MANAGER' and u.branch_id:
+            qs = qs.filter(id=u.branch_id)
         return qs
 
     def _resolve_tenant(self):
         from apps.tenants.models import Tenant
+        u = self.request.user
+        if getattr(u, 'role', None) != 'SUPERADMIN' and getattr(u, 'tenant_id', None):
+            return u.tenant
         slug = (self.request.data.get('tenant_slug')
                 or self.request.query_params.get('tenant_slug'))
         tenant = Tenant.objects.filter(slug=slug).first() if slug else None

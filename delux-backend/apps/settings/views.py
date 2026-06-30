@@ -107,4 +107,5 @@ class PublicUploadConfigView(APIView):
                 c.payphone_enabled and c.payphone_token and c.payphone_store_id),
             'cod_enabled': True,
             'recaptcha_site_key': c.recaptcha_site_key or '',
+            'tax_rate': float(c.tax_rate or 0),
         })

@@ -1,9 +1,11 @@
-import { ChangeDetectionStrategy, Component, OnInit, inject, signal } from '@angular/core';
+import { ChangeDetectionStrategy, Component, ViewChild, OnInit, inject, signal } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { Subject, debounceTime } from 'rxjs';
 
+import { CdkDropList, CdkDrag, CdkDragHandle, CdkDragDrop, moveItemInArray } from '@angular/cdk/drag-drop';
 import { Brand, BrandPayload, BrandService } from '@features/superadmin/services/brand.service';
+import { parseApiError } from '@shared/utils/api-error.util';
 import { BrandFormModalComponent } from '@features/superadmin/components/brand-form-modal/brand-form-modal.component';
 import { NotifyService } from '@shared/services/notify.service';
 
@@ -27,6 +29,7 @@ import {
     DlxPageHeaderComponent, DlxButtonComponent, DlxCardComponent,
     DlxInputComponent, DlxSelectComponent, DlxEmptyStateComponent,
     DlxActionBtnComponent, DlxConfirmDialogComponent,
+    CdkDropList, CdkDrag, CdkDragHandle,
   ],
   changeDetection: ChangeDetectionStrategy.OnPush,
   templateUrl: './brands-list.component.html',
@@ -42,6 +45,7 @@ export class BrandsListComponent implements OnInit {
   ordering = signal('sort_order');
 
   showModal = signal(false);
+  @ViewChild('brandModal') brandModal?: BrandFormModalComponent;
   editing = signal<Brand | null>(null);
   deleting = signal<Brand | null>(null);
   deletingLoading = signal(false);
@@ -80,6 +84,17 @@ export class BrandsListComponent implements OnInit {
     });
   }
 
+  onDrop(event: CdkDragDrop<Brand[]>): void {
+    if (event.previousIndex === event.currentIndex) return;
+    const list = [...this.brands()];
+    moveItemInArray(list, event.previousIndex, event.currentIndex);
+    this.brands.set(list);
+    this.brandSvc.reorder(list.map(b => b.slug)).subscribe({
+      next: () => {},
+      error: e => { this.notify.fromServerError(e, 'No se pudo guardar el orden.'); this.reload(); },
+    });
+  }
+
   onSearch(v: string) { this.search.set(v); this.search$.next(); }
   onStatus(v: string) { this.statusFilter.set(v ?? ''); this.reload(); }
   onOrder(v: string)  { this.ordering.set(v); this.reload(); }
@@ -99,7 +114,13 @@ export class BrandsListComponent implements OnInit {
         this.reload();
         this.notify.success(edit ? 'Marca actualizada' : 'Marca creada');
       },
-      error: e => this.notify.fromServerError(e, 'No se pudo guardar la marca.'),
+      error: e => {
+        const p = parseApiError(e);
+        this.brandModal?.setErrors(p);
+        if (p.message && !Object.keys(p.fieldErrors).length) {
+          this.notify.fromServerError(e, 'No se pudo guardar la marca.');
+        }
+      },
     });
   }
 
@@ -144,6 +165,12 @@ export class BrandsListComponent implements OnInit {
   }
 
   onImgErr(ev: Event) {
-    (ev.target as HTMLImageElement).style.display = 'none';
+    const img = ev.target as HTMLImageElement;
+    img.onerror = null;
+    img.src = 'data:image/svg+xml;utf8,' + encodeURIComponent(
+      '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 48 48">' +
+      '<rect width="48" height="48" rx="8" fill="#eef2f7"/>' +
+      '<path d="M25 13H15a2 2 0 0 0-2 2v10l11 11 12-12-11-11z" fill="none" stroke="#94a3b8" stroke-width="2.4" stroke-linejoin="round"/>' +
+      '<circle cx="19.5" cy="19.5" r="2.3" fill="#94a3b8"/></svg>');
   }
 }

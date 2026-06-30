@@ -58,8 +58,27 @@ class AdminBrandViewSet(viewsets.ModelViewSet):
     def perform_create(self, serializer):
         # Asociar al tenant por slug (resuelto por middleware)
         from apps.tenants.models import Tenant
+        from django.db.models import F
         slug = getattr(self.request, 'tenant_slug', 'delux')
         tenant = Tenant.objects.filter(slug=slug).first()
         if not tenant:
             tenant = Tenant.objects.first()
-        serializer.save(tenant=tenant)
+        # La marca nueva aparece al inicio: empuja las demás +1 y la nueva queda en 0.
+        # (sort_order es no-negativo, por eso desplazamos en vez de usar -1.)
+        Brand.objects.filter(tenant=tenant).update(sort_order=F('sort_order') + 1)
+        serializer.save(tenant=tenant, sort_order=0)
+
+    @action(detail=False, methods=['post'])
+    def reorder(self, request):
+        """Recibe {"order": [slug1, slug2, ...]} y asigna sort_order 0,1,2,..."""
+        order = request.data.get('order') or []
+        brands = {b.slug: b for b in Brand.objects.filter(slug__in=order)}
+        updated = []
+        for idx, slug in enumerate(order):
+            b = brands.get(slug)
+            if b and b.sort_order != idx:
+                b.sort_order = idx
+                updated.append(b)
+        if updated:
+            Brand.objects.bulk_update(updated, ['sort_order'])
+        return Response({'detail': 'Orden actualizado.', 'count': len(order)})

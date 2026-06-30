@@ -1,5 +1,5 @@
 from rest_framework import serializers
-from .models import Stock, StockMovement
+from .models import Stock, StockMovement, Supplier, Reception, ReceptionItem
 
 
 class StockSerializer(serializers.ModelSerializer):
@@ -82,3 +82,53 @@ class TransferSerializer(serializers.Serializer):
         if attrs['from_branch_id'] == attrs['to_branch_id']:
             raise serializers.ValidationError('Las sucursales origen y destino deben ser distintas.')
         return attrs
+
+
+class SupplierSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = Supplier
+        fields = ('id', 'name', 'contact_name', 'phone', 'email', 'tax_id',
+                  'notes', 'is_active', 'created_at')
+        read_only_fields = ('id', 'created_at')
+
+
+class ReceptionItemSerializer(serializers.ModelSerializer):
+    variant_sku = serializers.CharField(source='variant.sku', read_only=True)
+    barcode = serializers.CharField(source='variant.barcode', read_only=True)
+    product_name = serializers.CharField(source='variant.product.name', read_only=True)
+    kind = serializers.CharField(source='variant.product.kind', read_only=True)
+    size = serializers.CharField(source='variant.size', read_only=True)
+    color = serializers.CharField(source='variant.color', read_only=True)
+    price = serializers.SerializerMethodField()
+
+    class Meta:
+        model = ReceptionItem
+        fields = ('id', 'variant', 'variant_sku', 'barcode', 'product_name',
+                  'kind', 'size', 'color', 'quantity', 'unit_cost', 'price')
+
+    def get_price(self, obj):
+        v = obj.variant
+        if v.price_override is not None:
+            return v.price_override
+        return v.product.base_price
+
+
+class ReceptionSerializer(serializers.ModelSerializer):
+    items = ReceptionItemSerializer(many=True, read_only=True)
+    supplier_name = serializers.CharField(source='supplier.name', read_only=True, default=None)
+    branch_name = serializers.CharField(source='branch.name', read_only=True)
+    created_by_name = serializers.CharField(source='created_by.full_name', read_only=True, default=None)
+    total_units = serializers.SerializerMethodField()
+    items_count = serializers.SerializerMethodField()
+
+    class Meta:
+        model = Reception
+        fields = ('id', 'code', 'supplier', 'supplier_name', 'branch', 'branch_name',
+                  'status', 'note', 'created_by_name', 'committed_at', 'created_at',
+                  'items', 'total_units', 'items_count')
+
+    def get_total_units(self, obj):
+        return sum(i.quantity for i in obj.items.all())
+
+    def get_items_count(self, obj):
+        return obj.items.count()

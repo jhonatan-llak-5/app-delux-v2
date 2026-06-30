@@ -1,4 +1,5 @@
 import { ChangeDetectionStrategy, Component, signal } from '@angular/core';
+import { parseApiError } from '@shared/utils/api-error.util';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { inject } from '@angular/core';
@@ -122,8 +123,14 @@ import { NotifyService } from '@shared/services/notify.service';
                                               rounded-3xl p-8 md:p-10 space-y-4">
 
             <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
-              <input [(ngModel)]="form.name" name="name" required placeholder="Tu nombre" class="input-modern" />
-              <input [(ngModel)]="form.email" name="email" type="email" required placeholder="tu@correo.com" class="input-modern" />
+              <div>
+                <input [(ngModel)]="form.name" name="name" required maxlength="120" placeholder="Tu nombre *" class="input-modern" />
+                @if (fe('name')) { <p class="text-xs text-rose-600 mt-1">{{ fe('name') }}</p> }
+              </div>
+              <div>
+                <input [(ngModel)]="form.email" name="email" type="email" required placeholder="tu@correo.com *" class="input-modern" />
+                @if (fe('email')) { <p class="text-xs text-rose-600 mt-1">{{ fe('email') }}</p> }
+              </div>
             </div>
 
             <select [(ngModel)]="form.subject" name="subject" class="input-modern">
@@ -136,8 +143,9 @@ import { NotifyService } from '@shared/services/notify.service';
             </select>
 
             <textarea [(ngModel)]="form.message" name="message" rows="6" required
-                      placeholder="Cuéntanos en qué podemos ayudarte..."
+                      placeholder="Cuéntanos en qué podemos ayudarte... *"
                       class="input-modern resize-none"></textarea>
+            @if (fe('message')) { <p class="text-xs text-rose-600 mt-1">{{ fe('message') }}</p> }
 
             <div class="flex items-center justify-between flex-wrap gap-4 pt-2">
               <p class="text-[12px] text-ink-500 dark:text-white/45">
@@ -204,6 +212,8 @@ export class ContactPageComponent {
   form = { name: '', email: '', subject: '', message: '' };
   sent = signal(false);
   saving = signal(false);
+  fieldErrors = signal<Record<string, string>>({});
+  fe(k: string): string | undefined { return this.fieldErrors()[k]; }
 
   readonly channels = [
     { icon: 'fa-envelope', title: 'Email', value: 'hola@delux.com.ec', detail: 'Respuesta en < 24h', link: 'mailto:hola@delux.com.ec' },
@@ -235,10 +245,12 @@ export class ContactPageComponent {
   ];
 
   submit() {
-    if (!this.form.name || !this.form.email || !this.form.message) {
-      this.notify.warning('Completa los campos', { description: 'Nombre, correo y mensaje son obligatorios.' });
-      return;
-    }
+    const errs: Record<string, string> = {};
+    if (!this.form.name?.trim()) errs['name'] = 'Este campo es obligatorio.';
+    if (!this.form.email?.trim()) errs['email'] = 'Este campo es obligatorio.';
+    if (!this.form.message?.trim()) errs['message'] = 'Este campo es obligatorio.';
+    this.fieldErrors.set(errs);
+    if (Object.keys(errs).length) return;
     this.saving.set(true);
     this.forms.contact(this.form).subscribe({
       next: r => {
@@ -250,7 +262,9 @@ export class ContactPageComponent {
       },
       error: e => {
         this.saving.set(false);
-        this.notify.error(e?.error?.detail || 'No se pudo enviar el mensaje.');
+        const p = parseApiError(e);
+        this.fieldErrors.set(p.fieldErrors);
+        if (p.message && !Object.keys(p.fieldErrors).length) this.notify.error(p.message);
       },
     });
   }

@@ -21,3 +21,5 @@ export * from './pagination.component';
 export * from './table.component';
 export * from './image-uploader.component';
 export * from './notifications-bell.component';
+export * from './price-input.component';
+export * from './icon-picker.component';

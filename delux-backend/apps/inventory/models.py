@@ -49,3 +49,65 @@ class StockMovement(TenantOwnedModel):
     actor = models.ForeignKey(
         'accounts.User', on_delete=models.SET_NULL, null=True, blank=True
     )
+
+
+class Supplier(TenantOwnedModel):
+    """Proveedor de mercadería (para recepciones de inventario)."""
+    name = models.CharField(max_length=160)
+    contact_name = models.CharField(max_length=120, blank=True)
+    phone = models.CharField(max_length=40, blank=True)
+    email = models.EmailField(blank=True)
+    tax_id = models.CharField(max_length=40, blank=True)  # RUC / ID
+    notes = models.CharField(max_length=400, blank=True)
+    is_active = models.BooleanField(default=True)
+
+    class Meta:
+        ordering = ['name']
+
+    def __str__(self) -> str:
+        return self.name
+
+
+class Reception(TenantOwnedModel):
+    """Recepción de mercadería: el 'me llegó el contenedor'. Agrupa el ingreso
+    de stock por proveedor, sucursal destino y fecha (lote)."""
+    STATUS_DRAFT = 'DRAFT'
+    STATUS_COMMITTED = 'COMMITTED'
+    STATUS = [(STATUS_DRAFT, 'Borrador'), (STATUS_COMMITTED, 'Confirmada')]
+
+    code = models.CharField(max_length=30, blank=True)
+    supplier = models.ForeignKey(
+        Supplier, on_delete=models.SET_NULL, null=True, blank=True,
+        related_name='receptions'
+    )
+    branch = models.ForeignKey(
+        'branches.Branch', on_delete=models.PROTECT, related_name='receptions'
+    )
+    status = models.CharField(max_length=12, choices=STATUS, default=STATUS_DRAFT)
+    note = models.CharField(max_length=300, blank=True)
+    created_by = models.ForeignKey(
+        'accounts.User', on_delete=models.SET_NULL, null=True, blank=True
+    )
+    committed_at = models.DateTimeField(null=True, blank=True)
+
+    class Meta:
+        ordering = ['-created_at']
+
+    def __str__(self) -> str:
+        return self.code or f'Recepcion #{self.pk}'
+
+
+class ReceptionItem(TenantOwnedModel):
+    """Línea de una recepción: una variante con cantidad y costo unitario."""
+    reception = models.ForeignKey(
+        Reception, on_delete=models.CASCADE, related_name='items'
+    )
+    variant = models.ForeignKey(
+        'variants.Variant', on_delete=models.CASCADE, related_name='reception_items'
+    )
+    branch = models.ForeignKey(
+        'branches.Branch', on_delete=models.PROTECT, null=True, blank=True,
+        related_name='reception_items'
+    )
+    quantity = models.PositiveIntegerField(default=0)
+    unit_cost = models.DecimalField(max_digits=10, decimal_places=2, default=0)

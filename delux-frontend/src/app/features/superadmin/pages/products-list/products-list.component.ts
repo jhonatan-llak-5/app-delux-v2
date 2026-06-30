@@ -1,4 +1,4 @@
-import { ChangeDetectionStrategy, Component, OnInit, inject, signal } from '@angular/core';
+import { ChangeDetectionStrategy, Component, ElementRef, OnDestroy, OnInit, ViewChild, inject, signal } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { Router, RouterLink, ActivatedRoute } from '@angular/router';
@@ -8,7 +8,9 @@ import { Product, ProductService } from '@features/superadmin/services/product.s
 import { BrandService, Brand } from '@features/superadmin/services/brand.service';
 import { CategoryService, Category } from '@features/superadmin/services/category.service';
 import { AdminService, AdminBranch } from '@features/superadmin/services/admin.service';
+import { InventoryService } from '@features/superadmin/services/inventory.service';
 import { ConfirmService } from '@shared/components/confirm/confirm.service';
+import { onImageError } from '@shared/utils/img-placeholder';
 import { NotifyService } from '@shared/services/notify.service';
 
 @Component({
@@ -29,6 +31,13 @@ import { NotifyService } from '@shared/services/notify.service';
         </p>
       </div>
       <div class="flex items-center gap-2 flex-wrap">
+        <button (click)="cameraOn() ? stopCamera() : startCamera()"
+                class="px-4 py-2.5 rounded-lg border border-slate-300 dark:border-[#334155]
+                       text-slate-700 dark:text-slate-200 text-sm font-semibold
+                       hover:bg-slate-100 dark:hover:bg-[#1e293b] transition flex items-center gap-2">
+          <i class="fa-solid" [class.fa-barcode]="!cameraOn()" [class.fa-xmark]="cameraOn()"></i>
+          {{ cameraOn() ? 'Cerrar' : 'Escanear' }}
+        </button>
         <a routerLink="/app/admin/products/import"
            class="px-4 py-2.5 rounded-lg border border-slate-300 dark:border-[#334155]
                   text-slate-700 dark:text-slate-200 text-sm font-semibold
@@ -43,6 +52,15 @@ import { NotifyService } from '@shared/services/notify.service';
         </a>
       </div>
     </div>
+
+    @if (cameraOn()) {
+      <div class="rounded-2xl overflow-hidden bg-black relative mb-4 max-w-md">
+        <video #camVideo class="w-full max-h-72 object-contain" muted playsinline></video>
+        <div class="absolute inset-0 border-4 border-white/30 m-8 rounded-lg pointer-events-none"></div>
+        <p class="absolute bottom-2 left-0 right-0 text-center text-white/80 text-sm">Apunta al código del producto</p>
+      </div>
+    }
+    @if (camError()) { <p class="text-sm text-amber-600 mb-3">{{ camError() }}</p> }
 
     <!-- KPIs -->
     <div class="grid grid-cols-2 md:grid-cols-4 gap-3 mb-6">
@@ -205,7 +223,7 @@ import { NotifyService } from '@shared/services/notify.service';
     }
   `,
 })
-export class ProductsListComponent implements OnInit {
+export class ProductsListComponent implements OnInit, OnDestroy {
   private svc = inject(ProductService);
   private brandSvc = inject(BrandService);
   private catSvc = inject(CategoryService);
@@ -213,6 +231,72 @@ export class ProductsListComponent implements OnInit {
   private confirm = inject(ConfirmService);
   private notify = inject(NotifyService);
   private router = inject(Router);
+  private inv = inject(InventoryService);
+
+  @ViewChild('camVideo') camVideo?: ElementRef<HTMLVideoElement>;
+  cameraOn = signal(false);
+  camError = signal<string | null>(null);
+  private stream?: MediaStream;
+  private rafId: any = null;
+  private detector: any = null;
+
+  ngOnDestroy(): void { this.stopCamera(); }
+
+  async startCamera(): Promise<void> {
+    this.camError.set(null);
+    const w: any = window;
+    if (typeof window === 'undefined' || !('BarcodeDetector' in w)) {
+      this.camError.set('Tu navegador no soporta escaneo por cámara. Usa el buscador por nombre.');
+      return;
+    }
+    try {
+      this.stream = await navigator.mediaDevices.getUserMedia({ video: { facingMode: 'environment' } });
+    } catch {
+      this.camError.set('No se pudo acceder a la cámara (requiere HTTPS y permiso).');
+      return;
+    }
+    this.detector = new w.BarcodeDetector({ formats: ['qr_code', 'code_128', 'ean_13', 'ean_8', 'upc_a', 'upc_e', 'code_39'] });
+    this.cameraOn.set(true);
+    setTimeout(() => {
+      const v = this.camVideo?.nativeElement;
+      if (v && this.stream) { v.srcObject = this.stream; v.play().catch(() => {}); this.scanLoop(); }
+    }, 60);
+  }
+
+  private async scanLoop(): Promise<void> {
+    const v = this.camVideo?.nativeElement;
+    if (!v || !this.cameraOn() || !this.detector) return;
+    try {
+      const codes = await this.detector.detect(v);
+      if (codes && codes.length) { this.onCode(codes[0].rawValue || ''); return; }
+    } catch { /* frame sin código */ }
+    if (this.cameraOn()) this.rafId = requestAnimationFrame(() => this.scanLoop());
+  }
+
+  stopCamera(): void {
+    this.cameraOn.set(false);
+    if (this.rafId) { cancelAnimationFrame(this.rafId); this.rafId = null; }
+    this.stream?.getTracks().forEach(t => t.stop());
+    this.stream = undefined;
+  }
+
+  private onCode(raw: string): void {
+    let code = (raw || '').trim();
+    const m = code.match(/[?&]code=([^&]+)/);
+    if (m) code = decodeURIComponent(m[1]);
+    if (!code) return;
+    this.stopCamera();
+    this.inv.scan(code).subscribe({
+      next: (r) => {
+        if (r.found && r.variant) {
+          this.router.navigate(['/app/admin/products', r.variant.product_id]);
+        } else {
+          this.notify.error('No se encontró un producto con ese código.');
+        }
+      },
+      error: () => this.notify.error('No se pudo buscar el código.'),
+    });
+  }
   private route = inject(ActivatedRoute);
 
   products = signal<Product[]>([]);
@@ -318,7 +402,5 @@ export class ProductsListComponent implements OnInit {
     });
   }
 
-  onImgErr(ev: Event) {
-    (ev.target as HTMLImageElement).src = 'data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 200 200"><rect width="200" height="200" fill="%23e2e8f0"/></svg>';
-  }
+  onImgErr(ev: Event) { onImageError(ev); }
 }

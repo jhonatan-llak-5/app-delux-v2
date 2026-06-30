@@ -8,13 +8,14 @@ import { NotifyService } from '@shared/services/notify.service';
 import { debounceTime, Subject } from 'rxjs';
 import { parseApiError } from '@shared/utils/api-error.util';
 import { DlxModalComponent } from '@shared/ui/modal.component';
+import { RowActionsComponent, RowAction } from '@shared/ui/row-actions.component';
 
 type Scope = 'system' | 'clients' | 'all';
 
 @Component({
   selector: 'dlx-users-list',
   standalone: true,
-  imports: [CommonModule, FormsModule, RouterLink, DlxModalComponent],
+  imports: [CommonModule, FormsModule, RouterLink, DlxModalComponent, RowActionsComponent],
   changeDetection: ChangeDetectionStrategy.OnPush,
   template: `
     <div class="flex items-end justify-between gap-4 mb-6 flex-wrap">
@@ -23,10 +24,6 @@ type Scope = 'system' | 'clients' | 'all';
         <p class="text-slate-500 text-sm mt-1">{{ ui().subtitle }}</p>
       </div>
       <div class="flex items-center gap-2 flex-wrap">
-        <a [routerLink]="ui().advancedRoute"
-           class="text-sm font-semibold text-[#1e40af] hover:underline inline-flex items-center gap-1.5">
-          <i class="fa-solid fa-arrow-up-right-from-square text-xs"></i> {{ ui().advancedLabel }}
-        </a>
         @if (scope() !== 'clients') {
           <a routerLink="/app/admin/staff/new"
              class="px-4 py-2.5 rounded-lg bg-[#1e40af] text-white text-sm font-semibold
@@ -104,23 +101,7 @@ type Scope = 'system' | 'clients' | 'all';
                     </span>
                   </td>
                   <td class="px-5 py-3 text-right">
-                    <div class="inline-flex items-center gap-2">
-                      @if (canImpersonate(u)) {
-                        <button class="text-xs font-semibold px-2.5 py-1.5 rounded-lg
-                                       bg-[#1e40af] text-white hover:bg-[#1d4ed8] transition
-                                       inline-flex items-center gap-1.5"
-                                (click)="impersonate(u)" title="Entrar como este usuario">
-                          <i class="fa-solid fa-right-to-bracket"></i> Acceder
-                        </button>
-                      }
-                      <button class="btn-secondary text-xs" (click)="openEdit(u)" title="Editar datos">
-                        <i class="fa-solid fa-pen"></i> Editar
-                      </button>
-                      <button class="btn-secondary text-xs" (click)="toggle(u)">
-                        <i class="fa-solid fa-power-off"></i>
-                        {{ u.is_active ? 'Desactivar' : 'Activar' }}
-                      </button>
-                    </div>
+                    <dlx-row-actions [actions]="rowActions(u)" />
                   </td>
                 </tr>
               }
@@ -241,7 +222,20 @@ export class UsersListComponent implements OnInit {
 
   /** No tiene sentido impersonarse a uno mismo ni a cuentas inactivas. */
   canImpersonate(u: AdminUser): boolean {
-    return u.is_active && u.id !== this.auth.user()?.id;
+    return this.auth.user()?.role === 'SUPERADMIN' && u.is_active && u.id !== this.auth.user()?.id;
+  }
+
+  rowActions(u: AdminUser): RowAction[] {
+    const edit: RowAction = (this.scope() === 'system' && u.role !== 'SUPERADMIN')
+      ? { label: 'Editar', icon: 'fa-pen', link: ['/app/admin/staff', u.id] }
+      : { label: 'Editar', icon: 'fa-pen', run: () => this.openEdit(u) };
+    return [
+      { label: 'Acceder', icon: 'fa-right-to-bracket', variant: 'primary',
+        hidden: !this.canImpersonate(u), run: () => this.impersonate(u) },
+      edit,
+      { label: u.is_active ? 'Desactivar' : 'Activar', icon: 'fa-power-off',
+        variant: u.is_active ? 'danger' : 'default', run: () => this.toggle(u) },
+    ];
   }
 
   impersonate(u: AdminUser) {

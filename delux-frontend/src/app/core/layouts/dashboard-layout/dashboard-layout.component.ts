@@ -9,6 +9,7 @@ import { DlxNotificationsBellComponent } from '@shared/ui';
 import { AppTourComponent } from '@shared/components/app-tour/app-tour.component';
 import { TourService } from '@shared/components/app-tour/tour.service';
 import { BrandingService } from '@core/services/branding.service';
+import { BranchContextService } from '@core/services/branch-context.service';
 
 interface NavItem { label: string; icon: string; route: string; badge?: string; only?: string[]; exact?: boolean; }
 interface NavGroup { title: string; items: NavItem[]; roles?: string[]; }
@@ -193,6 +194,40 @@ const COLLAPSED_KEY = 'dlx_sidebar_collapsed';
 
           <div class="flex-1"></div>
 
+          @if (branchCtx.showWidget()) {
+            <div class="relative">
+              @if (branchCtx.canSwitch()) {
+                <button (click)="branchOpen.set(!branchOpen())"
+                        class="flex items-center gap-2 px-3 h-10 rounded-lg border border-slate-200 dark:border-white/15
+                               text-sm font-semibold text-slate-700 dark:text-white/80 hover:bg-slate-100 dark:hover:bg-white/10 transition">
+                  <i class="fa-solid fa-store text-xs text-slate-400"></i>
+                  <span class="truncate max-w-[150px]">{{ branchCtx.currentName() }}</span>
+                  <i class="fa-solid fa-chevron-down text-[10px]"></i>
+                </button>
+                @if (branchOpen()) {
+                  <div class="fixed inset-0 z-30" (click)="branchOpen.set(false)"></div>
+                  <div class="absolute right-0 top-full mt-2 w-60 bg-white dark:bg-[#161a26]
+                              border border-slate-200 dark:border-white/10 rounded-xl shadow-xl
+                              overflow-hidden z-40 max-h-80 overflow-y-auto">
+                    <button (click)="pickBranch(null)"
+                            class="w-full text-left px-4 py-2.5 text-sm hover:bg-slate-100 dark:hover:bg-white/5"
+                            [class.font-bold]="branchCtx.current() === null">Todas las sucursales</button>
+                    @for (b of branchCtx.branches(); track b.id) {
+                      <button (click)="pickBranch(b.id)"
+                              class="w-full text-left px-4 py-2.5 text-sm hover:bg-slate-100 dark:hover:bg-white/5"
+                              [class.font-bold]="branchCtx.current() === b.id">{{ b.name }} · {{ b.city }}</button>
+                    }
+                  </div>
+                }
+              } @else {
+                <span class="flex items-center gap-2 px-3 h-10 rounded-lg bg-slate-100 dark:bg-white/5
+                             text-sm font-semibold text-slate-600 dark:text-white/70">
+                  <i class="fa-solid fa-store text-xs text-slate-400"></i> {{ branchCtx.currentName() }}
+                </span>
+              }
+            </div>
+          }
+
           <!-- Theme toggle -->
           <button (click)="theme.toggle()" data-tour="theme"
                   class="w-10 h-10 grid place-items-center rounded-lg
@@ -312,12 +347,20 @@ export class DashboardLayoutComponent implements AfterViewInit {
   private host = inject(ElementRef);
   private tour = inject(TourService);
   branding = inject(BrandingService);
+  branchCtx = inject(BranchContextService);
+  branchOpen = signal(false);
   theme = inject(ThemeService);
   ws = inject(WebSocketService);
 
   constructor() {
     // Color principal por rol: rosa para clientes, azul para el resto.
     effect(() => this.applyRoleTheme(this.auth.user()?.role));
+    this.branchCtx.load();
+  }
+
+  pickBranch(id: number | null): void {
+    this.branchCtx.setBranch(id);
+    this.branchOpen.set(false);
   }
 
   private applyRoleTheme(role?: string | null): void {
@@ -392,22 +435,26 @@ export class DashboardLayoutComponent implements AfterViewInit {
       roles: ['SUPERADMIN', 'TENANT_ADMIN'],
       items: [
         { label: 'Panel global',  icon: 'fa-shield-halved', route: '/app/admin/overview' },
-        { label: 'Usuarios',      icon: 'fa-users',          route: '/app/admin/users', only: ['SUPERADMIN'] },
-        { label: 'Equipo',        icon: 'fa-user-tie',       route: '/app/admin/staff', only: ['TENANT_ADMIN'] },
-        { label: 'Clientes',      icon: 'fa-user-group',     route: '/app/admin/customers', only: ['TENANT_ADMIN'] },
-        { label: 'Tiendas',       icon: 'fa-store',          route: '/app/admin/tenants' },
+        { label: 'Mi perfil',     icon: 'fa-id-card',        route: '/app/profile' },
+        { label: 'Categorías',    icon: 'fa-folder-tree',    route: '/app/admin/categories' },
+        { label: 'Marcas',        icon: 'fa-tags',           route: '/app/admin/brands' },
+        { label: 'Proveedores',   icon: 'fa-truck-field',    route: '/app/admin/inventory/suppliers' },
         { label: 'Productos',     icon: 'fa-box',            route: '/app/admin/products' },
-        { label: 'Inventario',    icon: 'fa-boxes-stacked',  route: '/app/admin/inventory' },
+        { label: 'Inventario',    icon: 'fa-boxes-stacked',  route: '/app/admin/inventory', exact: true },
+        { label: 'Recepción',     icon: 'fa-truck-ramp-box', route: '/app/admin/inventory/reception' },
+        { label: 'Historial recep.', icon: 'fa-clock-rotate-left', route: '/app/admin/inventory/receptions' },
+        { label: 'Cupones',       icon: 'fa-ticket',         route: '/app/admin/coupons' },
         { label: 'POS',           icon: 'fa-cash-register',  route: '/app/admin/pos' },
         { label: 'Ventas',        icon: 'fa-receipt',        route: '/app/admin/sales' },
         { label: 'Envíos',        icon: 'fa-truck',          route: '/app/admin/shipments' },
         { label: 'Devoluciones',  icon: 'fa-rotate-left',    route: '/app/admin/returns' },
-        { label: 'Categorías',    icon: 'fa-folder-tree',    route: '/app/admin/categories' },
-        { label: 'Marcas',        icon: 'fa-tags',           route: '/app/admin/brands' },
-        { label: 'Cupones',       icon: 'fa-ticket',         route: '/app/admin/coupons' },
-        { label: 'Horarios',      icon: 'fa-clock',          route: '/app/admin/schedules' },
         { label: 'Reseñas',       icon: 'fa-comment-dots',   route: '/app/admin/reviews' },
         { label: 'Reportes',      icon: 'fa-chart-line',     route: '/app/admin/reports' },
+        { label: 'Horarios',      icon: 'fa-clock',          route: '/app/admin/schedules' },
+        { label: 'Usuarios',      icon: 'fa-users',          route: '/app/admin/users' },
+        { label: 'Tiendas',       icon: 'fa-store',          route: '/app/admin/tenants', only: ['SUPERADMIN'] },
+        { label: 'Sucursales',    icon: 'fa-store',          route: '/app/admin/sucursales', only: ['SUPERADMIN'] },
+        { label: 'Kiosko',        icon: 'fa-qrcode',         route: '/kiosko' },
         { label: 'Configuración', icon: 'fa-gear',           route: '/app/admin/settings' },
       ],
     },
@@ -416,17 +463,21 @@ export class DashboardLayoutComponent implements AfterViewInit {
       roles: ['BRANCH_MANAGER'],
       items: [
         { label: 'Panel',        icon: 'fa-gauge-high',     route: '/app/admin/overview' },
-        { label: 'Equipo',       icon: 'fa-user-tie',       route: '/app/admin/staff' },
-        { label: 'Clientes',     icon: 'fa-user-group',     route: '/app/admin/customers' },
+        { label: 'Usuarios',     icon: 'fa-users',          route: '/app/admin/users' },
         { label: 'POS',          icon: 'fa-cash-register',  route: '/app/admin/pos' },
         { label: 'Ventas',       icon: 'fa-receipt',        route: '/app/admin/sales' },
         { label: 'Productos',    icon: 'fa-box',            route: '/app/admin/products' },
-        { label: 'Inventario',   icon: 'fa-boxes-stacked',  route: '/app/admin/inventory' },
+        { label: 'Inventario',   icon: 'fa-boxes-stacked',  route: '/app/admin/inventory', exact: true },
+        { label: 'Recepción',    icon: 'fa-truck-ramp-box', route: '/app/admin/inventory/reception' },
+        { label: 'Historial recep.', icon: 'fa-clock-rotate-left', route: '/app/admin/inventory/receptions' },
+        { label: 'Proveedores',   icon: 'fa-truck-field',    route: '/app/admin/inventory/suppliers' },
+        { label: 'Kiosko',       icon: 'fa-qrcode',         route: '/kiosko' },
         { label: 'Envíos',       icon: 'fa-truck',          route: '/app/admin/shipments' },
         { label: 'Devoluciones', icon: 'fa-rotate-left',    route: '/app/admin/returns' },
         { label: 'Horarios',     icon: 'fa-clock',          route: '/app/admin/schedules' },
         { label: 'Reseñas',      icon: 'fa-comment-dots',   route: '/app/admin/reviews' },
         { label: 'Reportes',     icon: 'fa-chart-line',     route: '/app/admin/reports' },
+        { label: 'Mi perfil',    icon: 'fa-id-card',        route: '/app/profile' },
       ],
     },
     {
@@ -436,7 +487,8 @@ export class DashboardLayoutComponent implements AfterViewInit {
         { label: 'POS',         icon: 'fa-cash-register',  route: '/app/admin/pos' },
         { label: 'Mis ventas',  icon: 'fa-receipt',        route: '/app/admin/sales' },
         { label: 'Productos',   icon: 'fa-box',            route: '/app/admin/products' },
-        { label: 'Inventario',  icon: 'fa-boxes-stacked',  route: '/app/admin/inventory' },
+        { label: 'Inventario',  icon: 'fa-boxes-stacked',  route: '/app/admin/inventory', exact: true },
+        { label: 'Mi perfil',   icon: 'fa-id-card',        route: '/app/profile' },
       ],
     },
     {

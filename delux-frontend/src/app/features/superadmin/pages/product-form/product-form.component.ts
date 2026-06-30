@@ -1,4 +1,7 @@
 import { ChangeDetectionStrategy, Component, OnInit, computed, inject, signal } from '@angular/core';
+import { AuthService } from '@core/services/auth.service';
+import { BrandingService } from '@core/services/branding.service';
+import { DlxPriceInputComponent } from '@shared/ui/price-input.component';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { ActivatedRoute, Router, RouterLink } from '@angular/router';
@@ -14,7 +17,7 @@ import { parseApiError } from '@shared/utils/api-error.util';
 @Component({
   selector: 'dlx-product-form',
   standalone: true,
-  imports: [CommonModule, FormsModule, RouterLink],
+  imports: [CommonModule, FormsModule, RouterLink, DlxPriceInputComponent],
   changeDetection: ChangeDetectionStrategy.OnPush,
   template: `
     <div class="flex items-center gap-2 text-xs text-slate-500 mb-1">
@@ -37,15 +40,10 @@ import { parseApiError } from '@shared/utils/api-error.util';
           <div>
             <label class="eg-label">Nombre *</label>
             <input [(ngModel)]="payload.name" name="name" required maxlength="160"
-                   class="eg-input" />
+                   class="eg-input" [class.!border-rose-400]="fe('name')" />
+            @if (fe('name')) { <p class="text-xs text-rose-600 mt-1">{{ fe('name') }}</p> }
           </div>
-          <div class="grid grid-cols-2 gap-4">
-            <div>
-              <label class="eg-label">Slug</label>
-              <input [(ngModel)]="payload.slug" name="slug" maxlength="180"
-                     class="eg-input font-mono"
-                     placeholder="auto" />
-            </div>
+          <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
             <div>
               <label class="eg-label">Género</label>
               <select [(ngModel)]="payload.gender" name="gender"
@@ -58,14 +56,9 @@ import { parseApiError } from '@shared/utils/api-error.util';
             </div>
           </div>
           <div>
-            <label class="eg-label">Descripción corta</label>
-            <input [(ngModel)]="payload.short_description" name="short_description" maxlength="240"
-                   class="eg-input" />
-          </div>
-          <div>
-            <label class="eg-label">Descripción larga</label>
-            <textarea [(ngModel)]="payload.description" name="description" rows="5"
-                      class="eg-input"></textarea>
+            <label class="eg-label">Descripción (opcional)</label>
+            <textarea [(ngModel)]="payload.description" name="description" rows="4"
+                      class="eg-input" placeholder="Descripción del producto…"></textarea>
           </div>
         </div>
 
@@ -93,21 +86,23 @@ import { parseApiError } from '@shared/utils/api-error.util';
                   <div class="absolute inset-0 bg-black/60 opacity-0 group-hover:opacity-100 transition flex items-center justify-center gap-2">
                     @if (!img.is_main) {
                       <button type="button" (click)="setMain(i)" title="Marcar principal"
-                              class="w-8 h-8 rounded-full bg-white/90 grid place-items-center hover:bg-white">
-                        <i class="fa-solid fa-star text-violet-600 text-xs"></i>
+                              class="w-8 h-8 rounded-full bg-white grid place-items-center hover:bg-slate-100 shadow">
+                        <i class="fa-solid fa-star text-violet-600 text-sm"></i>
                       </button>
                     }
-                    <button type="button" (click)="moveUp(i)" title="Mover" [disabled]="i === 0"
-                            class="w-8 h-8 rounded-full bg-white/90 grid place-items-center hover:bg-white disabled:opacity-40">
-                      <i class="fa-solid fa-arrow-left text-slate-700 text-xs"></i>
-                    </button>
-                    <button type="button" (click)="moveDown(i)" title="Mover" [disabled]="i === images().length - 1"
-                            class="w-8 h-8 rounded-full bg-white/90 grid place-items-center hover:bg-white disabled:opacity-40">
-                      <i class="fa-solid fa-arrow-right text-slate-700 text-xs"></i>
-                    </button>
+                    @if (images().length > 1) {
+                      <button type="button" (click)="moveUp(i)" title="Mover" [disabled]="i === 0"
+                              class="w-8 h-8 rounded-full bg-white grid place-items-center hover:bg-slate-100 disabled:opacity-30 shadow">
+                        <i class="fa-solid fa-arrow-left text-slate-800 text-sm"></i>
+                      </button>
+                      <button type="button" (click)="moveDown(i)" title="Mover" [disabled]="i === images().length - 1"
+                              class="w-8 h-8 rounded-full bg-white grid place-items-center hover:bg-slate-100 disabled:opacity-30 shadow">
+                        <i class="fa-solid fa-arrow-right text-slate-800 text-sm"></i>
+                      </button>
+                    }
                     <button type="button" (click)="removeImg(i)" title="Eliminar"
-                            class="w-8 h-8 rounded-full bg-rose-500 grid place-items-center hover:bg-rose-600">
-                      <i class="fa-solid fa-trash text-white text-xs"></i>
+                            class="w-8 h-8 rounded-full bg-rose-500 grid place-items-center hover:bg-rose-600 shadow">
+                      <i class="fa-solid fa-trash text-white text-sm"></i>
                     </button>
                   </div>
                 </div>
@@ -132,6 +127,12 @@ import { parseApiError } from '@shared/utils/api-error.util';
               <p class="text-[11px] text-slate-400 mt-1">JPG, PNG, WEBP, GIF o AVIF · hasta 8 MB c/u</p>
             }
           </div>
+
+          <!-- Tomar foto (cámara en móvil/tablet) -->
+          <button type="button" class="eg-btn-secondary w-full mb-3" (click)="cameraInput.click()">
+            <i class="fa-solid fa-camera"></i> Tomar foto
+          </button>
+          <input #cameraInput type="file" accept="image/*" capture="environment" hidden (change)="onFilePick($event)" />
 
           <!-- Añadir por URL -->
           <div class="flex gap-2">
@@ -158,6 +159,8 @@ import { parseApiError } from '@shared/utils/api-error.util';
           <div class="flex flex-wrap gap-1.5 mb-2">
             <button type="button" (click)="addPreset('shoe')" class="px-2.5 py-1 rounded-md bg-slate-100 hover:bg-slate-200 text-xs font-semibold">Calzado 38-44</button>
             <button type="button" (click)="addPreset('cloth')" class="px-2.5 py-1 rounded-md bg-slate-100 hover:bg-slate-200 text-xs font-semibold">Ropa S-XL</button>
+            <button type="button" (click)="addPreset('shoeKids')" class="px-2.5 py-1 rounded-md bg-slate-100 hover:bg-slate-200 text-xs font-semibold">Calzado niños 18-34</button>
+            <button type="button" (click)="addPreset('clothKids')" class="px-2.5 py-1 rounded-md bg-slate-100 hover:bg-slate-200 text-xs font-semibold">Ropa niños 2-16</button>
             <button type="button" (click)="addPreset('unica')" class="px-2.5 py-1 rounded-md bg-slate-100 hover:bg-slate-200 text-xs font-semibold">Única</button>
           </div>
           <div class="flex flex-wrap gap-2 mb-2">
@@ -203,39 +206,33 @@ import { parseApiError } from '@shared/utils/api-error.util';
           <div class="card p-6">
             <h2 class="font-bold tracking-tight mb-1">Disponibilidad inicial por sucursal</h2>
             <p class="text-xs text-slate-500 mb-4">
-              Cantidad inicial de cada variante nueva por sucursal. Déjalo en 0 si no quieres registrarlo ahí.
-              Lo puedes ajustar luego en Inventario.
+              Marca a qué sucursales va este producto y la cantidad inicial de cada variante. Lo puedes ajustar luego en Inventario.
             </p>
             <div class="space-y-2">
-              @for (b of branches(); track b.id) {
-                <div class="flex items-center justify-between gap-3 p-3 rounded-lg bg-slate-50 dark:bg-white/5">
-                  <div>
-                    <p class="font-semibold text-sm text-ink-950 dark:text-white">{{ b.name }}</p>
-                    <p class="text-xs text-slate-500">{{ b.city }}</p>
-                  </div>
-                  <input type="number" min="0" [ngModel]="branchStock[b.id] || 0"
-                         (ngModelChange)="branchStock[b.id] = +$event" [name]="'stock_' + b.id"
-                         class="w-24 px-3 py-2 rounded-lg bg-white dark:bg-ink-950 border border-slate-200 dark:border-white/10 text-sm text-right focus:outline-none focus:border-slate-400" />
+              @for (b of visibleBranches(); track b.id) {
+                <div class="flex items-center justify-between gap-3 p-3 rounded-lg border transition"
+                     [ngClass]="isBranchSel(b.id) ? 'border-violet-300 bg-violet-50 dark:border-violet-500/30 dark:bg-violet-500/10' : 'border-slate-200 dark:border-white/10 bg-slate-50 dark:bg-white/5'">
+                  <label class="flex items-center gap-3 flex-1 min-w-0 cursor-pointer">
+                    <input type="checkbox" [checked]="isBranchSel(b.id)" (change)="toggleBranchSel(b.id)"
+                           [disabled]="lockedBranchId() === b.id" class="w-4 h-4 accent-violet-500 shrink-0" />
+                    <div class="min-w-0">
+                      <p class="font-semibold text-sm text-ink-950 dark:text-white truncate">{{ b.name }}@if (lockedBranchId() === b.id) { <span class="text-[10px] text-violet-600 dark:text-violet-300 ml-1">(tu sucursal)</span> }</p>
+                      <p class="text-xs text-slate-500">{{ b.city }}</p>
+                    </div>
+                  </label>
+                  @if (isBranchSel(b.id)) {
+                    <input type="number" min="0" [ngModel]="branchStock[b.id] || 0"
+                           (ngModelChange)="branchStock[b.id] = +$event" [name]="'stock_' + b.id"
+                           class="w-24 px-3 py-2 rounded-lg bg-white dark:bg-ink-950 border border-slate-200 dark:border-white/10 text-sm text-right focus:outline-none focus:border-slate-400" />
+                  } @else {
+                    <span class="text-xs text-slate-400 shrink-0">No incluir</span>
+                  }
                 </div>
               }
             </div>
           </div>
         }
 
-        <!-- SEO -->
-        <div class="card p-6 space-y-4">
-          <h2 class="font-bold tracking-tight">SEO</h2>
-          <div>
-            <label class="eg-label">Meta título</label>
-            <input [(ngModel)]="payload.meta_title" name="meta_title" maxlength="160"
-                   class="eg-input" />
-          </div>
-          <div>
-            <label class="eg-label">Meta descripción</label>
-            <textarea [(ngModel)]="payload.meta_description" name="meta_description" rows="2" maxlength="240"
-                      class="eg-input"></textarea>
-          </div>
-        </div>
       </div>
 
       <!-- COL lateral -->
@@ -266,13 +263,13 @@ import { parseApiError } from '@shared/utils/api-error.util';
             </select>
           </div>
 
-          <label class="flex items-center gap-3 cursor-pointer p-3 rounded-lg bg-violet-50 hover:bg-violet-100 transition">
+          <label class="flex items-center gap-3 cursor-pointer p-3 rounded-lg border transition bg-violet-50 hover:bg-violet-100 border-violet-100 dark:bg-violet-500/10 dark:hover:bg-violet-500/20 dark:border-violet-500/25">
             <input type="checkbox" [(ngModel)]="payload.is_featured" name="is_featured" class="w-4 h-4 accent-violet-500" />
             <div class="flex-1">
               <p class="text-sm font-semibold flex items-center gap-1.5">
                 <i class="fa-solid fa-star text-violet-500 text-xs"></i> Destacado
               </p>
-              <p class="text-xs text-slate-500">Aparece en home / landing</p>
+              <p class="text-xs text-slate-500 dark:text-slate-400">Aparece en home / landing</p>
             </div>
           </label>
         </div>
@@ -283,43 +280,35 @@ import { parseApiError } from '@shared/utils/api-error.util';
           <div>
             <label class="eg-label">Marca *</label>
             <select [(ngModel)]="payload.brand" name="brand" required
-                    class="eg-input">
+                    class="eg-input" [class.!border-rose-400]="fe('brand')">
               <option [ngValue]="null">— Seleccionar —</option>
               @for (b of brands(); track b.id) { <option [ngValue]="b.id">{{ b.name }}</option> }
             </select>
+            @if (fe('brand')) { <p class="text-xs text-rose-600 mt-1">{{ fe('brand') }}</p> }
           </div>
 
           <div>
             <label class="eg-label">Categoría *</label>
             <select [(ngModel)]="payload.category" name="category" required
-                    class="eg-input">
+                    class="eg-input" [class.!border-rose-400]="fe('category')">
               <option [ngValue]="null">— Seleccionar —</option>
               @for (c of categories(); track c.id) {
                 <option [ngValue]="c.id">{{ c.parent_name ? c.parent_name + ' → ' : '' }}{{ c.name }}</option>
               }
             </select>
+            @if (fe('category')) { <p class="text-xs text-rose-600 mt-1">{{ fe('category') }}</p> }
           </div>
         </div>
 
         <div class="card p-6 space-y-4">
           <h2 class="font-bold tracking-tight">Precio</h2>
           <div>
-            <label class="eg-label">Precio base *</label>
-            <div class="relative">
-              <span class="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400 text-sm">$</span>
-              <input type="number" [(ngModel)]="payload.base_price" name="base_price" required min="0" step="0.01"
-                     class="eg-input pl-7 pr-3" />
-            </div>
-          </div>
-          <div>
-            <label class="eg-label">Precio comparativo</label>
-            <div class="relative">
-              <span class="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400 text-sm">$</span>
-              <input type="number" [(ngModel)]="payload.compare_at_price" name="compare_at_price" min="0" step="0.01"
-                     class="eg-input pl-7 pr-3"
-                     placeholder="Opcional" />
-            </div>
-            <p class="text-[10px] text-slate-400 mt-1">Para mostrar como descuento.</p>
+            <label class="eg-label">Precio base (sin IVA) *</label>
+            <dlx-price-input [(ngModel)]="payload.base_price" name="base_price" />
+            @if (fe('base_price')) { <p class="text-xs text-rose-600 mt-1">{{ fe('base_price') }}</p> }
+            @if ((+payload.base_price || 0) > 0) {
+              <p class="text-[11px] text-slate-400 mt-1">Con IVA ({{ ivaRate() }}%): <b class="text-[#1e40af] dark:text-[#7aa2ff]">$ {{ priceWithIva() | number:'1.2-2' }}</b></p>
+            }
           </div>
         </div>
 
@@ -353,14 +342,36 @@ export class ProductFormComponent implements OnInit {
   private notify = inject(NotifyService);
   private adminSvc = inject(AdminService);
   private fileValidator = inject(FileValidatorService);
+  private branding = inject(BrandingService);
+  ivaRate(): number { return this.branding.taxRate(); }
+  priceWithIva(): number { const b = +this.payload.base_price || 0; return b + b * this.ivaRate() / 100; }
+  private auth = inject(AuthService);
   branches = signal<AdminBranch[]>([]);
   branchStock: Record<number, number> = {};
+  branchSel: Record<number, boolean> = {};
+  isSingleBranchUser(): boolean {
+    const r = this.auth.user()?.role;
+    return (r === 'BRANCH_MANAGER' || r === 'SALESPERSON') && !!this.auth.user()?.branch_id;
+  }
+  lockedBranchId(): number | null { return this.isSingleBranchUser() ? (this.auth.user()?.branch_id ?? null) : null; }
+  visibleBranches(): AdminBranch[] {
+    const lb = this.lockedBranchId();
+    return lb != null ? this.branches().filter(b => b.id === lb) : this.branches();
+  }
+  isBranchSel(id: number): boolean { return this.lockedBranchId() === id || !!this.branchSel[id]; }
+  toggleBranchSel(id: number): void {
+    if (this.lockedBranchId() === id) return;
+    this.branchSel[id] = !this.branchSel[id];
+    if (!this.branchSel[id]) delete this.branchStock[id];
+  }
 
   brands = signal<Brand[]>([]);
   categories = signal<Category[]>([]);
   images = signal<ProductImage[]>([]);
   saving = signal(false);
   error = signal<string | null>(null);
+  fieldErrors = signal<Record<string, string>>({});
+  fe(k: string): string | undefined { return this.fieldErrors()[k]; }
   productId = signal<number | null>(null);
   isEdit = computed(() => this.productId() !== null);
 
@@ -388,7 +399,11 @@ export class ProductFormComponent implements OnInit {
   ngOnInit(): void {
     this.brandSvc.list({ search: '' }).subscribe(r => this.brands.set(r.results || []));
     this.catSvc.list().subscribe(r => this.categories.set(r.results || []));
-    this.adminSvc.listBranches().subscribe(r => this.branches.set(r.results || []));
+    this.adminSvc.listBranches().subscribe(r => {
+      this.branches.set(r.results || []);
+      const lb = this.lockedBranchId();
+      if (lb != null) this.branchSel[lb] = true;
+    });
     const id = this.route.snapshot.paramMap.get('id');
     if (id && id !== 'new') {
       this.productId.set(+id);
@@ -467,8 +482,14 @@ export class ProductFormComponent implements OnInit {
   addColor() { this.addColorValue(this.newColor); this.newColor = ''; }
   addColorValue(v: string) { const c = (v || '').trim(); if (c && !this.colors().includes(c)) this.colors.update(a => [...a, c]); }
   removeColor(c: string) { this.colors.update(a => a.filter(x => x !== c)); }
-  addPreset(kind: 'shoe' | 'cloth' | 'unica') {
-    const map: Record<string, string[]> = { shoe: ['38','39','40','41','42','43','44'], cloth: ['S','M','L','XL'], unica: ['UNICA'] };
+  addPreset(kind: 'shoe' | 'cloth' | 'unica' | 'shoeKids' | 'clothKids') {
+    const map: Record<string, string[]> = {
+      shoe: ['38','39','40','41','42','43','44'],
+      cloth: ['S','M','L','XL'],
+      shoeKids: ['18','19','20','21','22','23','24','25','26','27','28','29','30','31','32','33','34'],
+      clothKids: ['2','4','6','8','10','12','14','16'],
+      unica: ['UNICA'],
+    };
     this.sizes.update(a => Array.from(new Set([...a, ...(map[kind] || [])])));
   }
   private buildVariants(): { size: string; color: string }[] {
@@ -511,14 +532,15 @@ export class ProductFormComponent implements OnInit {
   save(): void {
     this.saving.set(true);
     this.error.set(null);
+    this.fieldErrors.set({});
 
     // Asegurar main_image_url desde la galería
     const mainImg = this.images().find(i => i.is_main) || this.images()[0];
     if (mainImg) this.payload.main_image_url = mainImg.url;
 
-    const initialStock = Object.entries(this.branchStock)
-      .map(([branch, quantity]) => ({ branch: +branch, quantity: +quantity || 0 }))
-      .filter(x => x.quantity > 0);
+    const initialStock = this.branches()
+      .filter(b => this.isBranchSel(b.id))
+      .map(b => ({ branch: b.id, quantity: +(this.branchStock[b.id] || 0) }));
     const body: ProductPayload = {
       ...this.payload, images: this.images(), variants: this.buildVariants(),
       initial_stock: initialStock,
@@ -536,8 +558,9 @@ export class ProductFormComponent implements OnInit {
       },
       error: e => {
         this.saving.set(false);
-        const detail = parseApiError(e).message || 'Error al guardar';
-        this.error.set(detail);
+        const p = parseApiError(e);
+        this.fieldErrors.set(p.fieldErrors);
+        this.error.set(Object.keys(p.fieldErrors).length ? null : (p.message || 'Error al guardar'));
       },
     });
   }

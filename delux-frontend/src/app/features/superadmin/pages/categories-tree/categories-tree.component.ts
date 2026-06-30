@@ -5,11 +5,12 @@ import { Category, CategoryService, CategoryTreeNode } from '@features/superadmi
 import { ConfirmService } from '@shared/components/confirm/confirm.service';
 import { NotifyService } from '@shared/services/notify.service';
 import { CategoryFormModalComponent } from '@features/superadmin/components/category-form-modal/category-form-modal.component';
+import { RowActionsComponent, RowAction } from '@shared/ui/row-actions.component';
 
 @Component({
   selector: 'dlx-categories-tree',
   standalone: true,
-  imports: [CommonModule, FormsModule, CategoryFormModalComponent],
+  imports: [CommonModule, FormsModule, CategoryFormModalComponent, RowActionsComponent],
   changeDetection: ChangeDetectionStrategy.OnPush,
   template: `
     <div class="flex flex-wrap items-end justify-between gap-4 mb-6">
@@ -151,28 +152,7 @@ import { CategoryFormModalComponent } from '@features/superadmin/components/cate
           </div>
 
           <!-- Actions -->
-          <div class="flex items-center gap-1 opacity-0 group-hover:opacity-100 transition">
-            <button (click)="openCreate(node.id)"
-                    class="w-8 h-8 grid place-items-center rounded-lg hover:bg-emerald-100 hover:text-emerald-700 transition text-slate-500"
-                    title="Crear subcategoría">
-              <i class="fa-solid fa-plus text-xs"></i>
-            </button>
-            <button (click)="openEdit(node)"
-                    class="w-8 h-8 grid place-items-center rounded-lg hover:bg-sky-100 hover:text-sky-700 transition text-slate-500"
-                    title="Editar">
-              <i class="fa-solid fa-pen text-xs"></i>
-            </button>
-            <button (click)="toggleActive(node)"
-                    class="w-8 h-8 grid place-items-center rounded-lg hover:bg-amber-100 hover:text-amber-700 transition text-slate-500"
-                    [title]="node.is_active ? 'Desactivar' : 'Activar'">
-              <i class="fa-solid" [class.fa-eye]="node.is_active" [class.fa-eye-slash]="!node.is_active" [class.text-xs]="true"></i>
-            </button>
-            <button (click)="remove(node)"
-                    class="w-8 h-8 grid place-items-center rounded-lg hover:bg-rose-100 hover:text-rose-700 transition text-slate-500"
-                    title="Eliminar">
-              <i class="fa-solid fa-trash text-xs"></i>
-            </button>
-          </div>
+          <dlx-row-actions [actions]="rowActions(node)" />
         </div>
 
         @if (isExpanded(node.id) && node.children?.length) {
@@ -302,6 +282,15 @@ export class CategoriesTreeComponent implements OnInit {
   onSaved(): void {
     this.closeModal();
     this.reload();
+  }
+
+  rowActions(node: CategoryTreeNode): RowAction[] {
+    return [
+      { label: 'Editar', icon: 'fa-pen', run: () => this.openEdit(node) },
+      { label: 'Crear subcategoría', icon: 'fa-plus', run: () => this.openCreate(node.id) },
+      { label: node.is_active ? 'Desactivar' : 'Activar', icon: node.is_active ? 'fa-eye-slash' : 'fa-eye', run: () => this.toggleActive(node) },
+      { label: 'Eliminar', icon: 'fa-trash', variant: 'danger', run: () => this.remove(node) },
+    ];
   }
 
   toggleActive(node: CategoryTreeNode): void {

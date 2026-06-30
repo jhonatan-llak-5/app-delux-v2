@@ -51,6 +51,8 @@ export interface AdminBranch {
   is_active: boolean;
   created_at: string;
   products_count: number;
+  kiosk_token?: string;
+  kiosk_pin?: string;
 }
 
 export interface AdminBranchCatalogItem {

@@ -1,5 +1,6 @@
 import { ChangeDetectionStrategy, Component, OnInit, computed, inject, signal } from '@angular/core';
 import { AuthService } from '@core/services/auth.service';
+import { BrandingService } from '@core/services/branding.service';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { debounceTime, Subject } from 'rxjs';
@@ -10,6 +11,7 @@ import { AdminService, AdminBranch } from '@features/superadmin/services/admin.s
 import { CouponService, CouponValidation } from '@features/superadmin/services/coupon.service';
 import { generateVoucherPDF } from '@shared/utils/voucher-pdf.util';
 import { parseApiError } from '@shared/utils/api-error.util';
+import { imgOrPlaceholder, onImageError } from '@shared/utils/img-placeholder';
 
 interface CartItem {
   variant_id: number;
@@ -82,7 +84,7 @@ interface CartItem {
               <button (click)="addToCart(s)" [disabled]="s.quantity === 0"
                       class="card overflow-hidden hover:shadow-lg transition text-left disabled:opacity-50 disabled:cursor-not-allowed group">
                 <div class="aspect-square bg-slate-100 relative overflow-hidden">
-                  <img [src]="s.product_main_image" [alt]="s.product_name"
+                  <img [src]="imgSrc(s.product_main_image)" [alt]="s.product_name"
                        class="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500"
                        loading="lazy" crossorigin="anonymous" (error)="onImgErr($event)" />
                   <span class="absolute top-2 right-2 text-[10px] font-bold uppercase px-2 py-0.5 rounded-md backdrop-blur"
@@ -102,6 +104,7 @@ interface CartItem {
                     {{ s.variant_size }} · {{ s.variant_color }}
                   </p>
                   <p class="text-[10px] font-mono text-slate-400 mt-0.5 truncate">{{ s.variant_sku }}</p>
+                  <p class="text-sm font-bold mt-1">\${{ priceWithTax(s).toFixed(2) }}</p>
                 </div>
               </button>
             }
@@ -129,7 +132,7 @@ interface CartItem {
             <ul class="space-y-2 max-h-[400px] overflow-y-auto -mx-2 px-2">
               @for (item of cart(); track item.variant_id; let i = $index) {
                 <li class="flex gap-2 p-2 rounded-lg hover:bg-slate-50 transition">
-                  <img [src]="item.product_image" [alt]="item.product_name"
+                  <img [src]="imgSrc(item.product_image)" [alt]="item.product_name"
                        class="w-12 h-12 rounded object-cover bg-slate-100"
                        crossorigin="anonymous" (error)="onImgErr($event)" />
                   <div class="flex-1 min-w-0">
@@ -141,7 +144,7 @@ interface CartItem {
                       <span class="text-xs font-bold w-6 text-center">{{ item.quantity }}</span>
                       <button (click)="changeQty(i, 1)" [disabled]="item.quantity >= item.max_stock"
                               class="w-5 h-5 rounded grid place-items-center bg-slate-200 hover:bg-slate-300 text-xs disabled:opacity-30">+</button>
-                      <span class="ml-auto text-xs font-bold">\${{ (item.unit_price * item.quantity).toFixed(2) }}</span>
+                      <span class="ml-auto text-xs font-bold">\${{ (unitWithTax(item) * item.quantity).toFixed(2) }}</span>
                       <button (click)="removeItem(i)" class="ml-1 text-rose-500 hover:text-rose-700">
                         <i class="fa-solid fa-trash text-[10px]"></i>
                       </button>
@@ -182,6 +185,12 @@ interface CartItem {
                 <span class="text-slate-500">Subtotal</span>
                 <span class="font-semibold">\${{ subtotal().toFixed(2) }}</span>
               </div>
+              @if (taxRate() > 0) {
+                <div class="flex justify-between text-[11px] text-slate-400">
+                  <span>IVA {{ taxRate() }}% incluido</span>
+                  <span>\${{ taxAmount().toFixed(2) }}</span>
+                </div>
+              }
               <div class="flex justify-between items-center">
                 <span class="text-slate-500 text-sm">Descuento</span>
                 <input type="number" [ngModel]="discount()" (ngModelChange)="discount.set(+$event || 0)"
@@ -221,7 +230,7 @@ interface CartItem {
           </div>
         }
 
-        <button (click)="checkout()" [disabled]="!canCheckout() || saving()"
+        <button (click)="confirmOpen.set(true)" [disabled]="!canCheckout() || saving()"
                 class="w-full py-4 rounded-xl bg-[#1e40af] hover:bg-[#1e3a8a] text-white text-sm font-bold uppercase tracking-widest
                        transition disabled:opacity-40 disabled:cursor-not-allowed
                        flex items-center justify-center gap-3">
@@ -234,6 +243,43 @@ interface CartItem {
         </button>
       </aside>
     </div>
+
+    @if (confirmOpen()) {
+      <div class="fixed inset-0 z-50 grid place-items-center bg-black/50 backdrop-blur-sm p-4 animate-fade-in"
+           (click)="confirmOpen.set(false)">
+        <div class="w-full max-w-sm rounded-2xl bg-white dark:bg-[#121826] shadow-2xl overflow-hidden border border-slate-200 dark:border-white/10"
+             (click)="$event.stopPropagation()">
+          <div class="p-6 text-center">
+            <div class="w-14 h-14 rounded-full bg-[#1e40af]/10 text-[#1e40af] grid place-items-center mx-auto mb-4">
+              <i class="fa-solid fa-cash-register text-2xl"></i>
+            </div>
+            <h3 class="text-lg font-bold tracking-tight">Confirmar venta</h3>
+            <p class="text-slate-500 text-sm mt-1">
+              Se cobrará <span class="font-semibold text-slate-700 dark:text-slate-200">{{ cart().length }}</span>
+              {{ cart().length === 1 ? 'producto' : 'productos' }} y el stock se descontará al instante.
+            </p>
+            <div class="mt-4 rounded-xl bg-slate-50 dark:bg-white/5 p-4">
+              <p class="text-[11px] uppercase tracking-widest text-slate-400">Total a cobrar</p>
+              <p class="text-3xl font-display font-bold mt-1">\${{ total().toFixed(2) }}</p>
+              @if (taxRate() > 0) {
+                <p class="text-[11px] text-slate-400 mt-1">IVA {{ taxRate() }}% incluido</p>
+              }
+            </div>
+          </div>
+          <div class="p-5 pt-0 space-y-2">
+            <button (click)="confirmSale()" [disabled]="saving()"
+                    class="w-full py-3 rounded-xl bg-[#1e40af] hover:bg-[#1e3a8a] text-white text-sm font-bold uppercase tracking-widest transition disabled:opacity-40 flex items-center justify-center gap-2">
+              @if (saving()) { <i class="fa-solid fa-spinner fa-spin"></i> Procesando... }
+              @else { <i class="fa-solid fa-check"></i> Sí, cobrar \${{ total().toFixed(2) }} }
+            </button>
+            <button (click)="confirmOpen.set(false)" [disabled]="saving()"
+                    class="w-full py-3 rounded-xl bg-slate-100 dark:bg-white/5 hover:bg-slate-200 dark:hover:bg-white/10 text-slate-600 dark:text-slate-300 text-sm font-semibold transition">
+              Cancelar
+            </button>
+          </div>
+        </div>
+      </div>
+    }
 
     @if (completedOrder()) {
       <div class="fixed inset-0 z-50 grid place-items-center bg-black/50 backdrop-blur-sm p-4 animate-fade-in">
@@ -265,6 +311,7 @@ export class PosComponent implements OnInit {
   private adminSvc = inject(AdminService);
   private couponSvc = inject(CouponService);
   private auth = inject(AuthService);
+  private branding = inject(BrandingService);
 
   couponInput = '';
   appliedCoupon = signal<CouponValidation | null>(null);
@@ -280,16 +327,25 @@ export class PosComponent implements OnInit {
   search = signal('');
   discount = signal(0);
   saving = signal(false);
+  confirmOpen = signal(false);
   error = signal<string | null>(null);
   completedOrder = signal<Order | null>(null);
   customerData = { full_name: '', email: '', phone: '', document_id: '' };
 
   private search$ = new Subject<void>();
 
-  subtotal = computed(() =>
+  taxRate = computed(() => +this.branding.taxRate() || 0);
+  /** Suma neta (sin IVA). */
+  netSubtotal = computed(() =>
     this.cart().reduce((sum, i) => sum + i.unit_price * i.quantity, 0)
   );
+  /** Monto de IVA incluido. */
+  taxAmount = computed(() => this.netSubtotal() * this.taxRate() / 100);
+  /** Subtotal con IVA incluido. */
+  subtotal = computed(() => this.netSubtotal() + this.taxAmount());
   total = computed(() => Math.max(0, this.subtotal() - this.discount()));
+  /** Precio unitario con IVA para mostrar. */
+  unitWithTax(i: CartItem): number { return i.unit_price * (1 + this.taxRate() / 100); }
   canCheckout = computed(() => this.cart().length > 0 && !!this.branchId);
 
   ngOnInit() {
@@ -327,6 +383,7 @@ export class PosComponent implements OnInit {
   private priceOf(s: Stock): number {
     return +(s.price_override || s.base_price || '0');
   }
+  priceWithTax(s: Stock): number { return this.priceOf(s) * (1 + this.taxRate() / 100); }
 
   addToCart(s: Stock) {
     const existing = this.cart().find(c => c.variant_id === s.variant);
@@ -396,6 +453,11 @@ export class PosComponent implements OnInit {
     this.couponError.set(null);
   }
 
+  confirmSale() {
+    this.confirmOpen.set(false);
+    this.checkout();
+  }
+
   checkout() {
     if (!this.canCheckout() || !this.branchId) return;
     this.saving.set(true);
@@ -434,7 +496,6 @@ export class PosComponent implements OnInit {
     this.reload();
   }
 
-  onImgErr(ev: Event) {
-    (ev.target as HTMLImageElement).src = 'data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 200 200"><rect width="200" height="200" fill="%23e2e8f0"/></svg>';
-  }
+  imgSrc(url?: string | null): string { return imgOrPlaceholder(url); }
+  onImgErr(ev: Event) { onImageError(ev); }
 }

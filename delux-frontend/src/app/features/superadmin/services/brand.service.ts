@@ -55,12 +55,14 @@ export class BrandService {
     ordering?: string;
     is_active?: boolean;
     is_featured?: boolean;
+    page_size?: number;
   } = {}): Observable<Paged<Brand>> {
     let p = new HttpParams();
     if (opts.search)     p = p.set('search', opts.search);
     if (opts.ordering)   p = p.set('ordering', opts.ordering);
     if (opts.is_active !== undefined)   p = p.set('is_active', String(opts.is_active));
     if (opts.is_featured !== undefined) p = p.set('is_featured', String(opts.is_featured));
+    if (opts.page_size) p = p.set('page_size', String(opts.page_size));
     return this.http.get<Paged<Brand>>(`${this.base}/`, { params: p });
   }
 
@@ -70,4 +72,5 @@ export class BrandService {
   remove(slug: string)                 { return this.http.delete(`${this.base}/${slug}/`); }
   toggleActive(slug: string)           { return this.http.post<{is_active: boolean}>(`${this.base}/${slug}/toggle_active/`, {}); }
   toggleFeatured(slug: string)         { return this.http.post<{is_featured: boolean}>(`${this.base}/${slug}/toggle_featured/`, {}); }
+  reorder(order: string[])             { return this.http.post<{detail: string}>(`${this.base}/reorder/`, { order }); }
 }

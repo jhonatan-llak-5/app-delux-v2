@@ -50,6 +50,24 @@ export const SUPERADMIN_ROUTES: Routes = [
           import('./pages/inventory-overview/inventory-overview.component').then(m => m.InventoryOverviewComponent),
       },
       {
+        path: 'inventory/reception',
+        canActivate: [roleGuard(['SUPERADMIN', 'TENANT_ADMIN', 'BRANCH_MANAGER'])],
+        loadComponent: () =>
+          import('./pages/reception/reception.component').then(m => m.ReceptionComponent),
+      },
+      {
+        path: 'inventory/receptions',
+        canActivate: [roleGuard(['SUPERADMIN', 'TENANT_ADMIN', 'BRANCH_MANAGER'])],
+        loadComponent: () =>
+          import('./pages/receptions-list/receptions-list.component').then(m => m.ReceptionsListComponent),
+      },
+      {
+        path: 'inventory/suppliers',
+        canActivate: [roleGuard(['SUPERADMIN', 'TENANT_ADMIN', 'BRANCH_MANAGER'])],
+        loadComponent: () =>
+          import('./pages/suppliers-list/suppliers-list.component').then(m => m.SuppliersListComponent),
+      },
+      {
         path: 'inventory/movements',
         canActivate: [roleGuard(['SUPERADMIN', 'TENANT_ADMIN', 'BRANCH_MANAGER'])],
         loadComponent: () =>
@@ -75,12 +93,7 @@ export const SUPERADMIN_ROUTES: Routes = [
         loadComponent: () =>
           import('./pages/voucher-preview/voucher-preview.component').then(m => m.VoucherPreviewComponent),
       },
-      {
-        path: 'staff',
-        canActivate: [roleGuard(['SUPERADMIN', 'TENANT_ADMIN', 'BRANCH_MANAGER'])],
-        loadComponent: () =>
-          import('./pages/staff-list/staff-list.component').then(m => m.StaffListComponent),
-      },
+      { path: 'staff', pathMatch: 'full', redirectTo: 'users' },
       {
         path: 'staff/new',
         canActivate: [roleGuard(['SUPERADMIN', 'TENANT_ADMIN', 'BRANCH_MANAGER'])],
@@ -99,11 +112,7 @@ export const SUPERADMIN_ROUTES: Routes = [
         loadComponent: () =>
           import('./pages/schedule-editor/schedule-editor.component').then(m => m.ScheduleEditorComponent),
       },
-      {
-        path: 'customers',
-        loadComponent: () =>
-          import('./pages/customers-list/customers-list.component').then(m => m.CustomersListComponent),
-      },
+      { path: 'customers', pathMatch: 'full', redirectTo: 'users' },
       {
         path: 'customers/:id',
         loadComponent: () =>
@@ -141,9 +150,15 @@ export const SUPERADMIN_ROUTES: Routes = [
       },
       {
         path: 'users',
-        canActivate: [roleGuard(['SUPERADMIN'])],
+        canActivate: [roleGuard(['SUPERADMIN', 'TENANT_ADMIN', 'BRANCH_MANAGER'])],
         loadComponent: () =>
           import('./pages/users-hub/users-hub.component').then(m => m.UsersHubComponent),
+      },
+      {
+        path: 'sucursales',
+        canActivate: [roleGuard(['SUPERADMIN'])],
+        loadComponent: () =>
+          import('./pages/tenant-branches/tenant-branches.component').then(m => m.TenantBranchesComponent),
       },
       {
         path: 'tenants',

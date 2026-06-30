@@ -294,6 +294,13 @@ select.eg-input {
 }
 textarea.eg-input { height: auto; padding: 12px 14px; min-height: 110px; resize: vertical; }
 
+/* Oculta las flechas nativas de los input numéricos (se encimaban con el valor). */
+.eg-input[type="number"] { -moz-appearance: textfield; appearance: textfield; }
+.eg-input[type="number"]::-webkit-outer-spin-button,
+.eg-input[type="number"]::-webkit-inner-spin-button { -webkit-appearance: none; margin: 0; }
+/* Prefijo de moneda ($) — deja espacio para que no se encime con el número. */
+.eg-input.has-prefix { padding-left: 28px; }
+
 /* Barra de filtros de los módulos de administración.
    El buscador (con .relative/flex-1) crece y los <select> quedan compactos
    (ancho según contenido) en vez de estirarse a todo el ancho de la página. */
@@ -317,7 +324,8 @@ textarea.eg-input { height: auto; padding: 12px 14px; min-height: 110px; resize:
 }
 
 /* Botones admin */
-.eg-btn-primary {
+
+.eg-btn-primary, .btn-primary {
   display: inline-flex; align-items: center; justify-content: center; gap: 8px;
   height: 44px; padding: 0 18px; border-radius: 10px;
   font-size: 14px; font-weight: 600; font-family: inherit;
@@ -326,11 +334,12 @@ textarea.eg-input { height: auto; padding: 12px 14px; min-height: 110px; resize:
   box-shadow: 0 1px 2px rgba(59, 130, 246, 0.2);
   transition: background-color .12s ease, transform .08s ease;
 }
-.eg-btn-primary:hover:not(:disabled) { background-color: var(--dash-primary-d); transform: translateY(-1px); }
-.eg-btn-primary:active:not(:disabled) { transform: translateY(0); }
-.eg-btn-primary:disabled { opacity: 0.5; cursor: not-allowed; }
+.eg-btn-primary:hover:not(:disabled), .btn-primary:hover:not(:disabled) { background-color: var(--dash-primary-d); transform: translateY(-1px); }
+.eg-btn-primary:active:not(:disabled), .btn-primary:active:not(:disabled) { transform: translateY(0); }
+.eg-btn-primary:disabled, .btn-primary:disabled { opacity: 0.5; cursor: not-allowed; }
 
-.eg-btn-secondary {
+
+.eg-btn-secondary, .btn-secondary {
   display: inline-flex; align-items: center; justify-content: center; gap: 8px;
   height: 44px; padding: 0 18px; border-radius: 10px;
   font-size: 14px; font-weight: 600; font-family: inherit;
@@ -338,7 +347,7 @@ textarea.eg-input { height: auto; padding: 12px 14px; min-height: 110px; resize:
   border: 1px solid var(--dash-border); cursor: pointer;
   transition: background-color .12s ease, border-color .12s ease;
 }
-.eg-btn-secondary:hover:not(:disabled) {
+.eg-btn-secondary:hover:not(:disabled), .btn-secondary:hover:not(:disabled) {
   background-color: var(--dash-hover);
   border-color: var(--dash-text-soft);
 }

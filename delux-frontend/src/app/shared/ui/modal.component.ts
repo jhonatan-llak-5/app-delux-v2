@@ -40,7 +40,7 @@ export class DlxModalComponent {
   @Input() subtitle = '';
   @Input() maxWidth = 540;
   @Input() closable = true;
-  @Input() backdropClose = true;
+  @Input() backdropClose = false;
   @Output() closed = new EventEmitter<void>();
 
   close() { this.open = false; this.closed.emit(); }

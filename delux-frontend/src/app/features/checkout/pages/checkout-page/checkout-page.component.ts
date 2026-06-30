@@ -7,6 +7,7 @@ import { Router, RouterLink } from '@angular/router';
 import { CartService } from '@features/checkout/services/cart.service';
 import { CheckoutService } from '@features/checkout/services/checkout.service';
 import { NotifyService } from '@shared/services/notify.service';
+import { parseApiError } from '@shared/utils/api-error.util';
 import { PublicBranchesService, PublicBranch } from '@shared/services/public-branches.service';
 import { ZoneService } from '@shared/services/zone.service';
 import { BrandingService } from '@core/services/branding.service';
@@ -43,16 +44,19 @@ import { CouponService, CouponValidation } from '@features/superadmin/services/c
                   <label class="text-sm font-semibold text-ink-800 dark:text-white/80 mb-1.5 block">Nombre completo *</label>
                   <input [(ngModel)]="customer.full_name" name="full_name" required maxlength="160"
                          class="w-full px-3 py-3 rounded-lg bg-ink-50 dark:bg-white/5 border border-ink-200 dark:border-white/10 text-sm focus:outline-none focus:border-ink-950 dark:focus:border-white" />
+                  @if (fe('full_name')) { <p class="text-xs text-rose-600 mt-1">{{ fe('full_name') }}</p> }
                 </div>
                 <div>
                   <label class="text-sm font-semibold text-ink-800 dark:text-white/80 mb-1.5 block">Email *</label>
                   <input [(ngModel)]="customer.email" name="email" type="email" required
                          class="w-full px-3 py-3 rounded-lg bg-ink-50 dark:bg-white/5 border border-ink-200 dark:border-white/10 text-sm focus:outline-none focus:border-ink-950 dark:focus:border-white" />
+                  @if (fe('email')) { <p class="text-xs text-rose-600 mt-1">{{ fe('email') }}</p> }
                 </div>
                 <div>
                   <label class="text-sm font-semibold text-ink-800 dark:text-white/80 mb-1.5 block">Teléfono *</label>
                   <input [(ngModel)]="customer.phone" name="phone" required maxlength="30"
                          class="w-full px-3 py-3 rounded-lg bg-ink-50 dark:bg-white/5 border border-ink-200 dark:border-white/10 text-sm focus:outline-none focus:border-ink-950 dark:focus:border-white" />
+                  @if (fe('phone')) { <p class="text-xs text-rose-600 mt-1">{{ fe('phone') }}</p> }
                 </div>
                 <div>
                   <label class="text-sm font-semibold text-ink-800 dark:text-white/80 mb-1.5 block">Cédula</label>
@@ -348,6 +352,8 @@ export class CheckoutPageComponent implements OnInit, AfterViewInit {
   fulfillment: 'SHIPPING' | 'PICKUP' = 'SHIPPING';
   saving = signal(false);
   error = signal<string | null>(null);
+  fieldErrors = signal<Record<string, string>>({});
+  fe(k: string): string | undefined { return this.fieldErrors()[k]; }
   paymentMethod = signal<'PAYPHONE' | 'COD'>('COD');
   shippingAddress = '';
   shipLat = signal<number | null>(null);
@@ -521,6 +527,7 @@ export class CheckoutPageComponent implements OnInit, AfterViewInit {
     if (this.paymentMethod() === 'COD') { this.placeCOD(); return; }
     this.saving.set(true);
     this.error.set(null);
+    this.fieldErrors.set({});
     const returnUrl = `${window.location.origin}/checkout/result`;
     this.checkout.initPayPhone({
       branch_id: this.branchId,
@@ -555,9 +562,10 @@ export class CheckoutPageComponent implements OnInit, AfterViewInit {
       },
       error: e => {
         this.saving.set(false);
-        const msg = e?.error?.detail || 'Error al iniciar el pago.';
-        this.error.set(msg);
-        this.notify.error(msg);
+        const p = parseApiError(e);
+        this.fieldErrors.set(p.fieldErrors);
+        const msg = p.message || 'Error al iniciar el pago.';
+        if (!Object.keys(p.fieldErrors).length) { this.error.set(msg); this.notify.error(msg); }
       },
     });
   }
@@ -565,6 +573,7 @@ export class CheckoutPageComponent implements OnInit, AfterViewInit {
   private placeCOD() {
     this.saving.set(true);
     this.error.set(null);
+    this.fieldErrors.set({});
     this.checkout.placeCOD({
       branch_id: this.branchId!,
       fulfillment: this.fulfillment,
@@ -584,9 +593,10 @@ export class CheckoutPageComponent implements OnInit, AfterViewInit {
       },
       error: e => {
         this.saving.set(false);
-        const msg = e?.error?.detail || 'No se pudo registrar el pedido.';
-        this.error.set(msg);
-        this.notify.error(msg);
+        const p = parseApiError(e);
+        this.fieldErrors.set(p.fieldErrors);
+        const msg = p.message || 'No se pudo registrar el pedido.';
+        if (!Object.keys(p.fieldErrors).length) { this.error.set(msg); this.notify.error(msg); }
       },
     });
   }

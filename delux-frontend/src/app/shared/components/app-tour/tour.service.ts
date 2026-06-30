@@ -149,6 +149,18 @@ export class TourService {
     },
   ];
 
+  /** Corre un set de pasos específico (tour contextual de una pantalla). */
+  runSteps(steps: TourStep[]): void {
+    const applicable = steps.filter(
+      s => !s.target || (typeof document !== 'undefined' && !!document.querySelector(s.target))
+    );
+    if (!applicable.length) return;
+    this._steps.set(applicable);
+    this._index.set(0);
+    this._active.set(true);
+    this.lockScroll(true);
+  }
+
   /** Inicia el tour, conservando sólo pasos aplicables al DOM actual. */
   start(): void {
     const applicable = this.catalog.filter(

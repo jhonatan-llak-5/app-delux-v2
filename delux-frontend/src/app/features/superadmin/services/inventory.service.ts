@@ -58,6 +58,67 @@ export interface InventorySummary {
   }>;
 }
 
+export interface Supplier {
+  id: number;
+  name: string;
+  contact_name: string;
+  phone: string;
+  email: string;
+  tax_id: string;
+  notes: string;
+  is_active: boolean;
+}
+
+export interface ScanResult {
+  found: boolean;
+  code?: string;
+  branch_qty?: number;
+  variant?: {
+    id: number; sku: string; barcode: string; size: string; color: string;
+    cost: string | number; price_override: string | number | null;
+    product_id: number; product_name: string; kind: string;
+    base_price: string | number;
+    brand_id: number; brand_name: string;
+    category_id: number; category_name: string;
+    images?: string[];
+  };
+}
+
+export interface ReceptionItemIn {
+  variant_id?: number;
+  product_id?: number;
+  quantity: number;
+  unit_cost?: number;
+  barcode?: string;
+  product_name?: string;
+  kind?: string;
+  brand_id?: number; brand_name?: string;
+  category_id?: number; category_name?: string;
+  color?: string; size?: string; price?: number;
+  branch?: number;
+  images?: string[];
+  description?: string;
+}
+
+export interface ReceptionResult {
+  id: number;
+  code: string;
+  supplier_name: string | null;
+  branch_name: string;
+  total_units: number;
+  items_count?: number;
+  note?: string;
+  status?: string;
+  created_by_name?: string | null;
+  committed_at?: string | null;
+  created_at?: string;
+  items: Array<{
+    id: number; variant: number; variant_sku: string; barcode: string;
+    product_name: string; kind: string; size: string; color: string;
+    quantity: number; unit_cost: string; price: string | number;
+  }>;
+}
+
 interface Paged<T> { count: number; results: T[]; }
 
 @Injectable({ providedIn: 'root' })
@@ -104,5 +165,45 @@ export class InventoryService {
       if (v !== undefined && v !== null && v !== '') p = p.set(k, String(v));
     });
     return this.http.get<Paged<StockMovement>>(`${this.base}/movements/`, { params: p });
+  }
+  // ── Recepción de mercadería ──
+  scan(code: string, branch?: number): Observable<ScanResult> {
+    let p = new HttpParams().set('code', code);
+    if (branch) p = p.set('branch', String(branch));
+    return this.http.get<ScanResult>(`${this.base}/stocks/scan/`, { params: p });
+  }
+
+  variantSearch(q: string): Observable<{ results: NonNullable<ScanResult['variant']>[] }> {
+    return this.http.get<{ results: NonNullable<ScanResult['variant']>[] }>(
+      `${this.base}/stocks/variant-search/`, { params: new HttpParams().set('q', q) });
+  }
+
+  listSuppliers(search = ''): Observable<Paged<Supplier>> {
+    let p = new HttpParams();
+    if (search) p = p.set('search', search);
+    return this.http.get<Paged<Supplier>>(`${this.base}/suppliers/`, { params: p });
+  }
+
+  createSupplier(payload: Partial<Supplier>): Observable<Supplier> {
+    return this.http.post<Supplier>(`${this.base}/suppliers/`, payload);
+  }
+
+  updateSupplier(id: number, payload: Partial<Supplier>): Observable<Supplier> {
+    return this.http.patch<Supplier>(`${this.base}/suppliers/${id}/`, payload);
+  }
+
+  deleteSupplier(id: number): Observable<void> {
+    return this.http.delete<void>(`${this.base}/suppliers/${id}/`);
+  }
+
+  createReception(payload: {
+    branch: number; supplier?: number | null; supplier_name?: string;
+    note?: string; items: ReceptionItemIn[];
+  }): Observable<ReceptionResult> {
+    return this.http.post<ReceptionResult>(`${this.base}/receptions/`, payload);
+  }
+
+  listReceptions(): Observable<Paged<ReceptionResult>> {
+    return this.http.get<Paged<ReceptionResult>>(`${this.base}/receptions/`);
   }
 }

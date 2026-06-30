@@ -16,6 +16,16 @@ class ProductTag(models.TextChoices):
     EXCLUSIVE = 'EXCLUSIVE', 'Exclusivo'
 
 
+class ProductKind(models.TextChoices):
+    CALZADO   = 'CALZADO',   'Calzado'
+    ROPA      = 'ROPA',      'Ropa'
+    GORRA     = 'GORRA',     'Gorras'
+    MOCHILA   = 'MOCHILA',   'Mochilas'
+    BISUTERIA = 'BISUTERIA', 'Bisutería'
+    ACCESORIO = 'ACCESORIO', 'Accesorios'
+    OTRO      = 'OTRO',      'Otro'
+
+
 class Product(TenantOwnedModel):
     name = models.CharField(max_length=160)
     slug = models.SlugField(max_length=180)
@@ -38,6 +48,11 @@ class Product(TenantOwnedModel):
         max_length=10,
         choices=[('UNISEX', 'Unisex'), ('MEN', 'Hombre'), ('WOMEN', 'Mujer'), ('KIDS', 'Niños')],
         default='UNISEX',
+    )
+
+    kind = models.CharField(
+        max_length=15, choices=ProductKind.choices, default=ProductKind.OTRO,
+        help_text='Tipo de producto: define las tallas/medidas en la carga.'
     )
 
     status = models.CharField(max_length=15, choices=ProductStatus.choices,

@@ -1,4 +1,5 @@
 import { ChangeDetectionStrategy, Component, EventEmitter, Input, OnInit, Output, inject, signal } from '@angular/core';
+import { DlxIconPickerComponent } from '@shared/ui/icon-picker.component';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { Category, CategoryPayload, CategoryService } from '@features/superadmin/services/category.service';
@@ -10,7 +11,7 @@ interface FlatOption { id: number; label: string; depth: number; }
 @Component({
   selector: 'dlx-category-form-modal',
   standalone: true,
-  imports: [CommonModule, FormsModule, DlxModalComponent],
+  imports: [CommonModule, FormsModule, DlxModalComponent, DlxIconPickerComponent],
   changeDetection: ChangeDetectionStrategy.OnPush,
   template: `
     <dlx-modal [open]="true" [maxWidth]="560"
@@ -20,22 +21,17 @@ interface FlatOption { id: number; label: string; depth: number; }
           <div>
             <label class="eg-label">Nombre *</label>
             <input [(ngModel)]="payload.name" name="name" required maxlength="80"
-                   class="eg-input"
+                   class="eg-input" [class.!border-rose-400]="fe('name')"
                    placeholder="ej. Zapatillas" />
+            @if (fe('name')) { <p class="text-xs text-rose-600 mt-1">{{ fe('name') }}</p> }
           </div>
 
-          <div class="grid grid-cols-2 gap-4">
-            <div>
-              <label class="eg-label">Slug</label>
-              <input [(ngModel)]="payload.slug" name="slug" maxlength="80"
-                     class="eg-input font-mono"
-                     placeholder="auto" />
-              <p class="text-[10px] text-slate-400 mt-1">Se genera automáticamente si está vacío.</p>
-            </div>
+          <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
             <div>
               <label class="eg-label">Orden</label>
               <input type="number" [(ngModel)]="payload.sort_order" name="sort_order" min="0" max="999"
-                     class="eg-input" />
+                     class="eg-input" [class.!border-rose-400]="fe('sort_order')" />
+              @if (fe('sort_order')) { <p class="text-xs text-rose-600 mt-1">{{ fe('sort_order') }}</p> }
             </div>
           </div>
 
@@ -51,22 +47,9 @@ interface FlatOption { id: number; label: string; depth: number; }
           </div>
 
           <div>
-            <label class="eg-label">Ícono FontAwesome</label>
-            <div class="flex gap-2">
-              <div class="w-11 h-11 grid place-items-center rounded-lg bg-slate-100 dark:bg-white/5 border border-slate-200 dark:border-white/10">
-                @if (payload.icon) {
-                  <i class="fa-solid {{ payload.icon }} text-slate-700"></i>
-                } @else {
-                  <i class="fa-solid fa-shapes text-slate-400"></i>
-                }
-              </div>
-              <input [(ngModel)]="payload.icon" name="icon" maxlength="40"
-                     class="eg-input font-mono flex-1"
-                     placeholder="fa-shoe-prints" />
-            </div>
-            <p class="text-[10px] text-slate-400 mt-1">
-              Cualquier ícono solid de FontAwesome 7. Ej: fa-shoe-prints, fa-shirt, fa-bag-shopping
-            </p>
+            <label class="eg-label">Ícono</label>
+            <dlx-icon-picker [(ngModel)]="payload.icon" name="icon" />
+            <p class="text-[10px] text-slate-400 mt-1">Elige un ícono de la lista o búscalo por nombre.</p>
           </div>
 
           <label class="flex items-center gap-3 cursor-pointer p-3 rounded-lg bg-slate-50 dark:bg-white/5 hover:bg-slate-100 dark:hover:bg-white/10 transition">
@@ -115,6 +98,8 @@ export class CategoryFormModalComponent implements OnInit {
 
   saving = signal(false);
   error = signal<string | null>(null);
+  fieldErrors = signal<Record<string, string>>({});
+  fe(k: string): string | undefined { return this.fieldErrors()[k]; }
   parentOptions = signal<FlatOption[]>([]);
 
   ngOnInit(): void {
@@ -152,6 +137,7 @@ export class CategoryFormModalComponent implements OnInit {
     if (!this.payload.name) return;
     this.saving.set(true);
     this.error.set(null);
+    this.fieldErrors.set({});
     const obs = this.category
       ? this.service.update(this.category.id, this.payload)
       : this.service.create(this.payload);
@@ -159,8 +145,9 @@ export class CategoryFormModalComponent implements OnInit {
       next: cat => { this.saving.set(false); this.saved.emit(cat); },
       error: e => {
         this.saving.set(false);
-        const detail = parseApiError(e).message || 'Error al guardar';
-        this.error.set(detail);
+        const p = parseApiError(e);
+        this.fieldErrors.set(p.fieldErrors);
+        this.error.set(Object.keys(p.fieldErrors).length ? null : (p.message || 'Error al guardar'));
       },
     });
   }

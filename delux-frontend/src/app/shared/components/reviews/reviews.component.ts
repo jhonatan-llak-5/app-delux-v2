@@ -68,10 +68,10 @@ interface Review {
               </button>
             }
           </div>
-          <input [(ngModel)]="newTitle" name="title" placeholder="Título de tu reseña"
+          <input [(ngModel)]="newTitle" name="title" placeholder="Título de tu reseña *"
                  class="w-full px-4 py-3 rounded-lg bg-ink-100 dark:bg-ink-800 border text-sm"
                  style="border-color: rgba(var(--text), 0.1);" />
-          <textarea [(ngModel)]="newText" name="text" rows="4" placeholder="Comparte tu experiencia..."
+          <textarea [(ngModel)]="newText" name="text" rows="4" placeholder="Comparte tu experiencia... *"
                     class="w-full px-4 py-3 rounded-lg bg-ink-100 dark:bg-ink-800 border text-sm"
                     style="border-color: rgba(var(--text), 0.1);"></textarea>
           <div class="flex gap-3 justify-end">

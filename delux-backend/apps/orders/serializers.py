@@ -77,9 +77,19 @@ class POSCheckoutSerializer(serializers.Serializer):
             customer = Customer.objects.filter(pk=validated_data['customer_id']).first()
         elif validated_data.get('customer_data'):
             cd = validated_data['customer_data']
-            if cd.get('email'):
+            _email = (cd.get('email') or '').strip()
+            _email_ok = False
+            if _email:
+                from django.core.validators import validate_email as _ve
+                from django.core.exceptions import ValidationError as _VE
+                try:
+                    _ve(_email)
+                    _email_ok = True
+                except _VE:
+                    _email_ok = False
+            if _email_ok:
                 customer, _ = Customer.objects.get_or_create(
-                    tenant=tenant, email=cd['email'],
+                    tenant=tenant, email=_email,
                     defaults={
                         'full_name': cd.get('full_name', 'Cliente POS'),
                         'phone': cd.get('phone', ''),
@@ -108,6 +118,8 @@ class POSCheckoutSerializer(serializers.Serializer):
             )
 
             subtotal = Decimal('0')
+            from apps.settings.models import PlatformSettings
+            tax_rate = Decimal(str(PlatformSettings.load().tax_rate or 0))
             for it in items_input:
                 variant = Variant.objects.select_related('product').filter(
                     pk=it['variant_id']
@@ -135,7 +147,11 @@ class POSCheckoutSerializer(serializers.Serializer):
                     actor=user if user.is_authenticated else None,
                 )
 
-                unit_price = variant.price_override or variant.product.base_price
+                net_price = variant.price_override or variant.product.base_price
+                # Precio unitario con IVA incluido (la tienda no factura
+                # electrónicamente: el IVA es solo para mostrar/cobrar).
+                unit_price = (net_price * (Decimal('1') + tax_rate / Decimal('100'))
+                              ).quantize(Decimal('0.01'))
                 item_subtotal = unit_price * it['quantity']
                 OrderItem.objects.create(
                     tenant=tenant, order=order, variant=variant,
@@ -146,11 +162,23 @@ class POSCheckoutSerializer(serializers.Serializer):
                 )
                 subtotal += item_subtotal
 
+            # subtotal ya viene con IVA incluido; desglosamos el IVA contenido.
+            tax_amount = (subtotal - subtotal / (Decimal('1') + tax_rate / Decimal('100'))
+                          ).quantize(Decimal('0.01')) if tax_rate else Decimal('0')
             order.subtotal = subtotal
+            order.tax = tax_amount
             order.total = subtotal - Decimal(str(validated_data.get('discount', 0)))
-            order.save(update_fields=['subtotal', 'total', 'updated_at'])
+            order.save(update_fields=['subtotal', 'tax', 'total', 'updated_at'])
 
         try: _safe_broadcast(order)
         except Exception as e: print(f'[broadcast_pos] {e}')
+
+        # Comprobante por email (solo si el cliente dejó un correo válido).
+        if customer and getattr(customer, 'email', ''):
+            try:
+                from apps.notifications.services import notify_pos_receipt
+                notify_pos_receipt(order)
+            except Exception as e:
+                print(f'[pos_receipt] {e}')
 
         return order

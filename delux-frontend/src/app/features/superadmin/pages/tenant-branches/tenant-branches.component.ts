@@ -174,8 +174,11 @@ export class TenantBranchesComponent implements OnInit {
         this.reload();
       },
       error: (e) => {
-        const msg = parseApiError(e).message || 'No se pudo guardar la sucursal.';
-        this.modal?.setError(typeof msg === 'string' ? msg : 'No se pudo guardar.');
+        const parsed = parseApiError(e);
+        this.modal?.setErrors(parsed);
+        if (parsed.message && !Object.keys(parsed.fieldErrors).length) {
+          this.notify.error(parsed.message);
+        }
       },
     });
   }

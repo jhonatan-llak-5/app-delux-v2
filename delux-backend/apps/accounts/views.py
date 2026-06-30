@@ -5,7 +5,7 @@ from rest_framework.decorators import action
 from rest_framework.response import Response
 from rest_framework.views import APIView
 
-from .permissions import IsSuperadmin
+from .permissions import IsSuperadmin, IsBranchManager
 from .serializers import (
     ActivationSerializer,
     AdminUserSerializer,
@@ -181,10 +181,45 @@ class MeView(APIView):
     def get(self, request):
         return Response(UserSerializer(request.user).data)
 
+    def patch(self, request):
+        u = request.user
+        full_name = request.data.get('full_name')
+        phone = request.data.get('phone')
+        fields = []
+        if full_name is not None:
+            u.full_name = full_name.strip(); fields.append('full_name')
+        if phone is not None and hasattr(u, 'phone'):
+            u.phone = phone.strip(); fields.append('phone')
+        if fields:
+            u.save(update_fields=fields)
+        return Response(UserSerializer(u).data)
+
+
+class ChangePasswordView(APIView):
+    permission_classes = [permissions.IsAuthenticated]
+
+    def post(self, request):
+        from django.contrib.auth.password_validation import validate_password
+        from django.core.exceptions import ValidationError as DjangoValidationError
+        u = request.user
+        cur = request.data.get('current_password') or ''
+        new = request.data.get('new_password') or ''
+        if not u.check_password(cur):
+            return Response({'detail': 'La contraseña actual es incorrecta.'},
+                            status=status.HTTP_400_BAD_REQUEST)
+        try:
+            validate_password(new, u)
+        except DjangoValidationError as e:
+            return Response({'detail': ' '.join(e.messages)},
+                            status=status.HTTP_400_BAD_REQUEST)
+        u.set_password(new)
+        u.save(update_fields=['password'])
+        return Response({'detail': 'Contraseña actualizada.'})
+
 
 class AdminUserViewSet(viewsets.ModelViewSet):
     serializer_class = AdminUserSerializer
-    permission_classes = [permissions.IsAuthenticated, IsSuperadmin]
+    permission_classes = [permissions.IsAuthenticated, IsBranchManager]
     filter_backends = [filters.SearchFilter, filters.OrderingFilter]
     search_fields = ['email', 'full_name']
     ordering_fields = ['date_joined', 'email']
@@ -204,7 +239,33 @@ class AdminUserViewSet(viewsets.ModelViewSet):
             qs = qs.filter(role='CUSTOMER')
         elif kind == 'system':
             qs = qs.exclude(role='CUSTOMER')
+
+        # Alcance por rol: superadmin ve todo; admin su tienda; gerente su
+        # sucursal (staff) + los clientes de su tienda.
+        from django.db.models import Q
+        u = self.request.user
+        role_u = getattr(u, 'role', None)
+        if role_u == 'TENANT_ADMIN' and u.tenant_id:
+            qs = qs.filter(tenant_id=u.tenant_id)
+        elif role_u == 'BRANCH_MANAGER':
+            cond = Q(branch_id=u.branch_id)
+            if u.tenant_id:
+                cond = cond | Q(role='CUSTOMER', tenant_id=u.tenant_id)
+            qs = qs.filter(cond)
         return qs
+
+    def create(self, request, *args, **kwargs):
+        # La creación de cuentas internas va por el formulario de staff.
+        if getattr(request.user, 'role', None) != 'SUPERADMIN':
+            return Response({'detail': 'No autorizado para crear cuentas aquí.'},
+                            status=status.HTTP_403_FORBIDDEN)
+        return super().create(request, *args, **kwargs)
+
+    def destroy(self, request, *args, **kwargs):
+        if getattr(request.user, 'role', None) != 'SUPERADMIN':
+            return Response({'detail': 'No autorizado para eliminar cuentas.'},
+                            status=status.HTTP_403_FORBIDDEN)
+        return super().destroy(request, *args, **kwargs)
 
     def get_serializer_class(self):
         if self.action in ('update', 'partial_update'):
@@ -243,6 +304,9 @@ class AdminUserViewSet(viewsets.ModelViewSet):
         (admin de local, vendedor, etc.). Devuelve el mismo shape que el login.
         """
         from rest_framework_simplejwt.tokens import RefreshToken
+        if getattr(request.user, 'role', None) != 'SUPERADMIN':
+            return Response({'detail': 'Solo el superadmin puede impersonar.'},
+                            status=status.HTTP_403_FORBIDDEN)
         target = self.get_object()
         if not target.is_active:
             return Response({'detail': 'La cuenta esta inactiva.'}, status=status.HTTP_400_BAD_REQUEST)

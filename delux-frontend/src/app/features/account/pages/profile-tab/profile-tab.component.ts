@@ -2,6 +2,7 @@ import { ChangeDetectionStrategy, Component, OnInit, inject, signal } from '@ang
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { MeService, MeProfile } from '@features/account/services/me.service';
+import { parseApiError } from '@shared/utils/api-error.util';
 
 @Component({
   selector: 'dlx-profile-tab',
@@ -16,9 +17,11 @@ import { MeService, MeProfile } from '@features/account/services/me.service';
       @if (profile()) {
         <form (ngSubmit)="save()" class="grid grid-cols-1 md:grid-cols-2 gap-4">
           <div class="md:col-span-2">
-            <label class="text-sm font-semibold text-ink-800 dark:text-white/80 mb-1.5 block">Nombre completo</label>
-            <input [(ngModel)]="profile()!.full_name" name="full_name" required
-                   class="w-full px-3 py-3 rounded-lg bg-ink-50 dark:bg-white/5 border border-ink-200 dark:border-white/10 text-sm focus:outline-none focus:border-ink-950 dark:focus:border-white" />
+            <label class="text-sm font-semibold text-ink-800 dark:text-white/80 mb-1.5 block">Nombre completo *</label>
+            <input [(ngModel)]="profile()!.full_name" name="full_name" required maxlength="160"
+                   class="w-full px-3 py-3 rounded-lg bg-ink-50 dark:bg-white/5 border text-sm focus:outline-none focus:border-ink-950 dark:focus:border-white"
+                   [class.border-rose-400]="fe('full_name')" [class.border-ink-200]="!fe('full_name')" [class.dark:border-white/10]="!fe('full_name')" />
+            @if (fe('full_name')) { <p class="text-xs text-rose-600 mt-1">{{ fe('full_name') }}</p> }
           </div>
           <div>
             <label class="text-sm font-semibold text-ink-800 dark:text-white/80 mb-1.5 block">Email</label>
@@ -28,13 +31,15 @@ import { MeService, MeProfile } from '@features/account/services/me.service';
           </div>
           <div>
             <label class="text-sm font-semibold text-ink-800 dark:text-white/80 mb-1.5 block">Teléfono</label>
-            <input [(ngModel)]="profile()!.phone" name="phone"
+            <input [(ngModel)]="profile()!.phone" name="phone" maxlength="30"
                    class="w-full px-3 py-3 rounded-lg bg-ink-50 dark:bg-white/5 border border-ink-200 dark:border-white/10 text-sm focus:outline-none focus:border-ink-950 dark:focus:border-white" />
+            @if (fe('phone')) { <p class="text-xs text-rose-600 mt-1">{{ fe('phone') }}</p> }
           </div>
           <div class="md:col-span-2">
             <label class="text-sm font-semibold text-ink-800 dark:text-white/80 mb-1.5 block">Cédula / Documento</label>
-            <input [(ngModel)]="profile()!.document_id" name="document_id"
+            <input [(ngModel)]="profile()!.document_id" name="document_id" maxlength="30"
                    class="w-full px-3 py-3 rounded-lg bg-ink-50 dark:bg-white/5 border border-ink-200 dark:border-white/10 text-sm focus:outline-none focus:border-ink-950 dark:focus:border-white font-mono" />
+            @if (fe('document_id')) { <p class="text-xs text-rose-600 mt-1">{{ fe('document_id') }}</p> }
           </div>
           <label class="md:col-span-2 flex items-center gap-3 cursor-pointer p-4 rounded-lg bg-ink-50 dark:bg-white/5 hover:bg-ink-100 dark:hover:bg-white/10 transition">
             <input type="checkbox" [(ngModel)]="profile()!.accepts_marketing" name="accepts_marketing" class="w-4 h-4 accent-accent-500" />
@@ -67,6 +72,8 @@ export class ProfileTabComponent implements OnInit {
   profile = signal<MeProfile | null>(null);
   saving = signal(false);
   saved = signal(false);
+  fieldErrors = signal<Record<string, string>>({});
+  fe(k: string): string | undefined { return this.fieldErrors()[k]; }
 
   ngOnInit() { this.me.profile().subscribe(p => this.profile.set(p)); }
 
@@ -75,12 +82,13 @@ export class ProfileTabComponent implements OnInit {
     if (!p) return;
     this.saving.set(true);
     this.saved.set(false);
+    this.fieldErrors.set({});
     this.me.updateProfile({
       full_name: p.full_name, phone: p.phone,
       document_id: p.document_id, accepts_marketing: p.accepts_marketing,
     }).subscribe({
       next: () => { this.saving.set(false); this.saved.set(true); setTimeout(() => this.saved.set(false), 3000); },
-      error: () => this.saving.set(false),
+      error: (e) => { this.saving.set(false); this.fieldErrors.set(parseApiError(e).fieldErrors); },
     });
   }
 }

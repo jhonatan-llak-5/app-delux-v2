@@ -38,7 +38,7 @@ import { parseApiError } from '@shared/utils/api-error.util';
             </div>
             <i class="fa-solid fa-arrow-right text-slate-400 mb-3"></i>
             <div>
-              <label class="eg-label">Hacia</label>
+              <label class="eg-label">Hacia *</label>
               <select [(ngModel)]="toBranchId"
                       class="eg-input">
                 <option [ngValue]="null">— Sucursal destino —</option>
@@ -46,11 +46,12 @@ import { parseApiError } from '@shared/utils/api-error.util';
                   <option [ngValue]="b.id">{{ b.name }} ({{ b.code }})</option>
                 }
               </select>
+              @if (fe('to_branch_id')) { <p class="text-xs text-rose-600 mt-1">{{ fe('to_branch_id') }}</p> }
             </div>
           </div>
 
           <div>
-            <label class="eg-label">Cantidad a transferir</label>
+            <label class="eg-label">Cantidad a transferir *</label>
             <div class="flex items-center gap-2">
               <button type="button" (click)="qty.set(Math.max(1, qty() - 1))"
                       class="w-10 h-10 rounded-lg bg-slate-100 hover:bg-slate-200 grid place-items-center">
@@ -69,6 +70,7 @@ import { parseApiError } from '@shared/utils/api-error.util';
               </button>
             </div>
             <p class="text-[10px] text-slate-400 mt-1">Máximo disponible: {{ stock.quantity }}</p>
+            @if (fe('quantity')) { <p class="text-xs text-rose-600 mt-1">{{ fe('quantity') }}</p> }
           </div>
 
           <div>
@@ -77,12 +79,6 @@ import { parseApiError } from '@shared/utils/api-error.util';
                    class="eg-input"
                    placeholder="ej. Reabastecimiento mensual" />
           </div>
-
-          @if (error()) {
-            <div class="p-3 rounded-lg bg-rose-50 border border-rose-200 text-rose-700 text-xs">
-              <i class="fa-solid fa-circle-exclamation"></i> {{ error() }}
-            </div>
-          }
 
           <div class="flex justify-end gap-2 pt-2 border-t border-slate-100">
             <button type="button" (click)="close.emit()"
@@ -116,6 +112,8 @@ export class TransferModalComponent implements OnInit {
   note = '';
   saving = signal(false);
   error = signal<string | null>(null);
+  fieldErrors = signal<Record<string, string>>({});
+  fe(k: string): string | undefined { return this.fieldErrors()[k]; }
 
   ngOnInit() {
     this.adminSvc.listBranches().subscribe(r => this.branches.set(r.results || []));
@@ -126,9 +124,10 @@ export class TransferModalComponent implements OnInit {
   }
 
   transfer() {
-    if (!this.toBranchId) return;
-    this.saving.set(true);
     this.error.set(null);
+    if (!this.toBranchId) { this.fieldErrors.set({ to_branch_id: 'Selecciona la sucursal destino.' }); return; }
+    this.fieldErrors.set({});
+    this.saving.set(true);
     this.svc.transfer({
       variant_id: this.stock.variant,
       from_branch_id: this.stock.branch,
@@ -139,7 +138,8 @@ export class TransferModalComponent implements OnInit {
       next: () => { this.saving.set(false); this.saved.emit(); },
       error: e => {
         this.saving.set(false);
-        this.error.set(parseApiError(e).message || 'Error en transferencia');
+        const p = parseApiError(e);
+        this.fieldErrors.set(Object.keys(p.fieldErrors).length ? p.fieldErrors : { quantity: p.message || 'Error en transferencia' });
       },
     });
   }

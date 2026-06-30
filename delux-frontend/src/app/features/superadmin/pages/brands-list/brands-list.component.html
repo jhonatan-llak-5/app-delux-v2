@@ -54,83 +54,60 @@
     </dlx-empty-state>
   }
 
-  <!-- Grid -->
+  <!-- Lista ordenable (arrastrar de arriba a abajo) -->
   @else {
-    <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
+    @if (ordering() !== 'sort_order') {
+      <p class="text-xs text-slate-400 -mt-2">Para reordenar arrastrando, elige el orden <b>"Orden personalizado"</b> arriba.</p>
+    }
+    <div cdkDropList (cdkDropListDropped)="onDrop($event)" class="space-y-2">
       @for (b of brands(); track b.id) {
-        <article class="eg-card-padded hover:shadow-md transition flex flex-col">
-          <!-- Logo + name -->
-          <div class="flex items-center gap-3 mb-4">
-            <div class="logo-frame w-14 h-14 rounded-lg grid place-items-center overflow-hidden shrink-0 p-2">
-              @if (b.logo_url) {
-                <img [src]="b.logo_url" [alt]="b.name" class="w-full h-full object-contain"
-                     crossorigin="anonymous" (error)="onImgErr($event)" />
+        <div cdkDrag [cdkDragDisabled]="ordering() !== 'sort_order'"
+             class="eg-card-padded flex items-center gap-3 bg-white dark:bg-[#0f172a]">
+          <button type="button" cdkDragHandle title="Arrastrar para ordenar"
+                  class="shrink-0 text-slate-300 hover:text-slate-500 cursor-grab active:cursor-grabbing"
+                  [class.opacity-20]="ordering() !== 'sort_order'" [class.cursor-not-allowed]="ordering() !== 'sort_order'">
+            <i class="fa-solid fa-grip-vertical"></i>
+          </button>
+
+          <div class="logo-frame w-12 h-12 rounded-lg grid place-items-center overflow-hidden shrink-0 p-1.5">
+            @if (b.logo_url) {
+              <img [src]="b.logo_url" [alt]="b.name" class="w-full h-full object-contain"
+                   crossorigin="anonymous" (error)="onImgErr($event)" />
+            } @else {
+              <i class="fa-solid fa-tag text-slate-400"></i>
+            }
+          </div>
+
+          <div class="flex-1 min-w-0">
+            <div class="flex items-center gap-2">
+              <h3 class="font-bold text-[15px] text-slate-900 dark:text-white truncate">{{ b.name }}</h3>
+              @if (b.is_featured) {
+                <span class="eg-badge eg-badge-warning shrink-0" title="Destacada"><i class="fa-solid fa-star text-[10px]"></i></span>
+              }
+              @if (b.is_active) {
+                <span class="eg-badge eg-badge-success shrink-0">Activa</span>
               } @else {
-                <i class="fa-solid fa-tag text-slate-400"></i>
+                <span class="eg-badge eg-badge-neutral shrink-0">Inactiva</span>
               }
             </div>
-            <div class="flex-1 min-w-0">
-              <h3 class="font-bold text-[15px] text-slate-900 dark:text-white truncate">{{ b.name }}</h3>
-              <p class="text-[12px] font-mono text-slate-500 dark:text-slate-400 truncate">/{{ b.slug }}</p>
-            </div>
-            @if (b.is_featured) {
-              <span class="eg-badge eg-badge-warning shrink-0" title="Destacada">
-                <i class="fa-solid fa-star text-[10px]"></i>
-              </span>
+            @if (b.description) {
+              <p class="text-[12px] text-slate-500 dark:text-slate-400 truncate">{{ b.description }}</p>
             }
           </div>
 
-          <!-- Description -->
-          @if (b.description) {
-            <p class="text-[13px] text-slate-600 dark:text-slate-300 leading-relaxed mb-4 line-clamp-2">
-              {{ b.description }}
-            </p>
-          }
-
-          <!-- Meta info -->
-          <div class="flex items-center gap-3 text-[11px] text-slate-500 dark:text-slate-400 mb-4">
-            @if (b.country_of_origin) {
-              <span class="flex items-center gap-1">
-                <i class="fa-solid fa-globe text-[10px]"></i> {{ b.country_of_origin }}
-              </span>
-            }
-            @if (b.founded_year) {
-              <span>· est. {{ b.founded_year }}</span>
-            }
+          <div class="hidden sm:flex items-center gap-5 text-center shrink-0">
+            <div><p class="font-bold text-sm text-slate-900 dark:text-white">{{ b.products_count }}</p><p class="text-[10px] uppercase tracking-wider text-slate-400">Productos</p></div>
+            <div><p class="font-bold text-sm text-emerald-600 dark:text-emerald-400">{{ b.active_products_count }}</p><p class="text-[10px] uppercase tracking-wider text-slate-400">Public.</p></div>
           </div>
 
-          <!-- Stats -->
-          <div class="grid grid-cols-2 gap-2 mb-4 mt-auto">
-            <div class="text-center px-2 py-2 rounded-lg bg-slate-50 dark:bg-[#0b1220]">
-              <p class="font-bold text-base text-slate-900 dark:text-white">{{ b.products_count }}</p>
-              <p class="text-[10px] uppercase tracking-wider text-slate-500 dark:text-slate-400">Productos</p>
-            </div>
-            <div class="text-center px-2 py-2 rounded-lg bg-slate-50 dark:bg-[#0b1220]">
-              <p class="font-bold text-base text-emerald-600 dark:text-emerald-400">{{ b.active_products_count }}</p>
-              <p class="text-[10px] uppercase tracking-wider text-slate-500 dark:text-slate-400">Publicados</p>
-            </div>
-          </div>
-
-          <!-- Actions -->
-          <div class="flex items-center gap-1 pt-3 border-t border-slate-100 dark:border-[#1e293b]">
-            <dlx-action-btn
-              [icon]="b.is_active ? 'fa-toggle-on' : 'fa-toggle-off'"
-              [title]="b.is_active ? 'Desactivar' : 'Activar'"
-              (clicked)="toggleActive(b)" />
-            <dlx-action-btn
-              icon="fa-star"
-              [title]="b.is_featured ? 'Quitar de destacadas' : 'Destacar'"
-              (clicked)="toggleFeatured(b)" />
+          <div class="flex items-center gap-1 shrink-0">
+            <dlx-action-btn [icon]="b.is_active ? 'fa-toggle-on' : 'fa-toggle-off'"
+                            [title]="b.is_active ? 'Desactivar' : 'Activar'" (clicked)="toggleActive(b)" />
+            <dlx-action-btn icon="fa-star" [title]="b.is_featured ? 'Quitar de destacadas' : 'Destacar'" (clicked)="toggleFeatured(b)" />
             <dlx-action-btn icon="fa-pen" title="Editar" (clicked)="openEdit(b)" />
-            <dlx-action-btn icon="fa-trash" title="Eliminar" [danger]="true"
-                            (clicked)="confirmDelete(b)" />
-            @if (b.is_active) {
-              <span class="ml-auto eg-badge eg-badge-success">Activa</span>
-            } @else {
-              <span class="ml-auto eg-badge eg-badge-neutral">Inactiva</span>
-            }
+            <dlx-action-btn icon="fa-trash" title="Eliminar" [danger]="true" (clicked)="confirmDelete(b)" />
           </div>
-        </article>
+        </div>
       }
     </div>
   }
@@ -138,7 +115,7 @@
 
 <!-- Modal de crear/editar (componente existente) -->
 @if (showModal()) {
-  <dlx-brand-form-modal
+  <dlx-brand-form-modal #brandModal
     [brand]="editing()"
     (save)="onSave($event)"
     (cancel)="closeModal()" />

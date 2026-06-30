@@ -70,6 +70,11 @@ export function generateVoucherPDF(order: Order): void {
   doc.text('Subtotal', 4, y);
   doc.text(`$${order.subtotal}`, 76, y, { align: 'right' });
   y += 4;
+  if (+order.tax > 0) {
+    doc.text('IVA incluido', 4, y);
+    doc.text(`$${order.tax}`, 76, y, { align: 'right' });
+    y += 4;
+  }
   if (+order.discount > 0) {
     doc.text('Descuento', 4, y);
     doc.text(`-$${order.discount}`, 76, y, { align: 'right' });

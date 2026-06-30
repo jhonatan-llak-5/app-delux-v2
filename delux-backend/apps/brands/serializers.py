@@ -34,9 +34,10 @@ class BrandCreateUpdateSerializer(serializers.ModelSerializer):
             'description', 'country_of_origin', 'website', 'founded_year',
             'is_active', 'is_featured', 'sort_order',
         )
+        extra_kwargs = {'slug': {'required': False, 'allow_blank': True}}
 
     def validate_slug(self, value):
-        return value.lower().strip()
+        return (value or '').lower().strip()
 
     def validate(self, attrs):
         # Auto-slug si no se provee

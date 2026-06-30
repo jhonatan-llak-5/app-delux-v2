@@ -9,6 +9,7 @@ class BranchSerializer(serializers.ModelSerializer):
     products_count = serializers.IntegerField(read_only=True, default=0)
     manager_name = serializers.CharField(source='manager.full_name',
                                          read_only=True, default=None)
+    kiosk_pin = serializers.CharField(max_length=8, required=False, allow_blank=True)
 
     class Meta:
         model = Branch
@@ -19,4 +20,6 @@ class BranchSerializer(serializers.ModelSerializer):
             'opening_hours', 'manager', 'manager_name',
             'allows_pickup', 'is_active', 'created_at',
             'products_count',
+            'kiosk_token', 'kiosk_pin',
         )
+        read_only_fields = ('kiosk_token',)

@@ -9,6 +9,7 @@ export interface AuthUser {
   email: string;
   username?: string;
   full_name: string;
+  phone?: string;
   role: AppRole;
   tenant_id?: number | null;
   branch_id?: number | null;
@@ -91,6 +92,16 @@ export class AuthService {
   me() {
     return this.http.get<AuthUser>(`${this.base}/me/`)
       .pipe(tap((u) => { localStorage.setItem(USER_KEY, JSON.stringify(u)); this._user.set(u); }));
+  }
+
+  updateProfile(payload: { full_name?: string; phone?: string }) {
+    return this.http.patch<AuthUser>(`${this.base}/me/`, payload)
+      .pipe(tap((u) => { localStorage.setItem(USER_KEY, JSON.stringify(u)); this._user.set(u); }));
+  }
+
+  changePassword(current_password: string, new_password: string) {
+    return this.http.post<{ detail: string }>(`${this.base}/change-password/`,
+      { current_password, new_password });
   }
 
   logout(): void {

@@ -15,6 +15,10 @@ class Variant(TenantOwnedModel):
     price_override = models.DecimalField(
         max_digits=10, decimal_places=2, null=True, blank=True
     )
+    cost = models.DecimalField(
+        max_digits=10, decimal_places=2, default=0,
+        help_text='Costo de compra (para márgenes).'
+    )
     barcode = models.CharField(max_length=40, blank=True)
     weight_grams = models.PositiveIntegerField(default=0)
     is_active = models.BooleanField(default=True)

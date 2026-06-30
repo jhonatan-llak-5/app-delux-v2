@@ -31,7 +31,7 @@ class ProductImageUploadView(APIView):
 
         from apps.settings.models import PlatformSettings
         cfg = PlatformSettings.load()
-        allowed = set(cfg.allowed_image_exts_list or []) or DEFAULT_EXT
+        allowed = set(cfg.allowed_image_exts_list() or []) or DEFAULT_EXT
         max_mb = cfg.max_image_upload_mb or 5
 
         ext = os.path.splitext(f.name)[1].lower().lstrip('.')

@@ -1,4 +1,4 @@
-import { ChangeDetectionStrategy, Component, OnInit, computed, inject, signal } from '@angular/core';
+import { ChangeDetectionStrategy, Component, OnInit, computed, effect, inject, signal } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { RouterLink } from '@angular/router';
@@ -6,13 +6,19 @@ import { debounceTime, Subject } from 'rxjs';
 
 import { Stock, InventorySummary, InventoryService } from '@features/superadmin/services/inventory.service';
 import { AdminService, AdminBranch } from '@features/superadmin/services/admin.service';
+import { BranchContextService } from '@core/services/branch-context.service';
+import { RowActionsComponent, RowAction } from '@shared/ui/row-actions.component';
+import { onImageError, imgOrPlaceholder } from '@shared/utils/img-placeholder';
 import { StockAdjustModalComponent } from '@features/superadmin/components/stock-adjust-modal/stock-adjust-modal.component';
 import { TransferModalComponent } from '@features/superadmin/components/transfer-modal/transfer-modal.component';
+import { printProductLabels } from '@shared/utils/print-labels';
+import { BrandingService } from '@core/services/branding.service';
+import { NotifyService } from '@shared/services/notify.service';
 
 @Component({
   selector: 'dlx-inventory-overview',
   standalone: true,
-  imports: [CommonModule, FormsModule, RouterLink, StockAdjustModalComponent, TransferModalComponent],
+  imports: [CommonModule, FormsModule, RouterLink, StockAdjustModalComponent, TransferModalComponent, RowActionsComponent],
   changeDetection: ChangeDetectionStrategy.OnPush,
   template: `
     <div class="flex flex-wrap items-end justify-between gap-4 mb-6">
@@ -26,10 +32,16 @@ import { TransferModalComponent } from '@features/superadmin/components/transfer
           Stock en tiempo real por sucursal. Ajusta y transfiere unidades.
         </p>
       </div>
-      <a routerLink="/app/admin/inventory/movements"
-         class="px-4 py-2.5 rounded-lg bg-slate-100 hover:bg-slate-200 text-sm font-semibold flex items-center gap-2">
-        <i class="fa-solid fa-clock-rotate-left"></i> Historial
-      </a>
+      <div class="flex items-center gap-2 flex-wrap">
+        <a routerLink="/app/admin/inventory/reception"
+           class="px-4 py-2.5 rounded-lg bg-[#1e40af] text-white hover:bg-[#1d4ed8] text-sm font-semibold flex items-center gap-2">
+          <i class="fa-solid fa-truck-ramp-box"></i> Ingresar mercadería
+        </a>
+        <a routerLink="/app/admin/inventory/movements"
+           class="px-4 py-2.5 rounded-lg bg-slate-100 hover:bg-slate-200 text-sm font-semibold flex items-center gap-2">
+          <i class="fa-solid fa-clock-rotate-left"></i> Historial
+        </a>
+      </div>
     </div>
 
     <!-- KPIs -->
@@ -146,7 +158,7 @@ import { TransferModalComponent } from '@features/superadmin/components/transfer
                 <tr class="border-t border-slate-100 hover:bg-slate-50/60">
                   <td class="px-5 py-3">
                     <div class="flex items-center gap-3">
-                      <img [src]="s.product_main_image" [alt]="s.product_name"
+                      <img [src]="imgSrc(s.product_main_image)" [alt]="s.product_name"
                            class="w-10 h-10 rounded-lg object-cover bg-slate-100"
                            crossorigin="anonymous" (error)="onImgErr($event)" />
                       <div>
@@ -181,16 +193,7 @@ import { TransferModalComponent } from '@features/superadmin/components/transfer
                   <td class="px-5 py-3 text-center text-slate-500">{{ s.reserved }}</td>
                   <td class="px-5 py-3 text-center font-semibold">{{ s.available }}</td>
                   <td class="px-5 py-3 text-right">
-                    <div class="inline-flex gap-1">
-                      <button (click)="openAdjust(s)" title="Ajustar"
-                              class="w-8 h-8 grid place-items-center rounded-lg hover:bg-amber-100 hover:text-amber-700 transition text-slate-500">
-                        <i class="fa-solid fa-pen text-xs"></i>
-                      </button>
-                      <button (click)="openTransfer(s)" title="Transferir" [disabled]="s.quantity === 0"
-                              class="w-8 h-8 grid place-items-center rounded-lg hover:bg-violet-100 hover:text-violet-700 transition text-slate-500 disabled:opacity-30">
-                        <i class="fa-solid fa-truck text-xs"></i>
-                      </button>
-                    </div>
+                    <dlx-row-actions [actions]="rowActions(s)" />
                   </td>
                 </tr>
               }
@@ -215,6 +218,17 @@ import { TransferModalComponent } from '@features/superadmin/components/transfer
 export class InventoryOverviewComponent implements OnInit {
   private svc = inject(InventoryService);
   private adminSvc = inject(AdminService);
+  private branchCtx = inject(BranchContextService);
+  private branding = inject(BrandingService);
+  private notify = inject(NotifyService);
+  private inited = false;
+
+  constructor() {
+    effect(() => {
+      const b = this.branchCtx.current();
+      if (this.inited) { this.branchFilter = b; this.reload(); }
+    });
+  }
 
   stocks = signal<Stock[]>([]);
   summary = signal<InventorySummary | null>(null);
@@ -233,7 +247,9 @@ export class InventoryOverviewComponent implements OnInit {
   ngOnInit(): void {
     this.search$.pipe(debounceTime(300)).subscribe(() => this.reload());
     this.adminSvc.listBranches().subscribe(r => this.branches.set(r.results || []));
+    this.branchFilter = this.branchCtx.current();
     this.reload();
+    this.inited = true;
   }
 
   reload(): void {
@@ -257,6 +273,22 @@ export class InventoryOverviewComponent implements OnInit {
     this.reload();
   }
 
+  rowActions(s: Stock): RowAction[] {
+    return [
+      { label: 'Ajustar', icon: 'fa-pen', run: () => this.openAdjust(s) },
+      { label: 'Transferir', icon: 'fa-truck', disabled: s.quantity === 0, run: () => this.openTransfer(s) },
+      { label: 'Imprimir etiqueta', icon: 'fa-barcode', run: () => this.printLabel(s) },
+    ];
+  }
+
+  printLabel(s: Stock): void {
+    const price = s.price_override != null ? +s.price_override : +s.base_price || 0;
+    printProductLabels(
+      [{ sku: s.variant_sku, name: s.product_name, size: s.variant_size, price, quantity: 1 }],
+      { store: this.branding.siteName(), taxRate: this.branding.taxRate(), onError: m => this.notify.error(m) },
+    );
+  }
+
   openAdjust(s: Stock) { this.adjustStock.set(s); }
   openTransfer(s: Stock) { this.transferStock.set(s); }
 
@@ -269,7 +301,6 @@ export class InventoryOverviewComponent implements OnInit {
     this.reload();
   }
 
-  onImgErr(ev: Event) {
-    (ev.target as HTMLImageElement).src = 'data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 200 200"><rect width="200" height="200" fill="%23e2e8f0"/></svg>';
-  }
+  imgSrc(u?: string | null): string { return imgOrPlaceholder(u); }
+  onImgErr(ev: Event) { onImageError(ev); }
 }

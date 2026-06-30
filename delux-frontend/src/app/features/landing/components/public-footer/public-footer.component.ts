@@ -4,6 +4,7 @@ import { FormsModule } from '@angular/forms';
 import { RouterLink } from '@angular/router';
 import { PublicFormsService } from '@shared/services/public-forms.service';
 import { NotifyService } from '@shared/services/notify.service';
+import { parseApiError } from '@shared/utils/api-error.util';
 
 @Component({
   selector: 'dlx-public-footer',
@@ -26,13 +27,16 @@ import { NotifyService } from '@shared/services/notify.service';
               Sin spam. Sólo lanzamientos y ofertas exclusivas para suscriptores.
             </p>
           </div>
-          <form class="md:col-span-5 flex gap-2" (ngSubmit)="subscribe()">
-            <input type="email" required placeholder="tu@correo.com"
-                   [(ngModel)]="email" name="footerEmail"
-                   class="input-modern flex-1" />
-            <button type="submit" class="btn-modern-primary" style="width:auto;padding:0 24px;">
-              Suscribirme
-            </button>
+          <form class="md:col-span-5" (ngSubmit)="subscribe()">
+            <div class="flex gap-2">
+              <input type="email" required placeholder="tu@correo.com"
+                     [(ngModel)]="email" name="footerEmail"
+                     class="input-modern flex-1" />
+              <button type="submit" class="btn-modern-primary" style="width:auto;padding:0 24px;">
+                Suscribirme
+              </button>
+            </div>
+            @if (fieldErr()) { <p class="text-xs text-rose-500 mt-2">{{ fieldErr() }}</p> }
           </form>
         </div>
       </div>
@@ -157,13 +161,15 @@ export class PublicFooterComponent {
   private forms = inject(PublicFormsService);
   private notify = inject(NotifyService);
   email = '';
+  fieldErr = signal<string | null>(null);
   readonly year = new Date().getFullYear();
 
   subscribe() {
-    if (!this.email.includes('@')) { this.notify.warning('Ingresa un correo válido'); return; }
+    this.fieldErr.set(null);
+    if (!this.email.includes('@')) { this.fieldErr.set('Ingresa un correo válido.'); return; }
     this.forms.subscribeNewsletter(this.email).subscribe({
       next: r => { this.notify.success(r.detail || '¡Suscrito!'); this.email = ''; },
-      error: e => this.notify.error(e?.error?.detail || 'No se pudo suscribir.'),
+      error: e => this.fieldErr.set(parseApiError(e).message || 'No se pudo suscribir.'),
     });
   }
 

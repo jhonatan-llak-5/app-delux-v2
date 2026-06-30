@@ -55,6 +55,11 @@ class PlatformSettings(models.Model):
     # ─── Contacto público ───
     whatsapp_contact_number = models.CharField(max_length=30, blank=True, default='')
 
+    # Impuestos
+    tax_rate = models.DecimalField(
+        max_digits=5, decimal_places=2, default=15,
+        help_text='IVA %% aplicado al precio de venta para mostrar el precio final.')
+
     # ─── Subidas: limites y tipos permitidos ───
     max_image_upload_mb = models.PositiveIntegerField(default=5)
     max_file_upload_mb = models.PositiveIntegerField(default=10)

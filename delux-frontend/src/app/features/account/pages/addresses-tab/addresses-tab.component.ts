@@ -1,4 +1,5 @@
 import { ChangeDetectionStrategy, Component, OnInit, inject, signal } from '@angular/core';
+import { parseApiError } from '@shared/utils/api-error.util';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { MeService, MeAddress } from '@features/account/services/me.service';
@@ -70,28 +71,32 @@ import { NotifyService } from '@shared/services/notify.service';
           </h3>
           <div>
             <label class="text-sm font-semibold text-ink-800 dark:text-white/80 mb-1.5 block">Etiqueta</label>
-            <input [(ngModel)]="form.label" name="label" placeholder="Casa, oficina..."
+            <input [(ngModel)]="form.label" name="label" maxlength="40" placeholder="Casa, oficina..."
                    class="w-full px-3 py-3 rounded-lg bg-ink-50 dark:bg-white/5 border border-ink-200 dark:border-white/10 text-sm focus:outline-none" />
           </div>
           <div>
             <label class="text-sm font-semibold text-ink-800 dark:text-white/80 mb-1.5 block">Dirección *</label>
-            <input [(ngModel)]="form.line1" name="line1" required
-                   class="w-full px-3 py-3 rounded-lg bg-ink-50 dark:bg-white/5 border border-ink-200 dark:border-white/10 text-sm focus:outline-none" />
+            <input [(ngModel)]="form.line1" name="line1" required maxlength="200"
+                   class="w-full px-3 py-3 rounded-lg bg-ink-50 dark:bg-white/5 border text-sm focus:outline-none"
+                   [class.border-rose-400]="fe('line1')" [class.border-ink-200]="!fe('line1')" [class.dark:border-white/10]="!fe('line1')" />
+            @if (fe('line1')) { <p class="text-xs text-rose-600 mt-1">{{ fe('line1') }}</p> }
           </div>
           <div>
             <label class="text-sm font-semibold text-ink-800 dark:text-white/80 mb-1.5 block">Departamento, suite, etc.</label>
-            <input [(ngModel)]="form.line2" name="line2"
+            <input [(ngModel)]="form.line2" name="line2" maxlength="200"
                    class="w-full px-3 py-3 rounded-lg bg-ink-50 dark:bg-white/5 border border-ink-200 dark:border-white/10 text-sm focus:outline-none" />
           </div>
           <div class="grid grid-cols-2 gap-3">
             <div>
               <label class="text-sm font-semibold text-ink-800 dark:text-white/80 mb-1.5 block">Ciudad *</label>
-              <input [(ngModel)]="form.city" name="city" required
-                     class="w-full px-3 py-3 rounded-lg bg-ink-50 dark:bg-white/5 border border-ink-200 dark:border-white/10 text-sm focus:outline-none" />
+              <input [(ngModel)]="form.city" name="city" required maxlength="80"
+                     class="w-full px-3 py-3 rounded-lg bg-ink-50 dark:bg-white/5 border text-sm focus:outline-none"
+                     [class.border-rose-400]="fe('city')" [class.border-ink-200]="!fe('city')" [class.dark:border-white/10]="!fe('city')" />
+              @if (fe('city')) { <p class="text-xs text-rose-600 mt-1">{{ fe('city') }}</p> }
             </div>
             <div>
               <label class="text-sm font-semibold text-ink-800 dark:text-white/80 mb-1.5 block">Provincia</label>
-              <input [(ngModel)]="form.region" name="region"
+              <input [(ngModel)]="form.region" name="region" maxlength="80"
                      class="w-full px-3 py-3 rounded-lg bg-ink-50 dark:bg-white/5 border border-ink-200 dark:border-white/10 text-sm focus:outline-none" />
             </div>
           </div>
@@ -129,14 +134,28 @@ export class AddressesTabComponent implements OnInit {
 
   openCreate() { this.editing.set(null); this.form = this.emptyForm(); this.showForm.set(true); }
   openEdit(a: MeAddress) { this.editing.set(a); this.form = { ...a }; this.showForm.set(true); }
-  closeForm() { this.showForm.set(false); }
+  closeForm() { this.showForm.set(false); this.fieldErrors.set({}); }
+  fieldErrors = signal<Record<string, string>>({});
+  fe(k: string): string | undefined { return this.fieldErrors()[k]; }
   onBackdrop(ev: MouseEvent) { if (ev.target === ev.currentTarget) this.closeForm(); }
 
   save() {
+    const errs: Record<string, string> = {};
+    if (!this.form.line1?.trim()) errs['line1'] = 'Este campo es obligatorio.';
+    if (!this.form.city?.trim()) errs['city'] = 'Este campo es obligatorio.';
+    this.fieldErrors.set(errs);
+    if (Object.keys(errs).length) return;
     const obs = this.editing()?.id
       ? this.me.updateAddress(this.editing()!.id!, this.form)
       : this.me.createAddress(this.form);
-    obs.subscribe(() => { this.closeForm(); this.reload(); });
+    obs.subscribe({
+      next: () => { this.closeForm(); this.reload(); },
+      error: (e) => {
+        const p = parseApiError(e);
+        this.fieldErrors.set(p.fieldErrors);
+        if (p.message && !Object.keys(p.fieldErrors).length) this.notify.fromServerError(e, 'No se pudo guardar la dirección.');
+      },
+    });
   }
 
   setDefault(a: MeAddress) {

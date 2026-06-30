@@ -94,6 +94,18 @@ export const appRoutes: Routes = [
       import('./features/dashboard/dashboard.routes').then(m => m.DASHBOARD_ROUTES),
   },
 
+  // Kiosko de consulta (tablet en tienda) — pantalla pública full-screen
+  {
+    path: 'kiosko',
+    loadComponent: () =>
+      import('./features/kiosk/kiosk.component').then(m => m.KioskComponent),
+  },
+  {
+    path: 'kiosko/:token',
+    loadComponent: () =>
+      import('./features/kiosk/kiosk.component').then(m => m.KioskComponent),
+  },
+
   // Auth
   {
     path: 'auth',

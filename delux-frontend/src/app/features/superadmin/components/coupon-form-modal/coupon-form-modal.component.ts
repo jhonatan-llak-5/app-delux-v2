@@ -18,8 +18,9 @@ import { parseApiError } from '@shared/utils/api-error.util';
           <div>
             <label class="eg-label">Código *</label>
             <input [(ngModel)]="payload.code" name="code" required maxlength="40"
-                   class="eg-input font-mono uppercase"
+                   class="eg-input font-mono uppercase" [class.!border-rose-400]="fe('code')"
                    placeholder="VERANO2026" />
+            @if (fe('code')) { <p class="text-xs text-rose-600 mt-1">{{ fe('code') }}</p> }
             <p class="text-[10px] text-slate-400 mt-1">Los clientes ingresarán este código al pagar.</p>
           </div>
 
@@ -28,20 +29,16 @@ import { parseApiError } from '@shared/utils/api-error.util';
             <div class="grid grid-cols-2 gap-2">
               <button type="button" (click)="payload.type = 'PERCENT'"
                       class="px-3 py-3 rounded-lg border text-sm font-semibold transition"
-                      [class.bg-violet-100]="payload.type === 'PERCENT'"
-                      [class.border-violet-400]="payload.type === 'PERCENT'"
-                      [class.text-violet-700]="payload.type === 'PERCENT'"
-                      [class.border-slate-200]="payload.type !== 'PERCENT'"
-                      [class.text-slate-600]="payload.type !== 'PERCENT'">
+                      [ngClass]="payload.type === 'PERCENT'
+                        ? 'bg-violet-100 border-violet-400 text-violet-700 dark:bg-violet-500/15 dark:border-violet-500/40 dark:text-violet-300'
+                        : 'border-slate-200 text-slate-600 dark:border-white/10 dark:text-slate-300'">
                 <i class="fa-solid fa-percent block mb-1"></i> Porcentaje
               </button>
               <button type="button" (click)="payload.type = 'FIXED'"
                       class="px-3 py-3 rounded-lg border text-sm font-semibold transition"
-                      [class.bg-emerald-100]="payload.type === 'FIXED'"
-                      [class.border-emerald-400]="payload.type === 'FIXED'"
-                      [class.text-emerald-700]="payload.type === 'FIXED'"
-                      [class.border-slate-200]="payload.type !== 'FIXED'"
-                      [class.text-slate-600]="payload.type !== 'FIXED'">
+                      [ngClass]="payload.type === 'FIXED'
+                        ? 'bg-emerald-100 border-emerald-400 text-emerald-700 dark:bg-emerald-500/15 dark:border-emerald-500/40 dark:text-emerald-300'
+                        : 'border-slate-200 text-slate-600 dark:border-white/10 dark:text-slate-300'">
                 <i class="fa-solid fa-dollar-sign block mb-1"></i> Monto fijo
               </button>
             </div>
@@ -54,7 +51,8 @@ import { parseApiError } from '@shared/utils/api-error.util';
               </label>
               <input type="number" [(ngModel)]="payload.value" name="value" required min="0" step="0.01"
                      [max]="payload.type === 'PERCENT' ? 100 : null"
-                     class="eg-input" />
+                     class="eg-input" [class.!border-rose-400]="fe('value')" />
+              @if (fe('value')) { <p class="text-xs text-rose-600 mt-1">{{ fe('value') }}</p> }
             </div>
             <div>
               <label class="eg-label">Compra mínima ($)</label>
@@ -66,8 +64,9 @@ import { parseApiError } from '@shared/utils/api-error.util';
           <div>
             <label class="eg-label">Límite de usos</label>
             <input type="number" [(ngModel)]="payload.usage_limit" name="usage_limit" min="1"
-                   class="eg-input"
+                   class="eg-input" [class.!border-rose-400]="fe('usage_limit')"
                    placeholder="Vacío = sin límite" />
+            @if (fe('usage_limit')) { <p class="text-xs text-rose-600 mt-1">{{ fe('usage_limit') }}</p> }
           </div>
 
           <div class="grid grid-cols-2 gap-3">
@@ -83,11 +82,11 @@ import { parseApiError } from '@shared/utils/api-error.util';
             </div>
           </div>
 
-          <label class="flex items-center gap-3 cursor-pointer p-3 rounded-lg bg-emerald-50 hover:bg-emerald-100">
+          <label class="flex items-center gap-3 cursor-pointer p-3 rounded-lg bg-emerald-50 hover:bg-emerald-100 dark:bg-emerald-500/10 dark:hover:bg-emerald-500/20 dark:border dark:border-emerald-500/25">
             <input type="checkbox" [(ngModel)]="payload.is_active" name="is_active" class="w-4 h-4 accent-emerald-500" />
             <div>
               <p class="text-sm font-semibold">Activo</p>
-              <p class="text-xs text-slate-500">Disponible para canjear</p>
+              <p class="text-xs text-slate-500 dark:text-slate-400">Disponible para canjear</p>
             </div>
           </label>
 
@@ -97,10 +96,10 @@ import { parseApiError } from '@shared/utils/api-error.util';
             </div>
           }
 
-          <div class="flex justify-end gap-2 pt-2 border-t border-slate-100">
-            <button type="button" (click)="close.emit()" class="px-4 py-2.5 rounded-lg bg-slate-100 hover:bg-slate-200 text-sm font-semibold">Cancelar</button>
+          <div class="flex justify-end gap-2 pt-2 border-t border-slate-100 dark:border-white/10">
+            <button type="button" (click)="close.emit()" class="px-4 py-2.5 rounded-lg bg-slate-100 hover:bg-slate-200 dark:bg-white/5 dark:hover:bg-white/10 dark:text-slate-200 text-sm font-semibold">Cancelar</button>
             <button type="submit" [disabled]="!f.valid || saving()"
-                    class="px-5 py-2.5 rounded-lg bg-ink-950 text-white text-sm font-semibold hover:bg-ink-900 disabled:opacity-50">
+                    class="px-5 py-2.5 rounded-lg bg-[#1e40af] text-white text-sm font-semibold hover:bg-[#1e3a8a] disabled:opacity-50">
               @if (saving()) { <i class="fa-solid fa-spinner fa-spin"></i> } @else { {{ coupon ? 'Guardar' : 'Crear' }} }
             </button>
           </div>
@@ -121,6 +120,8 @@ export class CouponFormModalComponent implements OnInit {
   };
   saving = signal(false);
   error = signal<string | null>(null);
+  fieldErrors = signal<Record<string, string>>({});
+  fe(k: string): string | undefined { return this.fieldErrors()[k]; }
 
   ngOnInit() {
     if (this.coupon) {
@@ -140,6 +141,7 @@ export class CouponFormModalComponent implements OnInit {
   save() {
     this.saving.set(true);
     this.error.set(null);
+    this.fieldErrors.set({});
     const obs = this.coupon
       ? this.svc.update(this.coupon.id, this.payload)
       : this.svc.create(this.payload);
@@ -147,7 +149,9 @@ export class CouponFormModalComponent implements OnInit {
       next: () => { this.saving.set(false); this.saved.emit(); },
       error: e => {
         this.saving.set(false);
-        this.error.set(parseApiError(e).message || 'Error al guardar');
+        const p = parseApiError(e);
+        this.fieldErrors.set(p.fieldErrors);
+        this.error.set(Object.keys(p.fieldErrors).length ? null : (p.message || 'Error al guardar'));
       },
     });
   }

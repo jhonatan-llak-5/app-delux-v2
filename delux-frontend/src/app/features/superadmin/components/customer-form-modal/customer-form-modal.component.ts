@@ -18,23 +18,27 @@ import { parseApiError } from '@shared/utils/api-error.util';
           <div>
             <label class="eg-label">Nombre completo *</label>
             <input [(ngModel)]="payload.full_name" name="full_name" required maxlength="160"
-                   class="eg-input" />
+                   class="eg-input" [class.!border-rose-400]="fe('full_name')" />
+            @if (fe('full_name')) { <p class="text-xs text-rose-600 mt-1">{{ fe('full_name') }}</p> }
           </div>
           <div>
             <label class="eg-label">Email *</label>
             <input [(ngModel)]="payload.email" name="email" type="email" required
-                   class="eg-input" />
+                   class="eg-input" [class.!border-rose-400]="fe('email')" />
+            @if (fe('email')) { <p class="text-xs text-rose-600 mt-1">{{ fe('email') }}</p> }
           </div>
           <div class="grid grid-cols-2 gap-3">
             <div>
               <label class="eg-label">Teléfono</label>
               <input [(ngModel)]="payload.phone" name="phone" maxlength="30"
-                     class="eg-input" />
+                     class="eg-input" [class.!border-rose-400]="fe('phone')" />
+              @if (fe('phone')) { <p class="text-xs text-rose-600 mt-1">{{ fe('phone') }}</p> }
             </div>
             <div>
               <label class="eg-label">Cédula</label>
               <input [(ngModel)]="payload.document_id" name="document_id" maxlength="30"
-                     class="eg-input font-mono" />
+                     class="eg-input font-mono" [class.!border-rose-400]="fe('document_id')" />
+              @if (fe('document_id')) { <p class="text-xs text-rose-600 mt-1">{{ fe('document_id') }}</p> }
             </div>
           </div>
           <label class="flex items-center gap-3 cursor-pointer p-3 rounded-lg bg-emerald-50 hover:bg-emerald-100 transition">
@@ -77,6 +81,8 @@ export class CustomerFormModalComponent implements OnInit {
   };
   saving = signal(false);
   error = signal<string | null>(null);
+  fieldErrors = signal<Record<string, string>>({});
+  fe(k: string): string | undefined { return this.fieldErrors()[k]; }
 
   ngOnInit() {
     if (this.customer) {
@@ -92,6 +98,7 @@ export class CustomerFormModalComponent implements OnInit {
   }
 
   save() {
+    this.fieldErrors.set({});
     this.saving.set(true);
     this.error.set(null);
     const obs = this.customer
@@ -99,7 +106,12 @@ export class CustomerFormModalComponent implements OnInit {
       : this.svc.create(this.payload);
     obs.subscribe({
       next: c => { this.saving.set(false); this.saved.emit(c); },
-      error: e => { this.saving.set(false); this.error.set(parseApiError(e).message || 'Error al guardar'); },
+      error: e => {
+        this.saving.set(false);
+        const p = parseApiError(e);
+        this.fieldErrors.set(p.fieldErrors);
+        this.error.set(Object.keys(p.fieldErrors).length ? null : (p.message || 'Error al guardar'));
+      },
     });
   }
 

@@ -30,7 +30,7 @@ import { parseApiError } from '@shared/utils/api-error.util';
 
       <form (ngSubmit)="submit()" #f="ngForm" class="space-y-3">
         <input [(ngModel)]="email" name="email" type="email" required
-               placeholder="tu@correo.com"
+               placeholder="tu@correo.com *"
                class="input-modern" />
 
         <div class="flex justify-center gap-2 py-2">

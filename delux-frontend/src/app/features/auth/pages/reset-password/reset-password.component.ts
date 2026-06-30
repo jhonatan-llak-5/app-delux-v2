@@ -43,7 +43,7 @@ import { parseApiError } from '@shared/utils/api-error.util';
       @if (!success()) {
         <form (ngSubmit)="submit()" #f="ngForm" class="space-y-3">
           <input [(ngModel)]="email" name="email" type="email" required
-                 placeholder="tu@correo.com"
+                 placeholder="tu@correo.com *"
                  class="input-modern" />
 
           <div class="flex justify-center gap-2 py-2">
@@ -65,7 +65,7 @@ import { parseApiError } from '@shared/utils/api-error.util';
           <div class="input-modern-wrap">
             <input [(ngModel)]="newPassword" name="new_password" [type]="show() ? 'text' : 'password'"
                    required minlength="8" autocomplete="new-password"
-                   placeholder="Nueva contraseña"
+                   placeholder="Nueva contraseña *"
                    class="input-modern" />
             @if (newPassword) {
               <button type="button" (click)="show.set(!show())" tabindex="-1"

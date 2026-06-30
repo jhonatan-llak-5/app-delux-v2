@@ -55,6 +55,7 @@ import { RevealOnScrollDirective } from '@shared/directives/reveal-on-scroll.dir
                   Suscribir
                   <i class="fa-solid fa-arrow-right text-[10px] group-hover:translate-x-1 transition"></i>
                 </button>
+                @if (fieldErr()) { <p class="text-xs text-rose-600 mt-2 ml-4">{{ fieldErr() }}</p> }
               </div>
               <p class="text-xs text-ink-500 dark:text-white/40 tracking-wide">
                 Al suscribirte aceptas nuestros <a class="underline">términos</a> y
@@ -77,14 +78,16 @@ export class NewsletterSectionComponent {
   private forms = inject(PublicFormsService);
   private notify = inject(NotifyService);
   email = signal('');
+  fieldErr = signal<string | null>(null);
   sent = signal(false);
   saving = signal(false);
   submit() {
-    if (!this.email().includes('@')) { this.notify.warning('Ingresa un correo válido'); return; }
+    this.fieldErr.set(null);
+    if (!this.email().includes('@')) { this.fieldErr.set('Ingresa un correo válido.'); return; }
     this.saving.set(true);
     this.forms.subscribeNewsletter(this.email()).subscribe({
       next: r => { this.saving.set(false); this.sent.set(true); this.notify.success(r.detail || '¡Suscrito!'); this.email.set(''); },
-      error: e => { this.saving.set(false); this.notify.error(e?.error?.detail || 'No se pudo suscribir.'); },
+      error: e => { this.saving.set(false); this.fieldErr.set(parseApiError(e).message || 'No se pudo suscribir.'); },
     });
   }
 }

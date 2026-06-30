@@ -46,11 +46,12 @@ export class CategoryService {
   private http = inject(HttpClient);
   private base = `${environment.apiUrl}/admin/categories`;
 
-  list(params: { parent?: number | 'null'; is_active?: boolean; search?: string } = {}): Observable<Paged<Category>> {
+  list(params: { parent?: number | 'null'; is_active?: boolean; search?: string; page_size?: number } = {}): Observable<Paged<Category>> {
     let p = new HttpParams();
     if (params.parent !== undefined) p = p.set('parent', String(params.parent));
     if (params.is_active !== undefined) p = p.set('is_active', String(params.is_active));
     if (params.search) p = p.set('search', params.search);
+    if (params.page_size) p = p.set('page_size', String(params.page_size));
     return this.http.get<Paged<Category>>(`${this.base}/`, { params: p });
   }
 

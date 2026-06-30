@@ -14,7 +14,7 @@ import { parseApiError } from '@shared/utils/api-error.util';
   changeDetection: ChangeDetectionStrategy.OnPush,
   template: `
     <div class="flex items-center gap-2 text-xs text-slate-500 mb-1">
-      <a routerLink="/app/admin/staff" class="hover:text-ink-950">Equipo</a>
+      <a routerLink="/app/admin/users" class="hover:text-ink-950">Usuarios</a>
       <i class="fa-solid fa-chevron-right text-[10px]"></i>
       <span class="uppercase tracking-widest font-semibold">
         {{ isEdit() ? 'Editar' : 'Nuevo' }}
@@ -33,13 +33,15 @@ import { parseApiError } from '@shared/utils/api-error.util';
             <div>
               <label class="eg-label">Nombre completo *</label>
               <input [(ngModel)]="payload.full_name" name="full_name" required maxlength="160"
-                     class="eg-input" />
+                     class="eg-input" [class.!border-rose-400]="fe('full_name')" />
+              @if (fe('full_name')) { <p class="text-xs text-rose-600 mt-1">{{ fe('full_name') }}</p> }
             </div>
             <div>
               <label class="eg-label">Email *</label>
               <input [(ngModel)]="payload.email" name="email" type="email" required
                      [disabled]="isEdit()"
-                     class="eg-input disabled:bg-slate-100 disabled:text-slate-400" />
+                     class="eg-input disabled:bg-slate-100 disabled:text-slate-400" [class.!border-rose-400]="fe('email')" />
+              @if (fe('email')) { <p class="text-xs text-rose-600 mt-1">{{ fe('email') }}</p> }
             </div>
             <div>
               <label class="eg-label">Teléfono</label>
@@ -58,8 +60,9 @@ import { parseApiError } from '@shared/utils/api-error.util';
             <div>
               <label class="eg-label">Contraseña inicial</label>
               <input [(ngModel)]="payload.password" name="password" type="text" minlength="8"
-                     class="eg-input font-mono"
+                     class="eg-input font-mono" [class.!border-rose-400]="fe('password')"
                      placeholder="Mínimo 8 caracteres (se genera automáticamente si vacío)" />
+              @if (fe('password')) { <p class="text-xs text-rose-600 mt-1">{{ fe('password') }}</p> }
               <p class="text-[10px] text-slate-400 mt-1">
                 Si lo dejas en blanco, se genera una contraseña aleatoria. El usuario debe cambiarla en su primer login.
               </p>
@@ -151,10 +154,11 @@ import { parseApiError } from '@shared/utils/api-error.util';
             <div>
               <label class="eg-label">Sucursal asignada *</label>
               <select [(ngModel)]="payload.branch" name="branch" required
-                      class="eg-input">
+                      class="eg-input" [class.!border-rose-400]="fe('branch')">
                 <option [ngValue]="null">— Seleccionar —</option>
                 @for (b of branches(); track b.id) { <option [ngValue]="b.id">{{ b.name }} · {{ b.city }}</option> }
               </select>
+              @if (fe('branch')) { <p class="text-xs text-rose-600 mt-1">{{ fe('branch') }}</p> }
             </div>
           }
 
@@ -164,20 +168,22 @@ import { parseApiError } from '@shared/utils/api-error.util';
                    class="eg-input" />
           </div>
 
-          <div>
-            <label class="eg-label">
-              Comisión por venta (%)
-            </label>
-            <div class="relative">
-              <input type="number" [(ngModel)]="payload.commission_rate" name="commission_rate"
-                     min="0" max="100" step="0.5"
-                     class="eg-input pr-8" />
-              <span class="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 text-sm">%</span>
+          @if (payload.role === 'SALESPERSON') {
+            <div>
+              <label class="eg-label">
+                Comisión por venta (%)
+              </label>
+              <div class="relative">
+                <input type="number" [(ngModel)]="payload.commission_rate" name="commission_rate"
+                       min="0" max="100" step="0.5"
+                       class="eg-input pr-8" />
+                <span class="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 text-sm">%</span>
+              </div>
+              <p class="text-[10px] text-slate-400 mt-1">
+                Aplica sobre el monto total de cada venta cerrada por este vendedor.
+              </p>
             </div>
-            <p class="text-[10px] text-slate-400 mt-1">
-              Aplica sobre el monto total de cada venta cerrada por este vendedor.
-            </p>
-          </div>
+          }
         </div>
 
         @if (error()) {
@@ -193,7 +199,7 @@ import { parseApiError } from '@shared/utils/api-error.util';
             @if (saving()) { <i class="fa-solid fa-spinner fa-spin"></i> Guardando... }
             @else { <i class="fa-solid fa-floppy-disk"></i> {{ isEdit() ? 'Guardar cambios' : 'Crear miembro' }} }
           </button>
-          <a routerLink="/app/admin/staff"
+          <a routerLink="/app/admin/users"
              class="px-5 py-3 rounded-lg bg-slate-100 hover:bg-slate-200 text-sm font-semibold text-center transition">
             Cancelar
           </a>
@@ -269,6 +275,8 @@ export class StaffFormComponent implements OnInit {
   isEdit = computed(() => this.staffId() !== null);
   saving = signal(false);
   error = signal<string | null>(null);
+  fieldErrors = signal<Record<string, string>>({});
+  fe(k: string): string | undefined { return this.fieldErrors()[k]; }
   metrics = signal<SalesMetrics | null>(null);
   createdCreds = signal<{ email: string; password: string; generated: boolean; emailed: boolean } | null>(null);
 
@@ -300,6 +308,7 @@ export class StaffFormComponent implements OnInit {
   save() {
     this.saving.set(true);
     this.error.set(null);
+    this.fieldErrors.set({});
     const body = { ...this.payload };
     if (!body.password) delete body.password;
     const obs = this.isEdit()
@@ -309,7 +318,7 @@ export class StaffFormComponent implements OnInit {
       next: (res: any) => {
         this.saving.set(false);
         if (this.isEdit()) {
-          this.router.navigate(['/app/admin/staff']);
+          this.router.navigate(['/app/admin/users']);
         } else {
           // Mostrar credenciales una sola vez.
           this.createdCreds.set({
@@ -322,7 +331,9 @@ export class StaffFormComponent implements OnInit {
       },
       error: e => {
         this.saving.set(false);
-        this.error.set(parseApiError(e).message || 'Error al guardar');
+        const p = parseApiError(e);
+        this.fieldErrors.set(p.fieldErrors);
+        this.error.set(Object.keys(p.fieldErrors).length ? null : (p.message || 'Error al guardar'));
       },
     });
   }
@@ -333,7 +344,7 @@ export class StaffFormComponent implements OnInit {
     }
   }
 
-  goToList() { this.router.navigate(['/app/admin/staff']); }
+  goToList() { this.router.navigate(['/app/admin/users']); }
 
   createAnother() {
     this.createdCreds.set(null);

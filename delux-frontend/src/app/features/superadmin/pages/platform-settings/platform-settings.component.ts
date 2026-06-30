@@ -3,6 +3,7 @@ import { CommonModule } from '@angular/common';
 import { FormsModule, ReactiveFormsModule, FormBuilder, Validators } from '@angular/forms';
 import { AdminService, PlatformSettings } from '@features/superadmin/services/admin.service';
 import { NotifyService } from '@shared/services/notify.service';
+import { parseApiError } from '@shared/utils/api-error.util';
 import { FileValidatorService } from '@shared/services/file-validator.service';
 import { BrandingService } from '@core/services/branding.service';
 
@@ -233,6 +234,10 @@ const VIDEO_EXTENSIONS: ExtensionOption[] = [
               </label>
               <label class="block"><span class="eg-label">Tagline</span>
                 <input class="eg-input" formControlName="platform_tagline" />
+              </label>
+              <label class="block"><span class="eg-label">IVA (%)</span>
+                <input type="number" min="0" max="100" step="0.01" class="eg-input" formControlName="tax_rate" />
+                <span class="text-[11px] text-slate-400 mt-1 block">Se usa para calcular el precio final con IVA (etiquetas, kiosko, formularios). Ej. 15.</span>
               </label>
             </div>
           </section>
@@ -561,6 +566,7 @@ export class PlatformSettingsComponent implements OnInit {
     site_name: ['Delux'],
     platform_tagline: [''],
     whatsapp_contact_number: [''],
+    tax_rate: [15, [Validators.min(0), Validators.max(100)]],
     max_image_upload_mb: [5, [Validators.min(1), Validators.max(50)]],
     max_file_upload_mb: [10, [Validators.min(1), Validators.max(200)]],
     max_video_upload_mb: [500, [Validators.min(1), Validators.max(5000)]],
@@ -646,6 +652,18 @@ export class PlatformSettingsComponent implements OnInit {
   }
   clearFavicon() { this.faviconFile.set(null); this.faviconPreview.set(null); }
 
+  /** Mapea errores de validación del backend a los controles del form. */
+  private applyServerErrors(e: unknown): void {
+    const p = parseApiError(e);
+    const keys = Object.keys(p.fieldErrors);
+    keys.forEach(k => {
+      const c = this.form.get(k);
+      if (c) c.setErrors({ server: p.fieldErrors[k] });
+    });
+    if (keys.length) this.notify.error('Revisa estos campos: ' + keys.join(', '));
+    else this.notify.fromServerError(e as any);
+  }
+
   save() {
     this.saving.set(true);
     const raw: any = this.form.getRawValue();
@@ -663,12 +681,12 @@ export class PlatformSettingsComponent implements OnInit {
       if (this.faviconFile()) fd.append('site_favicon', this.faviconFile()!);
       this.admin.updateSettingsMultipart(fd).subscribe({
         next: s => this.afterSave(s),
-        error: e => { this.saving.set(false); this.notify.fromServerError(e); },
+        error: e => { this.saving.set(false); this.applyServerErrors(e); },
       });
     } else {
       this.admin.updateSettings(raw).subscribe({
         next: s => this.afterSave(s),
-        error: e => { this.saving.set(false); this.notify.fromServerError(e); },
+        error: e => { this.saving.set(false); this.applyServerErrors(e); },
       });
     }
   }

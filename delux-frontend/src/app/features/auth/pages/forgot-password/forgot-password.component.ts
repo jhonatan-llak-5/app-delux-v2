@@ -44,7 +44,7 @@ import { parseApiError } from '@shared/utils/api-error.util';
       @if (!sent()) {
         <form (ngSubmit)="submit()" #f="ngForm" class="space-y-3">
           <input [(ngModel)]="email" name="email" type="email" required autocomplete="email"
-                 placeholder="tu@correo.com"
+                 placeholder="tu@correo.com *"
                  class="input-modern" />
 
           @if (error()) {

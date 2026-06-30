@@ -83,7 +83,7 @@ import { parseApiError } from '@shared/utils/api-error.util';
           </div>
 
           <div>
-            <label class="eg-label">Cantidad</label>
+            <label class="eg-label">Cantidad *</label>
             <div class="flex items-center gap-2">
               <button type="button" (click)="absQty.set(Math.max(1, absQty() - 1))"
                       class="w-10 h-10 rounded-lg bg-slate-100 hover:bg-slate-200 grid place-items-center">
@@ -97,6 +97,7 @@ import { parseApiError } from '@shared/utils/api-error.util';
                 <i class="fa-solid fa-plus text-sm"></i>
               </button>
             </div>
+            @if (fe('quantity')) { <p class="text-xs text-rose-600 mt-1">{{ fe('quantity') }}</p> }
           </div>
 
           <div>
@@ -105,12 +106,6 @@ import { parseApiError } from '@shared/utils/api-error.util';
                    class="eg-input"
                    placeholder="ej. Recepción de pedido #1234" />
           </div>
-
-          @if (error()) {
-            <div class="p-3 rounded-lg bg-rose-50 border border-rose-200 text-rose-700 text-xs">
-              <i class="fa-solid fa-circle-exclamation"></i> {{ error() }}
-            </div>
-          }
 
           <div class="flex justify-end gap-2 pt-2 border-t border-slate-100">
             <button type="button" (click)="close.emit()"
@@ -140,6 +135,8 @@ export class StockAdjustModalComponent {
   note = '';
   saving = signal(false);
   error = signal<string | null>(null);
+  fieldErrors = signal<Record<string, string>>({});
+  fe(k: string): string | undefined { return this.fieldErrors()[k]; }
 
   setType(t: 'IN' | 'OUT' | 'ADJ') { this.type.set(t); }
 
@@ -156,11 +153,13 @@ export class StockAdjustModalComponent {
   save() {
     this.saving.set(true);
     this.error.set(null);
+    this.fieldErrors.set({});
     this.svc.adjust(this.stock.id, this.delta(), this.note, this.type()).subscribe({
       next: r => { this.saving.set(false); this.saved.emit(r.quantity); },
       error: e => {
         this.saving.set(false);
-        this.error.set(parseApiError(e).message || 'Error al ajustar');
+        const p = parseApiError(e);
+        this.fieldErrors.set(Object.keys(p.fieldErrors).length ? p.fieldErrors : { quantity: p.message || 'Error al ajustar' });
       },
     });
   }

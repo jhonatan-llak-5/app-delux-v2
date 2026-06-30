@@ -10,6 +10,7 @@ interface BrandConfig {
   payphone_available?: boolean;
   cod_enabled?: boolean;
   recaptcha_site_key?: string;
+  tax_rate?: number;
 }
 
 /**
@@ -37,6 +38,11 @@ export class BrandingService {
   readonly payphoneAvailable = computed(() => this._cfg()?.payphone_available === true);
   readonly codEnabled = computed(() => this._cfg()?.cod_enabled !== false);
   readonly recaptchaSiteKey = computed(() => this._cfg()?.recaptcha_site_key || '');
+  /** Tasa de IVA (%) configurada por el superadmin. Default 15. */
+  readonly taxRate = computed(() => {
+    const r = this._cfg()?.tax_rate;
+    return r != null && !isNaN(+r) ? +r : 15;
+  });
 
   /** Llamar una vez al iniciar la app. */
   load(): void {

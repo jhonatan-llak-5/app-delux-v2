@@ -16,13 +16,13 @@ import { parseApiError } from '@shared/utils/api-error.util';
       <form (ngSubmit)="submit()" #f="ngForm" class="space-y-2.5">
 
         <input [(ngModel)]="identifier" name="identifier" required autocomplete="username"
-               placeholder="Usuario, correo o teléfono"
+               placeholder="Usuario, correo o teléfono *"
                class="input-modern" />
 
         <div class="input-modern-wrap">
           <input [(ngModel)]="password" name="password" [type]="show() ? 'text' : 'password'"
                  required minlength="8" autocomplete="current-password"
-                 placeholder="Contraseña"
+                 placeholder="Contraseña *"
                  class="input-modern" />
           @if (password) {
             <button type="button" (click)="show.set(!show())" tabindex="-1"

@@ -3,6 +3,7 @@ import { CommonModule } from '@angular/common';
 import { FormsModule, ControlValueAccessor, NG_VALUE_ACCESSOR } from '@angular/forms';
 import { FileValidatorService } from '@shared/services/file-validator.service';
 import { NotifyService } from '@shared/services/notify.service';
+import { ProductService } from '@features/superadmin/services/product.service';
 
 export interface DlxImageItem {
   url: string;          // URL pública o data: URL si es local
@@ -103,12 +104,19 @@ export interface DlxImageItem {
                [style.color]="'var(--dash-primary)'"></i>
           </div>
           <p class="text-sm font-semibold" [style.color]="'var(--dash-text)'">
-            Arrastra imágenes aquí o haz clic para seleccionar
+            @if (uploading()) { <i class="fa-solid fa-spinner fa-spin"></i> Subiendo imagen… }
+            @else { Arrastra imágenes aquí o haz clic para seleccionar }
           </p>
           <p class="text-xs mt-1" [style.color]="'var(--dash-text-muted)'">
             {{ acceptLabel }} · máx {{ validator.limits().imageMb }} MB c/u
           </p>
         </div>
+
+        <!-- Tomar foto (cámara en móvil/tablet) -->
+        <button type="button" class="eg-btn-secondary w-full" (click)="cameraInput.click()">
+          <i class="fa-solid fa-camera"></i> Tomar foto
+        </button>
+        <input #cameraInput type="file" accept="image/*" capture="environment" class="hidden" (change)="onFilesPicked($event)" />
 
         <!-- Añadir por URL -->
         <div class="flex gap-2">
@@ -137,6 +145,8 @@ export interface DlxImageItem {
 export class DlxImageUploaderComponent implements ControlValueAccessor {
   private validatorSvc = inject(FileValidatorService);
   private notify = inject(NotifyService);
+  private uploads = inject(ProductService);
+  uploading = signal(false);
 
   validator = this.validatorSvc;
 
@@ -217,18 +227,19 @@ export class DlxImageUploaderComponent implements ControlValueAccessor {
         if (--pending === 0 && added > 0) this.emit();
         return;
       }
-      const reader = new FileReader();
-      reader.onload = () => {
-        const arr = [...this.images(), {
-          url: reader.result as string,
-          file,
-          isMain: this.images().length === 0,
-        }];
-        this.images.set(arr);
-        added++;
-        if (--pending === 0) this.emit();
-      };
-      reader.readAsDataURL(file);
+      this.uploading.set(true);
+      this.uploads.uploadImage(file).subscribe({
+        next: r => {
+          const arr = [...this.images(), { url: r.url, isMain: this.images().length === 0 }];
+          this.images.set(arr);
+          added++;
+          if (--pending === 0) { this.emit(); this.uploading.set(false); }
+        },
+        error: e => {
+          this.notify.warning(`No se pudo subir ${file.name}`);
+          if (--pending === 0) { if (added > 0) this.emit(); this.uploading.set(false); }
+        },
+      });
     });
   }
 
