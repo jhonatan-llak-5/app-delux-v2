@@ -1,4 +1,5 @@
 import { ChangeDetectionStrategy, Component, EventEmitter, Input, OnInit, Output, signal } from '@angular/core';
+import { DlxFieldErrorComponent } from '@shared/ui/field-error.component';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { DlxModalComponent } from '@shared/ui/modal.component';
@@ -28,7 +29,7 @@ const KIND_PRESETS: Record<string, { label: string; sizeLabel: string; sizes: st
 @Component({
   selector: 'dlx-manual-product-modal',
   standalone: true,
-  imports: [CommonModule, FormsModule, DlxModalComponent, DlxImageUploaderComponent, DlxPriceInputComponent],
+  imports: [DlxFieldErrorComponent, CommonModule, FormsModule, DlxModalComponent, DlxImageUploaderComponent, DlxPriceInputComponent],
   changeDetection: ChangeDetectionStrategy.OnPush,
   template: `
     <dlx-modal [open]="true" [maxWidth]="760" title="Nuevo producto" (closed)="cancel.emit()">
@@ -43,7 +44,7 @@ const KIND_PRESETS: Record<string, { label: string; sizeLabel: string; sizes: st
         <div>
           <label class="eg-label">Modelo / nombre *</label>
           <input [(ngModel)]="nf.product_name" class="eg-input w-full" [class.!border-rose-400]="fe('product_name')" placeholder="Ej. CAMPUS MK" />
-          @if (fe('product_name')) { <p class="text-xs text-rose-600 mt-1">{{ fe('product_name') }}</p> }
+          <dlx-field-error [error]="fe(\'product_name\')" />
         </div>
 
         <div>
@@ -65,7 +66,7 @@ const KIND_PRESETS: Record<string, { label: string; sizeLabel: string; sizes: st
                 }
               </div>
             }
-            @if (fe('brand')) { <p class="text-xs text-rose-600 mt-1">{{ fe('brand') }}</p> }
+            <dlx-field-error [error]="fe(\'brand\')" />
           </div>
           <div class="relative">
             <label class="eg-label">Categoría *</label>
@@ -82,7 +83,7 @@ const KIND_PRESETS: Record<string, { label: string; sizeLabel: string; sizes: st
                 }
               </div>
             }
-            @if (fe('category')) { <p class="text-xs text-rose-600 mt-1">{{ fe('category') }}</p> }
+            <dlx-field-error [error]="fe(\'category\')" />
             @if (parentOf(nf.category)) {
               <p class="text-[11px] text-slate-400 mt-1"><i class="fa-solid fa-sitemap"></i> Pertenece a: {{ parentOf(nf.category) }}</p>
             }

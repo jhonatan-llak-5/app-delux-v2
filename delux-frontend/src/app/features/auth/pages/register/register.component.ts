@@ -1,4 +1,5 @@
 import { AfterViewInit, ChangeDetectionStrategy, Component, inject, signal } from '@angular/core';
+import { DlxPasswordInputComponent } from '@shared/ui/password-input.component';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { Router, RouterLink } from '@angular/router';
@@ -10,7 +11,7 @@ import { AuthShellComponent } from '@features/auth/components/auth-shell/auth-sh
 @Component({
   selector: 'dlx-register',
   standalone: true,
-  imports: [CommonModule, FormsModule, RouterLink, AuthShellComponent],
+  imports: [DlxPasswordInputComponent, CommonModule, FormsModule, RouterLink, AuthShellComponent],
   changeDetection: ChangeDetectionStrategy.OnPush,
   template: `
     <dlx-auth-shell title="Crear cuenta en Delux">
@@ -40,17 +41,9 @@ import { AuthShellComponent } from '@features/auth/components/auth-shell/auth-sh
 
         <div>
           <label class="block text-[12px] font-semibold text-ink-700 dark:text-white/70 mb-1">Contraseña <span class="text-rose-500">*</span></label>
-          <div class="input-modern-wrap">
-            <input [(ngModel)]="form.password" name="password" [type]="show() ? 'text' : 'password'"
-                   required minlength="8" autocomplete="new-password"
-                   (focus)="pwFocused.set(true)" placeholder="Crea una contraseña segura" class="input-modern" />
-            @if (form.password) {
-              <button type="button" (click)="show.set(!show())" tabindex="-1"
-                      class="input-modern-trailing" style="font-size:13px;font-weight:600;">
-                {{ show() ? 'Ocultar' : 'Mostrar' }}
-              </button>
-            }
-          </div>
+          <dlx-password-input [(ngModel)]="form.password" name="password" required minlength="8"
+                              autocomplete="new-password" (focused)="pwFocused.set(true)"
+                              placeholder="Crea una contraseña segura" inputClass="input-modern pr-10" />
 
           @if (pwFocused() || form.password) {
             <div class="mt-2 p-3 rounded-xl bg-ink-50 dark:bg-white/5 border border-ink-100 dark:border-white/10">

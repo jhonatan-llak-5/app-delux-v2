@@ -1,4 +1,5 @@
 import { ChangeDetectionStrategy, Component, OnInit, computed, effect, inject, signal } from '@angular/core';
+import { DlxSearchInputComponent } from '@shared/ui/search-input.component';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { RouterLink } from '@angular/router';
@@ -18,7 +19,7 @@ import { NotifyService } from '@shared/services/notify.service';
 @Component({
   selector: 'dlx-inventory-overview',
   standalone: true,
-  imports: [CommonModule, FormsModule, RouterLink, StockAdjustModalComponent, TransferModalComponent, RowActionsComponent],
+  imports: [DlxSearchInputComponent, CommonModule, FormsModule, RouterLink, StockAdjustModalComponent, TransferModalComponent, RowActionsComponent],
   changeDetection: ChangeDetectionStrategy.OnPush,
   template: `
     <div class="flex flex-wrap items-end justify-between gap-4 mb-6">
@@ -106,12 +107,7 @@ import { NotifyService } from '@shared/services/notify.service';
 
     <!-- Filtros -->
     <div class="card p-4 mb-4 flex flex-wrap gap-3 items-center filter-bar">
-      <div class="relative flex-1 min-w-64">
-        <i class="fa-solid fa-magnifying-glass text-sm absolute left-3 top-1/2 -translate-y-1/2 text-slate-400"></i>
-        <input placeholder="Buscar por SKU o producto..."
-               [ngModel]="search()" (ngModelChange)="onSearch($event)"
-               class="eg-input has-icon-left pr-3 border-transparent" />
-      </div>
+      <dlx-search-input [fluid]="true" [value]="search()" (valueChange)="onSearch($event)" placeholder="Buscar por SKU o producto..." class="flex-1 min-w-64" />
       <select [(ngModel)]="branchFilter" (change)="reload()"
               class="eg-input border-transparent">
         <option [ngValue]="null">Todas las sucursales</option>

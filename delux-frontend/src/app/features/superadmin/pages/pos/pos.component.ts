@@ -1,4 +1,5 @@
 import { ChangeDetectionStrategy, Component, OnInit, computed, inject, signal } from '@angular/core';
+import { DlxSearchInputComponent } from '@shared/ui/search-input.component';
 import { AuthService } from '@core/services/auth.service';
 import { BrandingService } from '@core/services/branding.service';
 import { CommonModule } from '@angular/common';
@@ -28,7 +29,7 @@ interface CartItem {
 @Component({
   selector: 'dlx-pos',
   standalone: true,
-  imports: [CommonModule, FormsModule],
+  imports: [DlxSearchInputComponent, CommonModule, FormsModule],
   changeDetection: ChangeDetectionStrategy.OnPush,
   template: `
     <div class="flex items-end justify-between gap-4 mb-6">
@@ -56,12 +57,7 @@ interface CartItem {
       <!-- CATÁLOGO -->
       <div class="space-y-4">
         <div class="card p-4 flex flex-wrap gap-3 items-center">
-          <div class="relative flex-1 min-w-64">
-            <i class="fa-solid fa-magnifying-glass text-sm absolute left-3 top-1/2 -translate-y-1/2 text-slate-400"></i>
-            <input placeholder="Buscar por SKU, producto..."
-                   [ngModel]="search()" (ngModelChange)="onSearch($event)"
-                   class="eg-input has-icon-left pr-3 border-transparent" />
-          </div>
+          <dlx-search-input [fluid]="true" [value]="search()" (valueChange)="onSearch($event)" placeholder="Buscar por SKU, producto..." class="flex-1 min-w-64" />
         </div>
 
         @if (!branchId) {

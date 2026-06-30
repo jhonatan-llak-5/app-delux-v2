@@ -1,4 +1,5 @@
 import { ChangeDetectionStrategy, Component, OnInit, inject, signal } from '@angular/core';
+import { DlxFieldErrorComponent } from '@shared/ui/field-error.component';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { MeService, MeProfile } from '@features/account/services/me.service';
@@ -7,7 +8,7 @@ import { parseApiError } from '@shared/utils/api-error.util';
 @Component({
   selector: 'dlx-profile-tab',
   standalone: true,
-  imports: [CommonModule, FormsModule],
+  imports: [DlxFieldErrorComponent, CommonModule, FormsModule],
   changeDetection: ChangeDetectionStrategy.OnPush,
   template: `
     <div class="editorial-card p-6">
@@ -21,7 +22,7 @@ import { parseApiError } from '@shared/utils/api-error.util';
             <input [(ngModel)]="profile()!.full_name" name="full_name" required maxlength="160"
                    class="w-full px-3 py-3 rounded-lg bg-ink-50 dark:bg-white/5 border text-sm focus:outline-none focus:border-ink-950 dark:focus:border-white"
                    [class.border-rose-400]="fe('full_name')" [class.border-ink-200]="!fe('full_name')" [class.dark:border-white/10]="!fe('full_name')" />
-            @if (fe('full_name')) { <p class="text-xs text-rose-600 mt-1">{{ fe('full_name') }}</p> }
+            <dlx-field-error [error]="fe(\'full_name\')" />
           </div>
           <div>
             <label class="text-sm font-semibold text-ink-800 dark:text-white/80 mb-1.5 block">Email</label>
@@ -33,13 +34,13 @@ import { parseApiError } from '@shared/utils/api-error.util';
             <label class="text-sm font-semibold text-ink-800 dark:text-white/80 mb-1.5 block">Teléfono</label>
             <input [(ngModel)]="profile()!.phone" name="phone" maxlength="30"
                    class="w-full px-3 py-3 rounded-lg bg-ink-50 dark:bg-white/5 border border-ink-200 dark:border-white/10 text-sm focus:outline-none focus:border-ink-950 dark:focus:border-white" />
-            @if (fe('phone')) { <p class="text-xs text-rose-600 mt-1">{{ fe('phone') }}</p> }
+            <dlx-field-error [error]="fe(\'phone\')" />
           </div>
           <div class="md:col-span-2">
             <label class="text-sm font-semibold text-ink-800 dark:text-white/80 mb-1.5 block">Cédula / Documento</label>
             <input [(ngModel)]="profile()!.document_id" name="document_id" maxlength="30"
                    class="w-full px-3 py-3 rounded-lg bg-ink-50 dark:bg-white/5 border border-ink-200 dark:border-white/10 text-sm focus:outline-none focus:border-ink-950 dark:focus:border-white font-mono" />
-            @if (fe('document_id')) { <p class="text-xs text-rose-600 mt-1">{{ fe('document_id') }}</p> }
+            <dlx-field-error [error]="fe(\'document_id\')" />
           </div>
           <label class="md:col-span-2 flex items-center gap-3 cursor-pointer p-4 rounded-lg bg-ink-50 dark:bg-white/5 hover:bg-ink-100 dark:hover:bg-white/10 transition">
             <input type="checkbox" [(ngModel)]="profile()!.accepts_marketing" name="accepts_marketing" class="w-4 h-4 accent-accent-500" />

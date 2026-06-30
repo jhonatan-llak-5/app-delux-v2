@@ -1,4 +1,5 @@
 import { ChangeDetectionStrategy, Component, EventEmitter, Input, OnInit, Output, inject, signal } from '@angular/core';
+import { DlxFieldErrorComponent } from '@shared/ui/field-error.component';
 import { DlxIconPickerComponent } from '@shared/ui/icon-picker.component';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
@@ -11,7 +12,7 @@ interface FlatOption { id: number; label: string; depth: number; }
 @Component({
   selector: 'dlx-category-form-modal',
   standalone: true,
-  imports: [CommonModule, FormsModule, DlxModalComponent, DlxIconPickerComponent],
+  imports: [DlxFieldErrorComponent, CommonModule, FormsModule, DlxModalComponent, DlxIconPickerComponent],
   changeDetection: ChangeDetectionStrategy.OnPush,
   template: `
     <dlx-modal [open]="true" [maxWidth]="560"
@@ -23,7 +24,7 @@ interface FlatOption { id: number; label: string; depth: number; }
             <input [(ngModel)]="payload.name" name="name" required maxlength="80"
                    class="eg-input" [class.!border-rose-400]="fe('name')"
                    placeholder="ej. Zapatillas" />
-            @if (fe('name')) { <p class="text-xs text-rose-600 mt-1">{{ fe('name') }}</p> }
+            <dlx-field-error [error]="fe(\'name\')" />
           </div>
 
           <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
@@ -31,7 +32,7 @@ interface FlatOption { id: number; label: string; depth: number; }
               <label class="eg-label">Orden</label>
               <input type="number" [(ngModel)]="payload.sort_order" name="sort_order" min="0" max="999"
                      class="eg-input" [class.!border-rose-400]="fe('sort_order')" />
-              @if (fe('sort_order')) { <p class="text-xs text-rose-600 mt-1">{{ fe('sort_order') }}</p> }
+              <dlx-field-error [error]="fe(\'sort_order\')" />
             </div>
           </div>
 

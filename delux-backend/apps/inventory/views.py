@@ -293,6 +293,12 @@ class AdminReceptionViewSet(viewsets.ModelViewSet):
         tenant = resolve_tenant(self.request.user)
         if tenant:
             qs = qs.filter(tenant=tenant)
+        user = self.request.user
+        if getattr(user, 'role', None) in ('BRANCH_MANAGER', 'SALESPERSON') and getattr(user, 'branch_id', None):
+            qs = qs.filter(branch_id=user.branch_id)
+        branch = self.request.query_params.get('branch')
+        if branch:
+            qs = qs.filter(branch_id=branch)
         return qs.order_by('-created_at')
 
     def create(self, request, *args, **kwargs):

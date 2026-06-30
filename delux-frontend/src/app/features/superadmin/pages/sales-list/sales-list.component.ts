@@ -1,4 +1,5 @@
 import { ChangeDetectionStrategy, Component, OnInit, inject, signal } from '@angular/core';
+import { DlxSearchInputComponent } from '@shared/ui/search-input.component';
 import { CommonModule } from '@angular/common';
 import { RowActionsComponent, RowAction } from '@shared/ui/row-actions.component';
 import { FormsModule } from '@angular/forms';
@@ -14,7 +15,7 @@ import { generateVoucherPDF } from '@shared/utils/voucher-pdf.util';
 @Component({
   selector: 'dlx-sales-list',
   standalone: true,
-  imports: [CommonModule, FormsModule, RouterLink, RowActionsComponent],
+  imports: [DlxSearchInputComponent, CommonModule, FormsModule, RouterLink, RowActionsComponent],
   changeDetection: ChangeDetectionStrategy.OnPush,
   template: `
     <div class="flex items-end justify-between gap-4 mb-6">
@@ -55,12 +56,7 @@ import { generateVoucherPDF } from '@shared/utils/voucher-pdf.util';
     }
 
     <div class="card p-4 mb-4 flex flex-wrap gap-3 items-center filter-bar">
-      <div class="relative flex-1 min-w-64">
-        <i class="fa-solid fa-magnifying-glass text-sm absolute left-3 top-1/2 -translate-y-1/2 text-slate-400"></i>
-        <input placeholder="Buscar por código, cliente..."
-               [ngModel]="search()" (ngModelChange)="onSearch($event)"
-               class="eg-input has-icon-left pr-3 border-transparent" />
-      </div>
+      <dlx-search-input [fluid]="true" [value]="search()" (valueChange)="onSearch($event)" placeholder="Buscar por código, cliente..." class="flex-1 min-w-64" />
       <select [(ngModel)]="branchFilter" (change)="reload()"
               class="eg-input border-transparent">
         <option [ngValue]="null">Todas las sucursales</option>

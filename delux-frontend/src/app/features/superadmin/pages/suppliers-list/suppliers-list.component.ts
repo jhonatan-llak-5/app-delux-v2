@@ -1,4 +1,6 @@
 import { ChangeDetectionStrategy, Component, OnInit, inject, signal } from '@angular/core';
+import { DlxSearchInputComponent } from '@shared/ui/search-input.component';
+import { DlxFieldErrorComponent } from '@shared/ui/field-error.component';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { Subject, debounceTime } from 'rxjs';
@@ -15,7 +17,7 @@ interface SupplierForm {
 @Component({
   selector: 'dlx-suppliers-list',
   standalone: true,
-  imports: [CommonModule, FormsModule, DlxConfirmDialogComponent],
+  imports: [DlxSearchInputComponent, DlxFieldErrorComponent, CommonModule, FormsModule, DlxConfirmDialogComponent],
   changeDetection: ChangeDetectionStrategy.OnPush,
   template: `
     <div class="mb-5 flex items-start justify-between gap-3 flex-wrap">
@@ -30,11 +32,7 @@ interface SupplierForm {
     </div>
 
     <div class="card p-3 mb-4">
-      <div class="relative max-w-md">
-        <i class="fa-solid fa-magnifying-glass absolute left-3 top-1/2 -translate-y-1/2 text-slate-400"></i>
-        <input [(ngModel)]="search" (ngModelChange)="search$.next($event)"
-               class="eg-input has-icon-left" placeholder="Buscar por nombre, RUC, teléfono o contacto…" autocomplete="off" />
-      </div>
+      <dlx-search-input [fluid]="true" [value]="search" (valueChange)="search = $event; search$.next($event)" placeholder="Buscar por nombre, RUC, teléfono o contacto…" class="max-w-md" />
     </div>
 
     @if (loading()) {
@@ -127,28 +125,28 @@ interface SupplierForm {
             <div>
               <label class="eg-label">Nombre *</label>
               <input [(ngModel)]="form.name" name="name" maxlength="160" class="eg-input" [class.!border-rose-400]="fe('name')" placeholder="Importadora XYZ" autocomplete="off" />
-              @if (fe('name')) { <p class="text-xs text-rose-600 mt-1">{{ fe('name') }}</p> }
+              <dlx-field-error [error]="fe(\'name\')" />
             </div>
             <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
               <div>
                 <label class="eg-label">Persona de contacto</label>
                 <input [(ngModel)]="form.contact_name" name="contact_name" maxlength="120" class="eg-input" [class.!border-rose-400]="fe('contact_name')" placeholder="Juan Pérez" autocomplete="off" />
-                @if (fe('contact_name')) { <p class="text-xs text-rose-600 mt-1">{{ fe('contact_name') }}</p> }
+                <dlx-field-error [error]="fe(\'contact_name\')" />
               </div>
               <div>
                 <label class="eg-label">Teléfono</label>
                 <input [(ngModel)]="form.phone" name="phone" maxlength="40" class="eg-input" [class.!border-rose-400]="fe('phone')" placeholder="099..." autocomplete="off" />
-                @if (fe('phone')) { <p class="text-xs text-rose-600 mt-1">{{ fe('phone') }}</p> }
+                <dlx-field-error [error]="fe(\'phone\')" />
               </div>
               <div>
                 <label class="eg-label">Email</label>
                 <input [(ngModel)]="form.email" name="email" type="email" class="eg-input" [class.!border-rose-400]="fe('email')" placeholder="proveedor@mail.com" autocomplete="off" />
-                @if (fe('email')) { <p class="text-xs text-rose-600 mt-1">{{ fe('email') }}</p> }
+                <dlx-field-error [error]="fe(\'email\')" />
               </div>
               <div>
                 <label class="eg-label">RUC / NIF</label>
                 <input [(ngModel)]="form.tax_id" name="tax_id" maxlength="40" class="eg-input" [class.!border-rose-400]="fe('tax_id')" placeholder="1790000000001" autocomplete="off" />
-                @if (fe('tax_id')) { <p class="text-xs text-rose-600 mt-1">{{ fe('tax_id') }}</p> }
+                <dlx-field-error [error]="fe(\'tax_id\')" />
               </div>
             </div>
             <div>

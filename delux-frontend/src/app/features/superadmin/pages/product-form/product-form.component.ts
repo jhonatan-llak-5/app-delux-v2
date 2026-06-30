@@ -1,4 +1,5 @@
 import { ChangeDetectionStrategy, Component, OnInit, computed, inject, signal } from '@angular/core';
+import { DlxFieldErrorComponent } from '@shared/ui/field-error.component';
 import { AuthService } from '@core/services/auth.service';
 import { BrandingService } from '@core/services/branding.service';
 import { DlxPriceInputComponent } from '@shared/ui/price-input.component';
@@ -17,7 +18,7 @@ import { parseApiError } from '@shared/utils/api-error.util';
 @Component({
   selector: 'dlx-product-form',
   standalone: true,
-  imports: [CommonModule, FormsModule, RouterLink, DlxPriceInputComponent],
+  imports: [DlxFieldErrorComponent, CommonModule, FormsModule, RouterLink, DlxPriceInputComponent],
   changeDetection: ChangeDetectionStrategy.OnPush,
   template: `
     <div class="flex items-center gap-2 text-xs text-slate-500 mb-1">
@@ -41,7 +42,7 @@ import { parseApiError } from '@shared/utils/api-error.util';
             <label class="eg-label">Nombre *</label>
             <input [(ngModel)]="payload.name" name="name" required maxlength="160"
                    class="eg-input" [class.!border-rose-400]="fe('name')" />
-            @if (fe('name')) { <p class="text-xs text-rose-600 mt-1">{{ fe('name') }}</p> }
+            <dlx-field-error [error]="fe(\'name\')" />
           </div>
           <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
             <div>
@@ -284,7 +285,7 @@ import { parseApiError } from '@shared/utils/api-error.util';
               <option [ngValue]="null">— Seleccionar —</option>
               @for (b of brands(); track b.id) { <option [ngValue]="b.id">{{ b.name }}</option> }
             </select>
-            @if (fe('brand')) { <p class="text-xs text-rose-600 mt-1">{{ fe('brand') }}</p> }
+            <dlx-field-error [error]="fe(\'brand\')" />
           </div>
 
           <div>
@@ -296,7 +297,7 @@ import { parseApiError } from '@shared/utils/api-error.util';
                 <option [ngValue]="c.id">{{ c.parent_name ? c.parent_name + ' → ' : '' }}{{ c.name }}</option>
               }
             </select>
-            @if (fe('category')) { <p class="text-xs text-rose-600 mt-1">{{ fe('category') }}</p> }
+            <dlx-field-error [error]="fe(\'category\')" />
           </div>
         </div>
 
@@ -305,7 +306,7 @@ import { parseApiError } from '@shared/utils/api-error.util';
           <div>
             <label class="eg-label">Precio base (sin IVA) *</label>
             <dlx-price-input [(ngModel)]="payload.base_price" name="base_price" />
-            @if (fe('base_price')) { <p class="text-xs text-rose-600 mt-1">{{ fe('base_price') }}</p> }
+            <dlx-field-error [error]="fe(\'base_price\')" />
             @if ((+payload.base_price || 0) > 0) {
               <p class="text-[11px] text-slate-400 mt-1">Con IVA ({{ ivaRate() }}%): <b class="text-[#1e40af] dark:text-[#7aa2ff]">$ {{ priceWithIva() | number:'1.2-2' }}</b></p>
             }

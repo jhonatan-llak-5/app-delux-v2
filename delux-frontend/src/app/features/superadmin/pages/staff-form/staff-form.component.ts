@@ -1,4 +1,5 @@
 import { ChangeDetectionStrategy, Component, OnInit, computed, inject, signal } from '@angular/core';
+import { DlxFieldErrorComponent } from '@shared/ui/field-error.component';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { ActivatedRoute, Router, RouterLink } from '@angular/router';
@@ -10,7 +11,7 @@ import { parseApiError } from '@shared/utils/api-error.util';
 @Component({
   selector: 'dlx-staff-form',
   standalone: true,
-  imports: [CommonModule, FormsModule, RouterLink],
+  imports: [DlxFieldErrorComponent, CommonModule, FormsModule, RouterLink],
   changeDetection: ChangeDetectionStrategy.OnPush,
   template: `
     <div class="flex items-center gap-2 text-xs text-slate-500 mb-1">
@@ -34,14 +35,14 @@ import { parseApiError } from '@shared/utils/api-error.util';
               <label class="eg-label">Nombre completo *</label>
               <input [(ngModel)]="payload.full_name" name="full_name" required maxlength="160"
                      class="eg-input" [class.!border-rose-400]="fe('full_name')" />
-              @if (fe('full_name')) { <p class="text-xs text-rose-600 mt-1">{{ fe('full_name') }}</p> }
+              <dlx-field-error [error]="fe(\'full_name\')" />
             </div>
             <div>
               <label class="eg-label">Email *</label>
               <input [(ngModel)]="payload.email" name="email" type="email" required
                      [disabled]="isEdit()"
                      class="eg-input disabled:bg-slate-100 disabled:text-slate-400" [class.!border-rose-400]="fe('email')" />
-              @if (fe('email')) { <p class="text-xs text-rose-600 mt-1">{{ fe('email') }}</p> }
+              <dlx-field-error [error]="fe(\'email\')" />
             </div>
             <div>
               <label class="eg-label">Teléfono</label>
@@ -62,7 +63,7 @@ import { parseApiError } from '@shared/utils/api-error.util';
               <input [(ngModel)]="payload.password" name="password" type="text" minlength="8"
                      class="eg-input font-mono" [class.!border-rose-400]="fe('password')"
                      placeholder="Mínimo 8 caracteres (se genera automáticamente si vacío)" />
-              @if (fe('password')) { <p class="text-xs text-rose-600 mt-1">{{ fe('password') }}</p> }
+              <dlx-field-error [error]="fe(\'password\')" />
               <p class="text-[10px] text-slate-400 mt-1">
                 Si lo dejas en blanco, se genera una contraseña aleatoria. El usuario debe cambiarla en su primer login.
               </p>
@@ -158,7 +159,7 @@ import { parseApiError } from '@shared/utils/api-error.util';
                 <option [ngValue]="null">— Seleccionar —</option>
                 @for (b of branches(); track b.id) { <option [ngValue]="b.id">{{ b.name }} · {{ b.city }}</option> }
               </select>
-              @if (fe('branch')) { <p class="text-xs text-rose-600 mt-1">{{ fe('branch') }}</p> }
+              <dlx-field-error [error]="fe(\'branch\')" />
             </div>
           }
 
@@ -194,13 +195,13 @@ import { parseApiError } from '@shared/utils/api-error.util';
 
         <div class="flex flex-col gap-2">
           <button type="submit" [disabled]="!f.valid || saving()"
-                  class="px-5 py-3 rounded-lg bg-ink-950 text-white text-sm font-semibold
-                         hover:bg-ink-900 disabled:opacity-50 transition flex items-center justify-center gap-2">
+                  class="px-5 py-3 rounded-lg bg-[#1e40af] text-white text-sm font-semibold
+                         hover:bg-[#1e3a8a] disabled:opacity-50 transition flex items-center justify-center gap-2">
             @if (saving()) { <i class="fa-solid fa-spinner fa-spin"></i> Guardando... }
             @else { <i class="fa-solid fa-floppy-disk"></i> {{ isEdit() ? 'Guardar cambios' : 'Crear miembro' }} }
           </button>
           <a routerLink="/app/admin/users"
-             class="px-5 py-3 rounded-lg bg-slate-100 hover:bg-slate-200 text-sm font-semibold text-center transition">
+             class="px-5 py-3 rounded-lg bg-slate-100 hover:bg-slate-200 dark:bg-white/5 dark:hover:bg-white/10 dark:text-slate-200 text-sm font-semibold text-center transition">
             Cancelar
           </a>
         </div>

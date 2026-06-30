@@ -1,9 +1,41 @@
 import { ChangeDetectionStrategy, Component, EventEmitter, Input, Output, signal } from '@angular/core';
+import { DlxFieldErrorComponent } from '@shared/ui/field-error.component';
 import { CommonModule } from '@angular/common';
 import { DlxModalComponent } from '@shared/ui/modal.component';
 import { FormsModule } from '@angular/forms';
 import { AdminBranch } from '@features/superadmin/services/admin.service';
 import { ParsedApiError } from '@shared/utils/api-error.util';
+
+const DAY_LABELS = ['Lunes', 'Martes', 'Miércoles', 'Jueves', 'Viernes', 'Sábado', 'Domingo'];
+function defaultSchedules(): DaySchedule[] {
+  return [0, 1, 2, 3, 4, 5, 6].map(wd => ({
+    weekday: wd,
+    open_time: '10:00',
+    close_time: '20:00',
+    is_closed: wd === 6,
+  }));
+}
+function mergeSchedules(existing: any[] | undefined | null): DaySchedule[] {
+  const base = defaultSchedules();
+  if (!Array.isArray(existing) || !existing.length) return base;
+  const map = new Map(existing.map((e: any) => [e.weekday, e]));
+  return base.map(d => {
+    const e = map.get(d.weekday);
+    return e ? {
+      weekday: d.weekday,
+      open_time: (e.open_time || '10:00').slice(0, 5),
+      close_time: (e.close_time || '20:00').slice(0, 5),
+      is_closed: !!e.is_closed,
+    } : d;
+  });
+}
+
+export interface DaySchedule {
+  weekday: number;
+  open_time: string;
+  close_time: string;
+  is_closed: boolean;
+}
 
 export interface BranchPayload {
   code: string;
@@ -15,6 +47,7 @@ export interface BranchPayload {
   latitude: number | null;
   longitude: number | null;
   opening_hours: string;
+  schedules?: DaySchedule[];
   allows_pickup: boolean;
   is_active: boolean;
   kiosk_pin: string;
@@ -23,7 +56,7 @@ export interface BranchPayload {
 @Component({
   selector: 'dlx-branch-form-modal',
   standalone: true,
-  imports: [CommonModule, FormsModule, DlxModalComponent],
+  imports: [DlxFieldErrorComponent, CommonModule, FormsModule, DlxModalComponent],
   changeDetection: ChangeDetectionStrategy.OnPush,
   template: `
     <dlx-modal [open]="true" [maxWidth]="680"
@@ -35,13 +68,13 @@ export interface BranchPayload {
               <label class="eg-label">Código *</label>
               <input [(ngModel)]="form.code" name="code" required maxlength="10"
                      class="eg-input font-mono" [class.!border-rose-400]="fe('code')" placeholder="CENTRO" />
-              @if (fe('code')) { <p class="text-xs text-rose-600 mt-1">{{ fe('code') }}</p> }
+              <dlx-field-error [error]="fe(\'code\')" />
             </div>
             <div class="md:col-span-2">
               <label class="eg-label">Nombre *</label>
               <input [(ngModel)]="form.name" name="name" required maxlength="80"
                      class="eg-input" [class.!border-rose-400]="fe('name')" placeholder="Delux Centro" />
-              @if (fe('name')) { <p class="text-xs text-rose-600 mt-1">{{ fe('name') }}</p> }
+              <dlx-field-error [error]="fe(\'name\')" />
             </div>
           </div>
 
@@ -50,13 +83,13 @@ export interface BranchPayload {
               <label class="eg-label">Ciudad *</label>
               <input [(ngModel)]="form.city" name="city" required maxlength="80"
                      class="eg-input" [class.!border-rose-400]="fe('city')" placeholder="Quito" />
-              @if (fe('city')) { <p class="text-xs text-rose-600 mt-1">{{ fe('city') }}</p> }
+              <dlx-field-error [error]="fe(\'city\')" />
             </div>
             <div>
               <label class="eg-label">Teléfono</label>
               <input [(ngModel)]="form.phone" name="phone" maxlength="30"
                      class="eg-input" [class.!border-rose-400]="fe('phone')" placeholder="+593 ..." />
-              @if (fe('phone')) { <p class="text-xs text-rose-600 mt-1">{{ fe('phone') }}</p> }
+              <dlx-field-error [error]="fe(\'phone\')" />
             </div>
           </div>
 
@@ -64,7 +97,7 @@ export interface BranchPayload {
             <label class="eg-label">Dirección *</label>
             <input [(ngModel)]="form.address" name="address" required maxlength="200"
                    class="eg-input" [class.!border-rose-400]="fe('address')" placeholder="Av. Amazonas y Colón" />
-            @if (fe('address')) { <p class="text-xs text-rose-600 mt-1">{{ fe('address') }}</p> }
+            <dlx-field-error [error]="fe(\'address\')" />
           </div>
 
           <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
@@ -72,13 +105,31 @@ export interface BranchPayload {
               <label class="eg-label">Email</label>
               <input [(ngModel)]="form.email" name="email" type="email"
                      class="eg-input" [class.!border-rose-400]="fe('email')" placeholder="sucursal@delux.com" />
-              @if (fe('email')) { <p class="text-xs text-rose-600 mt-1">{{ fe('email') }}</p> }
+              <dlx-field-error [error]="fe(\'email\')" />
             </div>
-            <div>
-              <label class="eg-label">Horario</label>
-              <input [(ngModel)]="form.opening_hours" name="opening_hours" maxlength="120"
-                     class="eg-input" placeholder="Lun-Sáb 10:00-20:00" />
+          </div>
+
+          <div>
+            <label class="eg-label">Horario de atención</label>
+            <div class="rounded-xl border border-slate-200 dark:border-white/10 divide-y divide-slate-100 dark:divide-white/5 overflow-hidden">
+              @for (d of form.schedules || []; track d.weekday) {
+                <div class="flex items-center gap-3 px-3 py-2">
+                  <label class="flex items-center gap-2 w-28 shrink-0 cursor-pointer text-sm">
+                    <input type="checkbox" [checked]="!d.is_closed" (change)="d.is_closed = !d.is_closed"
+                           class="w-4 h-4 accent-[#1e40af]" />
+                    <span class="font-medium">{{ dayLabel(d.weekday) }}</span>
+                  </label>
+                  @if (!d.is_closed) {
+                    <input type="time" [(ngModel)]="d.open_time" [name]="'open_' + d.weekday" class="eg-input !w-28 py-1.5" />
+                    <span class="text-slate-400 text-sm">a</span>
+                    <input type="time" [(ngModel)]="d.close_time" [name]="'close_' + d.weekday" class="eg-input !w-28 py-1.5" />
+                  } @else {
+                    <span class="text-sm text-slate-400">Cerrado</span>
+                  }
+                </div>
+              }
             </div>
+            <p class="text-[11px] text-slate-400 mt-1">Marca los días abiertos y define la hora de apertura/cierre.</p>
           </div>
 
           <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
@@ -86,13 +137,13 @@ export interface BranchPayload {
               <label class="eg-label">Latitud</label>
               <input [(ngModel)]="form.latitude" name="lat" type="number" step="any" min="-90" max="90"
                      class="eg-input font-mono" [class.!border-rose-400]="fe('latitude')" placeholder="-0.1807" />
-              @if (fe('latitude')) { <p class="text-xs text-rose-600 mt-1">{{ fe('latitude') }}</p> }
+              <dlx-field-error [error]="fe(\'latitude\')" />
             </div>
             <div>
               <label class="eg-label">Longitud</label>
               <input [(ngModel)]="form.longitude" name="lng" type="number" step="any" min="-180" max="180"
                      class="eg-input font-mono" [class.!border-rose-400]="fe('longitude')" placeholder="-78.4678" />
-              @if (fe('longitude')) { <p class="text-xs text-rose-600 mt-1">{{ fe('longitude') }}</p> }
+              <dlx-field-error [error]="fe(\'longitude\')" />
             </div>
           </div>
           <p class="text-[11px] text-slate-400">Las coordenadas se usan para el mapa de seguimiento de envíos.</p>
@@ -104,7 +155,7 @@ export interface BranchPayload {
                 <label class="eg-label">PIN de acceso (opcional)</label>
                 <input [(ngModel)]="form.kiosk_pin" name="kiosk_pin" maxlength="8" inputmode="numeric"
                        class="eg-input font-mono" [class.!border-rose-400]="fe('kiosk_pin')" placeholder="Ej. 1234 (vacío = sin PIN)" />
-                @if (fe('kiosk_pin')) { <p class="text-xs text-rose-600 mt-1">{{ fe('kiosk_pin') }}</p> }
+                <dlx-field-error [error]="fe(\'kiosk_pin\')" />
                 <p class="text-[11px] text-slate-400 mt-1">Si lo defines, el kiosko pedirá este PIN para acceder.</p>
               </div>
               @if (branch && kioskUrl()) {
@@ -157,11 +208,13 @@ export class BranchFormModalComponent {
   error = signal<string | null>(null);
   fieldErrors = signal<Record<string, string>>({});
   fe(k: string): string | undefined { return this.fieldErrors()[k]; }
+  dayLabel(wd: number): string { return DAY_LABELS[wd] || ''; }
 
   form: BranchPayload = {
     code: '', name: '', city: '', address: '', phone: '', email: '',
     latitude: null, longitude: null, opening_hours: '',
     allows_pickup: true, is_active: true, kiosk_pin: '',
+    schedules: defaultSchedules(),
   };
 
   ngOnInit() {
@@ -175,6 +228,7 @@ export class BranchFormModalComponent {
         allows_pickup: b.allows_pickup ?? true,
         is_active: b.is_active ?? true,
         kiosk_pin: b.kiosk_pin || '',
+        schedules: mergeSchedules(b.schedules),
       };
     }
   }

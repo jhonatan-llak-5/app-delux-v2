@@ -1,4 +1,5 @@
 import { ChangeDetectionStrategy, Component, OnInit, computed, inject, signal } from '@angular/core';
+import { DlxPasswordInputComponent } from '@shared/ui/password-input.component';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { AuthService } from '@core/services/auth.service';
@@ -8,7 +9,7 @@ import { parseApiError } from '@shared/utils/api-error.util';
 @Component({
   selector: 'dlx-profile',
   standalone: true,
-  imports: [CommonModule, FormsModule],
+  imports: [DlxPasswordInputComponent, CommonModule, FormsModule],
   changeDetection: ChangeDetectionStrategy.OnPush,
   template: `
     <div class="max-w-2xl">
@@ -59,15 +60,15 @@ import { parseApiError } from '@shared/utils/api-error.util';
         <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
           <div>
             <label class="eg-label">Contraseña actual</label>
-            <input type="password" autocomplete="current-password" [(ngModel)]="curPw" class="eg-input w-full" />
+            <dlx-password-input [(ngModel)]="curPw" autocomplete="current-password" />
           </div>
           <div>
             <label class="eg-label">Nueva contraseña</label>
-            <input type="password" autocomplete="new-password" [(ngModel)]="newPw" class="eg-input w-full" />
+            <dlx-password-input [(ngModel)]="newPw" autocomplete="new-password" />
           </div>
           <div>
             <label class="eg-label">Repetir nueva</label>
-            <input type="password" autocomplete="new-password" [(ngModel)]="newPw2" class="eg-input w-full" />
+            <dlx-password-input [(ngModel)]="newPw2" autocomplete="new-password" />
           </div>
         </div>
         <p class="text-[11px] text-slate-400 mt-1">Mínimo 8 caracteres.</p>

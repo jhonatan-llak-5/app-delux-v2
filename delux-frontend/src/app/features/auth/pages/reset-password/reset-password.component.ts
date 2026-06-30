@@ -1,4 +1,5 @@
 import { ChangeDetectionStrategy, Component, OnInit, inject, signal } from '@angular/core';
+import { DlxPasswordInputComponent } from '@shared/ui/password-input.component';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { ActivatedRoute, Router, RouterLink } from '@angular/router';
@@ -9,7 +10,7 @@ import { parseApiError } from '@shared/utils/api-error.util';
 @Component({
   selector: 'dlx-reset-password',
   standalone: true,
-  imports: [CommonModule, FormsModule, RouterLink, AuthShellComponent],
+  imports: [DlxPasswordInputComponent, CommonModule, FormsModule, RouterLink, AuthShellComponent],
   changeDetection: ChangeDetectionStrategy.OnPush,
   template: `
     <dlx-auth-shell>
@@ -62,19 +63,9 @@ import { parseApiError } from '@shared/utils/api-error.util';
             }
           </div>
 
-          <div class="input-modern-wrap">
-            <input [(ngModel)]="newPassword" name="new_password" [type]="show() ? 'text' : 'password'"
-                   required minlength="8" autocomplete="new-password"
-                   placeholder="Nueva contraseña *"
-                   class="input-modern" />
-            @if (newPassword) {
-              <button type="button" (click)="show.set(!show())" tabindex="-1"
-                      class="input-modern-trailing"
-                      style="font-size:14px;font-weight:600;">
-                {{ show() ? 'Ocultar' : 'Mostrar' }}
-              </button>
-            }
-          </div>
+          <dlx-password-input [(ngModel)]="newPassword" name="new_password" required minlength="8"
+                              autocomplete="new-password" placeholder="Nueva contraseña *"
+                              inputClass="input-modern pr-10" />
 
           @if (error()) {
             <p class="text-rose-600 dark:text-rose-400 text-[14px] text-center pt-1">

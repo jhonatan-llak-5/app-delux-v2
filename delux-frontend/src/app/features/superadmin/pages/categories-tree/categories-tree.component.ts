@@ -1,4 +1,5 @@
 import { ChangeDetectionStrategy, Component, OnInit, computed, inject, signal } from '@angular/core';
+import { DlxSearchInputComponent } from '@shared/ui/search-input.component';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { Category, CategoryService, CategoryTreeNode } from '@features/superadmin/services/category.service';
@@ -10,7 +11,7 @@ import { RowActionsComponent, RowAction } from '@shared/ui/row-actions.component
 @Component({
   selector: 'dlx-categories-tree',
   standalone: true,
-  imports: [CommonModule, FormsModule, CategoryFormModalComponent, RowActionsComponent],
+  imports: [DlxSearchInputComponent, CommonModule, FormsModule, CategoryFormModalComponent, RowActionsComponent],
   changeDetection: ChangeDetectionStrategy.OnPush,
   template: `
     <div class="flex flex-wrap items-end justify-between gap-4 mb-6">
@@ -60,12 +61,7 @@ import { RowActionsComponent, RowAction } from '@shared/ui/row-actions.component
 
     <!-- Búsqueda -->
     <div class="card p-4 mb-4 flex flex-wrap items-center gap-3 filter-bar">
-      <div class="relative flex-1 min-w-64">
-        <i class="fa-solid fa-magnifying-glass text-sm absolute left-3 top-1/2 -translate-y-1/2 text-slate-400"></i>
-        <input [ngModel]="search()" (ngModelChange)="search.set($event)"
-               placeholder="Buscar categoría por nombre o slug..."
-               class="eg-input has-icon-left pr-3 border-transparent" />
-      </div>
+      <dlx-search-input [fluid]="true" [value]="search()" (valueChange)="search.set($event)" placeholder="Buscar categoría por nombre o slug..." class="flex-1 min-w-64" />
       <label class="flex items-center gap-2 text-sm cursor-pointer">
         <input type="checkbox" [(ngModel)]="onlyActive" (change)="reload()" class="w-4 h-4 accent-emerald-500" />
         <span>Solo activas</span>

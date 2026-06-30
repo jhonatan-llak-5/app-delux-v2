@@ -1,4 +1,5 @@
 import { ChangeDetectionStrategy, Component, OnInit, inject, signal } from '@angular/core';
+import { DlxSearchInputComponent } from '@shared/ui/search-input.component';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { RouterLink } from '@angular/router';
@@ -12,7 +13,7 @@ import { CustomerFormModalComponent } from '@features/superadmin/components/cust
 @Component({
   selector: 'dlx-customers-list',
   standalone: true,
-  imports: [CommonModule, FormsModule, RouterLink, CustomerFormModalComponent],
+  imports: [DlxSearchInputComponent, CommonModule, FormsModule, RouterLink, CustomerFormModalComponent],
   changeDetection: ChangeDetectionStrategy.OnPush,
   template: `
     <div class="flex flex-wrap items-end justify-between gap-4 mb-6">
@@ -48,12 +49,7 @@ import { CustomerFormModalComponent } from '@features/superadmin/components/cust
     }
 
     <div class="card p-4 mb-4">
-      <div class="relative">
-        <i class="fa-solid fa-magnifying-glass text-sm absolute left-3 top-1/2 -translate-y-1/2 text-slate-400 pointer-events-none"></i>
-        <input placeholder="Buscar por nombre, email, teléfono, cédula..."
-               [ngModel]="search()" (ngModelChange)="onSearch($event)"
-               class="eg-input has-icon-left pr-3 border-transparent" />
-      </div>
+      <dlx-search-input [fluid]="true" [value]="search()" (valueChange)="onSearch($event)" placeholder="Buscar por nombre, email, teléfono, cédula..." />
     </div>
 
     <div class="card overflow-hidden">

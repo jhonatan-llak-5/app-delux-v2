@@ -1,4 +1,5 @@
 import { ChangeDetectionStrategy, Component, OnInit, inject, signal } from '@angular/core';
+import { DlxSearchInputComponent } from '@shared/ui/search-input.component';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { RouterLink } from '@angular/router';
@@ -12,7 +13,7 @@ import { AdminService, AdminBranch } from '@features/superadmin/services/admin.s
 @Component({
   selector: 'dlx-staff-list',
   standalone: true,
-  imports: [CommonModule, FormsModule, RouterLink],
+  imports: [DlxSearchInputComponent, CommonModule, FormsModule, RouterLink],
   changeDetection: ChangeDetectionStrategy.OnPush,
   template: `
     <div class="flex flex-wrap items-end justify-between gap-4 mb-6">
@@ -52,12 +53,7 @@ import { AdminService, AdminBranch } from '@features/superadmin/services/admin.s
     </div>
 
     <div class="card p-4 mb-4 flex flex-wrap gap-3 items-center filter-bar">
-      <div class="relative flex-1 min-w-[200px]">
-        <i class="fa-solid fa-magnifying-glass text-sm absolute left-3 top-1/2 -translate-y-1/2 text-slate-400 pointer-events-none"></i>
-        <input placeholder="Buscar por nombre, email, teléfono..."
-               [ngModel]="search()" (ngModelChange)="onSearch($event)"
-               class="eg-input has-icon-left pr-3 border-transparent" />
-      </div>
+      <dlx-search-input [fluid]="true" [value]="search()" (valueChange)="onSearch($event)" placeholder="Buscar por nombre, email, teléfono..." class="flex-1 min-w-[200px]" />
       <select [(ngModel)]="branchFilter" (change)="reload()"
               class="eg-input border-transparent">
         <option [ngValue]="null">Todas las sucursales</option>

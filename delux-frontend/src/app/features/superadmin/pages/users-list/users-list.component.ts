@@ -1,4 +1,5 @@
 import { ChangeDetectionStrategy, Component, OnInit, computed, inject, input, signal } from '@angular/core';
+import { DlxSearchInputComponent } from '@shared/ui/search-input.component';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { Router, RouterLink } from '@angular/router';
@@ -15,7 +16,7 @@ type Scope = 'system' | 'clients' | 'all';
 @Component({
   selector: 'dlx-users-list',
   standalone: true,
-  imports: [CommonModule, FormsModule, RouterLink, DlxModalComponent, RowActionsComponent],
+  imports: [DlxSearchInputComponent, CommonModule, FormsModule, RouterLink, DlxModalComponent, RowActionsComponent],
   changeDetection: ChangeDetectionStrategy.OnPush,
   template: `
     <div class="flex items-end justify-between gap-4 mb-6 flex-wrap">
@@ -35,12 +36,7 @@ type Scope = 'system' | 'clients' | 'all';
     </div>
 
     <div class="card p-4 mb-4 flex flex-wrap gap-3 items-center filter-bar">
-      <div class="relative flex-1 min-w-64">
-        <i class="fa-solid fa-magnifying-glass text-sm absolute left-3 top-1/2 -translate-y-1/2 text-slate-400 pointer-events-none"></i>
-        <input placeholder="Buscar por nombre o correo..."
-               [ngModel]="search()" (ngModelChange)="onSearch($event)"
-               class="eg-input has-icon-left pr-3 border-transparent" />
-      </div>
+      <dlx-search-input [fluid]="true" [value]="search()" (valueChange)="onSearch($event)" placeholder="Buscar por nombre o correo..." class="flex-1 min-w-64" />
       @if (scope() !== 'clients') {
         <select [ngModel]="role()" (ngModelChange)="onRole($event)"
                 class="eg-input border-transparent">

@@ -1,4 +1,5 @@
 import { AfterViewInit, ChangeDetectionStrategy, ChangeDetectorRef, Component, OnInit, computed, effect, inject, signal } from '@angular/core';
+import { DlxFieldErrorComponent } from '@shared/ui/field-error.component';
 import * as L from 'leaflet';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
@@ -16,7 +17,7 @@ import { CouponService, CouponValidation } from '@features/superadmin/services/c
 @Component({
   selector: 'dlx-checkout-page',
   standalone: true,
-  imports: [CommonModule, FormsModule, RouterLink],
+  imports: [DlxFieldErrorComponent, CommonModule, FormsModule, RouterLink],
   changeDetection: ChangeDetectionStrategy.OnPush,
   template: `
     <section class="max-w-[1400px] mx-auto px-6 md:px-10 pt-32 pb-24 bg-white dark:bg-ink-950 min-h-screen">
@@ -44,19 +45,19 @@ import { CouponService, CouponValidation } from '@features/superadmin/services/c
                   <label class="text-sm font-semibold text-ink-800 dark:text-white/80 mb-1.5 block">Nombre completo *</label>
                   <input [(ngModel)]="customer.full_name" name="full_name" required maxlength="160"
                          class="w-full px-3 py-3 rounded-lg bg-ink-50 dark:bg-white/5 border border-ink-200 dark:border-white/10 text-sm focus:outline-none focus:border-ink-950 dark:focus:border-white" />
-                  @if (fe('full_name')) { <p class="text-xs text-rose-600 mt-1">{{ fe('full_name') }}</p> }
+                  <dlx-field-error [error]="fe(\'full_name\')" />
                 </div>
                 <div>
                   <label class="text-sm font-semibold text-ink-800 dark:text-white/80 mb-1.5 block">Email *</label>
                   <input [(ngModel)]="customer.email" name="email" type="email" required
                          class="w-full px-3 py-3 rounded-lg bg-ink-50 dark:bg-white/5 border border-ink-200 dark:border-white/10 text-sm focus:outline-none focus:border-ink-950 dark:focus:border-white" />
-                  @if (fe('email')) { <p class="text-xs text-rose-600 mt-1">{{ fe('email') }}</p> }
+                  <dlx-field-error [error]="fe(\'email\')" />
                 </div>
                 <div>
                   <label class="text-sm font-semibold text-ink-800 dark:text-white/80 mb-1.5 block">Teléfono *</label>
                   <input [(ngModel)]="customer.phone" name="phone" required maxlength="30"
                          class="w-full px-3 py-3 rounded-lg bg-ink-50 dark:bg-white/5 border border-ink-200 dark:border-white/10 text-sm focus:outline-none focus:border-ink-950 dark:focus:border-white" />
-                  @if (fe('phone')) { <p class="text-xs text-rose-600 mt-1">{{ fe('phone') }}</p> }
+                  <dlx-field-error [error]="fe(\'phone\')" />
                 </div>
                 <div>
                   <label class="text-sm font-semibold text-ink-800 dark:text-white/80 mb-1.5 block">Cédula</label>

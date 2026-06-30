@@ -1,4 +1,5 @@
 import { ChangeDetectionStrategy, Component, EventEmitter, Input, OnInit, Output, inject, signal } from '@angular/core';
+import { DlxFieldErrorComponent } from '@shared/ui/field-error.component';
 import { CommonModule } from '@angular/common';
 import { DlxModalComponent } from '@shared/ui/modal.component';
 import { FormsModule } from '@angular/forms';
@@ -8,7 +9,7 @@ import { parseApiError } from '@shared/utils/api-error.util';
 @Component({
   selector: 'dlx-coupon-form-modal',
   standalone: true,
-  imports: [CommonModule, FormsModule, DlxModalComponent],
+  imports: [DlxFieldErrorComponent, CommonModule, FormsModule, DlxModalComponent],
   changeDetection: ChangeDetectionStrategy.OnPush,
   template: `
     <dlx-modal [open]="true" [maxWidth]="480"
@@ -20,7 +21,7 @@ import { parseApiError } from '@shared/utils/api-error.util';
             <input [(ngModel)]="payload.code" name="code" required maxlength="40"
                    class="eg-input font-mono uppercase" [class.!border-rose-400]="fe('code')"
                    placeholder="VERANO2026" />
-            @if (fe('code')) { <p class="text-xs text-rose-600 mt-1">{{ fe('code') }}</p> }
+            <dlx-field-error [error]="fe(\'code\')" />
             <p class="text-[10px] text-slate-400 mt-1">Los clientes ingresarán este código al pagar.</p>
           </div>
 
@@ -52,7 +53,7 @@ import { parseApiError } from '@shared/utils/api-error.util';
               <input type="number" [(ngModel)]="payload.value" name="value" required min="0" step="0.01"
                      [max]="payload.type === 'PERCENT' ? 100 : null"
                      class="eg-input" [class.!border-rose-400]="fe('value')" />
-              @if (fe('value')) { <p class="text-xs text-rose-600 mt-1">{{ fe('value') }}</p> }
+              <dlx-field-error [error]="fe(\'value\')" />
             </div>
             <div>
               <label class="eg-label">Compra mínima ($)</label>
@@ -66,7 +67,7 @@ import { parseApiError } from '@shared/utils/api-error.util';
             <input type="number" [(ngModel)]="payload.usage_limit" name="usage_limit" min="1"
                    class="eg-input" [class.!border-rose-400]="fe('usage_limit')"
                    placeholder="Vacío = sin límite" />
-            @if (fe('usage_limit')) { <p class="text-xs text-rose-600 mt-1">{{ fe('usage_limit') }}</p> }
+            <dlx-field-error [error]="fe(\'usage_limit\')" />
           </div>
 
           <div class="grid grid-cols-2 gap-3">

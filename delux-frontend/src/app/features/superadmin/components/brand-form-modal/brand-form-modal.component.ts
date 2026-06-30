@@ -1,4 +1,5 @@
 import { ChangeDetectionStrategy, Component, EventEmitter, Input, Output, inject, signal } from '@angular/core';
+import { DlxFieldErrorComponent } from '@shared/ui/field-error.component';
 import { CommonModule } from '@angular/common';
 import { DlxModalComponent } from '@shared/ui/modal.component';
 import { FormsModule } from '@angular/forms';
@@ -9,7 +10,7 @@ import { ProductService } from '@features/superadmin/services/product.service';
 @Component({
   selector: 'dlx-brand-form-modal',
   standalone: true,
-  imports: [CommonModule, FormsModule, DlxModalComponent],
+  imports: [DlxFieldErrorComponent, CommonModule, FormsModule, DlxModalComponent],
   changeDetection: ChangeDetectionStrategy.OnPush,
   template: `
     <dlx-modal [open]="true" [maxWidth]="680"
@@ -26,7 +27,7 @@ import { ProductService } from '@features/superadmin/services/product.service';
             <span class="text-xs font-bold uppercase tracking-widest text-slate-600">Nombre *</span>
             <input required [(ngModel)]="form.name" name="name" placeholder="Nike" maxlength="80"
                    class="eg-input" [class.!border-rose-400]="fe('name')" />
-            @if (fe('name')) { <p class="text-xs text-rose-600 mt-1">{{ fe('name') }}</p> }
+            <dlx-field-error [error]="fe(\'name\')" />
           </label>
 
           <label class="block">

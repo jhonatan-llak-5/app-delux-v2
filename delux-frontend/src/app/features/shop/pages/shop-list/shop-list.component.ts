@@ -1,10 +1,10 @@
 import { ChangeDetectionStrategy, Component, computed, effect, inject, signal } from '@angular/core';
+import { IMG_PLACEHOLDER } from '@shared/utils/img-placeholder';
 import { CommonModule } from '@angular/common';
 import { RouterLink } from '@angular/router';
 import { PublicCatalogService } from '@shared/services/public-catalog.service';
 import { ZoneService } from '@shared/services/zone.service';
 
-const IMG_PLACEHOLDER = 'data:image/svg+xml,' + encodeURIComponent('<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 120 120">' + '<g fill="none" stroke="#9aa0ab" stroke-width="4" stroke-linejoin="round" stroke-linecap="round">' + '<rect x="32" y="44" width="56" height="40" rx="6"/>' + '<circle cx="60" cy="64" r="11"/>' + '<path d="M44 44l5-9h22l5 9"/>' + '</g></svg>');
 
 interface Product {
   id: string; name: string; brand: string;

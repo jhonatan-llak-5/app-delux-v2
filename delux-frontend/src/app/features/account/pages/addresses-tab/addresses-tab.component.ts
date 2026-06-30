@@ -1,4 +1,6 @@
 import { ChangeDetectionStrategy, Component, OnInit, inject, signal } from '@angular/core';
+import { DlxModalComponent } from '@shared/ui/modal.component';
+import { DlxFieldErrorComponent } from '@shared/ui/field-error.component';
 import { parseApiError } from '@shared/utils/api-error.util';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
@@ -9,7 +11,7 @@ import { NotifyService } from '@shared/services/notify.service';
 @Component({
   selector: 'dlx-addresses-tab',
   standalone: true,
-  imports: [CommonModule, FormsModule],
+  imports: [DlxModalComponent, DlxFieldErrorComponent, CommonModule, FormsModule],
   changeDetection: ChangeDetectionStrategy.OnPush,
   template: `
     <div class="editorial-card p-6">
@@ -64,11 +66,10 @@ import { NotifyService } from '@shared/services/notify.service';
     </div>
 
     @if (showForm()) {
-      <div class="fixed inset-0 z-50 grid place-items-center bg-black/60 backdrop-blur-sm p-4" (click)="onBackdrop($event)">
-        <form (ngSubmit)="save()" class="w-full max-w-lg rounded-2xl bg-white dark:bg-ink-900 shadow-2xl p-6 space-y-4">
-          <h3 class="font-display font-bold text-xl text-ink-950 dark:text-white">
-            {{ editing()?.id ? 'Editar dirección' : 'Nueva dirección' }}
-          </h3>
+      <dlx-modal [open]="true" [maxWidth]="540"
+                 [title]="editing()?.id ? 'Editar dirección' : 'Nueva dirección'"
+                 (closed)="closeForm()">
+        <form (ngSubmit)="save()" class="space-y-4">
           <div>
             <label class="text-sm font-semibold text-ink-800 dark:text-white/80 mb-1.5 block">Etiqueta</label>
             <input [(ngModel)]="form.label" name="label" maxlength="40" placeholder="Casa, oficina..."
@@ -79,7 +80,7 @@ import { NotifyService } from '@shared/services/notify.service';
             <input [(ngModel)]="form.line1" name="line1" required maxlength="200"
                    class="w-full px-3 py-3 rounded-lg bg-ink-50 dark:bg-white/5 border text-sm focus:outline-none"
                    [class.border-rose-400]="fe('line1')" [class.border-ink-200]="!fe('line1')" [class.dark:border-white/10]="!fe('line1')" />
-            @if (fe('line1')) { <p class="text-xs text-rose-600 mt-1">{{ fe('line1') }}</p> }
+            <dlx-field-error [error]="fe(\'line1\')" />
           </div>
           <div>
             <label class="text-sm font-semibold text-ink-800 dark:text-white/80 mb-1.5 block">Departamento, suite, etc.</label>
@@ -92,7 +93,7 @@ import { NotifyService } from '@shared/services/notify.service';
               <input [(ngModel)]="form.city" name="city" required maxlength="80"
                      class="w-full px-3 py-3 rounded-lg bg-ink-50 dark:bg-white/5 border text-sm focus:outline-none"
                      [class.border-rose-400]="fe('city')" [class.border-ink-200]="!fe('city')" [class.dark:border-white/10]="!fe('city')" />
-              @if (fe('city')) { <p class="text-xs text-rose-600 mt-1">{{ fe('city') }}</p> }
+              <dlx-field-error [error]="fe(\'city\')" />
             </div>
             <div>
               <label class="text-sm font-semibold text-ink-800 dark:text-white/80 mb-1.5 block">Provincia</label>
@@ -110,7 +111,7 @@ import { NotifyService } from '@shared/services/notify.service';
             <button type="submit" class="btn-accent text-sm font-semibold px-5 py-2.5">Guardar</button>
           </div>
         </form>
-      </div>
+      </dlx-modal>
     }
   `,
 })

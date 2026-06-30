@@ -1,4 +1,5 @@
 import { ChangeDetectionStrategy, Component, signal } from '@angular/core';
+import { DlxFieldErrorComponent } from '@shared/ui/field-error.component';
 import { parseApiError } from '@shared/utils/api-error.util';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
@@ -9,7 +10,7 @@ import { NotifyService } from '@shared/services/notify.service';
 @Component({
   selector: 'dlx-contact-page',
   standalone: true,
-  imports: [CommonModule, FormsModule],
+  imports: [DlxFieldErrorComponent, CommonModule, FormsModule],
   changeDetection: ChangeDetectionStrategy.OnPush,
   template: `
     <!-- HEADER -->
@@ -125,11 +126,11 @@ import { NotifyService } from '@shared/services/notify.service';
             <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
               <div>
                 <input [(ngModel)]="form.name" name="name" required maxlength="120" placeholder="Tu nombre *" class="input-modern" />
-                @if (fe('name')) { <p class="text-xs text-rose-600 mt-1">{{ fe('name') }}</p> }
+                <dlx-field-error [error]="fe(\'name\')" />
               </div>
               <div>
                 <input [(ngModel)]="form.email" name="email" type="email" required placeholder="tu@correo.com *" class="input-modern" />
-                @if (fe('email')) { <p class="text-xs text-rose-600 mt-1">{{ fe('email') }}</p> }
+                <dlx-field-error [error]="fe(\'email\')" />
               </div>
             </div>
 
@@ -145,7 +146,7 @@ import { NotifyService } from '@shared/services/notify.service';
             <textarea [(ngModel)]="form.message" name="message" rows="6" required
                       placeholder="Cuéntanos en qué podemos ayudarte... *"
                       class="input-modern resize-none"></textarea>
-            @if (fe('message')) { <p class="text-xs text-rose-600 mt-1">{{ fe('message') }}</p> }
+            <dlx-field-error [error]="fe(\'message\')" />
 
             <div class="flex items-center justify-between flex-wrap gap-4 pt-2">
               <p class="text-[12px] text-ink-500 dark:text-white/45">

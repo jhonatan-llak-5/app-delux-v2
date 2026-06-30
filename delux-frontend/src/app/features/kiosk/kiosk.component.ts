@@ -461,7 +461,7 @@ export class KioskComponent implements OnInit, OnDestroy {
       this.svc.info(token).subscribe({
         next: (i) => {
           if (i.found) this.branchName.set(i.branch_name || null);
-          const unlocked = typeof window !== 'undefined' && localStorage.getItem('dlx_kiosk_' + token) === '1';
+          const unlocked = typeof window !== 'undefined' && sessionStorage.getItem('dlx_kiosk_' + token) === '1';
           if (i.found && i.pin_required && !unlocked) this.locked.set(true);
           else this.afterUnlock();
         },
@@ -502,7 +502,7 @@ export class KioskComponent implements OnInit, OnDestroy {
     if (!t) return;
     this.svc.unlock(t, this.pin).subscribe({
       next: () => {
-        if (typeof window !== 'undefined') localStorage.setItem('dlx_kiosk_' + t, '1');
+        if (typeof window !== 'undefined') sessionStorage.setItem('dlx_kiosk_' + t, '1');
         this.locked.set(false); this.pin = ''; this.pinError.set(null);
         this.afterUnlock();
       },

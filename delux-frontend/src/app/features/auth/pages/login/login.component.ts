@@ -1,4 +1,5 @@
 import { ChangeDetectionStrategy, Component, inject, signal } from '@angular/core';
+import { DlxPasswordInputComponent } from '@shared/ui/password-input.component';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { Router, RouterLink } from '@angular/router';
@@ -9,7 +10,7 @@ import { parseApiError } from '@shared/utils/api-error.util';
 @Component({
   selector: 'dlx-login',
   standalone: true,
-  imports: [CommonModule, FormsModule, RouterLink, AuthShellComponent],
+  imports: [DlxPasswordInputComponent, CommonModule, FormsModule, RouterLink, AuthShellComponent],
   changeDetection: ChangeDetectionStrategy.OnPush,
   template: `
     <dlx-auth-shell title="Iniciar sesión en Delux">
@@ -19,19 +20,9 @@ import { parseApiError } from '@shared/utils/api-error.util';
                placeholder="Usuario, correo o teléfono *"
                class="input-modern" />
 
-        <div class="input-modern-wrap">
-          <input [(ngModel)]="password" name="password" [type]="show() ? 'text' : 'password'"
-                 required minlength="8" autocomplete="current-password"
-                 placeholder="Contraseña *"
-                 class="input-modern" />
-          @if (password) {
-            <button type="button" (click)="show.set(!show())" tabindex="-1"
-                    class="input-modern-trailing"
-                    style="font-size:13px;font-weight:600;">
-              {{ show() ? 'Ocultar' : 'Mostrar' }}
-            </button>
-          }
-        </div>
+        <dlx-password-input [(ngModel)]="password" name="password" required minlength="8"
+                            autocomplete="current-password" placeholder="Contraseña *"
+                            inputClass="input-modern pr-10" />
 
         @if (error()) {
           <p class="text-rose-600 dark:text-rose-400 text-[13px] text-center pt-1">

@@ -1,4 +1,5 @@
 import { ChangeDetectionStrategy, Component, EventEmitter, Input, Output, inject, signal } from '@angular/core';
+import { DlxFieldErrorComponent } from '@shared/ui/field-error.component';
 import { CommonModule } from '@angular/common';
 import { DlxModalComponent } from '@shared/ui/modal.component';
 import { FormsModule } from '@angular/forms';
@@ -8,7 +9,7 @@ import { parseApiError } from '@shared/utils/api-error.util';
 @Component({
   selector: 'dlx-stock-adjust-modal',
   standalone: true,
-  imports: [CommonModule, FormsModule, DlxModalComponent],
+  imports: [DlxFieldErrorComponent, CommonModule, FormsModule, DlxModalComponent],
   changeDetection: ChangeDetectionStrategy.OnPush,
   template: `
     <dlx-modal [open]="true" [maxWidth]="480"
@@ -97,7 +98,7 @@ import { parseApiError } from '@shared/utils/api-error.util';
                 <i class="fa-solid fa-plus text-sm"></i>
               </button>
             </div>
-            @if (fe('quantity')) { <p class="text-xs text-rose-600 mt-1">{{ fe('quantity') }}</p> }
+            <dlx-field-error [error]="fe(\'quantity\')" />
           </div>
 
           <div>

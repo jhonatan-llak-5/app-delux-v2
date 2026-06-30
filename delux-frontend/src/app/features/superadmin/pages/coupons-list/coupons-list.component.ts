@@ -1,4 +1,5 @@
 import { ChangeDetectionStrategy, Component, OnInit, inject, signal } from '@angular/core';
+import { DlxSearchInputComponent } from '@shared/ui/search-input.component';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { Coupon, CouponService } from '@features/superadmin/services/coupon.service';
@@ -9,7 +10,7 @@ import { CouponFormModalComponent } from '@features/superadmin/components/coupon
 @Component({
   selector: 'dlx-coupons-list',
   standalone: true,
-  imports: [CommonModule, FormsModule, CouponFormModalComponent],
+  imports: [DlxSearchInputComponent, CommonModule, FormsModule, CouponFormModalComponent],
   changeDetection: ChangeDetectionStrategy.OnPush,
   template: `
     <div class="flex flex-wrap items-end justify-between gap-4 mb-6">
@@ -47,11 +48,7 @@ import { CouponFormModalComponent } from '@features/superadmin/components/coupon
     </div>
 
     <div class="card p-4 mb-4 flex flex-wrap gap-3 items-center filter-bar">
-      <div class="relative flex-1 min-w-64">
-        <i class="fa-solid fa-magnifying-glass text-sm absolute left-3 top-1/2 -translate-y-1/2 text-slate-400"></i>
-        <input placeholder="Buscar por código..." [(ngModel)]="search" (ngModelChange)="reload()"
-               class="eg-input has-icon-left pr-3 border-transparent" />
-      </div>
+      <dlx-search-input [fluid]="true" [value]="search" (valueChange)="search = $event; reload()" placeholder="Buscar por código..." class="flex-1 min-w-64" />
       <select [(ngModel)]="typeFilter" (change)="reload()"
               class="px-3 py-2 rounded-lg bg-slate-50 border border-transparent text-sm">
         <option value="">Todos los tipos</option>
