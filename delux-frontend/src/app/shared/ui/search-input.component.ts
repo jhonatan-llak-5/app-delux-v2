@@ -10,6 +10,7 @@ import { FormsModule } from '@angular/forms';
   standalone: true,
   imports: [FormsModule],
   changeDetection: ChangeDetectionStrategy.OnPush,
+  host: { class: 'block' },
   template: `
     <div class="relative w-full" [class.max-w-md]="!fluid">
       <i class="fa-solid fa-magnifying-glass text-sm absolute left-3 top-1/2 -translate-y-1/2 text-slate-400"></i>
@@ -29,4 +30,3 @@ export class DlxSearchInputComponent {
     this.value = v;
     this.valueChange.emit(v);  }
 }
-

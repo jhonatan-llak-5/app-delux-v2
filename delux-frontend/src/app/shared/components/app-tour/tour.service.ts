@@ -128,6 +128,36 @@ export class TourService {
       body: 'Ajustes de la plataforma: branding, parámetros generales y preferencias.',
     },
     {
+      target: '[data-tour="nav-reception"]', placement: 'right', icon: 'fa-truck-ramp-box',
+      title: 'Recepción',
+      body: 'Registra el ingreso de mercadería: escanea o agrega productos y suma stock a la sucursal.',
+    },
+    {
+      target: '[data-tour="nav-receptions"]', placement: 'right', icon: 'fa-clock-rotate-left',
+      title: 'Historial de recepciones',
+      body: 'Consulta todas las recepciones confirmadas y reimprime sus etiquetas cuando lo necesites.',
+    },
+    {
+      target: '[data-tour="nav-suppliers"]', placement: 'right', icon: 'fa-truck-field',
+      title: 'Proveedores',
+      body: 'Administra tus proveedores; aparecen al registrar una recepción de mercadería.',
+    },
+    {
+      target: '[data-tour="nav-kiosko"]', placement: 'right', icon: 'fa-qrcode',
+      title: 'Kiosko',
+      body: 'Pantalla de autoconsulta para clientes: buscan un producto y ven precio y stock por sucursal.',
+    },
+    {
+      target: '[data-tour="nav-sucursales"]', placement: 'right', icon: 'fa-store',
+      title: 'Sucursales',
+      body: 'Crea y administra las sucursales de la tienda, cada una con su catálogo, stock y horario.',
+    },
+    {
+      target: '[data-tour="nav-profile"]', placement: 'right', icon: 'fa-id-card',
+      title: 'Mi perfil',
+      body: 'Tus datos personales y el cambio de contraseña.',
+    },
+    {
       target: '[data-tour="search"]', placement: 'bottom', icon: 'fa-magnifying-glass',
       title: 'Búsqueda rápida',
       body: 'Encuentra productos, pedidos o clientes al instante desde cualquier pantalla.',
@@ -167,10 +197,31 @@ export class TourService {
       s => !s.target || (typeof document !== 'undefined' && !!document.querySelector(s.target))
     );
     if (!applicable.length) return;
-    this._steps.set(applicable);
+    this._steps.set(this.orderByMenu(applicable));
     this._index.set(0);
     this._active.set(true);
     this.lockScroll(true);
+  }
+
+  /** Ordena los pasos de navegación (nav-*) según el orden visual real del menú. */
+  private orderByMenu(steps: TourStep[]): TourStep[] {
+    if (typeof document === 'undefined') return steps;
+    const isNav = (s: TourStep) => !!s.target && s.target.includes('"nav-');
+    const top = (sel: string | null) => {
+      const el = sel ? document.querySelector(sel) : null;
+      return el ? (el as HTMLElement).getBoundingClientRect().top : 0;
+    };
+    const navSorted = steps.filter(isNav).sort((a, b) => top(a.target) - top(b.target));
+    const result: TourStep[] = [];
+    let inserted = false;
+    for (const s of steps) {
+      if (isNav(s)) {
+        if (!inserted) { result.push(...navSorted); inserted = true; }
+      } else {
+        result.push(s);
+      }
+    }
+    return result;
   }
 
   next(): void {

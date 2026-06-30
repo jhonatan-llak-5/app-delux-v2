@@ -140,13 +140,13 @@ const WEEKDAYS = [
 
           <div class="card p-5 space-y-2">
             <h3 class="font-bold tracking-tight mb-2">Plantillas rápidas</h3>
-            <button type="button" (click)="applyTemplate('weekdays')" class="w-full px-3 py-2 rounded-lg bg-slate-100 hover:bg-slate-200 text-xs font-semibold text-left">
+            <button type="button" (click)="applyTemplate('weekdays')" class="w-full px-3 py-2 rounded-lg bg-slate-100 hover:bg-slate-200 dark:bg-white/5 dark:hover:bg-white/10 dark:text-slate-200 text-xs font-semibold text-left">
               <i class="fa-solid fa-briefcase text-slate-500"></i> Lun-Vie 09:00-18:00
             </button>
-            <button type="button" (click)="applyTemplate('mall')" class="w-full px-3 py-2 rounded-lg bg-slate-100 hover:bg-slate-200 text-xs font-semibold text-left">
+            <button type="button" (click)="applyTemplate('mall')" class="w-full px-3 py-2 rounded-lg bg-slate-100 hover:bg-slate-200 dark:bg-white/5 dark:hover:bg-white/10 dark:text-slate-200 text-xs font-semibold text-left">
               <i class="fa-solid fa-shopping-bag text-slate-500"></i> Todos los días 10:00-21:00
             </button>
-            <button type="button" (click)="applyTemplate('weekend')" class="w-full px-3 py-2 rounded-lg bg-slate-100 hover:bg-slate-200 text-xs font-semibold text-left">
+            <button type="button" (click)="applyTemplate('weekend')" class="w-full px-3 py-2 rounded-lg bg-slate-100 hover:bg-slate-200 dark:bg-white/5 dark:hover:bg-white/10 dark:text-slate-200 text-xs font-semibold text-left">
               <i class="fa-solid fa-umbrella-beach text-slate-500"></i> Solo sáb-dom 11:00-20:00
             </button>
           </div>

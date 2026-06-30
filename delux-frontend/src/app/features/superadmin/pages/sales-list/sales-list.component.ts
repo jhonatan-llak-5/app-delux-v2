@@ -28,7 +28,7 @@ import { generateVoucherPDF } from '@shared/utils/voucher-pdf.util';
         <p class="text-slate-500 text-sm mt-1">Historial de órdenes y vouchers.</p>
       </div>
       <a routerLink="/app/admin/pos"
-         class="px-4 py-2.5 rounded-lg bg-ink-950 text-white text-sm font-semibold hover:bg-ink-900 transition flex items-center gap-2">
+         class="px-4 py-2.5 rounded-lg bg-[#1e40af] text-white text-sm font-semibold hover:bg-[#1e3a8a] transition flex items-center gap-2">
         <i class="fa-solid fa-cash-register"></i> Nueva venta POS
       </a>
     </div>

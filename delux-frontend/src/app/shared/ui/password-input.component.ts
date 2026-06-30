@@ -10,6 +10,7 @@ import { NG_VALUE_ACCESSOR, ControlValueAccessor } from '@angular/forms';
   selector: 'dlx-password-input',
   standalone: true,
   changeDetection: ChangeDetectionStrategy.OnPush,
+  host: { class: 'block' },
   providers: [{
     provide: NG_VALUE_ACCESSOR,
     useExisting: forwardRef(() => DlxPasswordInputComponent),
