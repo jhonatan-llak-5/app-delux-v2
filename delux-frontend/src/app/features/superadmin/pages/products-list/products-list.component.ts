@@ -75,7 +75,7 @@ import { AuthService } from '@core/services/auth.service';
 
     <!-- Filtros -->
     <div class="card p-4 mb-4 flex flex-wrap gap-3 items-center filter-bar">
-      <dlx-search-input [fluid]="true" [value]="search()" (valueChange)="onSearch($event)" placeholder="Buscar por nombre, slug o descripción..." class="flex-1 min-w-64" />
+      <dlx-search-input [fluid]="true" [value]="search()" (valueChange)="onSearch($event)" placeholder="Buscar por nombre o descripción..." class="flex-1 min-w-64" />
       <select [(ngModel)]="brandFilter" (change)="reload()"
               class="eg-input border-transparent">
         <option [ngValue]="null">Todas las marcas</option>

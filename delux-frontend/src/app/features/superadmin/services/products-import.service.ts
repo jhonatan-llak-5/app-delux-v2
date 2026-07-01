@@ -61,10 +61,11 @@ export class ProductsImportService {
   }
 
   /** Commit definitivo: filas validadas + ZIP opcional. */
-  commit(rows: ImportRow[], zip?: File | null): Observable<CommitResponse> {
+  commit(rows: ImportRow[], zip?: File | null, branchCodes: string[] = []): Observable<CommitResponse> {
     const fd = new FormData();
     fd.append('rows', JSON.stringify(rows));
     if (zip) fd.append('zip', zip);
+    fd.append('branch_codes', JSON.stringify(branchCodes));
     return this.http.post<CommitResponse>(`${this.base}/commit/`, fd);
   }
 }

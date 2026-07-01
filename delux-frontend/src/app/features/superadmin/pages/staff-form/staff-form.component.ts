@@ -185,6 +185,16 @@ import { parseApiError } from '@shared/utils/api-error.util';
               </p>
             </div>
           }
+
+          <div>
+            <label class="eg-label">Sueldo mensual ($)</label>
+            <div class="relative">
+              <span class="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400 text-sm">$</span>
+              <input type="number" [(ngModel)]="payload.monthly_salary" name="monthly_salary"
+                     min="0" step="0.01" class="eg-input pl-7" />
+            </div>
+            <p class="text-[10px] text-slate-400 mt-1">Sueldo fijo mensual del empleado.</p>
+          </div>
         </div>
 
         @if (error()) {
@@ -284,7 +294,7 @@ export class StaffFormComponent implements OnInit {
   payload: StaffPayload = {
     email: '', full_name: '', phone: '', document_id: '',
     role: 'SALESPERSON', branch: null as any,
-    commission_rate: 5, hire_date: null,
+    commission_rate: 0, monthly_salary: 0, hire_date: null,
     password: '',
   };
 
@@ -299,6 +309,7 @@ export class StaffFormComponent implements OnInit {
           phone: s.phone, document_id: s.document_id,
           role: s.role, branch: s.branch!,
           commission_rate: +s.commission_rate,
+          monthly_salary: +s.monthly_salary,
           hire_date: s.hire_date,
         };
       });
@@ -352,7 +363,7 @@ export class StaffFormComponent implements OnInit {
     this.payload = {
       email: '', full_name: '', phone: '', document_id: '',
       role: 'SALESPERSON', branch: null as any,
-      commission_rate: 5, hire_date: null, password: '',
+      commission_rate: 0, monthly_salary: 0, hire_date: null, password: '',
     };
   }
 }

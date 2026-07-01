@@ -45,6 +45,7 @@ type Scope = 'system' | 'clients' | 'all';
           <option value="TENANT_ADMIN">Admin Tenant</option>
           <option value="BRANCH_MANAGER">Gerente Sucursal</option>
           <option value="SALESPERSON">Vendedor</option>
+          <option value="AFFILIATE">Afiliado</option>
           @if (scope() === 'all') { <option value="CUSTOMER">Cliente</option> }
         </select>
       }
@@ -295,7 +296,7 @@ export class UsersListComponent implements OnInit {
 
   roleLabel(r: AdminUser['role']) {
     return ({ SUPERADMIN: 'Superadmin', TENANT_ADMIN: 'Admin', BRANCH_MANAGER: 'Gerente',
-              SALESPERSON: 'Vendedor', CUSTOMER: 'Cliente' } as const)[r];
+              SALESPERSON: 'Vendedor', AFFILIATE: 'Afiliado', CUSTOMER: 'Cliente' } as const)[r];
   }
   roleClass(r: AdminUser['role']) {
     return ({
@@ -303,6 +304,7 @@ export class UsersListComponent implements OnInit {
       TENANT_ADMIN: 'bg-sky-100 text-sky-700',
       BRANCH_MANAGER: 'bg-emerald-100 text-emerald-700',
       SALESPERSON: 'bg-amber-100 text-amber-700',
+      AFFILIATE: 'bg-blue-100 text-blue-700',
       CUSTOMER: 'bg-slate-100 text-slate-700',
     } as const)[r];
   }

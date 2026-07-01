@@ -36,6 +36,10 @@ class User(AbstractUser):
         max_digits=5, decimal_places=2, default=0,
         help_text='Porcentaje de comision (0-100)'
     )
+    monthly_salary = models.DecimalField(
+        max_digits=10, decimal_places=2, default=0,
+        help_text='Sueldo mensual fijo del empleado'
+    )
     hire_date = models.DateField(null=True, blank=True)
 
     # Afiliado (programa de referidos)

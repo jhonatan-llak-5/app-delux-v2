@@ -9,14 +9,14 @@ from rest_framework.parsers import MultiPartParser, FormParser, JSONParser
 from rest_framework.response import Response
 from rest_framework.views import APIView
 
-from apps.accounts.permissions import IsSuperadmin
+from apps.accounts.permissions import IsStaff
 
 from . import bulk_import as bi
 
 
 class ProductBulkTemplateView(APIView):
     """GET /api/v1/admin/products/bulk-import/template/  → xlsx descargable."""
-    permission_classes = [permissions.IsAuthenticated, IsSuperadmin]
+    permission_classes = [permissions.IsAuthenticated, IsStaff]
 
     def get(self, request):
         tenant = getattr(request.user, 'tenant', None)
@@ -31,7 +31,7 @@ class ProductBulkTemplateView(APIView):
 
 class ProductBulkDryRunView(APIView):
     """POST multipart/form-data con file=<xlsx>  → preview validado."""
-    permission_classes = [permissions.IsAuthenticated, IsSuperadmin]
+    permission_classes = [permissions.IsAuthenticated, IsStaff]
     parser_classes = [MultiPartParser, FormParser]
 
     def post(self, request):
@@ -78,7 +78,7 @@ class ProductBulkCommitView(APIView):
       rows: JSON serializado del array validado
       zip:  ZIP opcional con imágenes (nombres = slug-N.ext)
     """
-    permission_classes = [permissions.IsAuthenticated, IsSuperadmin]
+    permission_classes = [permissions.IsAuthenticated, IsStaff]
     parser_classes = [MultiPartParser, FormParser, JSONParser]
 
     def post(self, request):
@@ -111,6 +111,23 @@ class ProductBulkCommitView(APIView):
         tenant = getattr(request.user, 'tenant', None)
         validated = bi.validate_rows(rows, tenant=tenant)
 
+        # Sucursal(es) destino del stock (obligatorio si hay stock).
+        raw_branches = request.data.get('branch_codes')
+        if isinstance(raw_branches, str):
+            try:
+                branch_codes = json.loads(raw_branches)
+            except json.JSONDecodeError:
+                branch_codes = [c.strip() for c in raw_branches.split(',') if c.strip()]
+        else:
+            branch_codes = raw_branches or []
+
+        # Aislamiento: gerente/vendedor solo pueden cargar a SU sucursal.
+        from apps.branches.models import Branch
+        user = request.user
+        if getattr(user, 'role', None) in ('BRANCH_MANAGER', 'SALESPERSON') and user.branch_id:
+            own = Branch.objects.filter(pk=user.branch_id).values_list('code', flat=True).first()
+            branch_codes = [own] if own else []
+
         # Procesar ZIP de imágenes si viene
         image_map = {}
         zf = request.FILES.get('zip')
@@ -121,5 +138,6 @@ class ProductBulkCommitView(APIView):
                 return Response({'detail': f'Error procesando ZIP: {exc}'},
                                 status=status.HTTP_400_BAD_REQUEST)
 
-        result = bi.commit_rows(validated, image_map=image_map, tenant=tenant)
+        result = bi.commit_rows(validated, image_map=image_map, tenant=tenant,
+                                branch_codes=branch_codes)
         return Response(result, status=status.HTTP_201_CREATED)

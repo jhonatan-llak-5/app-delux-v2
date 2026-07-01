@@ -14,7 +14,7 @@ class StaffSerializer(serializers.ModelSerializer):
         fields = (
             'id', 'email', 'full_name', 'phone', 'document_id',
             'role', 'role_label', 'tenant', 'branch', 'branch_name',
-            'commission_rate', 'hire_date',
+            'commission_rate', 'monthly_salary', 'hire_date',
             'is_active', 'is_email_verified',
             'date_joined', 'last_login',
         )
@@ -34,7 +34,7 @@ class StaffCreateSerializer(serializers.ModelSerializer):
         model = User
         fields = (
             'email', 'full_name', 'phone', 'document_id',
-            'role', 'branch', 'commission_rate', 'hire_date',
+            'role', 'branch', 'commission_rate', 'monthly_salary', 'hire_date',
             'password',
         )
 

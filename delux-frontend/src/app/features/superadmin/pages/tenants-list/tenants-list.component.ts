@@ -32,7 +32,6 @@ import { AdminService, AdminTenant } from '@features/superadmin/services/admin.s
               </div>
               <div class="min-w-0 flex-1">
                 <h3 class="text-base font-bold truncate">{{ t.name }}</h3>
-                <p class="text-xs text-slate-400 font-mono truncate">/{{ t.slug }}</p>
               </div>
               <span class="inline-flex items-center gap-1.5 px-2 py-0.5 rounded-full text-[11px] font-semibold shrink-0"
                     [ngClass]="t.is_active ? 'bg-emerald-50 text-emerald-700 dark:bg-emerald-500/15 dark:text-emerald-300' : 'bg-rose-50 text-rose-700 dark:bg-rose-500/15 dark:text-rose-300'">

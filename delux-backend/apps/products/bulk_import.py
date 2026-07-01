@@ -40,9 +40,8 @@ from .models import Product, ProductImage, ProductStatus, ProductTag, ProductKin
 # ============================================================
 COLUMNS: List[Dict[str, Any]] = [
     {'key': 'name',                'label': 'Nombre',              'required': True,  'width': 32},
-    {'key': 'slug',                'label': 'Slug (opcional)',     'required': False, 'width': 28},
-    {'key': 'brand_slug',          'label': 'Marca (slug)',        'required': True,  'width': 18},
-    {'key': 'category_slug',       'label': 'Categoría (slug)',    'required': True,  'width': 20},
+    {'key': 'brand_slug',          'label': 'Marca',               'required': True,  'width': 18},
+    {'key': 'category_slug',       'label': 'Categoría',           'required': True,  'width': 20},
     {'key': 'kind',                'label': 'Tipo',                'required': False, 'width': 12},
     {'key': 'base_price',          'label': 'Precio base',         'required': True,  'width': 12},
     {'key': 'compare_at_price',    'label': 'Precio comparado',    'required': False, 'width': 14},
@@ -55,7 +54,6 @@ COLUMNS: List[Dict[str, Any]] = [
     {'key': 'sizes',               'label': 'Tallas (sep |)',      'required': False, 'width': 22},
     {'key': 'colors',              'label': 'Colores (sep |)',     'required': False, 'width': 22},
     {'key': 'stock_per_variant',   'label': 'Stock por variante',  'required': False, 'width': 12},
-    {'key': 'stock_branch_code',   'label': 'Sucursal stock (code)','required': False,'width': 18},
     {'key': 'cost',                'label': 'Costo (compra)',      'required': False, 'width': 12},
     {'key': 'supplier',            'label': 'Proveedor',           'required': False, 'width': 22},
     {'key': 'main_image_url',      'label': 'URL imagen principal','required': False, 'width': 40},
@@ -104,9 +102,8 @@ def build_template_xlsx(tenant: Optional[Tenant] = None) -> bytes:
     # Ejemplo en row 2
     example = {
         'name': 'Nike Air Force 1 \'07',
-        'slug': 'nike-air-force-1-07',
-        'brand_slug': 'nike',
-        'category_slug': 'zapatillas',
+        'brand_slug': 'Nike',
+        'category_slug': 'Zapatillas',
         'kind': 'CALZADO',
         'base_price': 119.90,
         'compare_at_price': 139.90,
@@ -119,7 +116,6 @@ def build_template_xlsx(tenant: Optional[Tenant] = None) -> bytes:
         'sizes': '38|39|40|41|42|43',
         'colors': 'Blanco|Negro',
         'stock_per_variant': 10,
-        'stock_branch_code': 'PRINCIPAL',
         'cost': 45.00,
         'supplier': 'Proveedor Ejemplo',
         'main_image_url': 'https://ejemplo.com/af1-main.jpg',
@@ -134,8 +130,8 @@ def build_template_xlsx(tenant: Optional[Tenant] = None) -> bytes:
     # Validaciones (data validation drop-downs)
     last_row = 1000
     # Cargar slugs reales si hay tenant
-    brand_slugs = list(Brand.objects.filter(is_active=True).values_list('slug', flat=True)) if Brand.objects.exists() else []
-    category_slugs = list(Category.objects.filter(is_active=True).values_list('slug', flat=True)) if Category.objects.exists() else []
+    brand_names = list(Brand.objects.filter(is_active=True).values_list('name', flat=True)) if Brand.objects.exists() else []
+    category_names = list(Category.objects.filter(is_active=True).values_list('name', flat=True)) if Category.objects.exists() else []
     branch_codes = list(Branch.objects.filter(is_active=True).values_list('code', flat=True)) if Branch.objects.exists() else []
 
     def col_letter(key: str) -> str:
@@ -157,15 +153,13 @@ def build_template_xlsx(tenant: Optional[Tenant] = None) -> bytes:
 
     # ---- Hoja 2: Catálogos (referencia) ----
     cat_ws = wb.create_sheet('Catálogos')
-    cat_ws['A1'] = 'Marcas (slug)'
-    cat_ws['B1'] = 'Categorías (slug)'
-    cat_ws['C1'] = 'Sucursales (code)'
-    for c in ('A1', 'B1', 'C1'):
+    cat_ws['A1'] = 'Marcas disponibles'
+    cat_ws['B1'] = 'Categorías disponibles'
+    for c in ('A1', 'B1'):
         cat_ws[c].fill = HEADER_FILL
         cat_ws[c].font = HEADER_FONT
-    for i, s in enumerate(brand_slugs, start=2):    cat_ws.cell(row=i, column=1, value=s)
-    for i, s in enumerate(category_slugs, start=2): cat_ws.cell(row=i, column=2, value=s)
-    for i, s in enumerate(branch_codes, start=2):   cat_ws.cell(row=i, column=3, value=s)
+    for i, v in enumerate(brand_names, start=2):    cat_ws.cell(row=i, column=1, value=v)
+    for i, v in enumerate(category_names, start=2): cat_ws.cell(row=i, column=2, value=v)
     for col in ('A', 'B', 'C'):
         cat_ws.column_dimensions[col].width = 24
 
@@ -176,19 +170,21 @@ def build_template_xlsx(tenant: Optional[Tenant] = None) -> bytes:
     instructions = [
         '',
         '1. Llena la hoja "Productos" con una fila por producto.',
-        '2. Las columnas marcadas como obligatorias son: Nombre, Marca, Categoría, Precio base.',
-        '3. Marca y Categoría deben usar el SLUG (ver hoja "Catálogos").',
+        '2. Columnas obligatorias: Nombre, Marca, Categoría, Precio base.',
+        '3. En Marca y Categoría escribe el NOMBRE tal como aparece en la hoja "Catálogos".',
         '4. Para variantes: separa tallas y colores con barra vertical |  (ej: 38|39|40).',
-        '   Se crearán todas las combinaciones (talla × color).',
-        '5. Para stock inicial: indica cantidad por variante y el code de la sucursal.',
-        '   - Costo: costo de compra (para márgenes). Proveedor: nombre (se crea solo).',
+        '   Se crean todas las combinaciones (talla × color).',
+        '5. Stock: indica "Stock por variante". La SUCURSAL destino se elige al subir el',
+        '   archivo (paso 2), no en el Excel. El stock se cargará en la(s) sucursal(es)',
+        '   que selecciones. Costo = costo de compra; Proveedor = nombre (se crea solo).',
         '   - Tipo: CALZADO, ROPA, GORRA, MOCHILA, BISUTERIA, ACCESORIO u OTRO.',
         '   - El código interno (P########) se genera automáticamente por variante.',
-        '6. Imágenes:',
-        '   - main_image_url: URL principal.',
-        '   - extra_images_urls: URLs adicionales separadas por |',
-        '   - O sube un ZIP con archivos nombrados como el slug (ej: nike-air-force-1-07-1.jpg).',
-        '7. Borra la fila 2 (ejemplo) antes de subir, o quedará como producto.',
+        '6. Imágenes (dos formas):',
+        '   a) Por URL: llena "URL imagen principal" y "URLs extras" (separadas por |).',
+        '   b) Por ZIP: sube un .zip donde cada imagen se llame igual que el NOMBRE del',
+        '      producto en minúsculas y con guiones. Ej: para "Nike Air Force 1" usa',
+        '      nike-air-force-1.jpg (principal) y nike-air-force-1-2.jpg, -3.jpg (extras).',
+        '7. Borra la fila 2 (ejemplo) antes de subir, o se creará como producto.',
     ]
     for i, line in enumerate(instructions, start=2):
         help_ws.cell(row=i, column=1, value=line)
@@ -239,13 +235,21 @@ def parse_xlsx(file_obj) -> List[Dict[str, Any]]:
 # ============================================================
 def validate_rows(rows: List[Dict[str, Any]], tenant: Optional[Tenant] = None) -> List[Dict[str, Any]]:
     """Anota cada fila con status (ok|warning|error) + errors[] + warnings[]."""
-    # Pre-cargar catálogos
-    brands = {b.slug: b for b in Brand.objects.all()}
-    categories = {c.slug: c for c in Category.objects.all()}
-    branches = {b.code: b for b in Branch.objects.all()}
+    # Pre-cargar catálogos (acotados al tenant), aceptando nombre o slug.
+    b_qs = Brand.objects.filter(tenant=tenant) if tenant else Brand.objects.all()
+    c_qs = Category.objects.filter(tenant=tenant) if tenant else Category.objects.all()
+    brands: Dict[str, Any] = {}
+    for b in b_qs:
+        brands[b.slug.lower()] = b
+        brands[(b.name or '').strip().lower()] = b
+    categories: Dict[str, Any] = {}
+    for c in c_qs:
+        categories[c.slug.lower()] = c
+        categories[(c.name or '').strip().lower()] = c
 
-    # Slugs ya existentes en DB
-    existing_slugs = set(Product.objects.values_list('slug', flat=True))
+    # Slugs ya existentes en DB (del tenant)
+    existing_slugs = set(
+        (Product.objects.filter(tenant=tenant) if tenant else Product.objects).values_list('slug', flat=True))
     # Para detectar duplicados dentro del propio archivo
     seen_in_file: Dict[str, int] = {}
 
@@ -259,29 +263,34 @@ def validate_rows(rows: List[Dict[str, Any]], tenant: Optional[Tenant] = None) -
         if not name:
             errors.append('Nombre es obligatorio.')
 
-        # Slug
-        slug = row.get('slug') or (slugify(name)[:180] if name else '')
+        # Slug (se genera automáticamente desde el nombre; se hace único).
+        base_slug = slugify(name)[:170] if name else ''
+        slug = base_slug
+        n = 2
+        while slug and (slug in existing_slugs or slug in seen_in_file):
+            slug = f'{base_slug}-{n}'
+            n += 1
         row['slug'] = slug
-        if slug and slug in existing_slugs:
-            warnings.append(f'Slug "{slug}" ya existe en BD — será omitido en commit.')
-        if slug and slug in seen_in_file:
-            warnings.append(f'Slug duplicado dentro del archivo (también en fila {seen_in_file[slug]}).')
         if slug:
             seen_in_file[slug] = row['__row__']
 
-        # Marca
-        brand_slug = row.get('brand_slug')
-        if not brand_slug:
-            errors.append('Marca es obligatoria (slug).')
-        elif brand_slug not in brands:
-            errors.append(f'Marca "{brand_slug}" no existe. Ver hoja Catálogos.')
+        # Marca (por nombre o slug)
+        brand_in = (row.get('brand_slug') or '').strip()
+        if not brand_in:
+            errors.append('Marca es obligatoria.')
+        elif brand_in.lower() not in brands:
+            errors.append(f'Marca "{brand_in}" no existe. Ver hoja Catálogos.')
+        else:
+            row['brand_slug'] = brands[brand_in.lower()].slug
 
-        # Categoría
-        cat_slug = row.get('category_slug')
-        if not cat_slug:
-            errors.append('Categoría es obligatoria (slug).')
-        elif cat_slug not in categories:
-            errors.append(f'Categoría "{cat_slug}" no existe.')
+        # Categoría (por nombre o slug)
+        cat_in = (row.get('category_slug') or '').strip()
+        if not cat_in:
+            errors.append('Categoría es obligatoria.')
+        elif cat_in.lower() not in categories:
+            errors.append(f'Categoría "{cat_in}" no existe. Ver hoja Catálogos.')
+        else:
+            row['category_slug'] = categories[cat_in.lower()].slug
 
         # Precio
         price = row.get('base_price')
@@ -366,12 +375,7 @@ def validate_rows(rows: List[Dict[str, Any]], tenant: Optional[Tenant] = None) -
         else:
             row['stock_per_variant'] = 0
 
-        branch_code = row.get('stock_branch_code')
-        if row['stock_per_variant'] > 0:
-            if not branch_code:
-                warnings.append('Hay stock pero falta código de sucursal.')
-            elif branch_code not in branches:
-                warnings.append(f'Sucursal "{branch_code}" no existe — stock se omite.')
+        # La sucursal destino del stock se elige al subir (no en el Excel).
 
         # URLs imagen
         row['extra_images_urls'] = _parse_pipe_list(row.get('extra_images_urls'))
@@ -455,6 +459,7 @@ def commit_rows(
     validated_rows: List[Dict[str, Any]],
     image_map: Optional[Dict[str, List[str]]] = None,
     tenant: Optional[Tenant] = None,
+    branch_codes: Optional[List[str]] = None,
 ) -> Dict[str, Any]:
     """Crea productos válidos; ignora filas en error. Retorna resumen."""
     from django.utils import timezone
@@ -485,10 +490,14 @@ def commit_rows(
         return rec
 
     image_map = image_map or {}
-    brands = {b.slug: b for b in Brand.objects.all()}
-    categories = {c.slug: c for c in Category.objects.all()}
-    branches = {b.code: b for b in Branch.objects.all()}
-    existing_slugs = set(Product.objects.values_list('slug', flat=True))
+    brands = {b.slug: b for b in (Brand.objects.filter(tenant=tenant) if tenant else Brand.objects.all())}
+    categories = {c.slug: c for c in (Category.objects.filter(tenant=tenant) if tenant else Category.objects.all())}
+    branch_qs = Branch.objects.filter(tenant=tenant) if tenant else Branch.objects.all()
+    branches = {b.code: b for b in branch_qs}
+    # Sucursales destino elegidas al subir (el stock se replica a cada una).
+    dest_branches = [branches[c] for c in (branch_codes or []) if c in branches]
+    existing_slugs = set(
+        (Product.objects.filter(tenant=tenant) if tenant else Product.objects).values_list('slug', flat=True))
 
     created: List[Dict[str, Any]] = []
     skipped: List[Dict[str, Any]] = []
@@ -497,9 +506,9 @@ def commit_rows(
         if row.get('_status') == 'error':
             skipped.append({'row': row['__row__'], 'reason': '; '.join(row.get('_errors', []))})
             continue
-        if row['slug'] in existing_slugs:
-            skipped.append({'row': row['__row__'], 'reason': 'slug ya existe'})
-            continue
+        # slug ya viene único desde validate; si por carrera existiera, se ajusta.
+        while row['slug'] in existing_slugs:
+            row['slug'] = row['slug'] + '-x'
 
         product = Product.objects.create(
             tenant=tenant,
@@ -537,7 +546,6 @@ def commit_rows(
         sizes = row.get('sizes') or ['']
         colors = row.get('colors') or ['']
         stock_qty = row.get('stock_per_variant') or 0
-        branch = branches.get(row.get('stock_branch_code') or '')
 
         cost = row.get('cost') or Decimal('0')
         sup_name = (row.get('supplier') or '').strip()
@@ -552,20 +560,22 @@ def commit_rows(
                     tenant=tenant, product=product,
                     sku=sku, size=s, color=c, cost=cost,
                 )
-                if stock_qty > 0 and branch:
-                    stock = Stock.objects.create(
-                        tenant=tenant, variant=variant, branch=branch,
-                        quantity=stock_qty,
-                    )
-                    StockMovement.objects.create(
-                        tenant=tenant, stock=stock, type=StockMovement.TYPE_IN,
-                        quantity=stock_qty, note='Importación masiva',
-                    )
-                    rec = _get_reception(branch, supplier_obj)
-                    ReceptionItem.objects.create(
-                        tenant=tenant, reception=rec, variant=variant,
-                        quantity=stock_qty, unit_cost=cost,
-                    )
+                # Stock inicial: se carga en CADA sucursal destino seleccionada.
+                if stock_qty > 0:
+                    for branch in dest_branches:
+                        stock = Stock.objects.create(
+                            tenant=tenant, variant=variant, branch=branch,
+                            quantity=stock_qty,
+                        )
+                        StockMovement.objects.create(
+                            tenant=tenant, stock=stock, type=StockMovement.TYPE_IN,
+                            quantity=stock_qty, note='Importación masiva',
+                        )
+                        rec = _get_reception(branch, supplier_obj)
+                        ReceptionItem.objects.create(
+                            tenant=tenant, reception=rec, variant=variant,
+                            quantity=stock_qty, unit_cost=cost,
+                        )
 
         created.append({'row': row['__row__'], 'id': product.id, 'slug': product.slug, 'name': product.name})
 

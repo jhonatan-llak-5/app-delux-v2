@@ -50,7 +50,7 @@ import { RowActionsComponent, RowAction } from '@shared/ui/row-actions.component
 
     <!-- Búsqueda -->
     <div class="card p-4 mb-4 flex flex-wrap items-center gap-3 filter-bar">
-      <dlx-search-input [fluid]="true" [value]="search()" (valueChange)="search.set($event)" placeholder="Buscar categoría por nombre o slug..." class="flex-1 min-w-64" />
+      <dlx-search-input [fluid]="true" [value]="search()" (valueChange)="search.set($event)" placeholder="Buscar categoría por nombre..." class="flex-1 min-w-64" />
       <label class="flex items-center gap-2 text-sm cursor-pointer">
         <input type="checkbox" [(ngModel)]="onlyActive" (change)="reload()" class="w-4 h-4 accent-emerald-500" />
         <span>Solo activas</span>
@@ -132,7 +132,7 @@ import { RowActionsComponent, RowAction } from '@shared/ui/row-actions.component
               }
             </div>
             <div class="text-[11px] text-slate-500 font-mono mt-0.5 truncate">
-              /{{ node.slug }} · orden {{ node.sort_order }}
+              orden {{ node.sort_order }}
             </div>
           </div>
 

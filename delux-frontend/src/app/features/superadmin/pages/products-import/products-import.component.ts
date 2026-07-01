@@ -7,6 +7,8 @@ import { DlxButtonComponent } from '@shared/ui/button.component';
 import { DlxCardComponent } from '@shared/ui/card.component';
 import { DlxPageHeaderComponent } from '@shared/ui/page-header.component';
 import { NotifyService } from '@shared/services/notify.service';
+import { AdminService, AdminBranch } from '@features/superadmin/services/admin.service';
+import { AuthService } from '@core/services/auth.service';
 import {
   ImportRow,
   ProductsImportService,
@@ -29,6 +31,33 @@ export class ProductsImportComponent {
   private svc = inject(ProductsImportService);
   private notify = inject(NotifyService);
   private router = inject(Router);
+  private adminSvc = inject(AdminService);
+  private auth = inject(AuthService);
+
+  // Sucursal(es) destino del stock (paso 2, obligatorio).
+  branches = signal<AdminBranch[]>([]);
+  selectedBranchCodes = signal<string[]>([]);
+  branchLocked = signal(false);
+
+  constructor() {
+    this.adminSvc.listBranches().subscribe(r => {
+      let list = r.results || [];
+      const u = this.auth.user();
+      if ((u?.role === 'BRANCH_MANAGER' || u?.role === 'SALESPERSON') && u.branch_id) {
+        list = list.filter(b => b.id === u.branch_id);
+        this.branchLocked.set(true);
+        if (list.length) this.selectedBranchCodes.set([list[0].code]);
+      }
+      this.branches.set(list);
+    });
+  }
+
+  isBranchSel(code: string): boolean { return this.selectedBranchCodes().includes(code); }
+  toggleBranch(code: string): void {
+    if (this.branchLocked()) return;
+    const cur = this.selectedBranchCodes();
+    this.selectedBranchCodes.set(cur.includes(code) ? cur.filter(c => c !== code) : [...cur, code]);
+  }
 
   step = signal<Step>(1);
   loading = signal(false);
@@ -177,7 +206,7 @@ export class ProductsImportComponent {
       return;
     }
     this.loading.set(true);
-    this.svc.commit(rows, this.zipFile()).subscribe({
+    this.svc.commit(rows, this.zipFile(), this.selectedBranchCodes()).subscribe({
       next: (res) => {
         this.result.set(res);
         this.loading.set(false);

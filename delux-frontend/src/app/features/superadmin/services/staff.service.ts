@@ -15,6 +15,7 @@ export interface StaffUser {
   branch: number | null;
   branch_name: string | null;
   commission_rate: string;
+  monthly_salary: string;
   hire_date: string | null;
   is_active: boolean;
   is_email_verified: boolean;
@@ -30,6 +31,7 @@ export interface StaffPayload {
   role: 'TENANT_ADMIN' | 'BRANCH_MANAGER' | 'SALESPERSON';
   branch: number;
   commission_rate?: number;
+  monthly_salary?: number;
   hire_date?: string | null;
   password?: string;
 }

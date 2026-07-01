@@ -3,7 +3,7 @@
   <dlx-page-header
     eyebrow="Catálogo"
     title="Importar productos masivamente"
-    subtitle="Descarga la plantilla Excel, llénala y súbela. Las imágenes se asocian por URL o por ZIP con auto-match.">
+    subtitle="Descarga la plantilla Excel, llénala y súbela. La sucursal destino del stock se elige al validar. Las imágenes se asocian por URL o por ZIP.">
     <a routerLink="/app/admin/products"
        class="px-3 py-2 rounded-lg text-sm text-slate-600 dark:text-slate-300
               hover:bg-slate-100 dark:hover:bg-[#1e293b] flex items-center gap-2">
@@ -57,8 +57,8 @@
         <div>
           <h2 class="text-xl font-bold text-slate-900 dark:text-white">Descarga la plantilla</h2>
           <p class="text-sm text-slate-500 dark:text-slate-400 mt-2 leading-relaxed">
-            Es un archivo Excel con todas las columnas correctas, dropdowns para marca / categoría /
-            sucursal y una hoja de instrucciones. Llénalo con tus productos y vuelve aquí.
+            Es un archivo Excel con todas las columnas correctas, listas de marca / categoría
+            y una hoja de instrucciones. Llénalo con tus productos y vuelve aquí.
           </p>
         </div>
         <div class="flex flex-col sm:flex-row items-center justify-center gap-3 pt-2">
@@ -76,9 +76,9 @@
           </p>
           <ul class="text-sm text-slate-600 dark:text-slate-400 space-y-1.5 list-disc pl-5">
             <li>Las columnas obligatorias son: <b>Nombre, Marca, Categoría, Precio base</b>.</li>
-            <li>Usa el <b>slug</b> (no el nombre) para marca y categoría. Hay una hoja "Catálogos" con los valores válidos.</li>
+            <li>Escribe el <b>nombre</b> de la marca y la categoría (ver hoja "Catálogos" con los valores válidos).</li>
             <li>Para variantes, separa tallas y colores con <code class="font-mono">|</code> (ej: <code>38|39|40</code>). Se crean todas las combinaciones.</li>
-            <li>Imágenes: o pones URLs en el archivo, o subes un ZIP con archivos nombrados como el slug del producto.</li>
+            <li>Imágenes: pon las URLs en el archivo, o sube un ZIP con cada imagen nombrada como el <b>nombre del producto</b> en minúsculas con guiones (ej: nike-air-force-1.jpg, y -2.jpg para las extras).</li>
           </ul>
         </div>
       </div>
@@ -238,12 +238,42 @@
           </table>
         </div>
 
+        <!-- Sucursal(es) destino del stock -->
+        @if (branchLocked()) {
+          <div class="mt-5 rounded-xl border border-slate-200 dark:border-white/10 p-4 flex items-center gap-3">
+            <span class="grid place-items-center w-9 h-9 rounded-lg bg-[var(--dash-primary-l)] text-[var(--dash-primary)] shrink-0"><i class="fa-solid fa-store"></i></span>
+            <p class="text-sm text-slate-600 dark:text-white/70">
+              El stock se cargará en tu sucursal: <strong class="text-slate-900 dark:text-white">{{ branches()[0]?.name }}</strong>.
+            </p>
+          </div>
+        } @else {
+          <div class="mt-5 rounded-xl border border-slate-200 dark:border-white/10 p-4">
+            <p class="text-sm font-semibold">¿A qué sucursal(es) llega el stock? <span class="text-rose-500">*</span></p>
+            <p class="text-xs text-slate-500 mb-3">El stock inicial de cada producto se cargará en la(s) sucursal(es) que selecciones.</p>
+            <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-2">
+              @for (b of branches(); track b.id) {
+                <label class="flex items-center gap-2.5 rounded-lg border p-2.5 cursor-pointer transition"
+                       [ngClass]="isBranchSel(b.code) ? 'border-[var(--dash-primary)] bg-[var(--dash-primary)]/5' : 'border-slate-200 dark:border-white/10'">
+                  <input type="checkbox" [checked]="isBranchSel(b.code)" (change)="toggleBranch(b.code)" />
+                  <span class="min-w-0">
+                    <span class="block text-sm font-semibold truncate">{{ b.name }}</span>
+                    <span class="block text-xs text-slate-400">{{ b.city }} · {{ b.code }}</span>
+                  </span>
+                </label>
+              }
+            </div>
+            @if (selectedBranchCodes().length === 0) {
+              <p class="text-xs text-amber-600 mt-2"><i class="fa-solid fa-triangle-exclamation"></i> Selecciona al menos una sucursal destino.</p>
+            }
+          </div>
+        }
+
         <div class="flex justify-between items-center mt-5 gap-3 flex-wrap">
           <dlx-button variant="ghost" icon="fa-arrow-left" (clicked)="step.set(1)">
             Atrás
           </dlx-button>
           <dlx-button variant="primary" icon="fa-arrow-right"
-                      [disabled]="validRowsCount() === 0"
+                      [disabled]="validRowsCount() === 0 || selectedBranchCodes().length === 0"
                       (clicked)="goStep3()">
             Continuar con {{ validRowsCount() }} producto(s)
           </dlx-button>
@@ -263,8 +293,8 @@
             Imágenes adicionales <span class="text-xs font-normal text-slate-500">(opcional)</span>
           </h2>
           <p class="text-sm text-slate-500 dark:text-slate-400 mt-1">
-            Sube un <b>.zip</b> con tus imágenes locales. Se asocian automáticamente al producto
-            cuyo <b>slug</b> coincide con el nombre del archivo.<br />
+            Sube un <b>.zip</b> con tus imágenes locales. Cada imagen se asocia al producto cuyo
+            <b>nombre</b> (en minúsculas y con guiones) coincide con el nombre del archivo.<br />
             Ejemplo: <code class="font-mono text-blue-600">nike-air-force-1.jpg</code>,
             <code class="font-mono text-blue-600">nike-air-force-1-2.jpg</code>.
           </p>

@@ -23,7 +23,7 @@ class StaffViewSet(viewsets.ModelViewSet):
 
     def get_queryset(self):
         qs = User.objects.select_related('branch', 'tenant').filter(
-            role__in=['TENANT_ADMIN', 'BRANCH_MANAGER', 'SALESPERSON']
+            role__in=['TENANT_ADMIN', 'BRANCH_MANAGER', 'SALESPERSON', 'AFFILIATE']
         )
         user = self.request.user
         if user.role == 'BRANCH_MANAGER':
@@ -94,5 +94,5 @@ class StaffViewSet(viewsets.ModelViewSet):
             'total_revenue': float(qs.aggregate(t=Sum('total'))['t'] or 0),
             'today_sales': today_qs.count(),
             'today_revenue': float(today_qs.aggregate(t=Sum('total'))['t'] or 0),
-            'commission_total': float((qs.aggregate(t=Sum('total'))['t'] or 0) * float(u.commission_rate) / 100),
+            'commission_total': float(qs.aggregate(t=Sum('total'))['t'] or 0) * float(u.commission_rate or 0) / 100,
         })
