@@ -4,7 +4,7 @@ from rest_framework import filters, permissions, status, viewsets
 from rest_framework.decorators import action
 from rest_framework.response import Response
 
-from apps.accounts.permissions import IsTenantAdmin
+from apps.accounts.permissions import IsTenantAdmin, IsStaff
 from .models import Category
 from .serializers import (
     CategorySerializer,
@@ -17,6 +17,12 @@ from .serializers import (
 class AdminCategoryViewSet(viewsets.ModelViewSet):
     """CRUD de categorías para Superadmin."""
     permission_classes = [permissions.IsAuthenticated, IsTenantAdmin]
+
+    def get_permissions(self):
+        # Lectura para todo el staff (filtros de productos, etc.); escritura solo admin de tienda.
+        if self.request.method in permissions.SAFE_METHODS:
+            return [permissions.IsAuthenticated(), IsStaff()]
+        return [permissions.IsAuthenticated(), IsTenantAdmin()]
     filter_backends = [filters.SearchFilter, filters.OrderingFilter]
     search_fields = ['name', 'slug']
     ordering_fields = ['sort_order', 'name', 'created_at']

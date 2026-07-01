@@ -67,6 +67,29 @@ export interface MonthlyPoint {
   commission: number;
 }
 
+export interface AffiliateProductRow {
+  product_id: number;
+  name: string;
+  brand: string;
+  image: string;
+  units: number;
+  revenue: string;
+}
+export interface AffiliateProductsData {
+  products: AffiliateProductRow[];
+  total_units: number;
+  total_revenue: string;
+  distinct_products: number;
+}
+
+export interface DateRange { from?: string; to?: string; }
+function rangeParams(r?: DateRange): HttpParams {
+  let p = new HttpParams();
+  if (r?.from) p = p.set('from', r.from);
+  if (r?.to) p = p.set('to', r.to);
+  return p;
+}
+
 interface Paged<T> { count: number; results: T[]; }
 
 @Injectable({ providedIn: 'root' })
@@ -75,16 +98,26 @@ export class AffiliateService {
   private base = `${environment.apiUrl}/affiliate`;
 
   // --- Afiliado (self) ---
-  summary(): Observable<AffiliateSummary> {
-    return this.http.get<AffiliateSummary>(`${this.base}/commissions/summary/`);
+  summary(range?: DateRange): Observable<AffiliateSummary> {
+    return this.http.get<AffiliateSummary>(`${this.base}/commissions/summary/`, { params: rangeParams(range) });
   }
 
-  commissions(): Observable<Paged<CommissionRow>> {
-    return this.http.get<Paged<CommissionRow>>(`${this.base}/commissions/`);
+  commissions(range?: DateRange, status = ''): Observable<Paged<CommissionRow>> {
+    let params = rangeParams(range);
+    if (status) params = params.set('status', status);
+    return this.http.get<Paged<CommissionRow>>(`${this.base}/commissions/`, { params });
   }
 
   monthly(): Observable<MonthlyPoint[]> {
     return this.http.get<MonthlyPoint[]>(`${this.base}/commissions/monthly/`);
+  }
+
+  myPayouts(): Observable<PayoutRow[]> {
+    return this.http.get<PayoutRow[]>(`${this.base}/payouts/`);
+  }
+
+  myProducts(range?: DateRange): Observable<AffiliateProductsData> {
+    return this.http.get<AffiliateProductsData>(`${this.base}/products/`, { params: rangeParams(range) });
   }
 
   // --- Gestion admin ---

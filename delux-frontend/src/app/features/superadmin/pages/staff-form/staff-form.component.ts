@@ -195,8 +195,8 @@ import { parseApiError } from '@shared/utils/api-error.util';
 
         <div class="flex flex-col gap-2">
           <button type="submit" [disabled]="!f.valid || saving()"
-                  class="px-5 py-3 rounded-lg bg-[#1e40af] text-white text-sm font-semibold
-                         hover:bg-[#1e3a8a] disabled:opacity-50 transition flex items-center justify-center gap-2">
+                  class="px-5 py-3 rounded-lg bg-[var(--dash-primary)] text-white text-sm font-semibold
+                         hover:bg-[var(--dash-primary-d)] disabled:opacity-50 transition flex items-center justify-center gap-2">
             @if (saving()) { <i class="fa-solid fa-spinner fa-spin"></i> Guardando... }
             @else { <i class="fa-solid fa-floppy-disk"></i> {{ isEdit() ? 'Guardar cambios' : 'Crear miembro' }} }
           </button>
@@ -256,7 +256,7 @@ import { parseApiError } from '@shared/utils/api-error.util';
             <button (click)="createAnother()" class="flex-1 h-11 rounded-xl bg-slate-100 dark:bg-white/10 text-sm font-semibold hover:bg-slate-200 transition">
               Crear otro
             </button>
-            <button (click)="goToList()" class="flex-1 h-11 rounded-xl bg-[#1e40af] text-white text-sm font-semibold hover:bg-[#1d4ed8] transition">
+            <button (click)="goToList()" class="flex-1 h-11 rounded-xl bg-[var(--dash-primary)] text-white text-sm font-semibold hover:bg-[var(--dash-primary-d)] transition">
               Ir a la lista
             </button>
           </div>

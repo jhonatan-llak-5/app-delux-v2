@@ -27,8 +27,8 @@ type Scope = 'system' | 'clients' | 'all';
       <div class="flex items-center gap-2 flex-wrap">
         @if (scope() !== 'clients') {
           <a routerLink="/app/admin/staff/new"
-             class="px-4 py-2.5 rounded-lg bg-[#1e40af] text-white text-sm font-semibold
-                    hover:bg-[#1d4ed8] transition inline-flex items-center gap-2">
+             class="px-4 py-2.5 rounded-lg bg-[var(--dash-primary)] text-white text-sm font-semibold
+                    hover:bg-[var(--dash-primary-d)] transition inline-flex items-center gap-2">
             <i class="fa-solid fa-user-plus"></i> Nuevo usuario de sucursal
           </a>
         }
@@ -146,8 +146,8 @@ type Scope = 'system' | 'clients' | 'all';
 
           <div class="flex justify-end gap-2 mt-6">
             <button class="btn-secondary text-sm" (click)="closeEdit()" [disabled]="saving()">Cancelar</button>
-            <button class="px-4 py-2 rounded-lg bg-[#1e40af] text-white text-sm font-semibold
-                           hover:bg-[#1d4ed8] transition disabled:opacity-60"
+            <button class="px-4 py-2 rounded-lg bg-[var(--dash-primary)] text-white text-sm font-semibold
+                           hover:bg-[var(--dash-primary-d)] transition disabled:opacity-60"
                     (click)="save()" [disabled]="saving()">
               {{ saving() ? 'Guardando...' : 'Guardar cambios' }}
             </button>

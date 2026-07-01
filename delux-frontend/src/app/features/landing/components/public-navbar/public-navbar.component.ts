@@ -93,35 +93,36 @@ import { ZoneService } from '@shared/services/zone.service';
                   <div class="p-3 border-b border-ink-100 dark:border-white/[0.08]">
                     <p class="font-bold text-sm text-ink-950 dark:text-white truncate">{{ userName() }}</p>
                     <p class="text-xs text-ink-500 dark:text-white/55 truncate">{{ userEmail() }}</p>
-                    @if (isStaff()) {
+                    @if (hasPanel()) {
                       <span class="inline-block mt-2 px-2 py-0.5 rounded-md bg-[#0095f6]/10 text-[#0095f6] text-[10px] font-bold uppercase tracking-wider">
                         {{ roleLabel() }}
                       </span>
                     }
                   </div>
                   <div class="p-1">
-                    @if (isStaff()) {
-                      <a routerLink="/app/admin/overview" (click)="accountOpen.set(false)"
+                    @if (hasPanel()) {
+                      <a [routerLink]="panelRoute()" (click)="accountOpen.set(false)"
                          class="flex items-center gap-3 px-3 py-2 rounded-lg text-sm text-[#0095f6] font-semibold
                                 hover:bg-[#0095f6]/10 transition">
                         <i class="fa-solid fa-shield-halved w-4 text-center"></i>
-                        Panel admin
+                        Ir a mi panel
+                      </a>
+                    } @else {
+                      <a routerLink="/app/account/profile" (click)="accountOpen.set(false)"
+                         class="flex items-center gap-3 px-3 py-2 rounded-lg text-sm
+                                text-ink-700 dark:text-white/80
+                                hover:bg-ink-100 dark:hover:bg-white/[0.06] transition">
+                        <i class="fa-regular fa-user w-4 text-center"></i>
+                        Mi cuenta
+                      </a>
+                      <a routerLink="/app/account/orders" (click)="accountOpen.set(false)"
+                         class="flex items-center gap-3 px-3 py-2 rounded-lg text-sm
+                                text-ink-700 dark:text-white/80
+                                hover:bg-ink-100 dark:hover:bg-white/[0.06] transition">
+                        <i class="fa-solid fa-receipt w-4 text-center"></i>
+                        Mis compras
                       </a>
                     }
-                    <a routerLink="/account" (click)="accountOpen.set(false)"
-                       class="flex items-center gap-3 px-3 py-2 rounded-lg text-sm
-                              text-ink-700 dark:text-white/80
-                              hover:bg-ink-100 dark:hover:bg-white/[0.06] transition">
-                      <i class="fa-regular fa-user w-4 text-center"></i>
-                      Mi cuenta
-                    </a>
-                    <a routerLink="/account/orders" (click)="accountOpen.set(false)"
-                       class="flex items-center gap-3 px-3 py-2 rounded-lg text-sm
-                              text-ink-700 dark:text-white/80
-                              hover:bg-ink-100 dark:hover:bg-white/[0.06] transition">
-                      <i class="fa-solid fa-receipt w-4 text-center"></i>
-                      Mis compras
-                    </a>
                   </div>
                   <div class="p-1 border-t border-ink-100 dark:border-white/[0.08]">
                     <button (click)="logout()"
@@ -205,14 +206,15 @@ import { ZoneService } from '@shared/services/zone.service';
             </div>
             <div class="p-4 border-t border-ink-100 dark:border-white/10 shrink-0">
               @if (hasToken) {
-                @if (isStaff()) {
-                  <a routerLink="/app/admin/overview" (click)="close()" class="btn-accent w-full text-sm mb-2">
-                    <i class="fa-solid fa-shield-halved"></i> Panel admin
+                @if (hasPanel()) {
+                  <a [routerLink]="panelRoute()" (click)="close()" class="btn-accent w-full text-sm mb-2">
+                    <i class="fa-solid fa-shield-halved"></i> Ir a mi panel
+                  </a>
+                } @else {
+                  <a routerLink="/app/account/profile" (click)="close()" class="btn-outline w-full text-sm">
+                    <i class="fa-regular fa-user"></i> Mi cuenta
                   </a>
                 }
-                <a routerLink="/account" (click)="close()" class="btn-outline w-full text-sm">
-                  <i class="fa-regular fa-user"></i> Mi cuenta
-                </a>
               } @else {
                 <a routerLink="/auth/login" (click)="close()" class="btn-accent w-full text-sm mb-2">
                   <i class="fa-solid fa-arrow-right-to-bracket"></i> Iniciar sesión
@@ -257,11 +259,21 @@ export class PublicNavbarComponent {
     const r = this.auth.user()?.role;
     return !!r && this.STAFF_ROLES.includes(r);
   });
+  panelRoute = computed(() => {
+    const r = this.auth.user()?.role;
+    if (r === 'SALESPERSON') return '/app/admin/seller';
+    if (r === 'AFFILIATE') return '/app/affiliate';
+    return '/app/admin/overview';
+  });
+  hasPanel = computed(() => {
+    const r = this.auth.user()?.role;
+    return !!r && r !== 'CUSTOMER';
+  });
   roleLabel = computed(() => {
     const r = this.auth.user()?.role;
     return ({
       SUPERADMIN: 'Superadmin', TENANT_ADMIN: 'Admin tienda',
-      BRANCH_MANAGER: 'Gerente sucursal', SALESPERSON: 'Vendedor',
+      BRANCH_MANAGER: 'Gerente sucursal', SALESPERSON: 'Vendedor', AFFILIATE: 'Afiliado',
     } as Record<string, string>)[r ?? ''] ?? 'Cliente';
   });
 

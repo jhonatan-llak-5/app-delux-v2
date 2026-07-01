@@ -32,8 +32,8 @@ import { generateVoucherPDF } from '@shared/utils/voucher-pdf.util';
           <i class="fa-solid fa-download"></i> Descargar PDF
         </button>
         <button (click)="print()" [disabled]="!order()"
-                class="px-5 py-2.5 rounded-lg bg-[#1e40af] text-white text-sm font-semibold
-                       hover:bg-[#1d4ed8] transition inline-flex items-center gap-2 disabled:opacity-40">
+                class="px-5 py-2.5 rounded-lg bg-[var(--dash-primary)] text-white text-sm font-semibold
+                       hover:bg-[var(--dash-primary-d)] transition inline-flex items-center gap-2 disabled:opacity-40">
           <i class="fa-solid fa-print"></i> Imprimir
         </button>
       </div>

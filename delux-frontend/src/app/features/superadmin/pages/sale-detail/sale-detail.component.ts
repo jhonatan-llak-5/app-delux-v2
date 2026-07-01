@@ -34,7 +34,7 @@ import { generateVoucherPDF } from '@shared/utils/voucher-pdf.util';
             <i class="fa-solid fa-print"></i> Ver / imprimir voucher
           </a>
           <a [href]="receiptUrl(o.code)" target="_blank" rel="noopener"
-                  class="px-4 py-2 rounded-lg bg-[#1e40af] text-white text-sm font-semibold hover:opacity-90">
+                  class="px-4 py-2 rounded-lg bg-[var(--dash-primary)] text-white text-sm font-semibold hover:opacity-90">
             <i class="fa-solid fa-qrcode"></i> Comprobante (PDF)
           </a>
         </div>

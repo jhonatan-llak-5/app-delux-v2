@@ -11,7 +11,7 @@ from rest_framework.response import Response
 from rest_framework.views import APIView
 from rest_framework.viewsets import ViewSet
 
-from apps.accounts.permissions import IsBranchManager
+from apps.accounts.permissions import IsBranchManager, IsStaff
 from apps.orders.models import Order, OrderItem, OrderStatus
 
 
@@ -41,6 +41,75 @@ def base_orders_qs(request):
 
 class ReportsViewSet(ViewSet):
     permission_classes = [permissions.IsAuthenticated, IsBranchManager]
+
+    def get_permissions(self):
+        # El panel del vendedor (my_sales) lo puede ver cualquier miembro del staff.
+        if getattr(self, 'action', None) == 'my_sales':
+            return [permissions.IsAuthenticated(), IsStaff()]
+        return super().get_permissions()
+
+    @action(detail=False, methods=['get'], url_path='my-sales')
+    def my_sales(self, request):
+        """Dashboard del vendedor: sus propias ventas, comision y estadisticas."""
+        user = request.user
+        from_d, to_d = parse_range(request)
+        base = Order.objects.filter(seller=user, status=OrderStatus.PAID)
+        qs = base.filter(created_at__date__gte=from_d, created_at__date__lte=to_d)
+
+        total_revenue = qs.aggregate(t=Sum('total'))['t'] or Decimal('0')
+        total_orders = qs.count()
+        items_sold = OrderItem.objects.filter(order__in=qs).aggregate(t=Sum('quantity'))['t'] or 0
+        aov = (total_revenue / total_orders) if total_orders else Decimal('0')
+
+        today = timezone.now().date()
+        today_qs = base.filter(created_at__date=today)
+        today_revenue = today_qs.aggregate(t=Sum('total'))['t'] or Decimal('0')
+        today_orders = today_qs.count()
+
+        rate = Decimal(str(getattr(user, 'commission_rate', 0) or 0))
+        commission = (total_revenue * rate / Decimal('100')).quantize(Decimal('0.01'))
+
+        # Serie diaria
+        rows = (qs.annotate(day=TruncDate('created_at')).values('day')
+                  .annotate(revenue=Sum('total'), orders=Count('id')).order_by('day'))
+        by_key = {r['day']: r for r in rows}
+        timeline = []
+        d = from_d
+        while d <= to_d:
+            r = by_key.get(d)
+            timeline.append({'day': d.isoformat(),
+                             'revenue': str(r['revenue']) if r else '0.00',
+                             'orders': r['orders'] if r else 0})
+            d += timedelta(days=1)
+
+        by_branch = list(
+            qs.values('branch__name').annotate(revenue=Sum('total'), orders=Count('id')).order_by('-revenue'))
+
+        recent = []
+        for o in qs.select_related('branch', 'customer').order_by('-created_at')[:6]:
+            recent.append({
+                'code': o.code,
+                'created_at': o.created_at.isoformat(),
+                'total': str(o.total),
+                'branch': getattr(o.branch, 'name', '') or '',
+                'customer': getattr(o.customer, 'full_name', '') or '',
+                'channel': o.channel,
+            })
+
+        return Response({
+            'from': from_d.isoformat(), 'to': to_d.isoformat(),
+            'total_revenue': str(total_revenue),
+            'total_orders': total_orders,
+            'items_sold': items_sold,
+            'avg_order_value': str(aov.quantize(Decimal('0.01'))),
+            'today_revenue': str(today_revenue),
+            'today_orders': today_orders,
+            'commission_rate': str(rate),
+            'commission': str(commission),
+            'timeline': timeline,
+            'by_branch': by_branch,
+            'recent': recent,
+        })
 
     @action(detail=False, methods=['get'])
     def overview(self, request):

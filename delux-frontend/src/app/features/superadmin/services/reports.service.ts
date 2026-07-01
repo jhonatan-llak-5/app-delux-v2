@@ -46,6 +46,21 @@ export interface SellerRow {
 export interface ChannelRow { channel: string; revenue: string; orders: number; }
 export interface LowStockRow { variant_sku: string; product_name: string; branch_name: string; quantity: number; min_threshold: number; }
 
+export interface MySalesData {
+  from: string; to: string;
+  total_revenue: string;
+  total_orders: number;
+  items_sold: number;
+  avg_order_value: string;
+  today_revenue: string;
+  today_orders: number;
+  commission_rate: string;
+  commission: string;
+  timeline: { day: string; revenue: string; orders: number }[];
+  by_branch: { branch__name: string; revenue: string; orders: number }[];
+  recent: { code: string; created_at: string; total: string; branch: string; customer: string; channel: string }[];
+}
+
 function buildParams(p: RangeParams) {
   let q = new HttpParams();
   if (p.from)   q = q.set('from', p.from);
@@ -85,5 +100,8 @@ export class ReportsService {
   }
   lowStock(): Observable<{ results: LowStockRow[] }> {
     return this.http.get<{ results: LowStockRow[] }>(`${this.base}/low_stock/`);
+  }
+  mySales(p: RangeParams = {}): Observable<MySalesData> {
+    return this.http.get<MySalesData>(`${this.base}/my-sales/`, { params: buildParams(p) });
   }
 }

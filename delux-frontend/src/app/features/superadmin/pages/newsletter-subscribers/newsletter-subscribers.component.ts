@@ -1,4 +1,5 @@
 import { ChangeDetectionStrategy, Component, OnInit, computed, inject, signal } from '@angular/core';
+import { DlxStatCardComponent } from '@shared/ui';
 import { CommonModule, DatePipe } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { Subject, debounceTime } from 'rxjs';
@@ -13,7 +14,7 @@ import { NewsletterService, Subscriber } from '@features/superadmin/services/new
 @Component({
   selector: 'dlx-newsletter-subscribers',
   standalone: true,
-  imports: [CommonModule, FormsModule, DatePipe, DlxSearchInputComponent, DlxConfirmDialogComponent],
+  imports: [DlxStatCardComponent, CommonModule, FormsModule, DatePipe, DlxSearchInputComponent, DlxConfirmDialogComponent],
   changeDetection: ChangeDetectionStrategy.OnPush,
   template: `
     <div class="mb-5 flex items-start justify-between gap-3 flex-wrap">
@@ -29,18 +30,9 @@ import { NewsletterService, Subscriber } from '@features/superadmin/services/new
     </div>
 
     <div class="grid grid-cols-2 sm:grid-cols-3 gap-3 mb-4">
-      <div class="card p-4">
-        <p class="text-[11px] uppercase tracking-widest text-slate-400 font-semibold">Total</p>
-        <p class="text-2xl font-black mt-1">{{ rows().length }}</p>
-      </div>
-      <div class="card p-4">
-        <p class="text-[11px] uppercase tracking-widest text-emerald-600 font-semibold">Activos</p>
-        <p class="text-2xl font-black mt-1 text-emerald-600">{{ activeCount() }}</p>
-      </div>
-      <div class="card p-4">
-        <p class="text-[11px] uppercase tracking-widest text-slate-500 font-semibold">Dados de baja</p>
-        <p class="text-2xl font-black mt-1 text-slate-500">{{ rows().length - activeCount() }}</p>
-      </div>
+      <dlx-stat-card label="Total" [value]="rows().length" icon="fa-envelope" />
+      <dlx-stat-card label="Activos" [value]="activeCount()" icon="fa-circle-check" iconBg="bg-emerald-50 dark:bg-emerald-500/15" iconColor="text-emerald-600 dark:text-emerald-400" />
+      <dlx-stat-card label="Dados de baja" [value]="rows().length - activeCount()" icon="fa-user-slash" iconBg="bg-slate-100 dark:bg-white/10" iconColor="text-slate-500 dark:text-white/50" />
     </div>
 
     <div class="card p-3 mb-4">

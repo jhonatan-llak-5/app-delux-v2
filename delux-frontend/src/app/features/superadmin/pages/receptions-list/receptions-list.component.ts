@@ -61,10 +61,10 @@ import { environment } from '@env/environment';
                   <td class="px-4 py-2.5 text-center">{{ r.items_count ?? r.items.length }}</td>
                   <td class="px-4 py-2.5 text-center font-semibold">{{ r.total_units }}</td>
                   <td class="px-4 py-2.5 text-right whitespace-nowrap">
-                    <button class="text-slate-400 hover:text-[#1e40af] mr-3" (click)="openDetail(r)" title="Ver detalle">
+                    <button class="text-slate-400 hover:text-[var(--dash-primary)] mr-3" (click)="openDetail(r)" title="Ver detalle">
                       <i class="fa-solid fa-eye text-xs"></i>
                     </button>
-                    <button class="text-slate-400 hover:text-[#1e40af]" (click)="printLabels(r)" title="Reimprimir etiquetas">
+                    <button class="text-slate-400 hover:text-[var(--dash-primary)]" (click)="printLabels(r)" title="Reimprimir etiquetas">
                       <i class="fa-solid fa-print text-xs"></i>
                     </button>
                   </td>

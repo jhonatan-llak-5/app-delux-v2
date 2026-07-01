@@ -82,7 +82,7 @@ const KIND_LABELS: Record<string, string> = {
             <i class="fa-solid fa-print"></i> Imprimir etiquetas
           </button>
           <label class="inline-flex items-center gap-2 text-sm text-slate-600 px-2">
-            <input type="checkbox" [(ngModel)]="labelPerUnit" class="w-4 h-4 accent-[#1e40af]" />
+            <input type="checkbox" [(ngModel)]="labelPerUnit" class="w-4 h-4 accent-[var(--dash-primary)]" />
             Una etiqueta por unidad
           </label>
           <button class="btn-secondary text-sm" (click)="reset()">
@@ -97,7 +97,7 @@ const KIND_LABELS: Record<string, string> = {
       @if (items().length) {
         <div class="flex justify-end mb-3">
           <span class="inline-flex items-center gap-1.5 text-xs font-semibold px-3 py-1.5 rounded-full
-                       bg-[#1e40af]/10 text-[#1e40af] dark:bg-[#3b82f6]/15 dark:text-[#7aa2ff]">
+                       bg-[var(--dash-primary)]/10 text-[var(--dash-primary)] dark:bg-[#3b82f6]/15 dark:text-[var(--dash-primary)]">
             <i class="fa-solid fa-box"></i>
             {{ totalUnits() }} uds · {{ money(totalCost()) }}
           </span>
@@ -123,7 +123,7 @@ const KIND_LABELS: Record<string, string> = {
             </span>
             <div class="text-left hidden sm:block pr-1">
               <p class="text-[10px] font-semibold uppercase tracking-wider transition-colors"
-                 [ngClass]="stepState(s.id) === 'todo' ? 'text-slate-400 dark:text-white/30' : 'text-[#1e40af] dark:text-[#7aa2ff]'">
+                 [ngClass]="stepState(s.id) === 'todo' ? 'text-slate-400 dark:text-white/30' : 'text-[var(--dash-primary)] dark:text-[var(--dash-primary)]'">
                 Paso {{ i + 1 }}
               </p>
               <p class="text-sm font-bold leading-tight transition-colors"
@@ -134,7 +134,7 @@ const KIND_LABELS: Record<string, string> = {
           </button>
           @if (!last) {
             <div class="flex-1 h-1 mx-2 sm:mx-4 rounded-full transition-colors duration-300 min-w-[1.5rem]"
-                 [ngClass]="stepDone(s.id) ? 'bg-[#1e40af]' : 'bg-slate-200 dark:bg-white/10'"></div>
+                 [ngClass]="stepDone(s.id) ? 'bg-[var(--dash-primary)]' : 'bg-slate-200 dark:bg-white/10'"></div>
           }
         }
       </div>
@@ -147,11 +147,11 @@ const KIND_LABELS: Record<string, string> = {
       <div class="card p-5 space-y-4">
         <div data-tour="recv-branch">
           <label class="eg-label">¿A qué sucursales llega? *</label>
-          <div class="space-y-1.5 mt-1 max-h-48 overflow-y-auto">
+          <div class="space-y-1.5 mt-1">
             @for (b of branches(); track b.id) {
               <label class="flex items-center gap-2 px-3 py-2.5 rounded-xl border cursor-pointer transition"
-                     [ngClass]="isSelected(b.id) ? 'border-[#1e40af] bg-[#1e40af]/5' : 'border-slate-200 dark:border-white/10 hover:border-slate-300'">
-                <input type="checkbox" [checked]="isSelected(b.id)" (change)="toggleBranch(b.id)" [disabled]="isBranchLocked(b.id)" class="w-4 h-4 accent-[#1e40af]" />
+                     [ngClass]="isSelected(b.id) ? 'border-[var(--dash-primary)] bg-[var(--dash-primary)]/5' : 'border-slate-200 dark:border-white/10 hover:border-slate-300'">
+                <input type="checkbox" [checked]="isSelected(b.id)" (change)="toggleBranch(b.id)" [disabled]="isBranchLocked(b.id)" class="w-4 h-4 accent-[var(--dash-primary)]" />
                 <span class="text-sm">{{ b.name }} · {{ b.city }}</span>
               </label>
             }
@@ -230,16 +230,16 @@ const KIND_LABELS: Record<string, string> = {
         <div class="grid grid-cols-1 sm:grid-cols-2 gap-2.5">
           <button type="button"
                   class="h-12 rounded-xl border-2 font-semibold text-sm inline-flex items-center justify-center gap-2 transition
-                         border-[#1e40af] text-[#1e40af] dark:text-[#7aa2ff] dark:border-[#3b82f6]
-                         hover:bg-[#1e40af]/5 dark:hover:bg-[#3b82f6]/10 disabled:opacity-40 disabled:cursor-not-allowed"
+                         border-[var(--dash-primary)] text-[var(--dash-primary)] dark:text-[var(--dash-primary)] dark:border-[#3b82f6]
+                         hover:bg-[var(--dash-primary)]/5 dark:hover:bg-[#3b82f6]/10 disabled:opacity-40 disabled:cursor-not-allowed"
                   (click)="cameraOn() ? stopCamera() : startCamera()" [disabled]="!selectedBranches().length">
             <i class="fa-solid" [class.fa-camera]="!cameraOn()" [class.fa-xmark]="cameraOn()"></i>
             {{ cameraOn() ? 'Cerrar cámara' : 'Escanear con cámara' }}
           </button>
           <button type="button"
                   class="h-12 rounded-xl font-semibold text-sm inline-flex items-center justify-center gap-2 transition text-white
-                         bg-gradient-to-r from-[#1e40af] to-[#2563eb] hover:from-[#1d4ed8] hover:to-[#3b82f6]
-                         shadow-lg shadow-[#1e40af]/20 disabled:opacity-40 disabled:cursor-not-allowed disabled:shadow-none"
+                         bg-gradient-to-r from-[var(--dash-primary)] to-[#2563eb] hover:from-[var(--dash-primary-d)] hover:to-[#3b82f6]
+                         shadow-lg shadow-[var(--dash-primary)]/20 disabled:opacity-40 disabled:cursor-not-allowed disabled:shadow-none"
                   (click)="openNew('')" [disabled]="!selectedBranches().length" data-tour="recv-manual">
             <i class="fa-solid fa-plus"></i> Agregar producto manual
           </button>
@@ -319,7 +319,7 @@ const KIND_LABELS: Record<string, string> = {
                   </div>
                 </div>
                 <div class="flex items-center gap-3 shrink-0">
-                  <button class="text-slate-400 hover:text-[#1e40af]" (click)="openDetail(it)" title="Ver detalle"><i class="fa-solid fa-eye text-sm"></i></button>
+                  <button class="text-slate-400 hover:text-[var(--dash-primary)]" (click)="openDetail(it)" title="Ver detalle"><i class="fa-solid fa-eye text-sm"></i></button>
                   <button class="text-rose-500 hover:text-rose-700" (click)="removeRow(it.key)" title="Quitar"><i class="fa-solid fa-trash text-sm"></i></button>
                 </div>
               </div>
@@ -335,9 +335,9 @@ const KIND_LABELS: Record<string, string> = {
                   <div class="space-y-1.5 mt-0.5">
                     @for (b of rowBranchOptions(it); track b.id) {
                       <div class="flex items-center gap-2 rounded-xl border pl-3 pr-1.5 h-11 transition"
-                           [ngClass]="hasBranch(it, b.id) ? 'border-[#1e40af] bg-[#1e40af]/5' : 'border-slate-200 dark:border-white/10'">
+                           [ngClass]="hasBranch(it, b.id) ? 'border-[var(--dash-primary)] bg-[var(--dash-primary)]/5' : 'border-slate-200 dark:border-white/10'">
                         <label class="flex items-center gap-2 flex-1 min-w-0 h-full cursor-pointer">
-                          <input type="checkbox" [checked]="hasBranch(it, b.id)" (change)="toggleRowBranch(it, b.id)" class="w-4 h-4 accent-[#1e40af] shrink-0" />
+                          <input type="checkbox" [checked]="hasBranch(it, b.id)" (change)="toggleRowBranch(it, b.id)" class="w-4 h-4 accent-[var(--dash-primary)] shrink-0" />
                           <span class="text-sm truncate">{{ b.name }} · {{ b.city }}</span>
                         </label>
                         @if (hasBranch(it, b.id)) {
@@ -500,9 +500,9 @@ const KIND_LABELS: Record<string, string> = {
                 <div class="space-y-1.5 mt-0.5">
                   @for (b of selectedBranchList(); track b.id) {
                     <div class="flex items-center gap-2 rounded-xl border pl-3 pr-1.5 h-11 transition"
-                         [ngClass]="d.branchQty[b.id] != null ? 'border-[#1e40af] bg-[#1e40af]/5' : 'border-slate-200 dark:border-white/10'">
+                         [ngClass]="d.branchQty[b.id] != null ? 'border-[var(--dash-primary)] bg-[var(--dash-primary)]/5' : 'border-slate-200 dark:border-white/10'">
                       <label class="flex items-center gap-2 flex-1 min-w-0 h-full cursor-pointer">
-                        <input type="checkbox" [checked]="d.branchQty[b.id] != null" (change)="panelToggle(b.id)" class="w-4 h-4 accent-[#1e40af] shrink-0" />
+                        <input type="checkbox" [checked]="d.branchQty[b.id] != null" (change)="panelToggle(b.id)" class="w-4 h-4 accent-[var(--dash-primary)] shrink-0" />
                         <span class="text-sm truncate">{{ b.name }} · {{ b.city }}</span>
                       </label>
                       @if (d.branchQty[b.id] != null) {
@@ -557,7 +557,7 @@ const KIND_LABELS: Record<string, string> = {
                   @for (img of d.images; track $index; let idx = $index) {
                     <button type="button" (click)="detailImg.set(idx)"
                             class="w-14 h-14 rounded-lg overflow-hidden shrink-0 border-2 transition grid place-items-center bg-slate-100 dark:bg-white/5"
-                            [ngClass]="detailImg() === idx ? 'border-[#1e40af]' : 'border-transparent opacity-60 hover:opacity-100'">
+                            [ngClass]="detailImg() === idx ? 'border-[var(--dash-primary)]' : 'border-transparent opacity-60 hover:opacity-100'">
                       @if (!isImgBroken(idx)) {
                         <img [src]="img" class="w-full h-full object-cover" (error)="markImgBroken(idx)" />
                       } @else {
@@ -855,7 +855,7 @@ export class ReceptionComponent implements OnInit, OnDestroy {
   tabCls(t: string): string {
     const base = 'relative px-4 py-2 rounded-xl text-sm font-semibold inline-flex items-center gap-2 transition';
     return this.tab() === t
-      ? base + ' bg-white dark:bg-[#1e2535] shadow text-[#1e40af] dark:text-white'
+      ? base + ' bg-white dark:bg-[#1e2535] shadow text-[var(--dash-primary)] dark:text-white'
       : base + ' text-slate-500 hover:text-slate-700 dark:hover:text-white';
   }
   goReview(): void { this.tab.set('review'); }
@@ -876,8 +876,8 @@ export class ReceptionComponent implements OnInit, OnDestroy {
   stepDone(id: 'upload' | 'review' | 'confirm'): boolean { return this.stepOrder[id] < this.stepOrder[this.tab()]; }
   stepCircleCls(id: 'upload' | 'review' | 'confirm'): string {
     const st = this.stepState(id);
-    if (st === 'active') return 'bg-gradient-to-br from-[#1e40af] to-[#3b82f6] text-white shadow-lg shadow-[#1e40af]/30 ring-4 ring-[#1e40af]/15 scale-105';
-    if (st === 'done') return 'bg-[#1e40af] text-white shadow-md shadow-[#1e40af]/25';
+    if (st === 'active') return 'bg-gradient-to-br from-[var(--dash-primary)] to-[#3b82f6] text-white shadow-lg shadow-[var(--dash-primary)]/30 ring-4 ring-[var(--dash-primary)]/15 scale-105';
+    if (st === 'done') return 'bg-[var(--dash-primary)] text-white shadow-md shadow-[var(--dash-primary)]/25';
     return 'bg-slate-100 dark:bg-white/5 text-slate-400 border border-slate-200 dark:border-white/10';
   }
   goStep(id: 'upload' | 'review' | 'confirm'): void {

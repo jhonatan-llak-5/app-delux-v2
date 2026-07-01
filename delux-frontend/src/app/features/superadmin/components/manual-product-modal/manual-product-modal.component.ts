@@ -204,7 +204,7 @@ const KIND_PRESETS: Record<string, { label: string; sizeLabel: string; sizes: st
           <div class="rounded-xl bg-slate-50 dark:bg-white/5 p-3 text-xs space-y-1">
             <div class="flex justify-between"><span class="text-slate-500">Precio sin IVA</span><span>{{ money(+nf.price || 0) }}</span></div>
             <div class="flex justify-between"><span class="text-slate-500">IVA ({{ ivaRate() }}%)</span><span>{{ money(ivaAmount()) }}</span></div>
-            <div class="flex justify-between font-semibold"><span>Precio final con IVA</span><span class="text-[#1e40af] dark:text-[#7aa2ff]">{{ money(finalPrice()) }}</span></div>
+            <div class="flex justify-between font-semibold"><span>Precio final con IVA</span><span class="text-[var(--dash-primary)] dark:text-[var(--dash-primary)]">{{ money(finalPrice()) }}</span></div>
             <div class="flex justify-between border-t border-slate-200 dark:border-white/10 pt-1 mt-1">
               <span class="text-slate-500">Margen (precio − costo)</span>
               <span [class.text-emerald-600]="margin() >= 0" [class.text-rose-600]="margin() < 0">{{ money(margin()) }}@if (marginPct()) { · {{ marginPct() | number:'1.0-0' }}% }</span>

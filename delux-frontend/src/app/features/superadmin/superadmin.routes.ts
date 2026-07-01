@@ -74,6 +74,12 @@ export const SUPERADMIN_ROUTES: Routes = [
           import('./pages/inventory-movements/inventory-movements.component').then(m => m.InventoryMovementsComponent),
       },
       {
+        path: 'seller',
+        canActivate: [roleGuard(['SALESPERSON', 'BRANCH_MANAGER', 'TENANT_ADMIN', 'SUPERADMIN'])],
+        loadComponent: () =>
+          import('./pages/seller-dashboard/seller-dashboard.component').then(m => m.SellerDashboardComponent),
+      },
+      {
         path: 'pos',
         loadComponent: () =>
           import('./pages/pos/pos.component').then(m => m.PosComponent),

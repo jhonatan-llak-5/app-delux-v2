@@ -50,63 +50,73 @@ import { parseApiError } from '@shared/utils/api-error.util';
       } @else if (branches().length === 0) {
         <div class="card p-6 text-slate-400 col-span-full">
           Esta tienda aún no tiene sucursales.
-          <button (click)="openCreate()" class="ml-2 text-[#1e40af] font-semibold hover:underline">Crear la primera</button>
+          <button (click)="openCreate()" class="ml-2 text-[var(--dash-primary)] font-semibold hover:underline">Crear la primera</button>
         </div>
       } @else if (visibleBranches().length === 0) {
         <div class="card p-6 text-slate-400 col-span-full">No hay sucursales con ese filtro.</div>
       } @else {
         @for (b of visibleBranches(); track b.id) {
-          <div class="card p-5 hover:shadow-md transition group relative">
-            <div class="absolute top-3 right-3 flex gap-1">
-              <button (click)="toggleActive(b)" [title]="b.is_active ? 'Desactivar' : 'Activar'"
-                      class="w-8 h-8 grid place-items-center rounded-lg text-slate-500 hover:bg-slate-100 dark:hover:bg-white/10"
-                      [class.hover:text-amber-600]="b.is_active" [class.hover:text-emerald-600]="!b.is_active">
-                <i class="fa-solid text-xs" [class.fa-toggle-on]="b.is_active" [class.fa-toggle-off]="!b.is_active"></i>
-              </button>
-              <button (click)="openEdit(b)" title="Editar"
-                      class="w-8 h-8 grid place-items-center rounded-lg text-slate-500 hover:bg-slate-100 dark:hover:bg-white/10 hover:text-[#1e40af]">
-                <i class="fa-solid fa-pen text-xs"></i>
-              </button>
-              <button (click)="onDelete(b)" title="Eliminar"
-                      class="w-8 h-8 grid place-items-center rounded-lg text-slate-500 hover:bg-rose-50 dark:hover:bg-rose-500/10 hover:text-rose-600">
-                <i class="fa-solid fa-trash text-xs"></i>
-              </button>
+          <div class="card overflow-hidden hover:shadow-lg hover:-translate-y-0.5 transition-all flex flex-col">
+            <!-- Cabecera en degradado -->
+            <div class="relative p-5 pb-4 text-white bg-gradient-to-br from-slate-800 to-slate-900">
+              <div class="flex items-start justify-between gap-2">
+                <div class="flex items-center gap-3 min-w-0">
+                  <span class="grid place-items-center w-11 h-11 rounded-xl bg-white/20 shrink-0"><i class="fa-solid fa-store"></i></span>
+                  <div class="min-w-0">
+                    <p class="text-[10px] tracking-widest uppercase text-white/70 font-semibold">{{ b.code }}</p>
+                    <h3 class="text-lg font-bold leading-tight truncate">{{ b.name }}</h3>
+                  </div>
+                </div>
+                <div class="flex gap-1 shrink-0">
+                  <button (click)="toggleActive(b)" [title]="b.is_active ? 'Desactivar' : 'Activar'"
+                          class="w-8 h-8 grid place-items-center rounded-lg text-white/80 hover:bg-white/20 hover:text-white transition">
+                    <i class="fa-solid text-xs" [class.fa-toggle-on]="b.is_active" [class.fa-toggle-off]="!b.is_active"></i>
+                  </button>
+                  <button (click)="openEdit(b)" title="Editar"
+                          class="w-8 h-8 grid place-items-center rounded-lg text-white/80 hover:bg-white/20 hover:text-white transition">
+                    <i class="fa-solid fa-pen text-xs"></i>
+                  </button>
+                  <button (click)="onDelete(b)" title="Eliminar"
+                          class="w-8 h-8 grid place-items-center rounded-lg text-white/80 hover:bg-white/20 hover:text-white transition">
+                    <i class="fa-solid fa-trash text-xs"></i>
+                  </button>
+                </div>
+              </div>
+              <div class="flex items-center gap-2 mt-3">
+                <span class="inline-flex items-center gap-1.5 px-2 py-0.5 rounded-full text-[11px] font-semibold bg-white/20">
+                  <span class="w-1.5 h-1.5 rounded-full" [class.bg-emerald-300]="b.is_active" [class.bg-rose-300]="!b.is_active"></span>
+                  {{ b.is_active ? 'Activa' : 'Inactiva' }}
+                </span>
+                <span class="inline-flex items-center gap-1 text-[12px] text-white/80">
+                  <i class="fa-solid fa-location-dot text-[10px]"></i> {{ b.city }}
+                </span>
+              </div>
             </div>
 
-            <div class="pr-16">
-              <p class="text-[10px] tracking-widest uppercase text-slate-400 font-semibold">{{ b.code }}</p>
-              <h3 class="text-lg font-semibold mt-0.5">{{ b.name }}</h3>
-              <p class="text-sm text-slate-500">{{ b.city }}</p>
-            </div>
-            <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-semibold mt-2"
-                  [class.bg-emerald-100]="b.is_active" [class.text-emerald-700]="b.is_active"
-                  [class.bg-rose-100]="!b.is_active"   [class.text-rose-700]="!b.is_active">
-              {{ b.is_active ? 'Activa' : 'Inactiva' }}
-            </span>
-
-            <div class="mt-4 space-y-2 text-sm text-slate-600 dark:text-white/70">
-              <div class="flex items-start gap-2">
-                <i class="fa-solid fa-location-dot text-slate-400 mt-1 w-4 text-center"></i>
-                {{ b.address }}
+            <!-- Cuerpo -->
+            <div class="p-5 space-y-3 flex-1">
+              <div class="flex items-start gap-2.5 text-sm text-slate-600 dark:text-white/70">
+                <span class="grid place-items-center w-8 h-8 rounded-lg bg-blue-50 dark:bg-blue-500/15 text-blue-600 dark:text-blue-400 shrink-0"><i class="fa-solid fa-location-dot text-xs"></i></span>
+                <span class="pt-1.5 leading-snug">{{ b.address }}</span>
               </div>
               @if (b.phone) {
-                <div class="flex items-center gap-2">
-                  <i class="fa-solid fa-phone text-slate-400 w-4 text-center"></i>
+                <div class="flex items-center gap-2.5 text-sm text-slate-600 dark:text-white/70">
+                  <span class="grid place-items-center w-8 h-8 rounded-lg bg-emerald-50 dark:bg-emerald-500/15 text-emerald-600 dark:text-emerald-400 shrink-0"><i class="fa-solid fa-phone text-xs"></i></span>
                   {{ b.phone }}
                 </div>
               }
             </div>
 
-            <div class="mt-5 flex items-center justify-between">
-              <div class="inline-flex items-center gap-2 text-sm">
-                <i class="fa-solid fa-box text-accent-500"></i>
+            <!-- Pie -->
+            <div class="px-5 py-3.5 border-t border-slate-100 dark:border-white/10 flex items-center justify-between">
+              <span class="inline-flex items-center gap-1.5 text-sm">
+                <i class="fa-solid fa-box text-[var(--dash-primary)]"></i>
                 <span class="font-bold">{{ b.products_count }}</span>
-                <span class="text-slate-500">producto(s)</span>
-              </div>
+                <span class="text-slate-500 text-xs">productos</span>
+              </span>
               <a [routerLink]="['/app/admin/branches', b.id, 'catalog']"
-                 class="inline-flex items-center gap-1 text-xs font-semibold text-ink-900 dark:text-white hover:underline">
-                Ver catálogo
-                <i class="fa-solid fa-arrow-up-right-from-square text-xs"></i>
+                 class="inline-flex items-center gap-1 text-xs font-semibold text-[var(--dash-primary)] hover:gap-2 transition-all">
+                Ver catálogo <i class="fa-solid fa-arrow-up-right-from-square text-[10px]"></i>
               </a>
             </div>
           </div>

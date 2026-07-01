@@ -57,12 +57,12 @@ import {
                     <p class="font-semibold">{{ a.full_name }}</p>
                     <p class="text-xs text-slate-400">{{ a.email }}</p>
                   </td>
-                  <td class="px-4 py-3"><span class="font-mono font-semibold text-[#1e40af] dark:text-[#7aa2ff]">{{ a.ref_code || '—' }}</span></td>
+                  <td class="px-4 py-3"><span class="font-mono font-semibold text-[var(--dash-primary)] dark:text-[var(--dash-primary)]">{{ a.ref_code || '—' }}</span></td>
                   <td class="px-4 py-3 text-center">{{ a.sales_count }}</td>
                   <td class="px-4 py-3 text-right font-bold text-amber-600">{{ money(a.commission_pending) }}</td>
                   <td class="px-4 py-3 text-right text-emerald-600">{{ money(a.commission_paid) }}</td>
                   <td class="px-4 py-3 text-right whitespace-nowrap">
-                    <button class="text-slate-500 hover:text-[#1e40af] mr-3" title="Ver detalle" (click)="openDetail(a)">
+                    <button class="text-slate-500 hover:text-[var(--dash-primary)] mr-3" title="Ver detalle" (click)="openDetail(a)">
                       <i class="fa-solid fa-eye"></i>
                     </button>
                     <button class="eg-btn-primary text-xs" [disabled]="!canPay(a)" (click)="askPay(a)"

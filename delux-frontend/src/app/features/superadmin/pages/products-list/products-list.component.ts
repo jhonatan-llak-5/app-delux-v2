@@ -1,4 +1,5 @@
-import { ChangeDetectionStrategy, Component, ElementRef, OnDestroy, OnInit, ViewChild, inject, signal } from '@angular/core';
+import { ChangeDetectionStrategy, Component, ElementRef, OnDestroy, OnInit, ViewChild, computed, inject, signal } from '@angular/core';
+import { DlxStatCardComponent } from '@shared/ui';
 import { DlxSearchInputComponent } from '@shared/ui/search-input.component';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
@@ -13,11 +14,12 @@ import { InventoryService } from '@features/superadmin/services/inventory.servic
 import { ConfirmService } from '@shared/components/confirm/confirm.service';
 import { onImageError } from '@shared/utils/img-placeholder';
 import { NotifyService } from '@shared/services/notify.service';
+import { AuthService } from '@core/services/auth.service';
 
 @Component({
   selector: 'dlx-products-list',
   standalone: true,
-  imports: [DlxSearchInputComponent, CommonModule, FormsModule, RouterLink],
+  imports: [DlxStatCardComponent, DlxSearchInputComponent, CommonModule, FormsModule, RouterLink],
   changeDetection: ChangeDetectionStrategy.OnPush,
   template: `
     <div class="flex flex-wrap items-end justify-between gap-4 mb-6">
@@ -46,9 +48,9 @@ import { NotifyService } from '@shared/services/notify.service';
           <i class="fa-solid fa-file-import"></i> Importar masivo
         </a>
         <a routerLink="/app/admin/products/new"
-           class="px-4 py-2.5 rounded-lg bg-[#1e40af] dark:bg-[#2563eb]
+           class="px-4 py-2.5 rounded-lg bg-[var(--dash-primary)] dark:bg-[#2563eb]
                   text-white text-sm font-semibold
-                  hover:bg-[#1e3a8a] dark:hover:bg-[#1d4ed8] transition flex items-center gap-2">
+                  hover:bg-[var(--dash-primary-d)] dark:hover:bg-[var(--dash-primary-d)] transition flex items-center gap-2">
           <i class="fa-solid fa-plus"></i> Nuevo producto
         </a>
       </div>
@@ -65,22 +67,10 @@ import { NotifyService } from '@shared/services/notify.service';
 
     <!-- KPIs -->
     <div class="grid grid-cols-2 md:grid-cols-4 gap-3 mb-6">
-      <div class="card p-4">
-        <p class="text-xs uppercase tracking-widest text-slate-500 font-semibold">Total</p>
-        <p class="text-2xl font-bold mt-1">{{ products().length }}</p>
-      </div>
-      <div class="card p-4">
-        <p class="text-xs uppercase tracking-widest text-slate-500 font-semibold">Publicados</p>
-        <p class="text-2xl font-bold text-emerald-600 mt-1">{{ countByStatus('PUBLISHED') }}</p>
-      </div>
-      <div class="card p-4">
-        <p class="text-xs uppercase tracking-widest text-slate-500 font-semibold">Borradores</p>
-        <p class="text-2xl font-bold text-amber-600 mt-1">{{ countByStatus('DRAFT') }}</p>
-      </div>
-      <div class="card p-4">
-        <p class="text-xs uppercase tracking-widest text-slate-500 font-semibold">Destacados</p>
-        <p class="text-2xl font-bold text-violet-600 mt-1">{{ featuredCount() }}</p>
-      </div>
+      <dlx-stat-card label="Total" [value]="products().length" icon="fa-box" />
+      <dlx-stat-card label="Publicados" [value]="countByStatus('PUBLISHED')" icon="fa-circle-check" iconBg="bg-emerald-50 dark:bg-emerald-500/15" iconColor="text-emerald-600 dark:text-emerald-400" />
+      <dlx-stat-card label="Borradores" [value]="countByStatus('DRAFT')" icon="fa-pen-ruler" iconBg="bg-amber-50 dark:bg-amber-500/15" iconColor="text-amber-600 dark:text-amber-400" />
+      <dlx-stat-card label="Destacados" [value]="featuredCount()" icon="fa-star" iconBg="bg-violet-50 dark:bg-violet-500/15" iconColor="text-violet-600 dark:text-violet-400" />
     </div>
 
     <!-- Filtros -->
@@ -104,11 +94,13 @@ import { NotifyService } from '@shared/services/notify.service';
         <option value="PAUSED">Pausados</option>
         <option value="ARCHIVED">Archivados</option>
       </select>
-      <select [(ngModel)]="branchFilter" (change)="reload()" title="Filtrar por tienda"
-              class="eg-input border-transparent">
-        <option [ngValue]="null">Todas las tiendas</option>
-        @for (b of stores(); track b.id) { <option [ngValue]="b.id">{{ b.name }} · {{ b.city }}</option> }
-      </select>
+      @if (showStoreFilter()) {
+        <select [(ngModel)]="branchFilter" (change)="reload()" title="Filtrar por tienda"
+                class="eg-input border-transparent">
+          <option [ngValue]="null">Todas las tiendas</option>
+          @for (b of stores(); track b.id) { <option [ngValue]="b.id">{{ b.name }} · {{ b.city }}</option> }
+        </select>
+      }
     </div>
 
     <!-- Grid -->
@@ -228,6 +220,7 @@ export class ProductsListComponent implements OnInit, OnDestroy {
   private notify = inject(NotifyService);
   private router = inject(Router);
   private inv = inject(InventoryService);
+  private auth = inject(AuthService);
 
   @ViewChild('camVideo') camVideo?: ElementRef<HTMLVideoElement>;
   cameraOn = signal(false);
@@ -305,6 +298,13 @@ export class ProductsListComponent implements OnInit, OnDestroy {
   categoryFilter: number | null = null;
   statusFilter = '';
   branchFilter: number | null = null;
+  // Mostrar filtro de tienda solo si la cuenta ve varias sucursales.
+  showStoreFilter = computed(() => {
+    const u = this.auth.user();
+    if (!u) return false;
+    if (u.role === 'SUPERADMIN' || u.role === 'TENANT_ADMIN') return true;
+    return !u.branch_id;
+  });
   private search$ = new Subject<void>();
 
   ngOnInit(): void {

@@ -44,6 +44,21 @@ export const DASHBOARD_ROUTES: Routes = [
         loadComponent: () => import('@features/affiliate/pages/affiliate-panel/affiliate-panel.component').then(m => m.AffiliatePanelComponent),
       },
       {
+        path: 'affiliate/pagos',
+        canActivate: [roleGuard(['AFFILIATE'])],
+        loadComponent: () => import('@features/affiliate/pages/affiliate-payouts/affiliate-payouts.component').then(m => m.AffiliatePayoutsComponent),
+      },
+      {
+        path: 'affiliate/ventas',
+        canActivate: [roleGuard(['AFFILIATE'])],
+        loadComponent: () => import('@features/affiliate/pages/affiliate-products/affiliate-products.component').then(m => m.AffiliateProductsComponent),
+      },
+      {
+        path: 'affiliate/comisiones',
+        canActivate: [roleGuard(['AFFILIATE'])],
+        loadComponent: () => import('@features/affiliate/pages/affiliate-commissions/affiliate-commissions.component').then(m => m.AffiliateCommissionsComponent),
+      },
+      {
         path: 'account',
         canActivate: [roleGuard(['CUSTOMER'])],
         children: [

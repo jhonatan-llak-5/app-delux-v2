@@ -1,4 +1,6 @@
 import { ChangeDetectionStrategy, Component, OnInit, computed, effect, inject, signal } from '@angular/core';
+import { AuthService } from '@core/services/auth.service';
+import { DlxStatCardComponent } from '@shared/ui';
 import { DlxSearchInputComponent } from '@shared/ui/search-input.component';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
@@ -19,7 +21,7 @@ import { NotifyService } from '@shared/services/notify.service';
 @Component({
   selector: 'dlx-inventory-overview',
   standalone: true,
-  imports: [DlxSearchInputComponent, CommonModule, FormsModule, RouterLink, StockAdjustModalComponent, TransferModalComponent, RowActionsComponent],
+  imports: [DlxStatCardComponent, DlxSearchInputComponent, CommonModule, FormsModule, RouterLink, StockAdjustModalComponent, TransferModalComponent, RowActionsComponent],
   changeDetection: ChangeDetectionStrategy.OnPush,
   template: `
     <div class="flex flex-wrap items-end justify-between gap-4 mb-6">
@@ -35,7 +37,7 @@ import { NotifyService } from '@shared/services/notify.service';
       </div>
       <div class="flex items-center gap-2 flex-wrap">
         <a routerLink="/app/admin/inventory/reception"
-           class="px-4 py-2.5 rounded-lg bg-[#1e40af] text-white hover:bg-[#1d4ed8] text-sm font-semibold flex items-center gap-2">
+           class="px-4 py-2.5 rounded-lg bg-[var(--dash-primary)] text-white hover:bg-[var(--dash-primary-d)] text-sm font-semibold flex items-center gap-2">
           <i class="fa-solid fa-truck-ramp-box"></i> Ingresar mercadería
         </a>
         <a routerLink="/app/admin/inventory/movements"
@@ -47,27 +49,12 @@ import { NotifyService } from '@shared/services/notify.service';
 
     <!-- KPIs -->
     @if (summary()) {
-      <div class="grid grid-cols-2 md:grid-cols-5 gap-3 mb-6">
-        <div class="card p-4">
-          <p class="text-xs uppercase tracking-widest text-slate-500 font-semibold">Unidades totales</p>
-          <p class="text-2xl font-bold mt-1">{{ summary()!.total_units }}</p>
-        </div>
-        <div class="card p-4">
-          <p class="text-xs uppercase tracking-widest text-slate-500 font-semibold">Productos</p>
-          <p class="text-2xl font-bold mt-1">{{ summary()!.products_count }}</p>
-        </div>
-        <div class="card p-4">
-          <p class="text-xs uppercase tracking-widest text-slate-500 font-semibold">Variantes</p>
-          <p class="text-2xl font-bold mt-1">{{ summary()!.variants_count }}</p>
-        </div>
-        <div class="card p-4">
-          <p class="text-xs uppercase tracking-widest text-amber-600 font-semibold">Stock bajo</p>
-          <p class="text-2xl font-bold text-amber-600 mt-1">{{ summary()!.low_stock_count }}</p>
-        </div>
-        <div class="card p-4">
-          <p class="text-xs uppercase tracking-widest text-rose-600 font-semibold">Sin stock</p>
-          <p class="text-2xl font-bold text-rose-600 mt-1">{{ summary()!.out_of_stock_count }}</p>
-        </div>
+      <div class="grid grid-cols-2 md:grid-cols-3 2xl:grid-cols-5 gap-3 mb-6">
+        <dlx-stat-card label="Unidades totales" [value]="summary()!.total_units" icon="fa-cubes-stacked" />
+        <dlx-stat-card label="Productos" [value]="summary()!.products_count" icon="fa-box" iconBg="bg-violet-50 dark:bg-violet-500/15" iconColor="text-violet-600 dark:text-violet-400" />
+        <dlx-stat-card label="Variantes" [value]="summary()!.variants_count" icon="fa-layer-group" iconBg="bg-sky-50 dark:bg-sky-500/15" iconColor="text-sky-600 dark:text-sky-400" />
+        <dlx-stat-card label="Stock bajo" [value]="summary()!.low_stock_count" icon="fa-triangle-exclamation" iconBg="bg-amber-50 dark:bg-amber-500/15" iconColor="text-amber-600 dark:text-amber-400" />
+        <dlx-stat-card label="Sin stock" [value]="summary()!.out_of_stock_count" icon="fa-ban" iconBg="bg-rose-50 dark:bg-rose-500/15" iconColor="text-rose-600 dark:text-rose-400" />
       </div>
 
       <!-- Por sucursal -->
@@ -108,11 +95,13 @@ import { NotifyService } from '@shared/services/notify.service';
     <!-- Filtros -->
     <div class="card p-4 mb-4 flex flex-wrap gap-3 items-center filter-bar">
       <dlx-search-input [fluid]="true" [value]="search()" (valueChange)="onSearch($event)" placeholder="Buscar por SKU o producto..." class="flex-1 min-w-64" />
-      <select [(ngModel)]="branchFilter" (change)="reload()"
-              class="eg-input border-transparent">
-        <option [ngValue]="null">Todas las sucursales</option>
-        @for (b of branches(); track b.id) { <option [ngValue]="b.id">{{ b.name }}</option> }
-      </select>
+      @if (auth.multiBranch()) {
+        <select [(ngModel)]="branchFilter" (change)="reload()"
+                class="eg-input border-transparent">
+          <option [ngValue]="null">Todas las sucursales</option>
+          @for (b of branches(); track b.id) { <option [ngValue]="b.id">{{ b.name }}</option> }
+        </select>
+      }
       <label class="flex items-center gap-2 text-sm cursor-pointer">
         <input type="checkbox" [(ngModel)]="lowOnly" (change)="reload()" class="w-4 h-4 accent-amber-500" />
         <span>Solo stock bajo</span>
@@ -212,6 +201,7 @@ import { NotifyService } from '@shared/services/notify.service';
   `,
 })
 export class InventoryOverviewComponent implements OnInit {
+  protected auth = inject(AuthService);
   private svc = inject(InventoryService);
   private adminSvc = inject(AdminService);
   private branchCtx = inject(BranchContextService);

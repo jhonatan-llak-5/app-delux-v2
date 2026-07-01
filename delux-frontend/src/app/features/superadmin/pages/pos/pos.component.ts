@@ -8,7 +8,7 @@ import { debounceTime, Subject } from 'rxjs';
 
 import { InventoryService, Stock } from '@features/superadmin/services/inventory.service';
 import { OrderService, Order } from '@features/superadmin/services/order.service';
-import { AdminService, AdminBranch } from '@features/superadmin/services/admin.service';
+import { AdminService, AdminBranch, AdminUser } from '@features/superadmin/services/admin.service';
 import { CouponService, CouponValidation } from '@features/superadmin/services/coupon.service';
 import { generateVoucherPDF } from '@shared/utils/voucher-pdf.util';
 import { parseApiError } from '@shared/utils/api-error.util';
@@ -201,6 +201,22 @@ interface CartItem {
           }
         </div>
 
+        @if (isManager()) {
+          <div class="card p-5">
+            <h2 class="font-bold tracking-tight mb-3 flex items-center gap-2">
+              <i class="fa-solid fa-user-tag"></i> Vendedor
+            </h2>
+            <select [(ngModel)]="sellerId" class="eg-input">
+              <option [ngValue]="myId">Yo — {{ myName }}</option>
+              @for (s of sellersForBranch(); track s.id) {
+                <option [ngValue]="s.id">{{ s.full_name || s.email }}</option>
+              }
+              <option [ngValue]="null">Mostrador / anónimo</option>
+            </select>
+            <p class="text-[11px] text-slate-400 mt-1.5">Se registrará a nombre de quien realizó la venta.</p>
+          </div>
+        }
+
         <!-- Cliente -->
         <div class="card p-5">
           <h2 class="font-bold tracking-tight mb-3 flex items-center gap-2">
@@ -227,7 +243,7 @@ interface CartItem {
         }
 
         <button (click)="confirmOpen.set(true)" [disabled]="!canCheckout() || saving()"
-                class="w-full py-4 rounded-xl bg-[#1e40af] hover:bg-[#1e3a8a] text-white text-sm font-bold uppercase tracking-widest
+                class="w-full py-4 rounded-xl bg-[var(--dash-primary)] hover:bg-[var(--dash-primary-d)] text-white text-sm font-bold uppercase tracking-widest
                        transition disabled:opacity-40 disabled:cursor-not-allowed
                        flex items-center justify-center gap-3">
           @if (saving()) {
@@ -246,7 +262,7 @@ interface CartItem {
         <div class="w-full max-w-sm rounded-2xl bg-white dark:bg-[#121826] shadow-2xl overflow-hidden border border-slate-200 dark:border-white/10"
              (click)="$event.stopPropagation()">
           <div class="p-6 text-center">
-            <div class="w-14 h-14 rounded-full bg-[#1e40af]/10 text-[#1e40af] grid place-items-center mx-auto mb-4">
+            <div class="w-14 h-14 rounded-full bg-[var(--dash-primary)]/10 text-[var(--dash-primary)] grid place-items-center mx-auto mb-4">
               <i class="fa-solid fa-cash-register text-2xl"></i>
             </div>
             <h3 class="text-lg font-bold tracking-tight">Confirmar venta</h3>
@@ -264,7 +280,7 @@ interface CartItem {
           </div>
           <div class="p-5 pt-0 space-y-2">
             <button (click)="confirmSale()" [disabled]="saving()"
-                    class="w-full py-3 rounded-xl bg-[#1e40af] hover:bg-[#1e3a8a] text-white text-sm font-bold uppercase tracking-widest transition disabled:opacity-40 flex items-center justify-center gap-2">
+                    class="w-full py-3 rounded-xl bg-[var(--dash-primary)] hover:bg-[var(--dash-primary-d)] text-white text-sm font-bold uppercase tracking-widest transition disabled:opacity-40 flex items-center justify-center gap-2">
               @if (saving()) { <i class="fa-solid fa-spinner fa-spin"></i> Procesando... }
               @else { <i class="fa-solid fa-check"></i> Sí, cobrar \${{ total().toFixed(2) }} }
             </button>
@@ -328,6 +344,18 @@ export class PosComponent implements OnInit {
   completedOrder = signal<Order | null>(null);
   customerData = { full_name: '', email: '', phone: '', document_id: '' };
 
+  // Vendedor de la venta (solo gerente/admin puede elegir; el vendedor queda a su nombre).
+  sellers = signal<AdminUser[]>([]);
+  sellerId: number | null = this.auth.user()?.id ?? null;
+  myId = this.auth.user()?.id ?? null;
+  myName = this.auth.user()?.full_name || this.auth.user()?.username || 'Yo';
+  isManager = computed(() => {
+    const r = this.auth.user()?.role;
+    return r === 'SUPERADMIN' || r === 'TENANT_ADMIN' || r === 'BRANCH_MANAGER';
+  });
+  sellersForBranch = computed(() =>
+    this.sellers().filter(u => u.id !== this.myId && (!this.branchId || u.branch_id === this.branchId)));
+
   private search$ = new Subject<void>();
 
   taxRate = computed(() => +this.branding.taxRate() || 0);
@@ -355,6 +383,9 @@ export class PosComponent implements OnInit {
         this.branchLocked = true;
       }
       this.branches.set(list);
+      if (this.isManager()) {
+        this.adminSvc.listUsers({ role: 'SALESPERSON' }).subscribe(r => this.sellers.set(r.results || []));
+      }
       if (list.length) {
         this.branchId = list[0].id;
         this.reload();
@@ -463,6 +494,7 @@ export class PosComponent implements OnInit {
       items: this.cart().map(i => ({ variant_id: i.variant_id, quantity: i.quantity })),
       discount: this.discount(),
       customer_data: this.customerData.email ? this.customerData : undefined,
+      seller_id: this.isManager() ? this.sellerId : undefined,
     };
     this.ord.posCheckout(payload).subscribe({
       next: order => {

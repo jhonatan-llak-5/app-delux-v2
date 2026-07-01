@@ -1,4 +1,5 @@
 import { ChangeDetectionStrategy, Component, OnInit, inject, signal } from '@angular/core';
+import { DlxStatCardComponent } from '@shared/ui';
 import { DlxSearchInputComponent } from '@shared/ui/search-input.component';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
@@ -10,7 +11,7 @@ import { CouponFormModalComponent } from '@features/superadmin/components/coupon
 @Component({
   selector: 'dlx-coupons-list',
   standalone: true,
-  imports: [DlxSearchInputComponent, CommonModule, FormsModule, CouponFormModalComponent],
+  imports: [DlxStatCardComponent, DlxSearchInputComponent, CommonModule, FormsModule, CouponFormModalComponent],
   changeDetection: ChangeDetectionStrategy.OnPush,
   template: `
     <div class="flex flex-wrap items-end justify-between gap-4 mb-6">
@@ -23,28 +24,16 @@ import { CouponFormModalComponent } from '@features/superadmin/components/coupon
         <p class="text-slate-500 text-sm mt-1">Descuentos por código para canalizar campañas.</p>
       </div>
       <button (click)="openCreate()"
-              class="px-4 py-2.5 rounded-lg bg-[#1e40af] text-white text-sm font-semibold hover:bg-[#1e3a8a] flex items-center gap-2">
+              class="px-4 py-2.5 rounded-lg bg-[var(--dash-primary)] text-white text-sm font-semibold hover:bg-[var(--dash-primary-d)] flex items-center gap-2">
         <i class="fa-solid fa-plus"></i> Nuevo cupón
       </button>
     </div>
 
     <div class="grid grid-cols-2 md:grid-cols-4 gap-3 mb-6">
-      <div class="card p-4">
-        <p class="text-xs uppercase tracking-widest text-slate-500 font-semibold">Total</p>
-        <p class="text-2xl font-bold mt-1">{{ coupons().length }}</p>
-      </div>
-      <div class="card p-4">
-        <p class="text-xs uppercase tracking-widest text-emerald-600 font-semibold">Activos</p>
-        <p class="text-2xl font-bold text-emerald-600 mt-1">{{ activeCount() }}</p>
-      </div>
-      <div class="card p-4">
-        <p class="text-xs uppercase tracking-widest text-violet-600 font-semibold">Vigentes</p>
-        <p class="text-2xl font-bold text-violet-600 mt-1">{{ validCount() }}</p>
-      </div>
-      <div class="card p-4">
-        <p class="text-xs uppercase tracking-widest text-slate-500 font-semibold">Total usos</p>
-        <p class="text-2xl font-bold mt-1">{{ totalUses() }}</p>
-      </div>
+      <dlx-stat-card label="Total" [value]="coupons().length" icon="fa-ticket" />
+      <dlx-stat-card label="Activos" [value]="activeCount()" icon="fa-circle-check" iconBg="bg-emerald-50 dark:bg-emerald-500/15" iconColor="text-emerald-600 dark:text-emerald-400" />
+      <dlx-stat-card label="Vigentes" [value]="validCount()" icon="fa-calendar-check" iconBg="bg-violet-50 dark:bg-violet-500/15" iconColor="text-violet-600 dark:text-violet-400" />
+      <dlx-stat-card label="Total usos" [value]="totalUses()" icon="fa-arrow-pointer" iconBg="bg-amber-50 dark:bg-amber-500/15" iconColor="text-amber-600 dark:text-amber-400" />
     </div>
 
     <div class="card p-4 mb-4 flex flex-wrap gap-3 items-center filter-bar">

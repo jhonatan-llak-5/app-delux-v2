@@ -94,8 +94,8 @@ export class ConfirmHostComponent {
     return ({
       danger: 'bg-rose-600 hover:bg-rose-700',
       warning: 'bg-amber-600 hover:bg-amber-700',
-      info: 'bg-[#1e40af] hover:bg-[#1d4ed8]',
+      info: 'bg-[var(--dash-primary)] hover:bg-[var(--dash-primary-d)]',
       success: 'bg-emerald-600 hover:bg-emerald-700',
-    } as Record<string, string>)[v] || 'bg-[#1e40af] hover:bg-[#1d4ed8]';
+    } as Record<string, string>)[v] || 'bg-[var(--dash-primary)] hover:bg-[var(--dash-primary-d)]';
   }
 }

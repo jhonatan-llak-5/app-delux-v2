@@ -37,14 +37,14 @@ interface Box { top: number; left: number; width: number; height: number; }
 
           <!-- Barra de progreso -->
           <div class="h-1 bg-slate-100 dark:bg-white/10">
-            <div class="h-full bg-gradient-to-r from-[#1e40af] to-[#3b82f6] transition-all duration-300"
+            <div class="h-full bg-gradient-to-r from-[var(--dash-primary)] to-[#3b82f6] transition-all duration-300"
                  [style.width.%]="progress()"></div>
           </div>
 
           <div class="p-5">
             <div class="flex items-start gap-3">
-              <div class="w-10 h-10 shrink-0 rounded-xl bg-[#1e40af]/10 dark:bg-[#3b82f6]/15
-                          grid place-items-center text-[#1e40af] dark:text-[#60a5fa]">
+              <div class="w-10 h-10 shrink-0 rounded-xl bg-[var(--dash-primary)]/10 dark:bg-[#3b82f6]/15
+                          grid place-items-center text-[var(--dash-primary)] dark:text-[#60a5fa]">
                 <i class="fa-solid {{ tour.current()?.icon || 'fa-circle-info' }}"></i>
               </div>
               <div class="flex-1 min-w-0">
@@ -97,7 +97,7 @@ interface Box { top: number; left: number; width: number; height: number; }
                 }
                 <button (click)="tour.next()"
                         class="h-9 px-4 rounded-lg text-[13px] font-semibold text-white
-                               bg-[#1e40af] hover:bg-[#1d4ed8] transition
+                               bg-[var(--dash-primary)] hover:bg-[var(--dash-primary-d)] transition
                                inline-flex items-center gap-2">
                   {{ tour.isLast() ? 'Finalizar' : 'Siguiente' }}
                   <i class="fa-solid {{ tour.isLast() ? 'fa-check' : 'fa-arrow-right' }} text-[11px]"></i>

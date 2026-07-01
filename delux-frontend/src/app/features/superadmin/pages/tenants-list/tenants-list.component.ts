@@ -24,39 +24,45 @@ import { AdminService, AdminTenant } from '@features/superadmin/services/admin.s
       } @else {
         @for (t of tenants(); track t.id) {
           <a [routerLink]="['/app/admin/tenants', t.slug, 'branches']"
-             class="card p-5 hover:shadow-md transition group relative">
-            <div class="flex items-start justify-between">
-              <div class="w-12 h-12 rounded-xl grid place-items-center text-white font-display font-bold text-xl"
+             class="card p-5 hover:shadow-lg hover:-translate-y-0.5 transition-all group">
+            <div class="flex items-center gap-3">
+              <div class="w-12 h-12 rounded-xl grid place-items-center text-white font-bold text-lg shrink-0"
                    [style.background]="'linear-gradient(135deg,' + t.primary_color + ',' + t.accent_color + ')'">
                 {{ t.name[0] }}
               </div>
-              <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-semibold"
-                    [class.bg-emerald-100]="t.is_active" [class.text-emerald-700]="t.is_active"
-                    [class.bg-rose-100]="!t.is_active"   [class.text-rose-700]="!t.is_active">
+              <div class="min-w-0 flex-1">
+                <h3 class="text-base font-bold truncate">{{ t.name }}</h3>
+                <p class="text-xs text-slate-400 font-mono truncate">/{{ t.slug }}</p>
+              </div>
+              <span class="inline-flex items-center gap-1.5 px-2 py-0.5 rounded-full text-[11px] font-semibold shrink-0"
+                    [ngClass]="t.is_active ? 'bg-emerald-50 text-emerald-700 dark:bg-emerald-500/15 dark:text-emerald-300' : 'bg-rose-50 text-rose-700 dark:bg-rose-500/15 dark:text-rose-300'">
+                <span class="w-1.5 h-1.5 rounded-full" [ngClass]="t.is_active ? 'bg-emerald-500' : 'bg-rose-500'"></span>
                 {{ t.is_active ? 'Activa' : 'Inactiva' }}
               </span>
             </div>
 
-            <h3 class="mt-4 text-lg font-semibold">{{ t.name }}</h3>
-            <p class="text-xs text-slate-500 font-mono">/{{ t.slug }} · {{ t.legal_id || '—' }}</p>
-
             <div class="grid grid-cols-2 gap-3 mt-5">
-              <div class="rounded-lg bg-slate-50 p-3">
-                <div class="flex items-center gap-1.5 text-xs text-slate-500">
-                  <i class="fa-solid fa-building text-xs"></i> Sucursales
+              <div class="flex items-center gap-2.5 rounded-xl border border-slate-100 dark:border-white/10 p-3">
+                <span class="grid place-items-center w-9 h-9 rounded-lg bg-blue-50 dark:bg-blue-500/15 text-blue-600 dark:text-blue-400 shrink-0"><i class="fa-solid fa-store"></i></span>
+                <div>
+                  <p class="text-lg font-bold leading-none">{{ t.branches_count }}</p>
+                  <p class="text-[11px] text-slate-400 mt-0.5">Sucursales</p>
                 </div>
-                <div class="text-lg font-bold mt-1">{{ t.branches_count }}</div>
               </div>
-              <div class="rounded-lg bg-slate-50 p-3">
-                <div class="flex items-center gap-1.5 text-xs text-slate-500">
-                  <i class="fa-solid fa-users text-xs"></i> Usuarios
+              <div class="flex items-center gap-2.5 rounded-xl border border-slate-100 dark:border-white/10 p-3">
+                <span class="grid place-items-center w-9 h-9 rounded-lg bg-violet-50 dark:bg-violet-500/15 text-violet-600 dark:text-violet-400 shrink-0"><i class="fa-solid fa-users"></i></span>
+                <div>
+                  <p class="text-lg font-bold leading-none">{{ t.users_count }}</p>
+                  <p class="text-[11px] text-slate-400 mt-0.5">Usuarios</p>
                 </div>
-                <div class="text-lg font-bold mt-1">{{ t.users_count }}</div>
               </div>
             </div>
 
-            <div class="absolute top-5 right-5 w-8 h-8 rounded-full bg-slate-100 group-hover:bg-ink-900 group-hover:text-white grid place-items-center transition">
-              <i class="fa-solid fa-arrow-up-right-from-square text-xs"></i>
+            <div class="mt-4 pt-3 border-t border-slate-100 dark:border-white/10 flex items-center justify-between">
+              <span class="text-xs text-slate-400 font-mono truncate">{{ t.legal_id || 'Sin RUC' }}</span>
+              <span class="text-xs font-semibold text-[var(--dash-primary)] inline-flex items-center gap-1 group-hover:gap-2 transition-all shrink-0">
+                Ver sucursales <i class="fa-solid fa-arrow-right text-[10px]"></i>
+              </span>
             </div>
           </a>
         }

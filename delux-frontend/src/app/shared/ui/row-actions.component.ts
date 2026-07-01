@@ -37,7 +37,7 @@ export interface RowAction {
           }
           @if (rest().length) {
             <button type="button" (click)="toggleMenu($event)"
-                    class="px-2 py-1.5 grid place-items-center border-l border-white/25 bg-[#1e40af] text-white hover:bg-[#1d4ed8] transition"
+                    class="px-2 py-1.5 grid place-items-center border-l border-white/25 bg-[var(--dash-primary)] text-white hover:bg-[var(--dash-primary-d)] transition"
                     aria-label="Más acciones">
               <i class="fa-solid fa-chevron-down text-[10px]"></i>
             </button>
@@ -104,7 +104,7 @@ export class RowActionsComponent {
 
   primaryClass(a: RowAction): string {
     const base = 'inline-flex items-center gap-1.5 px-3 py-1.5 text-xs font-semibold transition whitespace-nowrap';
-    let color = 'bg-[#1e40af] text-white hover:bg-[#1d4ed8]';            // primary/undefined
+    let color = 'bg-[var(--dash-primary)] text-white hover:bg-[var(--dash-primary-d)]';            // primary/undefined
     if (a.variant === 'danger') color = 'bg-rose-600 text-white hover:bg-rose-700';
     else if (a.variant === 'default') color = 'bg-slate-100 text-slate-700 hover:bg-slate-200 dark:bg-white/10 dark:text-white dark:hover:bg-white/20';
     return `${base} ${color}`;

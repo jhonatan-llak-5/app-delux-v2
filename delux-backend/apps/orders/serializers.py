@@ -55,6 +55,7 @@ class POSCheckoutSerializer(serializers.Serializer):
     customer_data = serializers.DictField(required=False)
     discount = serializers.DecimalField(max_digits=10, decimal_places=2, default=0)
     notes = serializers.CharField(max_length=500, required=False, allow_blank=True)
+    seller_id = serializers.IntegerField(required=False, allow_null=True)
 
     def validate(self, attrs):
         if not attrs.get('items'):
@@ -71,6 +72,19 @@ class POSCheckoutSerializer(serializers.Serializer):
         if tenant is None:
             from apps.tenants.models import Tenant
             tenant = Tenant.objects.filter(is_active=True).first()
+
+        # Vendedor de la venta:
+        # - Vendedor logueado -> siempre queda a su nombre.
+        # - Gerente/Admin/Superadmin -> pueden elegir un vendedor o dejarla anonima (mostrador).
+        seller = user if getattr(user, 'is_authenticated', False) else None
+        role = getattr(user, 'role', None)
+        if role in ('SUPERADMIN', 'TENANT_ADMIN', 'BRANCH_MANAGER') and 'seller_id' in validated_data:
+            sid = validated_data.get('seller_id')
+            if sid:
+                from apps.accounts.models import User as _User
+                seller = _User.objects.filter(pk=sid, tenant=tenant).first() or None
+            else:
+                seller = None  # venta anonima / mostrador
 
         customer = None
         if validated_data.get('customer_id'):
@@ -109,7 +123,7 @@ class POSCheckoutSerializer(serializers.Serializer):
             order = Order.objects.create(
                 tenant=tenant, code=code, branch_id=branch_id,
                 customer=customer,
-                seller=user if user.is_authenticated else None,
+                seller=seller,
                 channel=OrderChannel.POS,
                 fulfillment=FulfillmentType.PICKUP,
                 status=OrderStatus.PAID,

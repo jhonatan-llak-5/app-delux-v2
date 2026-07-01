@@ -63,7 +63,7 @@ const ICONS: string[] = [
             @for (ic of filtered(); track ic) {
               <button type="button" (click)="pick(ic)" [title]="ic"
                       class="aspect-square grid place-items-center rounded-lg transition hover:bg-slate-100 dark:hover:bg-white/10"
-                      [ngClass]="value() === ic ? 'bg-[#1e40af]/10 text-[#1e40af] dark:text-[#7aa2ff]' : 'text-slate-600 dark:text-white/70'">
+                      [ngClass]="value() === ic ? 'bg-[var(--dash-primary)]/10 text-[var(--dash-primary)] dark:text-[var(--dash-primary)]' : 'text-slate-600 dark:text-white/70'">
                 <i class="fa-solid {{ ic }}"></i>
               </button>
             }

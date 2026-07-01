@@ -1,4 +1,5 @@
 import { ChangeDetectionStrategy, Component, OnInit, inject, signal } from '@angular/core';
+import { AuthService } from '@core/services/auth.service';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { RouterLink } from '@angular/router';
@@ -20,11 +21,13 @@ import { AdminService, AdminBranch } from '@features/superadmin/services/admin.s
     <p class="text-slate-500 text-sm mb-6">Auditoría completa de entradas, salidas, ajustes y transferencias.</p>
 
     <div class="card p-4 mb-4 flex flex-wrap gap-3 items-center filter-bar">
-      <select [(ngModel)]="branchFilter" (change)="reload()"
-              class="eg-input border-transparent">
-        <option [ngValue]="null">Todas las sucursales</option>
-        @for (b of branches(); track b.id) { <option [ngValue]="b.id">{{ b.name }}</option> }
-      </select>
+      @if (auth.multiBranch()) {
+        <select [(ngModel)]="branchFilter" (change)="reload()"
+                class="eg-input border-transparent">
+          <option [ngValue]="null">Todas las sucursales</option>
+          @for (b of branches(); track b.id) { <option [ngValue]="b.id">{{ b.name }}</option> }
+        </select>
+      }
       <select [(ngModel)]="typeFilter" (change)="reload()"
               class="eg-input border-transparent">
         <option value="">Todos los tipos</option>
@@ -93,6 +96,7 @@ import { AdminService, AdminBranch } from '@features/superadmin/services/admin.s
   `,
 })
 export class InventoryMovementsComponent implements OnInit {
+  protected auth = inject(AuthService);
   private svc = inject(InventoryService);
   private adminSvc = inject(AdminService);
 

@@ -53,6 +53,7 @@ export interface POSPayload {
   customer_data?: { full_name?: string; email?: string; phone?: string; document_id?: string };
   discount?: number;
   notes?: string;
+  seller_id?: number | null;
 }
 
 export interface OrderSummary {

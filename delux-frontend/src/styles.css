@@ -307,11 +307,13 @@ textarea.eg-input { height: auto; padding: 12px 14px; min-height: 110px; resize:
 /* Item activo del menú lateral: usa el color principal por rol (var --dash-primary),
    así el cliente lo ve rosa y el resto azul, sin tocar cada componente. */
 .nav-active {
-  background-color: color-mix(in srgb, var(--dash-primary) 10%, transparent) !important;
-  color: var(--dash-primary) !important;
-  border-left-color: var(--dash-primary) !important;
+  background-color: var(--dash-primary) !important;
+  color: #ffffff !important;
+  border-left-color: transparent !important;
   font-weight: 600 !important;
+  box-shadow: 0 8px 20px -8px color-mix(in srgb, var(--dash-primary) 80%, transparent);
 }
+.nav-active i { color: #ffffff !important; }
 
 .filter-bar select.eg-input {
   width: auto;
@@ -410,10 +412,12 @@ html.dark .eg-badge-neutral { background: rgba(148, 163, 184, 0.15); color: #cbd
   display: flex; align-items: center; gap: 14px;
   background-color: var(--dash-card);
   border: 1px solid var(--dash-border);
-  border-radius: 12px;
-  padding: 20px;
+  border-radius: 14px;
+  padding: 18px 20px;
   color: var(--dash-text);
+  transition: box-shadow .2s, transform .2s;
 }
+.eg-stat-card:hover { box-shadow: 0 10px 28px -14px rgba(2,6,23,.25); transform: translateY(-1px); }
 
 /* Tabla admin */
 .eg-table-wrap {

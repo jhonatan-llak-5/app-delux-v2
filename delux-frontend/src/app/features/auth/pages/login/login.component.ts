@@ -76,7 +76,7 @@ export class LoginComponent {
         if (role === 'SUPERADMIN' || role === 'TENANT_ADMIN' || role === 'BRANCH_MANAGER') {
           this.router.navigate(['/app/admin/overview']);
         } else if (role === 'SALESPERSON') {
-          this.router.navigate(['/app/admin/pos']);
+          this.router.navigate(['/app/admin/seller']);
         } else if (role === 'AFFILIATE') {
           this.router.navigate(['/app/affiliate']);
         } else {

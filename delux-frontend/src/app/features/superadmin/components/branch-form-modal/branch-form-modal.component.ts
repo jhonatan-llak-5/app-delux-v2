@@ -116,7 +116,7 @@ export interface BranchPayload {
                 <div class="flex items-center gap-3 px-3 py-2">
                   <label class="flex items-center gap-2 w-28 shrink-0 cursor-pointer text-sm">
                     <input type="checkbox" [checked]="!d.is_closed" (change)="d.is_closed = !d.is_closed"
-                           class="w-4 h-4 accent-[#1e40af]" />
+                           class="w-4 h-4 accent-[var(--dash-primary)]" />
                     <span class="font-medium">{{ dayLabel(d.weekday) }}</span>
                   </label>
                   @if (!d.is_closed) {
@@ -149,7 +149,7 @@ export interface BranchPayload {
           <p class="text-[11px] text-slate-400">Las coordenadas se usan para el mapa de seguimiento de envíos.</p>
 
           <div class="rounded-xl bg-slate-50 dark:bg-white/5 p-4 space-y-3">
-            <p class="text-sm font-semibold flex items-center gap-2"><i class="fa-solid fa-qrcode text-[#1e40af]"></i> Kiosko de consulta</p>
+            <p class="text-sm font-semibold flex items-center gap-2"><i class="fa-solid fa-qrcode text-[var(--dash-primary)]"></i> Kiosko de consulta</p>
             <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
               <div>
                 <label class="eg-label">PIN de acceso (opcional)</label>

@@ -1,4 +1,5 @@
 import { ChangeDetectionStrategy, Component, OnInit, inject, signal } from '@angular/core';
+import { DlxStatCardComponent } from '@shared/ui';
 import { DlxSearchInputComponent } from '@shared/ui/search-input.component';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
@@ -13,7 +14,7 @@ import { CustomerFormModalComponent } from '@features/superadmin/components/cust
 @Component({
   selector: 'dlx-customers-list',
   standalone: true,
-  imports: [DlxSearchInputComponent, CommonModule, FormsModule, RouterLink, CustomerFormModalComponent],
+  imports: [DlxStatCardComponent, DlxSearchInputComponent, CommonModule, FormsModule, RouterLink, CustomerFormModalComponent],
   changeDetection: ChangeDetectionStrategy.OnPush,
   template: `
     <div class="flex flex-wrap items-end justify-between gap-4 mb-6">
@@ -33,18 +34,9 @@ import { CustomerFormModalComponent } from '@features/superadmin/components/cust
 
     @if (summary()) {
       <div class="grid grid-cols-2 md:grid-cols-3 gap-3 mb-6">
-        <div class="card p-4">
-          <p class="text-xs uppercase tracking-widest text-slate-500 font-semibold">Total</p>
-          <p class="text-2xl font-bold mt-1">{{ summary()!.total_customers }}</p>
-        </div>
-        <div class="card p-4">
-          <p class="text-xs uppercase tracking-widest text-emerald-600 font-semibold">Con compras</p>
-          <p class="text-2xl font-bold text-emerald-600 mt-1">{{ summary()!.with_purchases }}</p>
-        </div>
-        <div class="card p-4">
-          <p class="text-xs uppercase tracking-widest text-violet-600 font-semibold">Suscritos marketing</p>
-          <p class="text-2xl font-bold text-violet-600 mt-1">{{ summary()!.marketing_subscribers }}</p>
-        </div>
+        <dlx-stat-card label="Total" [value]="summary()!.total_customers" icon="fa-users" />
+        <dlx-stat-card label="Con compras" [value]="summary()!.with_purchases" icon="fa-bag-shopping" iconBg="bg-emerald-50 dark:bg-emerald-500/15" iconColor="text-emerald-600 dark:text-emerald-400" />
+        <dlx-stat-card label="Suscritos marketing" [value]="summary()!.marketing_subscribers" icon="fa-envelope" iconBg="bg-violet-50 dark:bg-violet-500/15" iconColor="text-violet-600 dark:text-violet-400" />
       </div>
     }
 

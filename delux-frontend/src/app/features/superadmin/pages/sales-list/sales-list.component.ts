@@ -1,4 +1,6 @@
 import { ChangeDetectionStrategy, Component, OnInit, inject, signal } from '@angular/core';
+import { AuthService } from '@core/services/auth.service';
+import { DlxStatCardComponent } from '@shared/ui';
 import { DlxSearchInputComponent } from '@shared/ui/search-input.component';
 import { CommonModule } from '@angular/common';
 import { RowActionsComponent, RowAction } from '@shared/ui/row-actions.component';
@@ -15,7 +17,7 @@ import { generateVoucherPDF } from '@shared/utils/voucher-pdf.util';
 @Component({
   selector: 'dlx-sales-list',
   standalone: true,
-  imports: [DlxSearchInputComponent, CommonModule, FormsModule, RouterLink, RowActionsComponent],
+  imports: [DlxStatCardComponent, DlxSearchInputComponent, CommonModule, FormsModule, RouterLink, RowActionsComponent],
   changeDetection: ChangeDetectionStrategy.OnPush,
   template: `
     <div class="flex items-end justify-between gap-4 mb-6">
@@ -35,33 +37,22 @@ import { generateVoucherPDF } from '@shared/utils/voucher-pdf.util';
 
     @if (summary()) {
       <div class="grid grid-cols-2 md:grid-cols-4 gap-3 mb-6">
-        <div class="card p-4">
-          <p class="text-xs uppercase tracking-widest text-slate-500 font-semibold">Hoy</p>
-          <p class="text-2xl font-bold mt-1">{{ summary()!.today_orders }}</p>
-          <p class="text-xs text-emerald-600 font-semibold mt-0.5">\${{ summary()!.today_revenue }}</p>
-        </div>
-        <div class="card p-4">
-          <p class="text-xs uppercase tracking-widest text-slate-500 font-semibold">Total órdenes</p>
-          <p class="text-2xl font-bold mt-1">{{ summary()!.total_orders }}</p>
-        </div>
-        <div class="card p-4">
-          <p class="text-xs uppercase tracking-widest text-slate-500 font-semibold">Revenue total</p>
-          <p class="text-2xl font-bold text-emerald-600 mt-1">\${{ summary()!.total_revenue }}</p>
-        </div>
-        <div class="card p-4">
-          <p class="text-xs uppercase tracking-widest text-amber-600 font-semibold">Pendientes</p>
-          <p class="text-2xl font-bold text-amber-600 mt-1">{{ summary()!.pending }}</p>
-        </div>
+        <dlx-stat-card label="Hoy" [value]="summary()!.today_orders" icon="fa-calendar-day" [sub]="'$' + summary()!.today_revenue" />
+        <dlx-stat-card label="Total órdenes" [value]="summary()!.total_orders" icon="fa-receipt" iconBg="bg-violet-50 dark:bg-violet-500/15" iconColor="text-violet-600 dark:text-violet-400" />
+        <dlx-stat-card label="Revenue total" [value]="'$' + summary()!.total_revenue" icon="fa-sack-dollar" iconBg="bg-emerald-50 dark:bg-emerald-500/15" iconColor="text-emerald-600 dark:text-emerald-400" />
+        <dlx-stat-card label="Pendientes" [value]="summary()!.pending" icon="fa-clock" iconBg="bg-amber-50 dark:bg-amber-500/15" iconColor="text-amber-600 dark:text-amber-400" />
       </div>
     }
 
     <div class="card p-4 mb-4 flex flex-wrap gap-3 items-center filter-bar">
       <dlx-search-input [fluid]="true" [value]="search()" (valueChange)="onSearch($event)" placeholder="Buscar por código, cliente..." class="flex-1 min-w-64" />
-      <select [(ngModel)]="branchFilter" (change)="reload()"
-              class="eg-input border-transparent">
-        <option [ngValue]="null">Todas las sucursales</option>
-        @for (b of branches(); track b.id) { <option [ngValue]="b.id">{{ b.name }}</option> }
-      </select>
+      @if (auth.multiBranch()) {
+        <select [(ngModel)]="branchFilter" (change)="reload()"
+                class="eg-input border-transparent">
+          <option [ngValue]="null">Todas las sucursales</option>
+          @for (b of branches(); track b.id) { <option [ngValue]="b.id">{{ b.name }}</option> }
+        </select>
+      }
       <select [(ngModel)]="statusFilter" (change)="reload()"
               class="eg-input border-transparent">
         <option value="">Todos los estados</option>
@@ -96,6 +87,7 @@ import { generateVoucherPDF } from '@shared/utils/voucher-pdf.util';
               <th class="px-5 py-3 font-semibold">Fecha</th>
               <th class="px-5 py-3 font-semibold">Sucursal</th>
               <th class="px-5 py-3 font-semibold">Cliente</th>
+              <th class="px-5 py-3 font-semibold">Vendedor</th>
               <th class="px-5 py-3 font-semibold text-center">Canal</th>
               <th class="px-5 py-3 font-semibold text-center">Items</th>
               <th class="px-5 py-3 font-semibold text-right">Total</th>
@@ -110,6 +102,7 @@ import { generateVoucherPDF } from '@shared/utils/voucher-pdf.util';
                 <td class="px-5 py-3 text-xs text-slate-600">{{ o.created_at | date:'short' }}</td>
                 <td class="px-5 py-3 text-xs">{{ o.branch_name }}</td>
                 <td class="px-5 py-3 text-xs">{{ o.customer_name || '—' }}</td>
+                <td class="px-5 py-3 text-xs">{{ o.seller_name || 'Mostrador' }}</td>
                 <td class="px-5 py-3 text-center">
                   <span class="inline-flex items-center px-2 py-0.5 rounded-md text-[11px] font-bold uppercase"
                         [class.bg-violet-100]="o.channel === 'POS'"
@@ -139,6 +132,7 @@ import { generateVoucherPDF } from '@shared/utils/voucher-pdf.util';
   `,
 })
 export class SalesListComponent implements OnInit {
+  protected auth = inject(AuthService);
   private svc = inject(OrderService);
   private router = inject(Router);
   private confirm = inject(ConfirmService);

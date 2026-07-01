@@ -1,4 +1,5 @@
 import { ChangeDetectionStrategy, Component, OnInit, computed, inject, signal } from '@angular/core';
+import { DlxStatCardComponent } from '@shared/ui';
 import { DlxSearchInputComponent } from '@shared/ui/search-input.component';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
@@ -11,7 +12,7 @@ import { RowActionsComponent, RowAction } from '@shared/ui/row-actions.component
 @Component({
   selector: 'dlx-categories-tree',
   standalone: true,
-  imports: [DlxSearchInputComponent, CommonModule, FormsModule, CategoryFormModalComponent, RowActionsComponent],
+  imports: [DlxStatCardComponent, DlxSearchInputComponent, CommonModule, FormsModule, CategoryFormModalComponent, RowActionsComponent],
   changeDetection: ChangeDetectionStrategy.OnPush,
   template: `
     <div class="flex flex-wrap items-end justify-between gap-4 mb-6">
@@ -31,9 +32,9 @@ import { RowActionsComponent, RowAction } from '@shared/ui/row-actions.component
           Actualizar
         </button>
         <button (click)="openCreate(null)"
-                class="px-4 py-2.5 rounded-lg bg-[#1e40af] dark:bg-[#2563eb]
+                class="px-4 py-2.5 rounded-lg bg-[var(--dash-primary)] dark:bg-[#2563eb]
                        text-white text-sm font-semibold
-                       hover:bg-[#1e3a8a] dark:hover:bg-[#1d4ed8] transition flex items-center gap-2">
+                       hover:bg-[var(--dash-primary-d)] dark:hover:bg-[var(--dash-primary-d)] transition flex items-center gap-2">
           <i class="fa-solid fa-plus"></i> Nueva categoría
         </button>
       </div>
@@ -41,22 +42,10 @@ import { RowActionsComponent, RowAction } from '@shared/ui/row-actions.component
 
     <!-- KPI cards -->
     <div class="grid grid-cols-2 md:grid-cols-4 gap-3 mb-6">
-      <div class="card p-4">
-        <p class="text-xs uppercase tracking-widest text-slate-500 font-semibold">Raíces</p>
-        <p class="text-2xl font-bold mt-1">{{ rootCount() }}</p>
-      </div>
-      <div class="card p-4">
-        <p class="text-xs uppercase tracking-widest text-slate-500 font-semibold">Subcategorías</p>
-        <p class="text-2xl font-bold mt-1">{{ subCount() }}</p>
-      </div>
-      <div class="card p-4">
-        <p class="text-xs uppercase tracking-widest text-slate-500 font-semibold">Activas</p>
-        <p class="text-2xl font-bold text-emerald-600 mt-1">{{ activeCount() }}</p>
-      </div>
-      <div class="card p-4">
-        <p class="text-xs uppercase tracking-widest text-slate-500 font-semibold">Inactivas</p>
-        <p class="text-2xl font-bold text-slate-400 mt-1">{{ inactiveCount() }}</p>
-      </div>
+      <dlx-stat-card label="Raíces" [value]="rootCount()" icon="fa-folder-tree" />
+      <dlx-stat-card label="Subcategorías" [value]="subCount()" icon="fa-sitemap" iconBg="bg-violet-50 dark:bg-violet-500/15" iconColor="text-violet-600 dark:text-violet-400" />
+      <dlx-stat-card label="Activas" [value]="activeCount()" icon="fa-circle-check" iconBg="bg-emerald-50 dark:bg-emerald-500/15" iconColor="text-emerald-600 dark:text-emerald-400" />
+      <dlx-stat-card label="Inactivas" [value]="inactiveCount()" icon="fa-circle-minus" iconBg="bg-slate-100 dark:bg-white/10" iconColor="text-slate-500 dark:text-white/50" />
     </div>
 
     <!-- Búsqueda -->

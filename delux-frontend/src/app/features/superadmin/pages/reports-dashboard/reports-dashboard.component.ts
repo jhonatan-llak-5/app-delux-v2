@@ -1,4 +1,6 @@
 import { ChangeDetectionStrategy, Component, OnInit, computed, inject, signal } from '@angular/core';
+import { AuthService } from '@core/services/auth.service';
+import { DlxStatCardComponent } from '@shared/ui';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { ChartConfiguration } from 'chart.js/auto';
@@ -27,7 +29,7 @@ const PALETTE = [VIOLET, ACCENT, MAGENTA, ORANGE, TEAL, AMBER, ROSE, '#3b82f6', 
 @Component({
   selector: 'dlx-reports-dashboard',
   standalone: true,
-  imports: [CommonModule, FormsModule, ChartCanvasComponent],
+  imports: [DlxStatCardComponent, CommonModule, FormsModule, ChartCanvasComponent],
   changeDetection: ChangeDetectionStrategy.OnPush,
   template: `
     <div class="flex flex-wrap items-end justify-between gap-4 mb-6">
@@ -58,53 +60,24 @@ const PALETTE = [VIOLET, ACCENT, MAGENTA, ORANGE, TEAL, AMBER, ROSE, '#3b82f6', 
                class="px-3 py-2 rounded-lg bg-slate-50 border border-slate-200 text-xs" />
         <input type="date" [(ngModel)]="to" (change)="onCustomRange()"
                class="px-3 py-2 rounded-lg bg-slate-50 border border-slate-200 text-xs" />
-        <select [(ngModel)]="branchId" (change)="reload()"
-                class="px-3 py-2 rounded-lg bg-slate-50 border border-slate-200 text-xs">
-          <option [ngValue]="null">Todas las sucursales</option>
-          @for (b of branches(); track b.id) { <option [ngValue]="b.id">{{ b.name }}</option> }
-        </select>
+        @if (auth.multiBranch()) {
+          <select [(ngModel)]="branchId" (change)="reload()"
+                  class="px-3 py-2 rounded-lg bg-slate-50 border border-slate-200 text-xs">
+            <option [ngValue]="null">Todas las sucursales</option>
+            @for (b of branches(); track b.id) { <option [ngValue]="b.id">{{ b.name }}</option> }
+          </select>
+        }
       </div>
     </div>
 
     <!-- KPIs -->
     @if (kpis(); as k) {
-      <div class="grid grid-cols-2 md:grid-cols-5 gap-3 mb-6">
-        <div class="card p-5 bg-gradient-to-br from-emerald-500 to-emerald-600 text-white">
-          <p class="text-xs uppercase tracking-widest text-emerald-100 font-semibold">Revenue</p>
-          <p class="text-3xl font-bold mt-1">\${{ k.total_revenue | number:'1.2-2' }}</p>
-          @if (k.revenue_delta_pct !== null) {
-            <p class="text-xs mt-1 flex items-center gap-1"
-               [class.text-emerald-100]="k.revenue_delta_pct >= 0"
-               [class.text-rose-200]="k.revenue_delta_pct < 0">
-              <i class="fa-solid" [class.fa-arrow-trend-up]="k.revenue_delta_pct >= 0" [class.fa-arrow-trend-down]="k.revenue_delta_pct < 0"></i>
-              {{ k.revenue_delta_pct >= 0 ? '+' : '' }}{{ k.revenue_delta_pct }}% vs anterior
-            </p>
-          }
-        </div>
-        <div class="card p-5">
-          <p class="text-xs uppercase tracking-widest text-slate-500 font-semibold">Órdenes</p>
-          <p class="text-3xl font-bold mt-1">{{ k.total_orders }}</p>
-          @if (k.orders_delta_pct !== null) {
-            <p class="text-xs mt-1 flex items-center gap-1"
-               [class.text-emerald-600]="k.orders_delta_pct >= 0"
-               [class.text-rose-600]="k.orders_delta_pct < 0">
-              <i class="fa-solid" [class.fa-arrow-trend-up]="k.orders_delta_pct >= 0" [class.fa-arrow-trend-down]="k.orders_delta_pct < 0"></i>
-              {{ k.orders_delta_pct >= 0 ? '+' : '' }}{{ k.orders_delta_pct }}%
-            </p>
-          }
-        </div>
-        <div class="card p-5">
-          <p class="text-xs uppercase tracking-widest text-slate-500 font-semibold">Ticket promedio</p>
-          <p class="text-3xl font-bold mt-1">\${{ k.avg_order_value | number:'1.2-2' }}</p>
-        </div>
-        <div class="card p-5">
-          <p class="text-xs uppercase tracking-widest text-slate-500 font-semibold">Unidades</p>
-          <p class="text-3xl font-bold mt-1">{{ k.items_sold }}</p>
-        </div>
-        <div class="card p-5">
-          <p class="text-xs uppercase tracking-widest text-slate-500 font-semibold">Clientes</p>
-          <p class="text-3xl font-bold mt-1">{{ k.unique_customers }}</p>
-        </div>
+      <div class="grid grid-cols-2 md:grid-cols-3 2xl:grid-cols-5 gap-3 mb-6">
+        <dlx-stat-card label="Revenue" [value]="'$' + (k.total_revenue | number:'1.2-2')" icon="fa-sack-dollar" iconBg="bg-emerald-50 dark:bg-emerald-500/15" iconColor="text-emerald-600 dark:text-emerald-400" [delta]="k.revenue_delta_pct" />
+        <dlx-stat-card label="Órdenes" [value]="k.total_orders" icon="fa-receipt" [delta]="k.orders_delta_pct" />
+        <dlx-stat-card label="Ticket promedio" [value]="'$' + (k.avg_order_value | number:'1.2-2')" icon="fa-tags" iconBg="bg-violet-50 dark:bg-violet-500/15" iconColor="text-violet-600 dark:text-violet-400" />
+        <dlx-stat-card label="Unidades" [value]="k.items_sold" icon="fa-cubes" iconBg="bg-sky-50 dark:bg-sky-500/15" iconColor="text-sky-600 dark:text-sky-400" />
+        <dlx-stat-card label="Clientes" [value]="k.unique_customers" icon="fa-user-group" iconBg="bg-amber-50 dark:bg-amber-500/15" iconColor="text-amber-600 dark:text-amber-400" />
       </div>
     }
 
@@ -270,6 +243,7 @@ const PALETTE = [VIOLET, ACCENT, MAGENTA, ORANGE, TEAL, AMBER, ROSE, '#3b82f6', 
   `,
 })
 export class ReportsDashboardComponent implements OnInit {
+  protected auth = inject(AuthService);
   private svc = inject(ReportsService);
   private adminSvc = inject(AdminService);
 

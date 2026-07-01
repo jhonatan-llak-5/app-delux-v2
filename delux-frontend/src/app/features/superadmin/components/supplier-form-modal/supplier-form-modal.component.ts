@@ -56,7 +56,7 @@ interface SupplierForm {
             <textarea [(ngModel)]="form.notes" name="notes" rows="2" maxlength="400" class="eg-input" placeholder="Datos de contacto, condiciones, etc."></textarea>
           </div>
           <label class="flex items-center gap-2 cursor-pointer">
-            <input type="checkbox" [(ngModel)]="form.is_active" name="is_active" class="w-4 h-4 accent-[#1e40af]" />
+            <input type="checkbox" [(ngModel)]="form.is_active" name="is_active" class="w-4 h-4 accent-[var(--dash-primary)]" />
             <span class="text-sm">Activo (aparece para seleccionar en recepción)</span>
           </label>
           <div class="flex justify-end gap-3 pt-2 border-t border-slate-100 dark:border-white/10">

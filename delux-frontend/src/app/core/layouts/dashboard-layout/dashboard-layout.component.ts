@@ -29,18 +29,18 @@ const COLLAPSED_KEY = 'dlx_sidebar_collapsed';
       <!-- ═══════════ SIDEBAR (fijo, paleta MedicGet) ═══════════ -->
       <aside data-tour="sidebar"
              class="hidden lg:flex shrink-0 flex-col transition-all duration-300
-                    bg-white dark:bg-[#0f172a] backdrop-blur-xl
-                    border-r border-slate-200 dark:border-[#1e293b]
+                    bg-[#0f1728] backdrop-blur-xl
+                    border-r border-white/10
                     h-screen sticky top-0"
              [class.w-64]="!collapsed()"
              [class.w-20]="collapsed()">
 
-        <div class="h-16 flex items-center gap-2.5 px-4 border-b border-slate-200 dark:border-[#1e293b] shrink-0">
+        <div class="h-16 flex items-center gap-2.5 px-4 border-b border-white/10 shrink-0">
           @if (branding.logoUrl()) {
             <img [src]="branding.logoUrl()" [alt]="branding.siteName()"
-                 class="h-9 w-auto max-w-[180px] object-contain rounded-xl shrink-0 block dark:hidden" />
+                 class="h-9 w-auto max-w-[180px] object-contain rounded-xl shrink-0 hidden" />
             <img [src]="branding.logoUrlDark()" [alt]="branding.siteName()"
-                 class="h-9 w-auto max-w-[180px] object-contain rounded-xl shrink-0 hidden dark:block" />
+                 class="h-9 w-auto max-w-[180px] object-contain rounded-xl shrink-0 block" />
           } @else {
             <div class="w-9 h-9 shrink-0 rounded-xl bg-gradient-to-br from-[var(--dash-primary)] to-[var(--dash-primary-d)]
                         grid place-items-center font-display font-bold text-white
@@ -60,7 +60,7 @@ const COLLAPSED_KEY = 'dlx_sidebar_collapsed';
           @for (group of visibleGroups(); track group.title) {
             <div>
               @if (!collapsed()) {
-                <p class="px-3 text-[10px] uppercase tracking-widest text-slate-400 dark:text-white/40 font-semibold mb-2">
+                <p class="px-3 text-[10px] uppercase tracking-widest text-white/40 font-semibold mb-2">
                   {{ group.title }}
                 </p>
               }
@@ -75,8 +75,8 @@ const COLLAPSED_KEY = 'dlx_sidebar_collapsed';
                        [title]="collapsed() ? item.label : ''"
                        class="flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm
                               border-l-[3px] border-transparent
-                              text-slate-600 dark:text-white/70
-                              hover:bg-slate-50 dark:hover:bg-white/5 hover:text-ink-950 dark:hover:text-white
+                              text-white/70
+                              hover:bg-white/10 hover:text-white
                               transition-colors">
                       <i class="fa-solid {{ item.icon }} w-4 text-center shrink-0"></i>
                       @if (!collapsed()) {
@@ -102,15 +102,15 @@ const COLLAPSED_KEY = 'dlx_sidebar_collapsed';
           <div class="absolute inset-0 bg-ink-950/60 backdrop-blur-sm animate-fade-in"
                (click)="closeMobile()"></div>
           <aside data-tour="sidebar" class="absolute left-0 top-0 h-full w-72 max-w-[82vw] flex flex-col
-                        bg-white dark:bg-[#0f172a] border-r border-slate-200 dark:border-[#1e293b]
+                        bg-[#0f1728] border-r border-white/10
                         shadow-2xl animate-slide-in-left">
-            <div class="h-16 flex items-center justify-between gap-2 px-4 border-b border-slate-200 dark:border-[#1e293b] shrink-0">
+            <div class="h-16 flex items-center justify-between gap-2 px-4 border-b border-white/10 shrink-0">
               <div class="flex items-center gap-2 min-w-0">
                 @if (branding.logoUrl()) {
                   <img [src]="branding.logoUrl()" [alt]="branding.siteName()"
-                       class="h-8 w-auto max-w-[150px] object-contain rounded-lg block dark:hidden" />
+                       class="h-8 w-auto max-w-[150px] object-contain rounded-lg hidden" />
                   <img [src]="branding.logoUrlDark()" [alt]="branding.siteName()"
-                       class="h-8 w-auto max-w-[150px] object-contain rounded-lg hidden dark:block" />
+                       class="h-8 w-auto max-w-[150px] object-contain rounded-lg block" />
                 } @else {
                   <span class="font-display font-bold text-lg text-ink-950 dark:text-white truncate">{{ branding.siteName() }}</span>
                 }
@@ -124,7 +124,7 @@ const COLLAPSED_KEY = 'dlx_sidebar_collapsed';
             <nav class="flex-1 overflow-y-auto px-3 py-4 space-y-6 scrollbar-thin">
               @for (group of visibleGroups(); track group.title) {
                 <div>
-                  <p class="px-3 text-[10px] uppercase tracking-widest text-slate-400 dark:text-white/40 font-semibold mb-2">
+                  <p class="px-3 text-[10px] uppercase tracking-widest text-white/40 font-semibold mb-2">
                     {{ group.title }}
                   </p>
                   <ul class="space-y-0.5">
@@ -132,11 +132,11 @@ const COLLAPSED_KEY = 'dlx_sidebar_collapsed';
                       <li>
                         <a [routerLink]="item.route === '/kiosko' ? null : item.route" (click)="onNav(item, true)"
                            [attr.data-tour]="tourKey(item.route)"
-                           routerLinkActive="!bg-[#1e40af]/8 !text-[#1e40af] dark:!bg-[#2563eb]/15 dark:!text-[#60a5fa] font-semibold !border-l-[3px] !border-[#1e40af] dark:!border-[#3b82f6]"
-                           [routerLinkActiveOptions]="{ exact: false }"
+                           routerLinkActive="nav-active"
+                           [routerLinkActiveOptions]="{ exact: !!item.exact }"
                            class="flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm border-l-[3px] border-transparent
-                                  text-slate-600 dark:text-white/70
-                                  hover:bg-slate-50 dark:hover:bg-white/5 hover:text-ink-950 dark:hover:text-white transition-colors">
+                                  text-white/70
+                                  hover:bg-white/10 hover:text-white transition-colors">
                           <i class="fa-solid {{ item.icon }} w-4 text-center shrink-0"></i>
                           <span class="flex-1 truncate">{{ item.label }}</span>
                           @if (item.badge) { <span class="eg-badge eg-badge-brand">{{ item.badge }}</span> }
@@ -225,7 +225,7 @@ const COLLAPSED_KEY = 'dlx_sidebar_collapsed';
                 }
               } @else {
                 <span class="flex items-center gap-2 px-3 h-10 rounded-lg bg-slate-100 dark:bg-white/5
-                             text-sm font-semibold text-slate-600 dark:text-white/70">
+                             text-sm font-semibold text-slate-700 dark:text-white/80">
                   <i class="fa-solid fa-store text-xs text-slate-400"></i> {{ branchCtx.currentName() }}
                 </span>
               }
@@ -552,6 +552,7 @@ export class DashboardLayoutComponent implements AfterViewInit, OnDestroy {
       title: 'Mi punto de venta',
       roles: ['SALESPERSON'],
       items: [
+        { label: 'Mi panel',    icon: 'fa-gauge-high',     route: '/app/admin/seller', exact: true },
         { label: 'POS',         icon: 'fa-cash-register',  route: '/app/admin/pos' },
         { label: 'Mis ventas',  icon: 'fa-receipt',        route: '/app/admin/sales' },
         { label: 'Productos',   icon: 'fa-box',            route: '/app/admin/products' },
@@ -563,7 +564,10 @@ export class DashboardLayoutComponent implements AfterViewInit, OnDestroy {
       title: 'Afiliado',
       roles: ['AFFILIATE'],
       items: [
-        { label: 'Panel de afiliado', icon: 'fa-hand-holding-dollar', route: '/app/affiliate' },
+        { label: 'Panel de afiliado', icon: 'fa-hand-holding-dollar', route: '/app/affiliate', exact: true },
+        { label: 'Mis comisiones',    icon: 'fa-hand-holding-dollar', route: '/app/affiliate/comisiones' },
+        { label: 'Mis ventas',        icon: 'fa-box',                route: '/app/affiliate/ventas' },
+        { label: 'Mis pagos',         icon: 'fa-money-check-dollar',  route: '/app/affiliate/pagos' },
         { label: 'Mi perfil',         icon: 'fa-id-card',            route: '/app/profile' },
       ],
     },

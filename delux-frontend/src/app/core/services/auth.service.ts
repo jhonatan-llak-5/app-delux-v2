@@ -46,6 +46,13 @@ export class AuthService {
   readonly isLogged = computed(() => this._user() !== null);
   readonly role = computed(() => this._user()?.role ?? null);
   readonly isSuperadmin = computed(() => this._user()?.role === 'SUPERADMIN');
+  /** true si la cuenta ve varias sucursales (superadmin/admin, o sin sucursal asignada). */
+  readonly multiBranch = computed(() => {
+    const u = this._user();
+    if (!u) return false;
+    if (u.role === 'SUPERADMIN' || u.role === 'TENANT_ADMIN') return true;
+    return !u.branch_id;
+  });
 
   // ── Impersonación
   private _impersonator = signal<Impersonator | null>(this.readImpersonator());

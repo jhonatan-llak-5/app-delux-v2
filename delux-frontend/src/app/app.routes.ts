@@ -72,11 +72,7 @@ export const appRoutes: Routes = [
         loadComponent: () =>
           import('./features/checkout/pages/checkout-result/checkout-result.component').then(m => m.CheckoutResultComponent),
       },
-      {
-        path: 'account',
-        loadChildren: () =>
-          import('./features/account/account.routes').then(m => m.ACCOUNT_ROUTES),
-      },
+      { path: 'account', redirectTo: '/app/account/profile', pathMatch: 'prefix' },
       {
         path: 'tracking',
         loadComponent: () =>

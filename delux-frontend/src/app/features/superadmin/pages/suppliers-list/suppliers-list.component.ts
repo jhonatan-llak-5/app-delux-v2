@@ -75,7 +75,7 @@ interface SupplierForm {
                     @else { <span class="eg-badge eg-badge-neutral">Inactivo</span> }
                   </td>
                   <td class="px-4 py-2.5 text-right whitespace-nowrap">
-                    <button class="text-slate-400 hover:text-[#1e40af] mr-3" (click)="openEdit(s)" title="Editar">
+                    <button class="text-slate-400 hover:text-[var(--dash-primary)] mr-3" (click)="openEdit(s)" title="Editar">
                       <i class="fa-solid fa-pen text-xs"></i>
                     </button>
                     <button class="text-rose-500 hover:text-rose-700" (click)="askDelete(s)" title="Eliminar">
@@ -154,7 +154,7 @@ interface SupplierForm {
               <textarea [(ngModel)]="form.notes" name="notes" rows="2" maxlength="400" class="eg-input" placeholder="Datos de contacto, condiciones, etc."></textarea>
             </div>
             <label class="flex items-center gap-2 cursor-pointer">
-              <input type="checkbox" [(ngModel)]="form.is_active" name="is_active" class="w-4 h-4 accent-[#1e40af]" />
+              <input type="checkbox" [(ngModel)]="form.is_active" name="is_active" class="w-4 h-4 accent-[var(--dash-primary)]" />
               <span class="text-sm">Activo (aparece para seleccionar en recepción)</span>
             </label>
             <div class="flex justify-end gap-3 pt-2 border-t border-slate-100 dark:border-white/10">

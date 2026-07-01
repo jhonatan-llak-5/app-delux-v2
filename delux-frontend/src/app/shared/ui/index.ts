@@ -9,6 +9,7 @@ export * from './select.component';
 export * from './card.component';
 export * from './page-header.component';
 export * from './stat-card.component';
+export * from './date-range.component';
 export * from './extension-pill.component';
 export * from './toggle.component';
 export * from './tabs.component';

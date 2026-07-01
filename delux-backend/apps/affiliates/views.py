@@ -4,10 +4,11 @@ from rest_framework import permissions, viewsets, filters, status as http_status
 from rest_framework.decorators import action
 from rest_framework.exceptions import ValidationError
 from rest_framework.response import Response
+from rest_framework.views import APIView
 
 from apps.accounts.models import Role, User
 from apps.accounts.permissions import IsBranchManager
-from apps.orders.models import Order, OrderStatus
+from apps.orders.models import Order, OrderItem, OrderStatus
 from .models import Commission, CommissionStatus, CommissionPayout
 from .serializers import (
     CommissionSerializer, AffiliateAdminSerializer,
@@ -27,6 +28,17 @@ def _tenant_scope(qs, user, field='tenant_id'):
     return qs
 
 
+def _range_filter(qs, request, field='created_at'):
+    """Filtra por rango de fechas si vienen from/to en la query (YYYY-MM-DD)."""
+    p = request.query_params
+    frm, to = p.get('from'), p.get('to')
+    if frm:
+        qs = qs.filter(**{f'{field}__date__gte': frm})
+    if to:
+        qs = qs.filter(**{f'{field}__date__lte': to})
+    return qs
+
+
 class MyCommissionViewSet(viewsets.ReadOnlyModelViewSet):
     """Comisiones del afiliado autenticado + resumen."""
     serializer_class = CommissionSerializer
@@ -35,15 +47,19 @@ class MyCommissionViewSet(viewsets.ReadOnlyModelViewSet):
     ordering = ['-created_at']
 
     def get_queryset(self):
-        return (Commission.objects
-                .filter(affiliate=self.request.user)
-                .select_related('order', 'order__customer', 'affiliate'))
+        qs = (Commission.objects
+              .filter(affiliate=self.request.user)
+              .select_related('order', 'order__customer', 'affiliate'))
+        st = self.request.query_params.get('status')
+        if st:
+            qs = qs.filter(status=st)
+        return _range_filter(qs, self.request)
 
     @action(detail=False, methods=['get'])
     def summary(self, request):
         user = request.user
-        commissions = Commission.objects.filter(affiliate=user)
-        orders = Order.objects.filter(affiliate=user)
+        commissions = _range_filter(Commission.objects.filter(affiliate=user), request)
+        orders = _range_filter(Order.objects.filter(affiliate=user), request)
         pend = commissions.filter(status=CommissionStatus.APPROVED).aggregate(s=Sum('amount'))['s']
         paid = commissions.filter(status=CommissionStatus.PAID).aggregate(s=Sum('amount'))['s']
         # Ventas aun en proceso (sin comision generada todavia).
@@ -100,6 +116,52 @@ class MyCommissionViewSet(viewsets.ReadOnlyModelViewSet):
                 'commission': _decimal(r['total']) if r else 0.0,
             })
         return Response(data)
+
+
+class MyPayoutViewSet(viewsets.ReadOnlyModelViewSet):
+    """Historial de pagos recibidos por el afiliado autenticado."""
+    serializer_class = PayoutSerializer
+    permission_classes = [permissions.IsAuthenticated]
+    filter_backends = [filters.OrderingFilter]
+    ordering = ['-created_at']
+    pagination_class = None
+
+    def get_queryset(self):
+        return (CommissionPayout.objects
+                .filter(affiliate=self.request.user)
+                .select_related('affiliate', 'paid_by'))
+
+
+class MyAffiliateProductsView(APIView):
+    """Productos vendidos por el afiliado (solo lectura), agregados por producto."""
+    permission_classes = [permissions.IsAuthenticated]
+
+    def get(self, request):
+        orders = _range_filter(Order.objects.filter(
+            affiliate=request.user,
+            status__in=[OrderStatus.PAID, OrderStatus.DELIVERED],
+        ), request)
+        rows = (OrderItem.objects.filter(order__in=orders)
+                .values('variant__product_id',
+                        'variant__product__name',
+                        'variant__product__brand__name',
+                        'variant__product__main_image_url')
+                .annotate(units=Sum('quantity'), revenue=Sum('subtotal'))
+                .order_by('-revenue'))
+        data = [{
+            'product_id': r['variant__product_id'],
+            'name': r['variant__product__name'] or '—',
+            'brand': r['variant__product__brand__name'] or '',
+            'image': r['variant__product__main_image_url'] or '',
+            'units': r['units'] or 0,
+            'revenue': str(r['revenue'] or 0),
+        } for r in rows]
+        return Response({
+            'products': data,
+            'total_units': sum(d['units'] for d in data),
+            'total_revenue': str(sum((__import__('decimal').Decimal(d['revenue']) for d in data), __import__('decimal').Decimal('0'))),
+            'distinct_products': len(data),
+        })
 
 
 class AdminAffiliateViewSet(viewsets.ViewSet):

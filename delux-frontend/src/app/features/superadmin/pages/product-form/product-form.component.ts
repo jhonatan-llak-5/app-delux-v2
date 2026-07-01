@@ -308,7 +308,7 @@ import { parseApiError } from '@shared/utils/api-error.util';
             <dlx-price-input [(ngModel)]="payload.base_price" name="base_price" />
             <dlx-field-error [error]="fe(\'base_price\')" />
             @if ((+payload.base_price || 0) > 0) {
-              <p class="text-[11px] text-slate-400 mt-1">Con IVA ({{ ivaRate() }}%): <b class="text-[#1e40af] dark:text-[#7aa2ff]">$ {{ priceWithIva() | number:'1.2-2' }}</b></p>
+              <p class="text-[11px] text-slate-400 mt-1">Con IVA ({{ ivaRate() }}%): <b class="text-[var(--dash-primary)] dark:text-[var(--dash-primary)]">$ {{ priceWithIva() | number:'1.2-2' }}</b></p>
             }
           </div>
         </div>

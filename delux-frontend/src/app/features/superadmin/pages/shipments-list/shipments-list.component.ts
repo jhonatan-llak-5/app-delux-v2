@@ -1,4 +1,5 @@
 import { ChangeDetectionStrategy, Component, OnInit, inject, signal } from '@angular/core';
+import { DlxStatCardComponent } from '@shared/ui';
 import { DlxSearchInputComponent } from '@shared/ui/search-input.component';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
@@ -7,7 +8,7 @@ import { ShippingService, Shipment } from '@shared/services/shipping.service';
 @Component({
   selector: 'dlx-shipments-list',
   standalone: true,
-  imports: [DlxSearchInputComponent, CommonModule, FormsModule],
+  imports: [DlxStatCardComponent, DlxSearchInputComponent, CommonModule, FormsModule],
   changeDetection: ChangeDetectionStrategy.OnPush,
   template: `
     <div class="mb-6">
@@ -19,27 +20,12 @@ import { ShippingService, Shipment } from '@shared/services/shipping.service';
       <p class="text-slate-500 text-sm mt-1">Gestiona despachos y actualiza estados de entrega.</p>
     </div>
 
-    <div class="grid grid-cols-2 md:grid-cols-5 gap-3 mb-6">
-      <div class="card p-4">
-        <p class="text-xs uppercase tracking-widest text-slate-500 font-semibold">Por preparar</p>
-        <p class="text-2xl font-bold mt-1">{{ countBy('CREATED') + countBy('PREPARING') }}</p>
-      </div>
-      <div class="card p-4">
-        <p class="text-xs uppercase tracking-widest text-sky-600 font-semibold">Enviados</p>
-        <p class="text-2xl font-bold text-sky-600 mt-1">{{ countBy('SHIPPED') }}</p>
-      </div>
-      <div class="card p-4">
-        <p class="text-xs uppercase tracking-widest text-violet-600 font-semibold">En tránsito</p>
-        <p class="text-2xl font-bold text-violet-600 mt-1">{{ countBy('IN_TRANSIT') }}</p>
-      </div>
-      <div class="card p-4">
-        <p class="text-xs uppercase tracking-widest text-emerald-600 font-semibold">Entregados</p>
-        <p class="text-2xl font-bold text-emerald-600 mt-1">{{ countBy('DELIVERED') }}</p>
-      </div>
-      <div class="card p-4">
-        <p class="text-xs uppercase tracking-widest text-rose-600 font-semibold">Fallidos</p>
-        <p class="text-2xl font-bold text-rose-600 mt-1">{{ countBy('FAILED') }}</p>
-      </div>
+    <div class="grid grid-cols-2 md:grid-cols-3 2xl:grid-cols-5 gap-3 mb-6">
+      <dlx-stat-card label="Por preparar" [value]="countBy('CREATED') + countBy('PREPARING')" icon="fa-box-open" />
+      <dlx-stat-card label="Enviados" [value]="countBy('SHIPPED')" icon="fa-truck-fast" iconBg="bg-sky-50 dark:bg-sky-500/15" iconColor="text-sky-600 dark:text-sky-400" />
+      <dlx-stat-card label="En tránsito" [value]="countBy('IN_TRANSIT')" icon="fa-route" iconBg="bg-violet-50 dark:bg-violet-500/15" iconColor="text-violet-600 dark:text-violet-400" />
+      <dlx-stat-card label="Entregados" [value]="countBy('DELIVERED')" icon="fa-circle-check" iconBg="bg-emerald-50 dark:bg-emerald-500/15" iconColor="text-emerald-600 dark:text-emerald-400" />
+      <dlx-stat-card label="Fallidos" [value]="countBy('FAILED')" icon="fa-triangle-exclamation" iconBg="bg-rose-50 dark:bg-rose-500/15" iconColor="text-rose-600 dark:text-rose-400" />
     </div>
 
     <div class="card p-4 mb-4 flex flex-wrap gap-3 items-center filter-bar">

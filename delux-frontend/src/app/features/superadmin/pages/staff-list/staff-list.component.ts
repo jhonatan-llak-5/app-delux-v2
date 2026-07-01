@@ -1,4 +1,6 @@
 import { ChangeDetectionStrategy, Component, OnInit, inject, signal } from '@angular/core';
+import { AuthService } from '@core/services/auth.service';
+import { DlxStatCardComponent } from '@shared/ui';
 import { DlxSearchInputComponent } from '@shared/ui/search-input.component';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
@@ -13,7 +15,7 @@ import { AdminService, AdminBranch } from '@features/superadmin/services/admin.s
 @Component({
   selector: 'dlx-staff-list',
   standalone: true,
-  imports: [DlxSearchInputComponent, CommonModule, FormsModule, RouterLink],
+  imports: [DlxStatCardComponent, DlxSearchInputComponent, CommonModule, FormsModule, RouterLink],
   changeDetection: ChangeDetectionStrategy.OnPush,
   template: `
     <div class="flex flex-wrap items-end justify-between gap-4 mb-6">
@@ -34,31 +36,21 @@ import { AdminService, AdminBranch } from '@features/superadmin/services/admin.s
     </div>
 
     <div class="grid grid-cols-2 md:grid-cols-4 gap-3 mb-6">
-      <div class="card p-4">
-        <p class="text-xs uppercase tracking-widest text-slate-500 font-semibold">Total equipo</p>
-        <p class="text-2xl font-bold mt-1">{{ staff().length }}</p>
-      </div>
-      <div class="card p-4">
-        <p class="text-xs uppercase tracking-widest text-violet-600 font-semibold">Gerentes</p>
-        <p class="text-2xl font-bold text-violet-600 mt-1">{{ countByRole('BRANCH_MANAGER') }}</p>
-      </div>
-      <div class="card p-4">
-        <p class="text-xs uppercase tracking-widest text-sky-600 font-semibold">Vendedores</p>
-        <p class="text-2xl font-bold text-sky-600 mt-1">{{ countByRole('SALESPERSON') }}</p>
-      </div>
-      <div class="card p-4">
-        <p class="text-xs uppercase tracking-widest text-emerald-600 font-semibold">Activos</p>
-        <p class="text-2xl font-bold text-emerald-600 mt-1">{{ activeCount() }}</p>
-      </div>
+      <dlx-stat-card label="Total equipo" [value]="staff().length" icon="fa-users-gear" />
+      <dlx-stat-card label="Gerentes" [value]="countByRole('BRANCH_MANAGER')" icon="fa-user-tie" iconBg="bg-violet-50 dark:bg-violet-500/15" iconColor="text-violet-600 dark:text-violet-400" />
+      <dlx-stat-card label="Vendedores" [value]="countByRole('SALESPERSON')" icon="fa-user-tag" iconBg="bg-sky-50 dark:bg-sky-500/15" iconColor="text-sky-600 dark:text-sky-400" />
+      <dlx-stat-card label="Activos" [value]="activeCount()" icon="fa-circle-check" iconBg="bg-emerald-50 dark:bg-emerald-500/15" iconColor="text-emerald-600 dark:text-emerald-400" />
     </div>
 
     <div class="card p-4 mb-4 flex flex-wrap gap-3 items-center filter-bar">
       <dlx-search-input [fluid]="true" [value]="search()" (valueChange)="onSearch($event)" placeholder="Buscar por nombre, email, teléfono..." class="flex-1 min-w-[200px]" />
-      <select [(ngModel)]="branchFilter" (change)="reload()"
-              class="eg-input border-transparent">
-        <option [ngValue]="null">Todas las sucursales</option>
-        @for (b of branches(); track b.id) { <option [ngValue]="b.id">{{ b.name }}</option> }
-      </select>
+      @if (auth.multiBranch()) {
+        <select [(ngModel)]="branchFilter" (change)="reload()"
+                class="eg-input border-transparent">
+          <option [ngValue]="null">Todas las sucursales</option>
+          @for (b of branches(); track b.id) { <option [ngValue]="b.id">{{ b.name }}</option> }
+        </select>
+      }
       <select [(ngModel)]="roleFilter" (change)="reload()"
               class="eg-input border-transparent">
         <option value="">Todos los roles</option>
@@ -152,6 +144,7 @@ import { AdminService, AdminBranch } from '@features/superadmin/services/admin.s
   `,
 })
 export class StaffListComponent implements OnInit {
+  protected auth = inject(AuthService);
   private svc = inject(StaffService);
   private confirm = inject(ConfirmService);
   private notify = inject(NotifyService);

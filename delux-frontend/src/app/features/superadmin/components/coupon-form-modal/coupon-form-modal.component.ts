@@ -100,7 +100,7 @@ import { parseApiError } from '@shared/utils/api-error.util';
           <div class="flex justify-end gap-2 pt-2 border-t border-slate-100 dark:border-white/10">
             <button type="button" (click)="close.emit()" class="px-4 py-2.5 rounded-lg bg-slate-100 hover:bg-slate-200 dark:bg-white/5 dark:hover:bg-white/10 dark:text-slate-200 text-sm font-semibold">Cancelar</button>
             <button type="submit" [disabled]="!f.valid || saving()"
-                    class="px-5 py-2.5 rounded-lg bg-[#1e40af] text-white text-sm font-semibold hover:bg-[#1e3a8a] disabled:opacity-50">
+                    class="px-5 py-2.5 rounded-lg bg-[var(--dash-primary)] text-white text-sm font-semibold hover:bg-[var(--dash-primary-d)] disabled:opacity-50">
               @if (saving()) { <i class="fa-solid fa-spinner fa-spin"></i> } @else { {{ coupon ? 'Guardar' : 'Crear' }} }
             </button>
           </div>
