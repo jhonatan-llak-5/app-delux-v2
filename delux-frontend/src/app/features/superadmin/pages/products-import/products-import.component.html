@@ -239,11 +239,11 @@
         </div>
 
         <!-- Sucursal(es) destino del stock -->
-        @if (branchLocked()) {
+        @if (branchLocked() && branches().length) {
           <div class="mt-5 rounded-xl border border-slate-200 dark:border-white/10 p-4 flex items-center gap-3">
             <span class="grid place-items-center w-9 h-9 rounded-lg bg-[var(--dash-primary-l)] text-[var(--dash-primary)] shrink-0"><i class="fa-solid fa-store"></i></span>
             <p class="text-sm text-slate-600 dark:text-white/70">
-              El stock se cargará en tu sucursal: <strong class="text-slate-900 dark:text-white">{{ branches()[0]?.name }}</strong>.
+              El stock se cargará en tu sucursal: <strong class="text-slate-900 dark:text-white">{{ branches()[0].name }}</strong>.
             </p>
           </div>
         } @else {

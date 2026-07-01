@@ -197,6 +197,24 @@ export const SUPERADMIN_ROUTES: Routes = [
           import('./pages/newsletter-subscribers/newsletter-subscribers.component').then(m => m.NewsletterSubscribersComponent),
       },
       {
+        path: 'payroll',
+        canActivate: [roleGuard(['SUPERADMIN', 'TENANT_ADMIN', 'BRANCH_MANAGER'])],
+        loadComponent: () =>
+          import('./pages/payroll-list/payroll-list.component').then(m => m.PayrollListComponent),
+      },
+      {
+        path: 'payroll/reporte',
+        canActivate: [roleGuard(['SUPERADMIN', 'TENANT_ADMIN', 'BRANCH_MANAGER'])],
+        loadComponent: () =>
+          import('./pages/payroll-report/payroll-report.component').then(m => m.PayrollReportComponent),
+      },
+      {
+        path: 'payroll/:id',
+        canActivate: [roleGuard(['SUPERADMIN', 'TENANT_ADMIN', 'BRANCH_MANAGER'])],
+        loadComponent: () =>
+          import('./pages/payroll-detail/payroll-detail.component').then(m => m.PayrollDetailComponent),
+      },
+      {
         path: 'settings',
         canActivate: [roleGuard(['SUPERADMIN'])],
         loadComponent: () =>

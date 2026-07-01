@@ -1,5 +1,7 @@
 import { ChangeDetectionStrategy, Component, OnInit, computed, inject, signal } from '@angular/core';
 import { DlxFieldErrorComponent } from '@shared/ui/field-error.component';
+import { DlxPriceInputComponent } from '@shared/ui/price-input.component';
+import { DlxInputComponent } from '@shared/ui/input.component';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { ActivatedRoute, Router, RouterLink } from '@angular/router';
@@ -11,7 +13,7 @@ import { parseApiError } from '@shared/utils/api-error.util';
 @Component({
   selector: 'dlx-staff-form',
   standalone: true,
-  imports: [DlxFieldErrorComponent, CommonModule, FormsModule, RouterLink],
+  imports: [DlxFieldErrorComponent, DlxPriceInputComponent, DlxInputComponent, CommonModule, FormsModule, RouterLink],
   changeDetection: ChangeDetectionStrategy.OnPush,
   template: `
     <div class="flex items-center gap-2 text-xs text-slate-500 mb-1">
@@ -31,43 +33,21 @@ import { parseApiError } from '@shared/utils/api-error.util';
           <h2 class="font-bold tracking-tight">Información personal</h2>
 
           <div class="grid grid-cols-2 gap-4">
-            <div>
-              <label class="eg-label">Nombre completo *</label>
-              <input [(ngModel)]="payload.full_name" name="full_name" required maxlength="160"
-                     class="eg-input" [class.!border-rose-400]="fe('full_name')" />
-              <dlx-field-error [error]="fe(\'full_name\')" />
-            </div>
-            <div>
-              <label class="eg-label">Email *</label>
-              <input [(ngModel)]="payload.email" name="email" type="email" required
-                     [disabled]="isEdit()"
-                     class="eg-input disabled:bg-slate-100 disabled:text-slate-400" [class.!border-rose-400]="fe('email')" />
-              <dlx-field-error [error]="fe(\'email\')" />
-            </div>
-            <div>
-              <label class="eg-label">Teléfono</label>
-              <input [(ngModel)]="payload.phone" name="phone" maxlength="30"
-                     class="eg-input"
-                     placeholder="+593 99 999 9999" />
-            </div>
-            <div>
-              <label class="eg-label">Cédula / Documento</label>
-              <input [(ngModel)]="payload.document_id" name="document_id" maxlength="30"
-                     class="eg-input font-mono" />
-            </div>
+            <dlx-input label="Nombre completo *" [(ngModel)]="payload.full_name" name="full_name"
+                       [required]="true" [maxlength]="160" [error]="fe('full_name')" />
+            <dlx-input label="Email *" type="email" [(ngModel)]="payload.email" name="email"
+                       [required]="true" [disabled]="isEdit()" [error]="fe('email')" />
+            <dlx-input label="Teléfono" [(ngModel)]="payload.phone" name="phone" [maxlength]="30"
+                       placeholder="+593 99 999 9999" />
+            <dlx-input label="Cédula / Documento" [(ngModel)]="payload.document_id" name="document_id"
+                       [maxlength]="30" [mono]="true" />
           </div>
 
           @if (!isEdit()) {
-            <div>
-              <label class="eg-label">Contraseña inicial</label>
-              <input [(ngModel)]="payload.password" name="password" type="text" minlength="8"
-                     class="eg-input font-mono" [class.!border-rose-400]="fe('password')"
-                     placeholder="Mínimo 8 caracteres (se genera automáticamente si vacío)" />
-              <dlx-field-error [error]="fe(\'password\')" />
-              <p class="text-[10px] text-slate-400 mt-1">
-                Si lo dejas en blanco, se genera una contraseña aleatoria. El usuario debe cambiarla en su primer login.
-              </p>
-            </div>
+            <dlx-input label="Contraseña inicial" [(ngModel)]="payload.password" name="password" [mono]="true"
+                       [error]="fe('password')"
+                       placeholder="Mínimo 8 caracteres (se genera automáticamente si vacío)"
+                       hint="Si lo dejas en blanco, se genera una contraseña aleatoria. El usuario debe cambiarla en su primer login." />
           }
         </div>
 
@@ -163,11 +143,7 @@ import { parseApiError } from '@shared/utils/api-error.util';
             </div>
           }
 
-          <div>
-            <label class="eg-label">Fecha de ingreso</label>
-            <input [(ngModel)]="payload.hire_date" name="hire_date" type="date"
-                   class="eg-input" />
-          </div>
+          <dlx-input label="Fecha de ingreso" type="date" [(ngModel)]="payload.hire_date" name="hire_date" />
 
           @if (payload.role === 'SALESPERSON') {
             <div>
@@ -186,15 +162,13 @@ import { parseApiError } from '@shared/utils/api-error.util';
             </div>
           }
 
-          <div>
-            <label class="eg-label">Sueldo mensual ($)</label>
-            <div class="relative">
-              <span class="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400 text-sm">$</span>
-              <input type="number" [(ngModel)]="payload.monthly_salary" name="monthly_salary"
-                     min="0" step="0.01" class="eg-input pl-7" />
+          @if (payload.role === 'SALESPERSON' || payload.role === 'BRANCH_MANAGER') {
+            <div>
+              <label class="eg-label">Sueldo mensual ($)</label>
+              <dlx-price-input [(ngModel)]="payload.monthly_salary" name="monthly_salary" extraClass="w-full" />
+              <p class="text-[10px] text-slate-400 mt-1">Sueldo fijo mensual del empleado.</p>
             </div>
-            <p class="text-[10px] text-slate-400 mt-1">Sueldo fijo mensual del empleado.</p>
-          </div>
+          }
         </div>
 
         @if (error()) {
@@ -287,7 +261,7 @@ export class StaffFormComponent implements OnInit {
   saving = signal(false);
   error = signal<string | null>(null);
   fieldErrors = signal<Record<string, string>>({});
-  fe(k: string): string | undefined { return this.fieldErrors()[k]; }
+  fe(k: string): string { return this.fieldErrors()[k] || ''; }
   metrics = signal<SalesMetrics | null>(null);
   createdCreds = signal<{ email: string; password: string; generated: boolean; emailed: boolean } | null>(null);
 

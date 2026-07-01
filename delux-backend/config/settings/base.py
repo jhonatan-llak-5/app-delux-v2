@@ -53,6 +53,7 @@ LOCAL_APPS = [
     'apps.shipping',
     'apps.notifications',
     'apps.reports',
+    'apps.payroll.apps.PayrollConfig',
     'apps.settings.apps.SettingsConfig',
     'apps.superadmin',
 ]
