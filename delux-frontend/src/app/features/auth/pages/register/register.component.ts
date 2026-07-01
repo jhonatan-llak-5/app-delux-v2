@@ -2,7 +2,7 @@ import { AfterViewInit, ChangeDetectionStrategy, Component, inject, signal } fro
 import { DlxPasswordInputComponent } from '@shared/ui/password-input.component';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
-import { Router, RouterLink } from '@angular/router';
+import { ActivatedRoute, Router, RouterLink } from '@angular/router';
 import { AuthService } from '@core/services/auth.service';
 import { BrandingService } from '@core/services/branding.service';
 import { parseApiError } from '@shared/utils/api-error.util';
@@ -16,6 +16,54 @@ import { AuthShellComponent } from '@features/auth/components/auth-shell/auth-sh
   template: `
     <dlx-auth-shell title="Crear cuenta en Delux">
       <form (ngSubmit)="submit()" #f="ngForm" class="space-y-3">
+
+        <div>
+          <label class="block text-[12px] font-semibold text-ink-700 dark:text-white/70 mb-2">¿Cómo quieres registrarte? <span class="text-rose-500">*</span></label>
+          <div class="grid grid-cols-2 gap-3">
+            <button type="button" (click)="form.accountType = 'customer'"
+                    class="relative rounded-2xl border-2 p-4 text-left transition-all"
+                    [ngClass]="form.accountType === 'customer'
+                      ? 'border-[#0095f6] bg-[#0095f6]/[0.06] shadow-[0_10px_30px_-14px_rgba(0,149,246,0.6)]'
+                      : 'border-ink-200 dark:border-white/10 hover:border-ink-300 dark:hover:border-white/20'">
+              @if (form.accountType === 'customer') {
+                <span class="absolute top-2.5 right-2.5 grid place-items-center w-5 h-5 rounded-full bg-[#0095f6] text-white text-[10px]"><i class="fa-solid fa-check"></i></span>
+              }
+              <span class="grid place-items-center w-11 h-11 rounded-xl mb-3"
+                    [ngClass]="form.accountType === 'customer' ? 'bg-[#0095f6] text-white' : 'bg-ink-100 dark:bg-white/10 text-ink-500 dark:text-white/60'">
+                <i class="fa-solid fa-bag-shopping"></i>
+              </span>
+              <span class="block font-bold text-[15px] text-ink-950 dark:text-white">Cliente</span>
+              <span class="block text-[12px] text-ink-500 dark:text-white/50 mt-0.5">Comprar en la tienda</span>
+            </button>
+
+            <button type="button" (click)="form.accountType = 'affiliate'"
+                    class="relative rounded-2xl border-2 p-4 text-left transition-all"
+                    [ngClass]="form.accountType === 'affiliate'
+                      ? 'border-[#0095f6] bg-[#0095f6]/[0.06] shadow-[0_10px_30px_-14px_rgba(0,149,246,0.6)]'
+                      : 'border-ink-200 dark:border-white/10 hover:border-ink-300 dark:hover:border-white/20'">
+              @if (form.accountType === 'affiliate') {
+                <span class="absolute top-2.5 right-2.5 grid place-items-center w-5 h-5 rounded-full bg-[#0095f6] text-white text-[10px]"><i class="fa-solid fa-check"></i></span>
+              }
+              <span class="grid place-items-center w-11 h-11 rounded-xl mb-3"
+                    [ngClass]="form.accountType === 'affiliate' ? 'bg-[#0095f6] text-white' : 'bg-ink-100 dark:bg-white/10 text-ink-500 dark:text-white/60'">
+                <i class="fa-solid fa-hand-holding-dollar"></i>
+              </span>
+              <span class="block font-bold text-[15px] text-ink-950 dark:text-white">Afiliado</span>
+              <span class="block text-[12px] text-ink-500 dark:text-white/50 mt-0.5">Ganar comisiones</span>
+            </button>
+          </div>
+
+          @if (form.accountType === 'affiliate') {
+            <div class="mt-3 flex items-start gap-2.5 rounded-xl border border-[#0095f6]/25 bg-[#0095f6]/[0.06] px-3.5 py-3">
+              <i class="fa-solid fa-circle-info text-[#0095f6] mt-0.5"></i>
+              <p class="text-[12.5px] text-ink-700 dark:text-white/75 leading-snug">
+                Ganarás <strong class="text-[#0095f6]">{{ branding.affiliateCommissionRate() }}%</strong> por cada venta que traigas.
+                Activa tu cuenta por correo y recibe tu código de afiliado.
+                <a routerLink="/afiliados/terminos" class="text-[#0095f6] underline">Ver términos</a>
+              </p>
+            </div>
+          }
+        </div>
 
         <div>
           <label class="block text-[12px] font-semibold text-ink-700 dark:text-white/70 mb-1">Correo electrónico <span class="text-rose-500">*</span></label>
@@ -97,10 +145,11 @@ import { AuthShellComponent } from '@features/auth/components/auth-shell/auth-sh
 export class RegisterComponent implements AfterViewInit {
   private auth = inject(AuthService);
   private router = inject(Router);
+  private route = inject(ActivatedRoute);
   branding = inject(BrandingService);
   private widgetId: number | null = null;
 
-  form = { full_name: '', username: '', email: '', password: '' };
+  form = { full_name: '', username: '', email: '', password: '', accountType: 'customer' as 'customer' | 'affiliate' };
   private readonly STORE = 'dlx_register_form';
   show = signal(false);
   pwFocused = signal(false);
@@ -121,6 +170,10 @@ export class RegisterComponent implements AfterViewInit {
 
   ngAfterViewInit(): void {
     this.restore();
+    // Preselecciona "Afiliado" si vienen desde la landing (?type=affiliate).
+    if (this.route.snapshot.queryParamMap.get('type') === 'affiliate') {
+      this.form.accountType = 'affiliate';
+    }
     if (this.branding.recaptchaSiteKey()) {
       setTimeout(() => this.renderRecaptcha(), 300);
     }
@@ -174,7 +227,7 @@ export class RegisterComponent implements AfterViewInit {
     }
     this.loading.set(true);
     this.error.set(null);
-    this.auth.register({ ...this.form, recaptcha_token: token }).subscribe({
+    this.auth.register({ ...this.form, account_type: this.form.accountType, recaptcha_token: token }).subscribe({
       next: () => {
         this.loading.set(false);
         if (typeof sessionStorage !== 'undefined') sessionStorage.removeItem(this.STORE);

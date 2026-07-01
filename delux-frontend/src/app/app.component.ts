@@ -4,6 +4,7 @@ import { NgxSonnerToaster } from 'ngx-sonner';
 import { ConfirmHostComponent } from '@shared/components/confirm/confirm-host.component';
 import { TenantService } from '@core/services/tenant.service';
 import { ThemeService } from '@core/services/theme.service';
+import { RefService } from '@core/services/ref.service';
 import { FileValidatorService } from '@shared/services/file-validator.service';
 import { BrandingService } from '@core/services/branding.service';
 
@@ -29,10 +30,12 @@ export class AppComponent implements OnInit {
   private fileValidator = inject(FileValidatorService);
   private branding = inject(BrandingService);
   theme = inject(ThemeService);
+  private ref = inject(RefService);
 
   ngOnInit() {
     this.tenant.load().subscribe({ error: () => {} });
     this.fileValidator.loadConfig();
     this.branding.load();
+    this.ref.capture();  // Atribución de afiliado (?ref=)
   }
 }

@@ -179,6 +179,18 @@ export const SUPERADMIN_ROUTES: Routes = [
           import('./pages/branch-catalog/branch-catalog.component').then(m => m.BranchCatalogComponent),
       },
       {
+        path: 'affiliates',
+        canActivate: [roleGuard(['SUPERADMIN', 'TENANT_ADMIN', 'BRANCH_MANAGER'])],
+        loadComponent: () =>
+          import('./pages/affiliates-admin/affiliates-admin.component').then(m => m.AffiliatesAdminComponent),
+      },
+      {
+        path: 'subscribers',
+        canActivate: [roleGuard(['SUPERADMIN', 'TENANT_ADMIN'])],
+        loadComponent: () =>
+          import('./pages/newsletter-subscribers/newsletter-subscribers.component').then(m => m.NewsletterSubscribersComponent),
+      },
+      {
         path: 'settings',
         canActivate: [roleGuard(['SUPERADMIN'])],
         loadComponent: () =>

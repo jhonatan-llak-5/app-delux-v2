@@ -1,4 +1,5 @@
 import { AfterViewInit, ChangeDetectionStrategy, ChangeDetectorRef, Component, OnInit, computed, effect, inject, signal } from '@angular/core';
+import { RefService } from '@core/services/ref.service';
 import { DlxFieldErrorComponent } from '@shared/ui/field-error.component';
 import * as L from 'leaflet';
 import { CommonModule } from '@angular/common';
@@ -328,6 +329,7 @@ export class CheckoutPageComponent implements OnInit, AfterViewInit {
   branding = inject(BrandingService);
   private couponSvc = inject(CouponService);
   private router = inject(Router);
+  private ref = inject(RefService);
   private cdr = inject(ChangeDetectorRef);
 
   constructor() {
@@ -537,6 +539,7 @@ export class CheckoutPageComponent implements OnInit, AfterViewInit {
       items: this.cart.lines().map(l => ({ variant_id: l.variant_id, quantity: l.quantity })),
       discount: this.discount(),
       coupon_code: this.appliedCoupon()?.code,
+      affiliate_ref: this.ref.currentRef() || undefined,
       return_url: returnUrl,
       shipping_address: this.shippingPayload(),
     }).subscribe({
@@ -582,6 +585,7 @@ export class CheckoutPageComponent implements OnInit, AfterViewInit {
       items: this.cart.lines().map(l => ({ variant_id: l.variant_id, quantity: l.quantity })),
       discount: this.discount(),
       coupon_code: this.appliedCoupon()?.code,
+      affiliate_ref: this.ref.currentRef() || undefined,
       shipping_address: this.shippingPayload(),
     }).subscribe({
       next: r => {

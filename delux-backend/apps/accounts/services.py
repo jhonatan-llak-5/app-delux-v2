@@ -36,6 +36,10 @@ def activate_user(user: User) -> None:
     user.is_active = True
     user.activation_code = ''
     user.activation_expires_at = None
-    user.save(update_fields=[
-        'is_email_verified', 'is_active', 'activation_code', 'activation_expires_at',
-    ])
+    fields = ['is_email_verified', 'is_active', 'activation_code', 'activation_expires_at']
+    # Afiliado: generar codigo unico al activarse (VEND0001).
+    from .models import Role
+    if user.role == Role.AFFILIATE and not user.ref_code:
+        user.ref_code = f'VEND{user.id:04d}'
+        fields.append('ref_code')
+    user.save(update_fields=fields)

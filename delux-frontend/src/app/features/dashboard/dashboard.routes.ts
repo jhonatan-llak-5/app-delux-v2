@@ -39,6 +39,11 @@ export const DASHBOARD_ROUTES: Routes = [
 
       // Cuenta del cliente dentro del mismo layout de administración.
       {
+        path: 'affiliate',
+        canActivate: [roleGuard(['AFFILIATE'])],
+        loadComponent: () => import('@features/affiliate/pages/affiliate-panel/affiliate-panel.component').then(m => m.AffiliatePanelComponent),
+      },
+      {
         path: 'account',
         canActivate: [roleGuard(['CUSTOMER'])],
         children: [

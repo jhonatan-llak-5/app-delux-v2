@@ -6,6 +6,7 @@ import { HeroSectionComponent } from '@features/landing/components/hero-section/
 import { PublicCatalogService, PublicProduct } from '@shared/services/public-catalog.service';
 import { PublicBranchesService } from '@shared/services/public-branches.service';
 import { ZoneService } from '@shared/services/zone.service';
+import { BrandingService } from '@core/services/branding.service';
 
 interface DropCard {
   id: number; name: string; brand: string; price: string; tag: string; image: string;
@@ -249,6 +250,103 @@ const FALLBACK_BRANCHES: BranchCard[] = [
       </div>
     </section>
 
+    <!-- 5.5 PROGRAMA DE AFILIADOS -->
+    <section class="relative overflow-hidden py-24 md:py-32 bg-[#070b12]">
+      <!-- glow de marca -->
+      <div class="pointer-events-none absolute -top-32 right-0 w-[520px] h-[520px] rounded-full bg-[#0095f6]/25 blur-[120px]"></div>
+      <div class="pointer-events-none absolute -bottom-40 -left-24 w-[460px] h-[460px] rounded-full bg-[#1877f2]/15 blur-[120px]"></div>
+      <div class="pointer-events-none absolute top-1/2 left-1/3 w-2 h-2 rounded-full bg-[#e11d2a]/70 blur-[2px]"></div>
+
+      <div class="relative max-w-[1150px] mx-auto px-6 md:px-10">
+        <div class="grid lg:grid-cols-2 gap-14 items-center">
+
+          <!-- Copy -->
+          <div class="text-white">
+            <span class="inline-flex items-center gap-2 rounded-full border border-[#0095f6]/30 bg-[#0095f6]/10
+                         px-4 py-1.5 text-[12px] font-semibold tracking-[0.18em] uppercase text-[#4db5ff] mb-6">
+              <i class="fa-solid fa-hand-holding-dollar"></i> Gana dinero con Delux
+            </span>
+            <h2 class="font-bold text-[38px] md:text-[54px] tracking-[-0.03em] leading-[1.03]">
+              Conviértete en<br/>
+              <span class="text-[#0095f6]">Vendedor Afiliado</span>.
+            </h2>
+            <p class="text-white/65 text-[17px] mt-6 leading-relaxed max-w-md">
+              Comparte tus enlaces de productos y gana una comisión del
+              <strong class="text-white">{{ branding.affiliateCommissionRate() }}%</strong>
+              por cada venta. Sin inventario, sin inversión, desde tu celular.
+            </p>
+
+            <div class="mt-9 grid sm:grid-cols-3 gap-3">
+              <div class="rounded-2xl border border-white/10 bg-white/[0.04] p-4">
+                <span class="grid place-items-center w-10 h-10 rounded-xl bg-[#0095f6]/15 text-[#4db5ff] mb-3"><i class="fa-solid fa-link"></i></span>
+                <p class="text-[13px] text-white/75 leading-snug">Enlace único para compartir</p>
+              </div>
+              <div class="rounded-2xl border border-white/10 bg-white/[0.04] p-4">
+                <span class="grid place-items-center w-10 h-10 rounded-xl bg-[#0095f6]/15 text-[#4db5ff] mb-3"><i class="fa-solid fa-bolt"></i></span>
+                <p class="text-[13px] text-white/75 leading-snug">Comisiones automáticas</p>
+              </div>
+              <div class="rounded-2xl border border-white/10 bg-white/[0.04] p-4">
+                <span class="grid place-items-center w-10 h-10 rounded-xl bg-[#0095f6]/15 text-[#4db5ff] mb-3"><i class="fa-solid fa-wallet"></i></span>
+                <p class="text-[13px] text-white/75 leading-snug">Cobra en efectivo o transferencia</p>
+              </div>
+            </div>
+
+            <div class="mt-10 flex flex-col sm:flex-row items-start sm:items-center gap-4">
+              <a [routerLink]="['/auth/register']" [queryParams]="{ type: 'affiliate' }"
+                 class="group inline-flex items-center justify-center gap-2 px-8 h-14 rounded-full
+                        bg-[#0095f6] text-white font-bold text-[16px]
+                        shadow-[0_18px_40px_-12px_rgba(0,149,246,0.7)]
+                        hover:bg-[#1877f2] hover:-translate-y-0.5 transition-all">
+                Quiero ser afiliado
+                <i class="fa-solid fa-arrow-right group-hover:translate-x-1 transition-transform"></i>
+              </a>
+              <span class="text-white/45 text-[13px]">
+                Registro gratis · activación por correo ·
+                <a routerLink="/afiliados/terminos" class="text-white/70 underline hover:text-white">Ver términos</a>
+              </span>
+            </div>
+          </div>
+
+          <!-- Tarjeta ilustrativa -->
+          <div class="relative lg:pl-6">
+            <div class="absolute -inset-1 rounded-[28px] bg-gradient-to-tr from-[#0095f6]/40 to-transparent blur-2xl opacity-60"></div>
+            <div class="relative rounded-[26px] bg-gradient-to-b from-white/[0.08] to-white/[0.02]
+                        backdrop-blur border border-white/12 p-8 shadow-2xl">
+              <div class="flex items-center justify-between mb-7">
+                <span class="text-white/45 text-[11px] uppercase tracking-[0.22em] font-semibold">Tu comisión</span>
+                <span class="flex items-center gap-1.5 text-[11px] text-emerald-300">
+                  <span class="w-2 h-2 rounded-full bg-emerald-400 animate-pulse"></span> en vivo
+                </span>
+              </div>
+              <div class="text-white flex items-end gap-1">
+                <span class="text-[76px] leading-none font-black tracking-tight
+                             bg-gradient-to-br from-white to-[#4db5ff] bg-clip-text text-transparent">{{ branding.affiliateCommissionRate() }}</span>
+                <span class="text-[36px] font-black text-[#4db5ff] mb-2">%</span>
+              </div>
+              <p class="text-white/55 mt-1 text-[15px]">por cada venta atribuida a ti</p>
+
+              <div class="mt-8 space-y-3">
+                <div class="flex items-center justify-between rounded-xl bg-white/[0.06] border border-white/10 px-4 py-3">
+                  <span class="text-white/80 text-[14px] font-mono tracking-wider">VEND0001</span>
+                  <span class="text-[#4db5ff] text-[13px] font-semibold"><i class="fa-solid fa-copy"></i> tu código</span>
+                </div>
+                <div class="flex items-center justify-between rounded-xl bg-white/[0.06] border border-white/10 px-4 py-3">
+                  <span class="text-white/80 text-[14px]">Venta de $120.00</span>
+                  <span class="text-emerald-300 text-[15px] font-bold">+ {{ exampleCommission() }}</span>
+                </div>
+              </div>
+
+              <div class="mt-6 flex items-center gap-2 text-white/40 text-[12px]">
+                <i class="fa-solid fa-shield-halved text-[#4db5ff]"></i>
+                Pagos registrados y con historial en tu panel.
+              </div>
+            </div>
+          </div>
+
+        </div>
+      </div>
+    </section>
+
     <!-- 6. CTA FINAL -->
     <section class="bg-white dark:bg-slate-950 py-28 md:py-40">
       <div class="max-w-[700px] mx-auto px-6 md:px-10 text-center">
@@ -283,6 +381,7 @@ export class LandingHomeComponent implements OnInit {
   private catalog = inject(PublicCatalogService);
   private branchSvc = inject(PublicBranchesService);
   private zone = inject(ZoneService);
+  branding = inject(BrandingService);
 
   constructor() {
     // Recarga los drops cuando el cliente cambia de ciudad.
@@ -297,6 +396,12 @@ export class LandingHomeComponent implements OnInit {
 
   ngOnInit(): void {
     this.loadBranches();
+  }
+
+  /** Comision de ejemplo sobre una venta de $120 (para la tarjeta ilustrativa). */
+  exampleCommission(): string {
+    const rate = +this.branding.affiliateCommissionRate() || 0;
+    return '$' + (120 * rate / 100).toFixed(2);
   }
 
   private loadDrops(city: string | null): void {

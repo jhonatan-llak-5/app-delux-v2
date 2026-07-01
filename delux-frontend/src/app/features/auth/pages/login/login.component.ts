@@ -77,6 +77,8 @@ export class LoginComponent {
           this.router.navigate(['/app/admin/overview']);
         } else if (role === 'SALESPERSON') {
           this.router.navigate(['/app/admin/pos']);
+        } else if (role === 'AFFILIATE') {
+          this.router.navigate(['/app/affiliate']);
         } else {
           this.router.navigate(['/app/account/profile']);
         }

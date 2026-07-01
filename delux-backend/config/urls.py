@@ -23,6 +23,7 @@ api_v1_patterns = [
     path('',            include('apps.settings.public_urls')),
     path('carts/',      include('apps.carts.urls')),
     path('orders/',     include('apps.orders.urls')),
+    path('affiliate/',  include('apps.affiliates.urls')),
     path('payments/',   include('apps.payments.urls')),
     path('coupons/',    include('apps.coupons.urls')),
     path('admin/',      include('apps.superadmin.urls')),

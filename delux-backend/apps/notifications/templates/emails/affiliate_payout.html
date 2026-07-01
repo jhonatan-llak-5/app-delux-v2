@@ -1,0 +1,28 @@
+{% extends 'emails/_base.html' %}
+{% block body %}
+<div style="display:inline-block;background:linear-gradient(135deg,#10b981 0%,#059669 100%);padding:18px;border-radius:20px;margin-bottom:24px;">
+  <div style="font-size:36px;color:#fff;">✅</div>
+</div>
+<h1 style="font-family:'Bricolage Grotesque',Georgia,serif;font-size:34px;font-weight:700;letter-spacing:-0.04em;margin:0 0 12px;line-height:1.1;color:#06080f;">
+  Pago registrado, {{ affiliate_name }}.
+</h1>
+<p style="font-size:16px;color:#4c5466;line-height:1.6;margin:0 0 28px;">
+  La tienda registró el pago de tus comisiones acumuladas (código <strong>{{ ref_code }}</strong>).
+</p>
+
+<div style="background:linear-gradient(135deg,#0ea5e9 0%,#2563eb 100%);border-radius:24px;padding:32px 20px;text-align:center;margin-bottom:28px;box-shadow:0 20px 40px -15px rgba(37,99,235,0.45);">
+  <div style="font-size:10px;letter-spacing:0.5em;color:rgba(255,255,255,0.85);text-transform:uppercase;font-weight:600;margin-bottom:10px;">Monto pagado</div>
+  <div style="font-family:'JetBrains Mono','Courier New',monospace;font-weight:800;font-size:48px;color:#fff;line-height:1;">${{ amount }}</div>
+  <div style="font-size:12px;color:rgba(255,255,255,0.8);margin-top:12px;">{{ method_label }} · {{ commissions_count }} comisión(es)</div>
+</div>
+
+<table style="width:100%;font-size:14px;color:#4c5466;border-collapse:collapse;margin-bottom:8px;">
+  <tr><td style="padding:6px 0;color:#737c8c;">Fecha</td><td style="padding:6px 0;text-align:right;font-weight:600;">{{ paid_date }}</td></tr>
+  <tr><td style="padding:6px 0;color:#737c8c;">Método</td><td style="padding:6px 0;text-align:right;font-weight:600;">{{ method_label }}</td></tr>
+  {% if reference %}<tr><td style="padding:6px 0;color:#737c8c;">Referencia</td><td style="padding:6px 0;text-align:right;font-weight:600;">{{ reference }}</td></tr>{% endif %}
+</table>
+
+<p style="font-size:13px;color:#737c8c;line-height:1.6;margin:16px 0 0;">
+  Gracias por ser parte del programa de afiliados. 🙌
+</p>
+{% endblock %}

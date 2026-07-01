@@ -1,12 +1,13 @@
-from rest_framework import permissions, status
+from rest_framework import permissions, status, viewsets, filters, serializers
 from rest_framework.parsers import JSONParser, MultiPartParser, FormParser
 from rest_framework.response import Response
 from rest_framework.views import APIView
+from rest_framework.decorators import action
 
-from apps.accounts.permissions import IsSuperadmin
+from apps.accounts.permissions import IsSuperadmin, IsTenantAdmin
 
 from .email import send_platform_email
-from .models import PlatformSettings
+from .models import PlatformSettings, NewsletterSubscriber
 from .serializers import (
     PlatformSettingsSerializer,
     TestEmailSerializer,
@@ -108,4 +109,32 @@ class PublicUploadConfigView(APIView):
             'cod_enabled': True,
             'recaptcha_site_key': c.recaptcha_site_key or '',
             'tax_rate': float(c.tax_rate or 0),
+            'affiliate_commission_rate': float(c.affiliate_commission_rate or 0),
+            'affiliate_min_payout': float(c.affiliate_min_payout or 0),
         })
+
+
+class NewsletterSubscriberSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = NewsletterSubscriber
+        fields = ('id', 'email', 'is_active', 'created_at')
+
+
+class NewsletterSubscriberViewSet(viewsets.ModelViewSet):
+    """Gestion de suscriptores del newsletter (solo lectura + baja/eliminar)."""
+    queryset = NewsletterSubscriber.objects.all()
+    serializer_class = NewsletterSubscriberSerializer
+    permission_classes = [permissions.IsAuthenticated, IsTenantAdmin]
+    pagination_class = None
+    filter_backends = [filters.SearchFilter, filters.OrderingFilter]
+    search_fields = ['email']
+    ordering = ['-created_at']
+    http_method_names = ['get', 'delete', 'post']
+
+    @action(detail=True, methods=['post'])
+    def deactivate(self, request, pk=None):
+        """Dar de baja: marca el suscriptor como inactivo (no recibe campanas)."""
+        obj = self.get_object()
+        obj.is_active = False
+        obj.save(update_fields=['is_active'])
+        return Response(self.get_serializer(obj).data)

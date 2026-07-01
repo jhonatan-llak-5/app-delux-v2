@@ -15,7 +15,7 @@ class UserSerializer(serializers.ModelSerializer):
         model = User
         fields = (
             'id', 'email', 'username', 'full_name', 'phone', 'role',
-            'tenant_id', 'branch_id',
+            'tenant_id', 'branch_id', 'ref_code',
             'is_email_verified', 'is_active', 'date_joined',
         )
 
@@ -56,11 +56,13 @@ class LoginSerializer(serializers.Serializer):
 
 
 class RegisterSerializer(serializers.Serializer):
-    """Registro público: username + email + nombre + contraseña."""
+    """Registro público: username + email + nombre + contraseña. account_type opcional."""
     full_name = serializers.CharField(max_length=160, min_length=2)
     username = serializers.CharField(max_length=40, min_length=3)
     email = serializers.EmailField()
     password = serializers.CharField(write_only=True, min_length=8)
+    account_type = serializers.ChoiceField(
+        choices=['customer', 'affiliate'], required=False, default='customer')
 
     def validate_email(self, v):
         if User.objects.filter(email__iexact=v).exists():
@@ -82,11 +84,13 @@ class RegisterSerializer(serializers.Serializer):
         return v
 
     def create(self, validated_data):
+        role = (Role.AFFILIATE if validated_data.get('account_type') == 'affiliate'
+                else Role.CUSTOMER)
         user = User(
             email=validated_data['email'],
             username=validated_data['username'],
             full_name=validated_data['full_name'],
-            role=Role.CUSTOMER,
+            role=role,
             is_active=False,
             is_email_verified=False,
         )

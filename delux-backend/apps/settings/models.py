@@ -59,6 +59,12 @@ class PlatformSettings(models.Model):
     tax_rate = models.DecimalField(
         max_digits=5, decimal_places=2, default=15,
         help_text='IVA %% aplicado al precio de venta para mostrar el precio final.')
+    affiliate_commission_rate = models.DecimalField(
+        max_digits=5, decimal_places=2, default=10,
+        help_text='%% de comision global para vendedores afiliados.')
+    affiliate_min_payout = models.DecimalField(
+        max_digits=10, decimal_places=2, default=0,
+        help_text='Monto minimo de comisiones acumuladas para poder registrar un pago (0 = sin minimo).')
 
     # ─── Subidas: limites y tipos permitidos ───
     max_image_upload_mb = models.PositiveIntegerField(default=5)

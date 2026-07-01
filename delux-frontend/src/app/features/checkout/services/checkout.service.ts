@@ -20,6 +20,7 @@ export interface CheckoutInitPayload {
   items: CheckoutItemInput[];
   discount?: number;
   coupon_code?: string;
+  affiliate_ref?: string;
   return_url: string;
   notes?: string;
   shipping_address?: { address: string; latitude: number | null; longitude: number | null };

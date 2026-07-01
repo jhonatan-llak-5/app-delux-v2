@@ -6,7 +6,8 @@ export type AppRole =
   | 'TENANT_ADMIN'
   | 'BRANCH_MANAGER'
   | 'SALESPERSON'
-  | 'CUSTOMER';
+  | 'CUSTOMER'
+  | 'AFFILIATE';
 
 export const roleGuard = (allowed: AppRole[]): CanActivateFn => () => {
   const router = inject(Router);

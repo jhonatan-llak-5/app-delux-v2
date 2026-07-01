@@ -37,6 +37,11 @@ class Order(TenantOwnedModel):
         related_name='sold_orders'
     )
 
+    affiliate = models.ForeignKey(
+        'accounts.User', on_delete=models.SET_NULL, null=True, blank=True,
+        related_name='affiliate_orders',
+        help_text='Vendedor afiliado atribuido a este pedido.')
+    affiliate_ref = models.CharField(max_length=20, blank=True)
     channel = models.CharField(max_length=4, choices=OrderChannel.choices)
     fulfillment = models.CharField(max_length=10, choices=FulfillmentType.choices)
     status = models.CharField(max_length=12, choices=OrderStatus.choices,

@@ -206,3 +206,51 @@ def notify_order_received(order):
             'tracking_url': tracking_url,
         },
     )
+
+
+def notify_affiliate_commission(commission):
+    """Email al afiliado cuando gana una nueva comision."""
+    aff = getattr(commission, 'affiliate', None)
+    email = (getattr(aff, 'email', '') or '').strip()
+    if not email:
+        return
+    order = getattr(commission, 'order', None)
+    send_html_email(
+        to_email=email,
+        subject='¡Ganaste una comisión! 💸',
+        template='affiliate_commission',
+        ctx={
+            'affiliate_name': getattr(aff, 'full_name', '') or 'Afiliado',
+            'ref_code': getattr(aff, 'ref_code', '') or '',
+            'order_code': getattr(order, 'code', '') or '',
+            'base_amount': commission.base_amount,
+            'rate': commission.rate,
+            'amount': commission.amount,
+        },
+    )
+
+
+def notify_affiliate_payout(payout):
+    """Email al afiliado cuando se le registra un pago de comisiones."""
+    aff = getattr(payout, 'affiliate', None)
+    email = (getattr(aff, 'email', '') or '').strip()
+    if not email:
+        return
+    try:
+        paid_date = payout.created_at.strftime('%d/%m/%Y %H:%M')
+    except Exception:
+        paid_date = ''
+    send_html_email(
+        to_email=email,
+        subject=f'Registramos tu pago de comisiones ✅',
+        template='affiliate_payout',
+        ctx={
+            'affiliate_name': getattr(aff, 'full_name', '') or 'Afiliado',
+            'ref_code': getattr(aff, 'ref_code', '') or '',
+            'amount': payout.amount,
+            'method_label': payout.get_method_display(),
+            'reference': payout.reference or '',
+            'commissions_count': payout.commissions_count,
+            'paid_date': paid_date,
+        },
+    )

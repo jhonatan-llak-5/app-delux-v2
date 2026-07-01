@@ -4,6 +4,7 @@ import { Router, RouterLink, ActivatedRoute } from '@angular/router';
 import { ProductReviewsComponent } from '@shared/components/product-reviews/product-reviews.component';
 import { MeService } from '@features/account/services/me.service';
 import { AuthService } from '@core/services/auth.service';
+import { RefService } from '@core/services/ref.service';
 import { CartService } from '@features/checkout/services/cart.service';
 import { NotifyService } from '@shared/services/notify.service';
 import { PublicCatalogService } from '@shared/services/public-catalog.service';
@@ -256,6 +257,34 @@ const IMG_PLACEHOLDER = 'data:image/svg+xml,' + encodeURIComponent(
                 {{ inWishlist() ? 'En tu wishlist' : 'Agregar a wishlist' }}
               </button>
 
+              @if (isAffiliate()) {
+                <div class="mt-3 rounded-2xl border border-[#1e40af]/30 bg-[#1e40af]/5 p-4">
+                  <p class="text-[13px] font-bold text-ink-950 dark:text-white flex items-center gap-2">
+                    <i class="fa-solid fa-hand-holding-dollar text-[#1e40af] dark:text-[#7aa2ff]"></i>
+                    Comparte y gana comisión
+                  </p>
+                  <p class="text-[12px] text-ink-500 dark:text-white/50 mt-0.5">Tu enlace con tu código de afiliado:</p>
+                  <div class="flex gap-2 mt-2">
+                    <input [value]="affiliateLink()" readonly class="input-modern flex-1 !text-xs font-mono" />
+                    <button type="button" (click)="copyAffiliateLink()"
+                            class="shrink-0 px-4 rounded-xl bg-[#1e40af] hover:bg-[#1e3a8a] text-white text-sm font-semibold">
+                      <i class="fa-solid fa-copy"></i> Copiar
+                    </button>
+                  </div>
+                  <div class="flex flex-wrap gap-2 mt-3">
+                    <a [href]="shareUrl('whatsapp')" target="_blank" rel="noopener"
+                       class="px-3 py-2 rounded-lg bg-[#25D366]/15 text-[#128C4B] dark:text-[#25D366] text-xs font-semibold"><i class="fa-brands fa-whatsapp"></i> WhatsApp</a>
+                    <a [href]="shareUrl('facebook')" target="_blank" rel="noopener"
+                       class="px-3 py-2 rounded-lg bg-[#1877F2]/15 text-[#1877F2] text-xs font-semibold"><i class="fa-brands fa-facebook"></i> Facebook</a>
+                    <a [href]="shareUrl('telegram')" target="_blank" rel="noopener"
+                       class="px-3 py-2 rounded-lg bg-[#229ED9]/15 text-[#229ED9] text-xs font-semibold"><i class="fa-brands fa-telegram"></i> Telegram</a>
+                    <a [href]="shareUrl('x')" target="_blank" rel="noopener"
+                       class="px-3 py-2 rounded-lg bg-ink-950/10 dark:bg-white/10 text-ink-800 dark:text-white text-xs font-semibold"><i class="fa-brands fa-x-twitter"></i> X</a>
+                  </div>
+                  <p class="text-[11px] text-ink-400 dark:text-white/40 mt-2">Para Instagram/TikTok, copia el enlace y pégalo en tu bio o historia.</p>
+                </div>
+              }
+
             </div>
 
             <!-- Features grid -->
@@ -320,6 +349,7 @@ export class ProductDetailComponent implements OnInit {
   private catalog = inject(PublicCatalogService);
   private me = inject(MeService);
   private auth = inject(AuthService);
+  private ref = inject(RefService);
   loading = signal(true);
 
   activeImg = signal(0);
@@ -428,6 +458,32 @@ export class ProductDetailComponent implements OnInit {
 
   toggleWishlist() {
     this.me.toggleWishlist(this.product().id).subscribe({ error: () => {} });
+  }
+
+  isAffiliate(): boolean {
+    const u = this.auth.user();
+    return u?.role === 'AFFILIATE' && !!u?.ref_code;
+  }
+  affiliateLink(): string {
+    const code = this.auth.user()?.ref_code || '';
+    const origin = typeof window !== 'undefined' ? window.location.origin : '';
+    return `${origin}/product/${this.product().id}?ref=${code}`;
+  }
+  copyAffiliateLink(): void {
+    const url = this.affiliateLink();
+    if (typeof navigator !== 'undefined' && navigator.clipboard) {
+      navigator.clipboard.writeText(url).then(() => this.notify.success('Enlace copiado')).catch(() => {});
+    }
+  }
+  shareUrl(net: 'whatsapp' | 'facebook' | 'telegram' | 'x'): string {
+    const url = encodeURIComponent(this.affiliateLink());
+    const text = encodeURIComponent(`Mira este producto: ${this.product().name}`);
+    switch (net) {
+      case 'whatsapp': return `https://wa.me/?text=${text}%20${url}`;
+      case 'facebook': return `https://www.facebook.com/sharer/sharer.php?u=${url}`;
+      case 'telegram': return `https://t.me/share/url?url=${url}&text=${text}`;
+      case 'x':        return `https://twitter.com/intent/tweet?url=${url}&text=${text}`;
+    }
   }
 
   addToCart() {

@@ -239,6 +239,14 @@ const VIDEO_EXTENSIONS: ExtensionOption[] = [
                 <input type="number" min="0" max="100" step="0.01" class="eg-input" formControlName="tax_rate" />
                 <span class="text-[11px] text-slate-400 mt-1 block">Se usa para calcular el precio final con IVA (etiquetas, kiosko, formularios). Ej. 15.</span>
               </label>
+              <label class="block"><span class="eg-label">Comisión de afiliados (%)</span>
+                <input type="number" min="0" max="100" step="0.01" class="eg-input" formControlName="affiliate_commission_rate" />
+                <span class="text-[11px] text-slate-400 mt-1 block">% que gana el afiliado por cada venta atribuida a su código. Ej. 10.</span>
+              </label>
+              <label class="block"><span class="eg-label">Mínimo de pago a afiliados ($)</span>
+                <input type="number" min="0" step="0.01" class="eg-input" formControlName="affiliate_min_payout" />
+                <span class="text-[11px] text-slate-400 mt-1 block">Monto mínimo acumulado para poder registrar un pago. 0 = sin mínimo.</span>
+              </label>
             </div>
           </section>
 
@@ -567,6 +575,8 @@ export class PlatformSettingsComponent implements OnInit {
     platform_tagline: [''],
     whatsapp_contact_number: [''],
     tax_rate: [15, [Validators.min(0), Validators.max(100)]],
+    affiliate_commission_rate: [10, [Validators.min(0), Validators.max(100)]],
+    affiliate_min_payout: [0, [Validators.min(0)]],
     max_image_upload_mb: [5, [Validators.min(1), Validators.max(50)]],
     max_file_upload_mb: [10, [Validators.min(1), Validators.max(200)]],
     max_video_upload_mb: [500, [Validators.min(1), Validators.max(5000)]],

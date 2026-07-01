@@ -8,6 +8,7 @@ class Role(models.TextChoices):
     BRANCH_MANAGER = 'BRANCH_MANAGER', 'Gerente Sucursal'
     SALESPERSON    = 'SALESPERSON',    'Vendedor'
     CUSTOMER       = 'CUSTOMER',       'Cliente'
+    AFFILIATE      = 'AFFILIATE',      'Vendedor Afiliado'
 
 
 class User(AbstractUser):
@@ -36,6 +37,10 @@ class User(AbstractUser):
         help_text='Porcentaje de comision (0-100)'
     )
     hire_date = models.DateField(null=True, blank=True)
+
+    # Afiliado (programa de referidos)
+    ref_code = models.CharField(max_length=20, blank=True, db_index=True,
+                                help_text='Codigo unico de afiliado (ej. VEND0001)')
 
     USERNAME_FIELD = 'email'
     REQUIRED_FIELDS = ['username']

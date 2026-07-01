@@ -48,6 +48,11 @@ export const appRoutes: Routes = [
         loadComponent: () => import('./features/legal/legal-page.component').then(m => m.LegalPageComponent),
       },
       {
+        path: 'afiliados/terminos',
+        loadComponent: () =>
+          import('./features/affiliate/pages/affiliate-terms/affiliate-terms.component').then(m => m.AffiliateTermsComponent),
+      },
+      {
         path: 'cart',
         loadComponent: () =>
           import('./features/checkout/pages/cart-page/cart-page.component').then(m => m.CartPageComponent),

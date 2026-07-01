@@ -7,6 +7,8 @@ interface BrandConfig {
   platform_tagline?: string;
   site_logo_url?: string | null;
   site_favicon_url?: string | null;
+  affiliate_commission_rate?: number;
+  affiliate_min_payout?: number;
   payphone_available?: boolean;
   cod_enabled?: boolean;
   recaptcha_site_key?: string;
@@ -39,6 +41,8 @@ export class BrandingService {
   readonly codEnabled = computed(() => this._cfg()?.cod_enabled !== false);
   readonly recaptchaSiteKey = computed(() => this._cfg()?.recaptcha_site_key || '');
   /** Tasa de IVA (%) configurada por el superadmin. Default 15. */
+  readonly affiliateCommissionRate = computed(() => +(this._cfg()?.affiliate_commission_rate ?? 10) || 0);
+  readonly affiliateMinPayout = computed(() => +(this._cfg()?.affiliate_min_payout ?? 0) || 0);
   readonly taxRate = computed(() => {
     const r = this._cfg()?.tax_rate;
     return r != null && !isNaN(+r) ? +r : 15;

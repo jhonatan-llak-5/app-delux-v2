@@ -24,6 +24,8 @@ class PlatformSettingsSerializer(serializers.ModelSerializer):
             'site_logo', 'site_favicon',
             'whatsapp_contact_number',
             'tax_rate',
+            'affiliate_commission_rate',
+            'affiliate_min_payout',
             # Subidas
             'max_image_upload_mb', 'max_file_upload_mb', 'max_video_upload_mb',
             'allowed_image_extensions', 'allowed_file_extensions', 'allowed_video_extensions',

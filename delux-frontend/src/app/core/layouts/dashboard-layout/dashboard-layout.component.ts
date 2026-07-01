@@ -517,6 +517,8 @@ export class DashboardLayoutComponent implements AfterViewInit, OnDestroy {
         { label: 'Reportes',      icon: 'fa-chart-line',     route: '/app/admin/reports' },
         { label: 'Horarios',      icon: 'fa-clock',          route: '/app/admin/schedules' },
         { label: 'Usuarios',      icon: 'fa-users',          route: '/app/admin/users' },
+        { label: 'Afiliados',     icon: 'fa-hand-holding-dollar', route: '/app/admin/affiliates' },
+        { label: 'Suscriptores',  icon: 'fa-envelope-open-text', route: '/app/admin/subscribers', only: ['SUPERADMIN','TENANT_ADMIN'] },
         { label: 'Tiendas',       icon: 'fa-store',          route: '/app/admin/tenants', only: ['SUPERADMIN'] },
         { label: 'Sucursales',    icon: 'fa-store',          route: '/app/admin/sucursales', only: ['SUPERADMIN'] },
         { label: 'Kiosko',        icon: 'fa-qrcode',         route: '/kiosko' },
@@ -529,6 +531,7 @@ export class DashboardLayoutComponent implements AfterViewInit, OnDestroy {
       items: [
         { label: 'Panel',        icon: 'fa-gauge-high',     route: '/app/admin/overview' },
         { label: 'Usuarios',     icon: 'fa-users',          route: '/app/admin/users' },
+        { label: 'Afiliados',    icon: 'fa-hand-holding-dollar', route: '/app/admin/affiliates' },
         { label: 'POS',          icon: 'fa-cash-register',  route: '/app/admin/pos' },
         { label: 'Ventas',       icon: 'fa-receipt',        route: '/app/admin/sales' },
         { label: 'Productos',    icon: 'fa-box',            route: '/app/admin/products' },
@@ -554,6 +557,14 @@ export class DashboardLayoutComponent implements AfterViewInit, OnDestroy {
         { label: 'Productos',   icon: 'fa-box',            route: '/app/admin/products' },
         { label: 'Inventario',  icon: 'fa-boxes-stacked',  route: '/app/admin/inventory', exact: true },
         { label: 'Mi perfil',   icon: 'fa-id-card',        route: '/app/profile' },
+      ],
+    },
+    {
+      title: 'Afiliado',
+      roles: ['AFFILIATE'],
+      items: [
+        { label: 'Panel de afiliado', icon: 'fa-hand-holding-dollar', route: '/app/affiliate' },
+        { label: 'Mi perfil',         icon: 'fa-id-card',            route: '/app/profile' },
       ],
     },
     {

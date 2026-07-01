@@ -45,6 +45,7 @@ LOCAL_APPS = [
     'apps.customers',
     'apps.carts',
     'apps.orders',
+    'apps.affiliates.apps.AffiliatesConfig',
     'apps.payments',
     'apps.coupons',
     'apps.reviews',

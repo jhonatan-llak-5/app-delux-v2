@@ -13,6 +13,7 @@ export interface AuthUser {
   role: AppRole;
   tenant_id?: number | null;
   branch_id?: number | null;
+  ref_code?: string;
   is_email_verified?: boolean;
   is_active?: boolean;
 }
@@ -59,7 +60,7 @@ export class AuthService {
       .pipe(tap((r) => this.persist(r)));
   }
 
-  register(payload: { full_name: string; username: string; email: string; password: string; recaptcha_token?: string }) {
+  register(payload: { full_name: string; username: string; email: string; password: string; account_type?: string; recaptcha_token?: string }) {
     return this.http.post<{ detail: string; email: string }>(
       `${this.base}/register/`, payload,
     );

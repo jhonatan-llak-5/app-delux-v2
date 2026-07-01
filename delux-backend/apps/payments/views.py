@@ -56,9 +56,17 @@ def create_web_order(tenant, data):
     fulfillment = data.get('fulfillment', 'SHIPPING')
     addr = data.get('shipping_address') or {}
     notes_val = (data.get('notes') or '').strip() or (addr.get('address') or '').strip()
+    ref = (data.get('affiliate_ref') or '').strip()
+    affiliate = None
+    if ref:
+        from apps.accounts.models import User, Role
+        affiliate = User.objects.filter(
+            ref_code=ref, role=Role.AFFILIATE, is_active=True).first()
     order = Order.objects.create(
         tenant=tenant, code=code, branch_id=data['branch_id'],
         customer=customer,
+        affiliate=affiliate,
+        affiliate_ref=(ref if affiliate else ''),
         channel=OrderChannel.WEB,
         fulfillment=(FulfillmentType.PICKUP if fulfillment == 'PICKUP'
                      else FulfillmentType.SHIPPING),
