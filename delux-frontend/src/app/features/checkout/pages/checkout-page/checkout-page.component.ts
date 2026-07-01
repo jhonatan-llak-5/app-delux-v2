@@ -88,7 +88,7 @@ import { CouponService, CouponValidation } from '@features/superadmin/services/c
                   <i class="fa-solid fa-truck text-accent-600"></i>
                   <span>
                     <span class="block font-semibold text-ink-950 dark:text-white text-sm">Envío a domicilio</span>
-                    <span class="block text-xs text-ink-600 dark:text-white/55">Te lo llevamos</span>
+                    <span class="block text-xs text-ink-600 dark:text-white/55">Costo coordinado contigo</span>
                   </span>
                 </button>
                 <button type="button" (click)="fulfillment = 'PICKUP'"
@@ -123,6 +123,12 @@ import { CouponService, CouponValidation } from '@features/superadmin/services/c
               </div>
 
               @if (fulfillment === 'SHIPPING') {
+                <div class="mt-4 flex items-start gap-2.5 rounded-xl border border-amber-200 dark:border-amber-500/30 bg-amber-50 dark:bg-amber-500/10 px-3.5 py-3">
+                  <i class="fa-solid fa-truck-fast text-amber-600 dark:text-amber-400 mt-0.5"></i>
+                  <p class="text-[13px] text-ink-700 dark:text-white/75 leading-snug">
+                    El <strong>costo del envío a domicilio se gestiona directamente contigo</strong>. Al confirmar tu pedido nos comunicaremos para coordinar el envío (motorizado o courier) y acordar el valor según tu ubicación.
+                  </p>
+                </div>
                 <div class="mt-5 pt-5 border-t border-ink-200 dark:border-white/10">
                   <label class="block text-xs font-semibold uppercase tracking-wider text-ink-500 dark:text-white/50 mb-2">
                     Dirección de entrega *
@@ -364,6 +370,7 @@ export class CheckoutPageComponent implements OnInit, AfterViewInit {
   locating = signal(false);
   private map: any = null;
   private marker: any = null;
+  private mapResizeObs: any = null;
 
   customer = { full_name: '', email: '', phone: '', document_id: '' };
 
@@ -402,12 +409,15 @@ export class CheckoutPageComponent implements OnInit, AfterViewInit {
     document.head.appendChild(link);
   }
 
-  private initShipMap() {
+  private initShipMap(retry = 0) {
     if (typeof document === 'undefined') return;
     this.ensureLeafletCss();
-    const el = document.getElementById('dlx-ship-map');
-    if (!el) return;
+    const el = document.getElementById('dlx-ship-map') as HTMLElement | null;
+    if (!el) { if (retry < 20) setTimeout(() => this.initShipMap(retry + 1), 120); return; }
     if (this.map) { this.map.invalidateSize(); return; }
+    // No crear el mapa hasta que el contenedor tenga altura real (evita el mapa
+    // gris cuando el bloque aún no está dimensionado en el primer render).
+    if (!el.clientHeight && retry < 20) { setTimeout(() => this.initShipMap(retry + 1), 120); return; }
     const center: [number, number] = [this.shipLat() ?? -0.1807, this.shipLng() ?? -78.4678];
     this.map = L.map(el, { center, zoom: 13, scrollWheelZoom: false });
     L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
@@ -426,10 +436,16 @@ export class CheckoutPageComponent implements OnInit, AfterViewInit {
       this.marker.setLatLng(e.latlng);
       this.setCoords(e.latlng.lat, e.latlng.lng);
     });
-    // Recalcula el tamaño cuando el contenedor ya tiene dimensiones (evita el
-    // mapa "a medias" cuando se renderiza dentro de un bloque que recién aparece).
-    setTimeout(() => this.map && this.map.invalidateSize(), 250);
-    setTimeout(() => this.map && this.map.invalidateSize(), 700);
+    // Recalcula el tamaño en cuanto el contenedor está listo / cambia de tamaño
+    // (evita el mapa "a medias" cuando se renderiza dentro de un bloque que recién aparece).
+    const refresh = () => this.map && this.map.invalidateSize();
+    requestAnimationFrame(refresh);
+    setTimeout(refresh, 250);
+    setTimeout(refresh, 700);
+    if (typeof ResizeObserver !== 'undefined') {
+      this.mapResizeObs = new ResizeObserver(() => refresh());
+      this.mapResizeObs.observe(el);
+    }
   }
 
   private setCoords(lat: number, lng: number) {
