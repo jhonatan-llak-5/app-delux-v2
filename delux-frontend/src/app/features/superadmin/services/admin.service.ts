@@ -48,6 +48,8 @@ export interface AdminBranch {
   manager: number | null;
   manager_name: string | null;
   allows_pickup: boolean;
+  free_shipping: boolean;
+  free_shipping_label: string;
   is_active: boolean;
   created_at: string;
   products_count: number;

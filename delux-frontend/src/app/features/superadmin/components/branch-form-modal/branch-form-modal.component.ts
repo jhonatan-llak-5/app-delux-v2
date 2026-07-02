@@ -49,6 +49,8 @@ export interface BranchPayload {
   opening_hours: string;
   schedules?: DaySchedule[];
   allows_pickup: boolean;
+  free_shipping: boolean;
+  free_shipping_label: string;
   is_active: boolean;
   kiosk_pin: string;
 }
@@ -179,10 +181,22 @@ export interface BranchPayload {
               Permite retiro en tienda
             </label>
             <label class="flex items-center gap-2 cursor-pointer text-sm text-slate-700 dark:text-white/80">
+              <input type="checkbox" [(ngModel)]="form.free_shipping" name="freeship" class="w-4 h-4 accent-emerald-600" />
+              Envío a domicilio gratis
+            </label>
+            <label class="flex items-center gap-2 cursor-pointer text-sm text-slate-700 dark:text-white/80">
               <input type="checkbox" [(ngModel)]="form.is_active" name="active" class="w-4 h-4 accent-emerald-500" />
               Sucursal activa
             </label>
           </div>
+          @if (form.free_shipping) {
+            <div>
+              <label class="eg-label">Texto del envío gratis (visible en el checkout)</label>
+              <input [(ngModel)]="form.free_shipping_label" name="freeshiplabel" maxlength="120"
+                     class="eg-input" placeholder="Envío a domicilio gratis" />
+              <p class="text-xs text-slate-400 mt-1">Ej: "Envío gratis solo en Quito". Si lo dejas vacío se usa el texto por defecto.</p>
+            </div>
+          }
 
           @if (error()) {
             <p class="text-sm text-rose-600"><i class="fa-solid fa-circle-exclamation"></i> {{ error() }}</p>
@@ -213,7 +227,7 @@ export class BranchFormModalComponent {
   form: BranchPayload = {
     code: '', name: '', city: '', address: '', phone: '', email: '',
     latitude: null, longitude: null, opening_hours: '',
-    allows_pickup: true, is_active: true, kiosk_pin: '',
+    allows_pickup: true, free_shipping: false, free_shipping_label: 'Envío a domicilio gratis', is_active: true, kiosk_pin: '',
     schedules: defaultSchedules(),
   };
 
@@ -226,6 +240,8 @@ export class BranchFormModalComponent {
         latitude: b.latitude ?? null, longitude: b.longitude ?? null,
         opening_hours: b.opening_hours || '',
         allows_pickup: b.allows_pickup ?? true,
+        free_shipping: b.free_shipping ?? false,
+        free_shipping_label: b.free_shipping_label || 'Envío a domicilio gratis',
         is_active: b.is_active ?? true,
         kiosk_pin: b.kiosk_pin || '',
         schedules: mergeSchedules(b.schedules),

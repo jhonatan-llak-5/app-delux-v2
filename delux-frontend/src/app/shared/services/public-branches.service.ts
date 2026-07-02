@@ -15,6 +15,8 @@ export interface PublicBranch {
   email: string;
   opening_hours: string;
   allows_pickup: boolean;
+  free_shipping: boolean;
+  free_shipping_label: string;
   is_active: boolean;
   products_count: number;
 }

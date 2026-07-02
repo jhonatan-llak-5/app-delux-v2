@@ -22,7 +22,7 @@ class BranchSerializer(serializers.ModelSerializer):
             'code', 'name', 'city', 'address',
             'latitude', 'longitude', 'phone', 'email',
             'opening_hours', 'manager', 'manager_name',
-            'allows_pickup', 'is_active', 'created_at',
+            'allows_pickup', 'free_shipping', 'free_shipping_label', 'is_active', 'created_at',
             'products_count',
             'kiosk_token', 'kiosk_pin',
             'schedules',

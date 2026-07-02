@@ -21,6 +21,11 @@ class Branch(TenantOwnedModel):
         related_name='managed_branches'
     )
     allows_pickup = models.BooleanField(default=True)
+    # Envio a domicilio GRATIS para pedidos de esta sucursal (por defecto no).
+    free_shipping = models.BooleanField(default=False)
+    # Texto editable que se muestra en el checkout cuando el envio es gratis.
+    free_shipping_label = models.CharField(
+        max_length=120, blank=True, default='Envío a domicilio gratis')
     is_active = models.BooleanField(default=True)
 
     # Kiosko de consulta: token único en la URL + PIN opcional de acceso.

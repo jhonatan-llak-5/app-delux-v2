@@ -131,12 +131,21 @@ import { MeService } from '@features/account/services/me.service';
               </div>
 
               @if (fulfillment === 'SHIPPING') {
-                <div class="mt-4 flex items-start gap-2.5 rounded-xl border border-amber-200 dark:border-amber-500/30 bg-amber-50 dark:bg-amber-500/10 px-3.5 py-3">
-                  <i class="fa-solid fa-truck-fast text-amber-600 dark:text-amber-400 mt-0.5"></i>
-                  <p class="text-[13px] text-ink-700 dark:text-white/75 leading-snug">
-                    El <strong>costo del envío a domicilio se gestiona directamente contigo</strong>. Al confirmar tu pedido nos comunicaremos para coordinar el envío (motorizado o courier) y acordar el valor según tu ubicación.
-                  </p>
-                </div>
+                @if (freeShipping()) {
+                  <div class="mt-4 flex items-center gap-2.5 rounded-xl border border-emerald-200 dark:border-emerald-500/30 bg-emerald-50 dark:bg-emerald-500/10 px-3.5 py-3">
+                    <i class="fa-solid fa-truck-fast text-emerald-600 dark:text-emerald-400"></i>
+                    <p class="text-[13px] text-emerald-800 dark:text-emerald-300 leading-snug">
+                      <strong>{{ freeShippingLabel() }}</strong> Esta tienda cubre el costo del envío para tu pedido.
+                    </p>
+                  </div>
+                } @else {
+                  <div class="mt-4 flex items-start gap-2.5 rounded-xl border border-amber-200 dark:border-amber-500/30 bg-amber-50 dark:bg-amber-500/10 px-3.5 py-3">
+                    <i class="fa-solid fa-truck-fast text-amber-600 dark:text-amber-400 mt-0.5"></i>
+                    <p class="text-[13px] text-ink-700 dark:text-white/75 leading-snug">
+                      El <strong>costo del envío a domicilio se gestiona directamente contigo</strong>. Al confirmar tu pedido nos comunicaremos para coordinar el envío (motorizado o courier) y acordar el valor según tu ubicación.
+                    </p>
+                  </div>
+                }
                 <div class="mt-5 pt-5 border-t border-ink-200 dark:border-white/10">
                   <label class="block text-xs font-semibold uppercase tracking-wider text-ink-500 dark:text-white/50 mb-2">
                     Dirección de entrega *
@@ -385,6 +394,16 @@ export class CheckoutPageComponent implements OnInit, AfterViewInit {
   customer = { full_name: '', email: '', phone: '', document_id: '' };
   // El email se bloquea si es un cliente con sesion (el pedido va a su perfil).
   emailLocked = () => this.auth.role() === 'CUSTOMER';
+  /** La sucursal de envío seleccionada ofrece envío a domicilio gratis. */
+  freeShipping(): boolean {
+    if (this.fulfillment !== 'SHIPPING') return false;
+    const b = this.branches().find(x => x.id === this.branchId);
+    return !!b?.free_shipping;
+  }
+  freeShippingLabel(): string {
+    const b = this.branches().find(x => x.id === this.branchId);
+    return (b?.free_shipping_label || '').trim() || 'Envío a domicilio gratis';
+  }
 
   couponInput = '';
   appliedCoupon = signal<CouponValidation | null>(null);

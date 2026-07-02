@@ -4,6 +4,7 @@ import { DlxSearchInputComponent } from '@shared/ui/search-input.component';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { ShippingService, Shipment } from '@shared/services/shipping.service';
+import { NotifyService } from '@shared/services/notify.service';
 
 @Component({
   selector: 'dlx-shipments-list',
@@ -57,6 +58,7 @@ import { ShippingService, Shipment } from '@shared/services/shipping.service';
               <th class="px-5 py-3 font-semibold">Destinatario</th>
               <th class="px-5 py-3 font-semibold">Carrier</th>
               <th class="px-5 py-3 font-semibold text-center">Estado</th>
+              <th class="px-5 py-3 font-semibold text-right">Costo envío</th>
               <th class="px-5 py-3 font-semibold text-right">Acciones</th>
             </tr>
           </thead>
@@ -73,6 +75,16 @@ import { ShippingService, Shipment } from '@shared/services/shipping.service';
                 <td class="px-5 py-3 text-center">
                   <span class="inline-flex items-center px-2 py-0.5 rounded-md text-[11px] font-bold uppercase"
                         [ngClass]="statusBadge(s.status)">{{ s.status_label }}</span>
+                </td>
+                <td class="px-5 py-3 text-right">
+                  <div class="inline-flex items-center gap-1">
+                    <span class="text-slate-400 text-xs">$</span>
+                    <input type="number" min="0" step="0.01" [ngModel]="s.shipping_cost"
+                           (blur)="saveCost(s, $any($event.target).value)"
+                           (keyup.enter)="saveCost(s, $any($event.target).value)"
+                           class="w-20 px-2 py-1 rounded text-xs bg-slate-100 border-0 text-right"
+                           title="Costo acordado con el courier (no afecta el total del pedido)" />
+                  </div>
                 </td>
                 <td class="px-5 py-3 text-right">
                   <select [ngModel]="s.status" (ngModelChange)="advance(s, $event)"
@@ -95,6 +107,7 @@ import { ShippingService, Shipment } from '@shared/services/shipping.service';
 })
 export class ShipmentsListComponent implements OnInit {
   private svc = inject(ShippingService);
+  private notify = inject(NotifyService);
   items = signal<Shipment[]>([]);
   search = '';
   statusFilter = '';
@@ -117,5 +130,13 @@ export class ShipmentsListComponent implements OnInit {
   advance(s: Shipment, newStatus: string) {
     if (newStatus === s.status) return;
     this.svc.updateStatus(s.id, newStatus).subscribe(() => this.reload());
+  }
+  saveCost(s: Shipment, value: string) {
+    const cost = Math.max(0, +value || 0);
+    if (cost.toFixed(2) === (+s.shipping_cost || 0).toFixed(2)) return;
+    this.svc.setShippingCost(s.id, cost).subscribe({
+      next: r => { s.shipping_cost = r.shipping_cost; this.notify.success('Costo de envío guardado'); },
+      error: () => this.notify.error('No se pudo guardar el costo de envío.'),
+    });
   }
 }

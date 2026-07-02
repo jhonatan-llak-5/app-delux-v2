@@ -82,6 +82,10 @@ export class ShippingService {
     return this.http.post<Shipment>(`${this.base}/admin/shipments/${id}/update_status/`,
       { status, description, location, latitude, longitude });
   }
+  /** Fija el costo de envio acordado con el courier (aparte del total del pedido). */
+  setShippingCost(id: number, shipping_cost: number) {
+    return this.http.patch<Shipment>(`${this.base}/admin/shipments/${id}/`, { shipping_cost });
+  }
   updateCourierLocation(id: number, latitude: number, longitude: number) {
     return this.http.post<{ ok: boolean; updated_at: string }>(
       `${this.base}/admin/shipments/${id}/courier-location/`,
