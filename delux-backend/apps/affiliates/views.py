@@ -7,7 +7,7 @@ from rest_framework.response import Response
 from rest_framework.views import APIView
 
 from apps.accounts.models import Role, User
-from apps.accounts.permissions import IsBranchManager
+from apps.accounts.permissions import IsBranchManager, IsStaff, IsStaffReadOrManager
 from apps.orders.models import Order, OrderItem, OrderStatus
 from .models import Commission, CommissionStatus, CommissionPayout
 from .serializers import (
@@ -165,11 +165,14 @@ class MyAffiliateProductsView(APIView):
 
 
 class AdminAffiliateViewSet(viewsets.ViewSet):
-    """Gestion admin: lista de afiliados con comisiones acumuladas."""
-    permission_classes = [permissions.IsAuthenticated, IsBranchManager]
+    """Gestion admin: lista de afiliados con comisiones acumuladas.
+    Visible para todo el staff (afiliados son globales, sin sucursal)."""
+    permission_classes = [permissions.IsAuthenticated, IsStaff]
 
     def list(self, request):
-        users = _tenant_scope(User.objects.filter(role=Role.AFFILIATE), request.user)
+        # Los afiliados son una bolsa GLOBAL (tenant=None): venden en cualquier
+        # sucursal/tenant, por eso se muestran en todos los perfiles sin filtrar.
+        users = User.objects.filter(role=Role.AFFILIATE)
         search = (request.query_params.get('search') or '').strip()
         if search:
             users = users.filter(
@@ -206,16 +209,16 @@ class AdminAffiliateViewSet(viewsets.ViewSet):
 
 
 class AdminCommissionViewSet(viewsets.ReadOnlyModelViewSet):
-    """Todas las comisiones del tenant (para el admin), con filtros."""
+    """Todas las comisiones de afiliados (globales), con filtros."""
     serializer_class = CommissionSerializer
-    permission_classes = [permissions.IsAuthenticated, IsBranchManager]
+    permission_classes = [permissions.IsAuthenticated, IsStaff]
     filter_backends = [filters.OrderingFilter]
     ordering = ['-created_at']
 
     def get_queryset(self):
+        # Afiliados globales: sus comisiones se ven en todos los perfiles.
         qs = (Commission.objects
               .select_related('order', 'order__customer', 'affiliate'))
-        qs = _tenant_scope(qs, self.request.user)
         p = self.request.query_params
         if p.get('affiliate'):
             qs = qs.filter(affiliate_id=p['affiliate'])
@@ -225,15 +228,15 @@ class AdminCommissionViewSet(viewsets.ReadOnlyModelViewSet):
 
 
 class AdminPayoutViewSet(viewsets.ReadOnlyModelViewSet):
-    """Historial de pagos de comisiones + registro de pago manual."""
+    """Historial de pagos de comisiones + registro de pago manual.
+    El vendedor puede VER el historial pero no registrar pagos."""
     serializer_class = PayoutSerializer
-    permission_classes = [permissions.IsAuthenticated, IsBranchManager]
+    permission_classes = [permissions.IsAuthenticated, IsStaffReadOrManager]
     filter_backends = [filters.OrderingFilter]
     ordering = ['-created_at']
 
     def get_queryset(self):
         qs = CommissionPayout.objects.select_related('affiliate', 'paid_by')
-        qs = _tenant_scope(qs, self.request.user)
         if self.request.query_params.get('affiliate'):
             qs = qs.filter(affiliate_id=self.request.query_params['affiliate'])
         return qs
@@ -243,9 +246,8 @@ class AdminPayoutViewSet(viewsets.ReadOnlyModelViewSet):
         ser.is_valid(raise_exception=True)
         data = ser.validated_data
 
-        affiliate = _tenant_scope(
-            User.objects.filter(role=Role.AFFILIATE), request.user
-        ).filter(id=data['affiliate']).first()
+        affiliate = (User.objects.filter(role=Role.AFFILIATE)
+                     .filter(id=data['affiliate']).first())
         if not affiliate:
             raise ValidationError({'affiliate': 'Afiliado no encontrado.'})
 

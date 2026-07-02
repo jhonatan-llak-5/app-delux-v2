@@ -559,6 +559,7 @@ export class DashboardLayoutComponent implements AfterViewInit, OnDestroy {
         { label: 'Mis ventas',  icon: 'fa-receipt',        route: '/app/admin/sales' },
         { label: 'Productos',   icon: 'fa-box',            route: '/app/admin/products' },
         { label: 'Inventario',  icon: 'fa-boxes-stacked',  route: '/app/admin/inventory', exact: true },
+        { label: 'Afiliados',   icon: 'fa-hand-holding-dollar', route: '/app/admin/affiliates' },
         { label: 'Mi perfil',   icon: 'fa-id-card',        route: '/app/profile' },
       ],
     },

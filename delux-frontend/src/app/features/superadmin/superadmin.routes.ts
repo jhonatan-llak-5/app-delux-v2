@@ -186,7 +186,7 @@ export const SUPERADMIN_ROUTES: Routes = [
       },
       {
         path: 'affiliates',
-        canActivate: [roleGuard(['SUPERADMIN', 'TENANT_ADMIN', 'BRANCH_MANAGER'])],
+        canActivate: [roleGuard(['SUPERADMIN', 'TENANT_ADMIN', 'BRANCH_MANAGER', 'SALESPERSON'])],
         loadComponent: () =>
           import('./pages/affiliates-admin/affiliates-admin.component').then(m => m.AffiliatesAdminComponent),
       },

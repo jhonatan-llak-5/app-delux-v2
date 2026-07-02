@@ -66,7 +66,8 @@ class PayrollViewSet(viewsets.ReadOnlyModelViewSet):
         if not item:
             raise ValidationError({'detail': 'Renglon no encontrado.'})
         pay_item(item, method=request.data.get('method', 'CASH'), notes=request.data.get('notes', ''))
-        return Response(PayrollRunDetailSerializer(run).data)
+        # Re-consultar fresco: el prefetch de items quedo en cache tras el pago.
+        return Response(PayrollRunDetailSerializer(self.get_queryset().get(pk=run.pk)).data)
 
     @action(detail=True, methods=['post'], url_path='unpay-item')
     def unpay_item_action(self, request, pk=None):
@@ -75,13 +76,13 @@ class PayrollViewSet(viewsets.ReadOnlyModelViewSet):
         if not item:
             raise ValidationError({'detail': 'Renglon no encontrado.'})
         unpay_item(item)
-        return Response(PayrollRunDetailSerializer(run).data)
+        return Response(PayrollRunDetailSerializer(self.get_queryset().get(pk=run.pk)).data)
 
     @action(detail=True, methods=['post'], url_path='pay-all')
     def pay_all_action(self, request, pk=None):
         run = self.get_object()
         pay_all(run, method=request.data.get('method', 'CASH'))
-        return Response(PayrollRunDetailSerializer(run.__class__.objects.get(pk=run.pk)).data)
+        return Response(PayrollRunDetailSerializer(self.get_queryset().get(pk=run.pk)).data)
 
     @action(detail=False, methods=['get'])
     def report(self, request):

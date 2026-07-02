@@ -5,6 +5,7 @@ import { Subject, debounceTime } from 'rxjs';
 import { DlxSearchInputComponent } from '@shared/ui/search-input.component';
 import { NotifyService } from '@shared/services/notify.service';
 import { BrandingService } from '@core/services/branding.service';
+import { AuthService } from '@core/services/auth.service';
 import { parseApiError } from '@shared/utils/api-error.util';
 import {
   AffiliateService, AffiliateAdminRow, CommissionRow, PayoutRow,
@@ -190,7 +191,11 @@ import {
 export class AffiliatesAdminComponent implements OnInit {
   private svc = inject(AffiliateService);
   private notify = inject(NotifyService);
+  private auth = inject(AuthService);
   branding = inject(BrandingService);
+
+  /** El vendedor puede VER afiliados pero no registrar pagos. */
+  canRegisterPay = computed(() => this.auth.role() !== 'SALESPERSON');
 
   rows = signal<AffiliateAdminRow[]>([]);
   loading = signal(true);
@@ -258,10 +263,12 @@ export class AffiliatesAdminComponent implements OnInit {
   }
 
   canPay(a: AffiliateAdminRow): boolean {
+    if (!this.canRegisterPay()) return false;
     const min = this.branding.affiliateMinPayout();
     return a.commission_pending > 0 && (min <= 0 || a.commission_pending >= min);
   }
   payHint(a: AffiliateAdminRow): string {
+    if (!this.canRegisterPay()) return 'Solo un gerente o superior puede registrar pagos';
     if (a.commission_pending <= 0) return 'Sin comisiones por pagar';
     const min = this.branding.affiliateMinPayout();
     if (min > 0 && a.commission_pending < min) return `Mínimo para pagar: ${this.money(min)}`;
