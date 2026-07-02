@@ -186,7 +186,7 @@ class PublicProductDetailView(APIView):
             images = ['https://images.unsplash.com/photo-1542291026-7eec264c27ff?w=1200&q=85']
 
         variants = list(Variant.objects.filter(product=p, is_active=True)
-                        .values('size', 'color'))
+                        .values('id', 'size', 'color'))
         # Tallas únicas (orden natural-ish) y colores únicos
         sizes = sorted({v['size'] for v in variants if v['size']},
                        key=lambda x: (len(x), x))
@@ -234,6 +234,10 @@ class PublicProductDetailView(APIView):
             'images': images,
             'sizes': sizes,
             'colors': colors,
+            'variants': [
+                {'id': v['id'], 'size': v['size'], 'color': v['color']}
+                for v in variants
+            ],
             'rating': round(agg['avg'], 1) if agg['avg'] else 0,
             'reviews_count': agg['n'] or 0,
         })

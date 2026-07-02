@@ -6,12 +6,15 @@ django_asgi_app = get_asgi_application()
 
 from channels.routing import ProtocolTypeRouter, URLRouter  # noqa: E402
 from channels.auth import AuthMiddlewareStack              # noqa: E402
+from apps.notifications.ws_auth import JWTAuthMiddleware    # noqa: E402
 from apps.notifications.routing import websocket_urlpatterns as notif_ws  # noqa: E402
 from apps.shipping.routing import websocket_urlpatterns as shipping_ws    # noqa: E402
 
 websocket_urlpatterns = notif_ws + shipping_ws
 
+# JWTAuthMiddleware va más interno: corre después de AuthMiddlewareStack y, si
+# llega ?token=, sobrescribe scope['user'] con el usuario del JWT.
 application = ProtocolTypeRouter({
     'http': django_asgi_app,
-    'websocket': AuthMiddlewareStack(URLRouter(websocket_urlpatterns)),
+    'websocket': AuthMiddlewareStack(JWTAuthMiddleware(URLRouter(websocket_urlpatterns))),
 })

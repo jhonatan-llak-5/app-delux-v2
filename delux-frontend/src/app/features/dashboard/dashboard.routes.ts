@@ -14,6 +14,11 @@ export const DASHBOARD_ROUTES: Routes = [
           import('@features/profile/profile.component').then(m => m.ProfileComponent),
       },
       {
+        path: 'notifications',
+        loadComponent: () =>
+          import('@features/notifications/notifications-center.component').then(m => m.NotificationsCenterComponent),
+      },
+      {
         path: 'dashboard',
         loadComponent: () =>
           import('./pages/dashboard-home/dashboard-home.component').then(m => m.DashboardHomeComponent)

@@ -1,4 +1,6 @@
 from django.db import models
+from django.db.models import Q, F
+from django.db.models.functions import Lower
 from common.models import TenantOwnedModel
 
 
@@ -17,6 +19,15 @@ class Customer(TenantOwnedModel):
 
     class Meta:
         indexes = [models.Index(fields=['tenant', 'email'])]
+        constraints = [
+            # Un correo = un cliente por tienda (sin distinguir mayusculas).
+            # Parcial: no aplica a correos vacios.
+            models.UniqueConstraint(
+                Lower('email'), F('tenant'),
+                condition=~Q(email=''),
+                name='uniq_customer_tenant_email',
+            ),
+        ]
 
     def __str__(self) -> str:
         return self.full_name

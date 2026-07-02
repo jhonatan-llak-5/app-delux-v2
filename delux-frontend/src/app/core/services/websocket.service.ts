@@ -23,9 +23,13 @@ export class WebSocketService {
 
   connect() {
     if (this.socket && this.socket.readyState <= 1) return;
-    // Derivar URL: si apiUrl es http(s)://X/api/v1 → ws(s)://X/ws/admin/notifications/
-    // Mismo origen que la página: http(s)://host  ->  ws(s)://host/ws/...
-    const wsUrl = location.origin.replace(/^http/, 'ws') + '/ws/admin/notifications/';
+    // El backend autentica por JWT en query string (los navegadores no permiten
+    // cabeceras en WebSocket). Sin token no conectamos: reintentamos luego.
+    const token = typeof window !== 'undefined' ? localStorage.getItem('dlx_access_token') : null;
+    if (!token) { this.scheduleRetry(); return; }
+    // Mismo origen que la página: http(s)://host -> ws(s)://host/ws/...
+    const wsUrl = location.origin.replace(/^http/, 'ws')
+      + '/ws/admin/notifications/?token=' + encodeURIComponent(token);
     try {
       this.socket = new WebSocket(wsUrl);
       this.socket.onopen = () => this.connected.set(true);

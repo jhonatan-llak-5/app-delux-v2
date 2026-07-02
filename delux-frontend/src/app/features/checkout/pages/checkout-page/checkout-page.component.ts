@@ -14,6 +14,8 @@ import { PublicBranchesService, PublicBranch } from '@shared/services/public-bra
 import { ZoneService } from '@shared/services/zone.service';
 import { BrandingService } from '@core/services/branding.service';
 import { CouponService, CouponValidation } from '@features/superadmin/services/coupon.service';
+import { AuthService } from '@core/services/auth.service';
+import { MeService } from '@features/account/services/me.service';
 
 @Component({
   selector: 'dlx-checkout-page',
@@ -51,7 +53,13 @@ import { CouponService, CouponValidation } from '@features/superadmin/services/c
                 <div>
                   <label class="text-sm font-semibold text-ink-800 dark:text-white/80 mb-1.5 block">Email *</label>
                   <input [(ngModel)]="customer.email" name="email" type="email" required
+                         [readonly]="emailLocked()"
+                         [class.opacity-60]="emailLocked()"
+                         [class.cursor-not-allowed]="emailLocked()"
                          class="w-full px-3 py-3 rounded-lg bg-ink-50 dark:bg-white/5 border border-ink-200 dark:border-white/10 text-sm focus:outline-none focus:border-ink-950 dark:focus:border-white" />
+                  @if (emailLocked()) {
+                    <p class="text-xs text-ink-500 dark:text-white/50 mt-1">Usamos el correo de tu cuenta. Los demás datos sí puedes editarlos.</p>
+                  }
                   <dlx-field-error [error]="fe(\'email\')" />
                 </div>
                 <div>
@@ -336,6 +344,8 @@ export class CheckoutPageComponent implements OnInit, AfterViewInit {
   private couponSvc = inject(CouponService);
   private router = inject(Router);
   private ref = inject(RefService);
+  private auth = inject(AuthService);
+  private me = inject(MeService);
   private cdr = inject(ChangeDetectorRef);
 
   constructor() {
@@ -373,6 +383,8 @@ export class CheckoutPageComponent implements OnInit, AfterViewInit {
   private mapResizeObs: any = null;
 
   customer = { full_name: '', email: '', phone: '', document_id: '' };
+  // El email se bloquea si es un cliente con sesion (el pedido va a su perfil).
+  emailLocked = () => this.auth.role() === 'CUSTOMER';
 
   couponInput = '';
   appliedCoupon = signal<CouponValidation | null>(null);
@@ -512,6 +524,20 @@ export class CheckoutPageComponent implements OnInit, AfterViewInit {
     this.paymentMethod.set(this.branding.payphoneAvailable() ? 'PAYPHONE' : 'COD');
     // Carga las ciudades/sucursales de la zona; el effect cargará el paso 2.
     this.zone.load(false);
+    // Autocompletar los datos de contacto con el perfil del usuario logueado
+    // (solo campos vacíos, para no pisar lo que el usuario ya escribió).
+    if (this.auth.isLogged()) {
+      this.me.profile().subscribe({
+        next: p => {
+          this.customer.full_name = this.customer.full_name || p.full_name || '';
+          this.customer.email = this.customer.email || p.email || '';
+          this.customer.phone = this.customer.phone || p.phone || '';
+          this.customer.document_id = this.customer.document_id || p.document_id || '';
+          this.cdr.markForCheck();
+        },
+        error: () => {},
+      });
+    }
   }
 
   applyCoupon() {

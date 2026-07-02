@@ -26,6 +26,7 @@ api_v1_patterns = [
     path('affiliate/',  include('apps.affiliates.urls')),
     path('payments/',   include('apps.payments.urls')),
     path('coupons/',    include('apps.coupons.urls')),
+    path('notifications/', include('apps.notifications.urls')),
     path('admin/',      include('apps.superadmin.urls')),
 ]
 

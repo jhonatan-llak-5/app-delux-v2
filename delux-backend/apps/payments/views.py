@@ -26,7 +26,7 @@ def _active_tenant():
     return Tenant.objects.filter(is_active=True).first()
 
 
-def create_web_order(tenant, data):
+def create_web_order(tenant, data, user=None):
     """Crea un pedido WEB (PENDING) con sus ítems y RESERVA el stock.
 
     Reutilizado por el checkout PayPhone y por el de contra entrega.
@@ -36,16 +36,37 @@ def create_web_order(tenant, data):
     if not cd.get('email'):
         raise ValidationError({'detail': 'Email del cliente requerido.'})
 
-    customer, _ = Customer.objects.get_or_create(
-        tenant=tenant, email=cd['email'],
-        defaults={
-            'full_name': cd.get('full_name', 'Cliente Web'),
-            'phone': cd.get('phone', ''),
-            'document_id': cd.get('document_id', ''),
-        },
-    )
-    from apps.customers.utils import link_customer_to_user
-    link_customer_to_user(customer)
+    customer = None
+    # Usuario logueado (cliente): el pedido se vincula SIEMPRE a su ficha de
+    # perfil. No se crea otra ficha aunque escriba otro correo en el form.
+    if (user is not None and getattr(user, 'is_authenticated', False)
+            and getattr(user, 'role', '') == 'CUSTOMER'):
+        from apps.customers.me_views import get_or_create_customer_for_user
+        customer = get_or_create_customer_for_user(user)
+        # Actualiza datos de contacto editados (sin cambiar el email de la cuenta).
+        changed = False
+        for fld in ('full_name', 'phone', 'document_id'):
+            val = (cd.get(fld) or '').strip()
+            if val and getattr(customer, fld) != val:
+                setattr(customer, fld, val); changed = True
+        if changed:
+            customer.save()
+
+    if customer is None:
+        # Invitado (sin sesion): reutiliza por email o crea. Tolerante a
+        # duplicados heredados; el email es unico por tienda a nivel de BD.
+        customer = (Customer.objects
+                    .filter(tenant=tenant, email__iexact=cd['email'])
+                    .order_by('id').first())
+        if customer is None:
+            customer = Customer.objects.create(
+                tenant=tenant, email=cd['email'],
+                full_name=cd.get('full_name', 'Cliente Web'),
+                phone=cd.get('phone', ''),
+                document_id=cd.get('document_id', ''),
+            )
+        from apps.customers.utils import link_customer_to_user
+        link_customer_to_user(customer)
 
     today = timezone.now().strftime('%Y%m%d')
     seq = Order.objects.filter(
@@ -188,7 +209,7 @@ class CheckoutPayPhoneInitView(APIView):
 
         tenant = _active_tenant()
         with transaction.atomic():
-            order = create_web_order(tenant, data)
+            order = create_web_order(tenant, data, user=request.user)
             init_resp = init_payphone_transaction(order, data['return_url'])
 
         return Response({
@@ -214,7 +235,7 @@ class CheckoutCODView(APIView):
 
         tenant = _active_tenant()
         with transaction.atomic():
-            order = create_web_order(tenant, data)
+            order = create_web_order(tenant, data, user=request.user)
 
             # Convierte la reserva en salida real (stock correcto desde ya).
             for item in order.items.all():
@@ -327,9 +348,4 @@ class CheckoutReceiptView(APIView):
                  .prefetch_related('items', 'payments')
                  .filter(code=code).first())
         if not order:
-            return Response({'detail': 'Pedido no encontrado.'}, status=404)
-        from .receipt import build_order_receipt_pdf
-        pdf = build_order_receipt_pdf(order, request)
-        resp = HttpResponse(pdf, content_type='application/pdf')
-        resp['Content-Disposition'] = f'inline; filename="comprobante-{order.code}.pdf"'
-        return resp
+            return

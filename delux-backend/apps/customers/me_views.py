@@ -100,14 +100,22 @@ class MeWishlistView(APIView):
         c = get_or_create_customer_for_user(request.user)
         items = c.wishlist_items.select_related(
             'product', 'product__brand'
-        ).order_by('-created_at')
+        ).prefetch_related('product__images').order_by('-created_at')
+
+        def _img(p):
+            # Prioriza la galeria de imagenes (subidas); cae a main_image_url.
+            imgs = sorted(p.images.all(), key=lambda i: (not i.is_main, i.sort_order, i.id))
+            if imgs:
+                return imgs[0].thumb_url or imgs[0].url or p.main_image_url
+            return p.main_image_url
+
         results = [{
             'id': wi.id,
             'product_id': wi.product.id,
             'name': wi.product.name,
             'slug': wi.product.slug,
             'brand_name': wi.product.brand.name,
-            'main_image_url': wi.product.main_image_url,
+            'main_image_url': _img(wi.product),
             'base_price': str(wi.product.base_price),
             'compare_at_price': str(wi.product.compare_at_price) if wi.product.compare_at_price else None,
             'created_at': wi.created_at,

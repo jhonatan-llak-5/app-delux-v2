@@ -200,3 +200,15 @@ CELERY_ACCEPT_CONTENT = ['json']
 CELERY_TASK_SERIALIZER = 'json'
 
 # ─────────────────────────────────────────────
+
+# ─────────────────────────────────────────────
+# Celery Beat — tareas programadas
+# ─────────────────────────────────────────────
+from celery.schedules import crontab  # noqa: E402
+
+CELERY_BEAT_SCHEDULE = {
+    'newsletter-daily-digest': {
+        'task': 'apps.notifications.tasks.newsletter_daily_digest',
+        'schedule': crontab(hour=8, minute=0),  # cada dia 08:00
+    },
+}

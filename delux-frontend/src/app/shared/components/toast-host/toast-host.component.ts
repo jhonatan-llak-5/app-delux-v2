@@ -67,17 +67,33 @@ export class ToastHostComponent implements OnInit {
 
   icon(type: string) {
     return ({
-      new_sale: 'fa-cash-register',
-      low_stock: 'fa-triangle-exclamation',
+      sale: 'fa-cash-register',
+      order: 'fa-bag-shopping',
       order_paid: 'fa-circle-check',
+      low_stock: 'fa-triangle-exclamation',
+      affiliate_commission: 'fa-hand-holding-dollar',
+      affiliate_payout: 'fa-money-check-dollar',
+      affiliate_new: 'fa-user-plus',
+      'return': 'fa-rotate-left',
+      review: 'fa-star',
+      customer_new: 'fa-user-plus',
+      newsletter_digest: 'fa-envelope',
     } as any)[type] || 'fa-bell';
   }
 
   iconBg(type: string) {
     return ({
-      new_sale: 'bg-emerald-500',
+      sale: 'bg-emerald-500',
+      order: 'bg-violet-500',
+      order_paid: 'bg-emerald-500',
       low_stock: 'bg-amber-500',
-      order_paid: 'bg-violet-500',
+      affiliate_commission: 'bg-blue-500',
+      affiliate_payout: 'bg-blue-500',
+      affiliate_new: 'bg-blue-500',
+      'return': 'bg-rose-500',
+      review: 'bg-pink-500',
+      customer_new: 'bg-blue-500',
+      newsletter_digest: 'bg-slate-500',
     } as any)[type] || 'bg-ink-950';
   }
 }

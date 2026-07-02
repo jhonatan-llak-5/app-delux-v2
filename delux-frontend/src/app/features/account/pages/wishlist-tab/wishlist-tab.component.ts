@@ -33,7 +33,7 @@ import { MeService, WishlistEntry } from '@features/account/services/me.service'
                 <div class="relative aspect-square rounded-xl overflow-hidden bg-ink-100 dark:bg-white/5">
                   <img [src]="w.main_image_url" [alt]="w.name"
                        class="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500"
-                       loading="lazy" crossorigin="anonymous" (error)="onImgErr($event)" />
+                       loading="lazy" (error)="onImgErr($event)" />
                   <button (click)="remove(w, $event)"
                           class="absolute top-2 right-2 w-9 h-9 rounded-full bg-white/90 dark:bg-ink-950/90 backdrop-blur grid place-items-center hover:bg-rose-500 hover:text-white transition"
                           aria-label="Quitar de favoritos">

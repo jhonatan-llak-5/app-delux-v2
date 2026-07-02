@@ -99,15 +99,18 @@ import { NotificationsService, NotifKind } from '@shared/services/notifications.
             }
           </div>
 
-          @if (svc.list().length > 0) {
-            <footer class="px-4 py-2 border-t shrink-0 flex items-center justify-between"
-                    [style.border-color]="'var(--dash-border)'">
-              <button (click)="svc.clear()"
-                      class="text-xs text-rose-600 hover:underline">
+          <footer class="px-4 py-2 border-t shrink-0 flex items-center justify-between"
+                  [style.border-color]="'var(--dash-border)'">
+            <button (click)="goCenter()" class="text-xs font-semibold hover:underline"
+                    [style.color]="'var(--dash-primary)'">
+              Ver todas
+            </button>
+            @if (svc.list().length > 0) {
+              <button (click)="svc.clear()" class="text-xs text-rose-600 hover:underline">
                 Limpiar todo
               </button>
-            </footer>
-          }
+            }
+          </footer>
         </div>
       }
     </div>
@@ -137,6 +140,11 @@ export class DlxNotificationsBellComponent {
       this.router.navigateByUrl(n.link);
       this.open.set(false);
     }
+  }
+
+  goCenter() {
+    this.router.navigateByUrl('/app/notifications');
+    this.open.set(false);
   }
 
   icon(kind: NotifKind): string {

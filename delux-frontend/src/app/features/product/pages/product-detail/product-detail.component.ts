@@ -15,13 +15,14 @@ interface ProductVM {
   id: number; name: string; subtitle: string; brand: string; category: string;
   slug: string; price: number; oldPrice?: number; rating: number; reviewsCount: number;
   tag: string; gallery: string[]; colors: ColorOption[]; sizes: string[]; description: string;
+  variants: { id: number; size: string; color: string }[];
 }
 
 const EMPTY_PRODUCT: ProductVM = {
   id: 0, name: '', subtitle: '', brand: '', category: '', slug: '',
   price: 0, oldPrice: undefined, rating: 0, reviewsCount: 0, tag: '',
   gallery: ['https://images.unsplash.com/photo-1542291026-7eec264c27ff?w=1200&q=85'],
-  colors: [], sizes: [], description: '',
+  colors: [], sizes: [], description: '', variants: [],
 };
 
 const IMG_PLACEHOLDER = 'data:image/svg+xml,' + encodeURIComponent(
@@ -385,6 +386,7 @@ export class ProductDetailComponent implements OnInit {
           colors: d.colors || [],
           sizes: d.sizes || [],
           description: d.description || '',
+          variants: d.variants || [],
         });
         this.activeColorIdx.set(0);
         this.activeImg.set(0);
@@ -499,10 +501,18 @@ export class ProductDetailComponent implements OnInit {
     const colorImage = color?.image || this.product().gallery[0];
     const colorName = color?.name || 'default';
     const size = this.activeSize()!;
-    const variantId = Number(`${this.product().id}${this.activeColorIdx()}${size}`.replace(/\D/g, '')) || Date.now();
+    // Busca la variante REAL que coincide con talla + color y usa su id de BD.
+    const match = this.product().variants.find(
+      v => v.size === size && (v.color || '') === (colorName === 'default' ? '' : colorName));
+    if (!match) {
+      this.notify.error('Variante no disponible', {
+        description: 'Esa combinación de talla y color no está disponible.',
+      });
+      return;
+    }
 
     this.cart.add({
-      variant_id: variantId,
+      variant_id: match.id,
       product_id: this.product().id,
       product_name: this.product().name,
       product_image: colorImage,

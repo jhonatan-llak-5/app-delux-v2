@@ -31,6 +31,7 @@ export interface PublicProductDetail {
   short_description: string; description: string;
   main_image_url: string; images: string[];
   sizes: string[]; colors: PublicProductColor[];
+  variants: { id: number; size: string; color: string }[];
   rating: number; reviews_count: number;
 }
 
