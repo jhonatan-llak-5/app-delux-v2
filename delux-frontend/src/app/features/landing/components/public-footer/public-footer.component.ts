@@ -5,6 +5,7 @@ import { RouterLink } from '@angular/router';
 import { PublicFormsService } from '@shared/services/public-forms.service';
 import { NotifyService } from '@shared/services/notify.service';
 import { parseApiError } from '@shared/utils/api-error.util';
+import { environment } from '@env/environment';
 
 @Component({
   selector: 'dlx-public-footer',
@@ -137,6 +138,7 @@ import { parseApiError } from '@shared/utils/api-error.util';
                     flex flex-col md:flex-row items-center justify-between gap-4">
           <p class="text-[12px] text-ink-500 dark:text-white/45">
             © {{ year }} Delux. Todos los derechos reservados.
+            <span class="ml-2 opacity-60">· v{{ appVersion }}</span>
           </p>
           <div class="flex items-center gap-5 text-[12px] text-ink-500 dark:text-white/45">
             <a routerLink="/terms" class="hover:text-ink-950 dark:hover:text-white transition">Términos</a>
@@ -163,6 +165,7 @@ export class PublicFooterComponent {
   email = '';
   fieldErr = signal<string | null>(null);
   readonly year = new Date().getFullYear();
+  readonly appVersion = environment.appVersion;
 
   subscribe() {
     this.fieldErr.set(null);
