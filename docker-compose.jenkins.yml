@@ -1,0 +1,28 @@
+# ============================================================================
+# Jenkins en contenedor (CI/CD). Independiente de la app.
+#
+# Levantar:
+#   cd /var/www/delux_v2/staging
+#   docker compose -f docker-compose.jenkins.yml up -d --build
+#
+# Contraseña inicial:
+#   docker exec delux_jenkins cat /var/jenkins_home/secrets/initialAdminPassword
+#
+# nginx de ci.deluxstyle.com ya reenvia a 127.0.0.1:8082 (este contenedor).
+# ============================================================================
+services:
+  jenkins:
+    build: ./deploy/jenkins
+    image: delux_jenkins
+    container_name: delux_jenkins
+    restart: unless-stopped
+    user: root                                   # para usar el socket de Docker del host
+    ports:
+      - "127.0.0.1:8082:8080"                    # solo local; nginx lo publica con HTTPS
+    volumes:
+      - jenkins_home:/var/jenkins_home           # datos de Jenkins (persisten)
+      - /var/run/docker.sock:/var/run/docker.sock  # controlar el Docker del host (DooD)
+      - /var/www/delux_v2:/var/www/delux_v2      # carpetas de deploy (git + compose)
+
+volumes:
+  jenkins_home:
