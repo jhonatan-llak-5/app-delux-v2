@@ -60,6 +60,23 @@ class AdminOrderViewSet(viewsets.ReadOnlyModelViewSet):
         order.save(update_fields=['status', 'updated_at'])
         return Response({'detail': 'Orden cancelada.'})
 
+    @action(detail=True, methods=['post'], url_path='set-status')
+    def set_status(self, request, pk=None):
+        """Cambia el estado del pedido (gerentes/admins). Bloquea estados finales."""
+        if request.user.role == 'SALESPERSON':
+            return Response({'detail': 'No autorizado.'}, status=status.HTTP_403_FORBIDDEN)
+        order = self.get_object()
+        new_status = request.data.get('status')
+        if new_status not in dict(OrderStatus.choices):
+            return Response({'detail': 'Estado invalido.'}, status=400)
+        if order.status in (OrderStatus.CANCELLED, OrderStatus.REFUNDED):
+            return Response({'detail': 'No se puede cambiar un pedido cancelado o devuelto.'}, status=400)
+        if new_status == order.status:
+            return Response(OrderSerializer(order).data)
+        order.status = new_status
+        order.save(update_fields=['status', 'updated_at'])
+        return Response(OrderSerializer(order).data)
+
     @action(detail=False, methods=['get'])
     def summary(self, request):
         params = request.query_params

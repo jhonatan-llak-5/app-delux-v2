@@ -78,7 +78,7 @@ import { parseApiError } from '@shared/utils/api-error.util';
                      [class.border-violet-500]="img.is_main"
                      [class.border-slate-200]="!img.is_main">
                   <img [src]="img.url" [alt]="img.alt || 'imagen'"
-                       class="w-full h-full object-cover" crossorigin="anonymous" (error)="onImgErr($event)" />
+                       class="w-full h-full object-cover" (error)="onImgErr($event)" />
                   @if (img.is_main) {
                     <span class="absolute top-1 left-1 text-[9px] font-bold uppercase px-1.5 py-0.5 rounded bg-violet-500 text-white">
                       Main
@@ -199,6 +199,27 @@ import { parseApiError } from '@shared/utils/api-error.util';
                    class="eg-input flex-1" />
             <button type="button" (click)="addColor()" [disabled]="!newColor.trim()"
                     class="px-4 py-2 rounded-lg bg-slate-900 text-white text-sm font-semibold hover:bg-slate-800 disabled:opacity-40">Añadir</button>
+          </div>
+
+          <!-- Código de barras -->
+          <div class="mt-5 pt-5 border-t border-slate-100 dark:border-white/5">
+            <label class="block text-xs font-semibold uppercase tracking-wider text-slate-600 mb-2">
+              Código de barras
+            </label>
+            <input [(ngModel)]="barcode" name="barcode" maxlength="40"
+                   placeholder="Escanea o escribe el código (opcional)"
+                   class="eg-input w-full font-mono" [disabled]="variantCount() > 1" />
+            @if (variantCount() > 1) {
+              <p class="text-[11px] text-amber-600 mt-1">
+                <i class="fa-solid fa-circle-info"></i>
+                Este producto tiene {{ variantCount() }} variantes (talla × color).
+                El código de barras por talla/color se administra en Inventario · Recepción.
+              </p>
+            } @else {
+              <p class="text-[11px] text-slate-400 mt-1">
+                Se guarda en la variante del producto. Luego podrás buscarlo escaneándolo en POS e Inventario.
+              </p>
+            }
           </div>
         </div>
 
@@ -383,6 +404,7 @@ export class ProductFormComponent implements OnInit {
 
   sizes = signal<string[]>([]);
   colors = signal<string[]>([]);
+  barcode = '';
   newSize = '';
   newColor = '';
   readonly colorPresets = ['Negro', 'Blanco', 'Gris', 'Azul', 'Celeste', 'Rojo', 'Verde', 'Amarillo', 'Naranja', 'Morado', 'Rosa', 'Café', 'Beige'];
@@ -423,6 +445,8 @@ export class ProductFormComponent implements OnInit {
         const vs = p.variants_detail || [];
         this.sizes.set([...new Set(vs.map(v => v.size).filter(Boolean))]);
         this.colors.set([...new Set(vs.map(v => v.color).filter(Boolean))]);
+        // Si el producto tiene una sola variante, precarga su código de barras.
+        this.barcode = (vs.length === 1 ? (vs[0].barcode || '') : '');
       });
     }
   }
@@ -493,11 +517,13 @@ export class ProductFormComponent implements OnInit {
     };
     this.sizes.update(a => Array.from(new Set([...a, ...(map[kind] || [])])));
   }
-  private buildVariants(): { size: string; color: string }[] {
+  private buildVariants(): { size: string; color: string; barcode?: string }[] {
     const sizes = this.sizes().length ? this.sizes() : ['UNICA'];
     const colors = this.colors().length ? this.colors() : ['Estándar'];
-    const out: { size: string; color: string }[] = [];
+    const out: { size: string; color: string; barcode?: string }[] = [];
     for (const s of sizes) for (const c of colors) out.push({ size: s, color: c });
+    // El código de barras solo aplica cuando hay una única variante.
+    if (out.length === 1 && this.barcode.trim()) out[0].barcode = this.barcode.trim();
     return out;
   }
 

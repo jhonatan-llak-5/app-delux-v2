@@ -82,7 +82,7 @@ interface CartItem {
                 <div class="aspect-square bg-slate-100 relative overflow-hidden">
                   <img [src]="imgSrc(s.product_main_image)" [alt]="s.product_name"
                        class="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500"
-                       loading="lazy" crossorigin="anonymous" (error)="onImgErr($event)" />
+                       loading="lazy" (error)="onImgErr($event)" />
                   <span class="absolute top-2 right-2 text-[10px] font-bold uppercase px-2 py-0.5 rounded-md backdrop-blur"
                         [class.bg-emerald-100]="!s.is_low"
                         [class.text-emerald-700]="!s.is_low"
@@ -130,7 +130,7 @@ interface CartItem {
                 <li class="flex gap-2 p-2 rounded-lg hover:bg-slate-50 transition">
                   <img [src]="imgSrc(item.product_image)" [alt]="item.product_name"
                        class="w-12 h-12 rounded object-cover bg-slate-100"
-                       crossorigin="anonymous" (error)="onImgErr($event)" />
+ (error)="onImgErr($event)" />
                   <div class="flex-1 min-w-0">
                     <p class="text-xs font-semibold truncate">{{ item.product_name }}</p>
                     <p class="text-[10px] text-slate-500 font-mono truncate">{{ item.sku }} · {{ item.size }}/{{ item.color }}</p>

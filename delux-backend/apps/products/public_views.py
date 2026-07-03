@@ -74,7 +74,17 @@ class PublicProductsView(APIView):
         branch_id = params.get('branch')
         city = params.get('city')
 
-        products = list(qs[:200])
+        try:
+            page = max(1, int(params.get('page', 1)))
+        except (TypeError, ValueError):
+            page = 1
+        try:
+            page_size = min(100, max(1, int(params.get('page_size', 40))))
+        except (TypeError, ValueError):
+            page_size = 40
+        total = qs.count()
+        offset = (page - 1) * page_size
+        products = list(qs[offset:offset + page_size])
         pids = [p.id for p in products]
 
         # Miniatura principal por producto (para grilla / vistas pequeñas).
@@ -119,7 +129,14 @@ class PublicProductsView(APIView):
         if zone_active:
             results.sort(key=lambda r: 0 if r['available_in_city'] else 1)
 
-        return Response({'count': len(results), 'results': results})
+        import math
+        return Response({
+            'count': total,
+            'pages': max(1, math.ceil(total / page_size)) if total else 1,
+            'page': page,
+            'next': (offset + page_size) < total,
+            'results': results,
+        })
 
 
 class SearchAutocompleteView(APIView):

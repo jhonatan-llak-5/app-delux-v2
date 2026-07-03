@@ -72,7 +72,7 @@
           <div class="logo-frame w-12 h-12 rounded-lg grid place-items-center overflow-hidden shrink-0 p-1.5">
             @if (b.logo_url) {
               <img [src]="b.logo_url" [alt]="b.name" class="w-full h-full object-contain"
-                   crossorigin="anonymous" (error)="onImgErr($event)" />
+ (error)="onImgErr($event)" />
             } @else {
               <i class="fa-solid fa-tag text-slate-400"></i>
             }

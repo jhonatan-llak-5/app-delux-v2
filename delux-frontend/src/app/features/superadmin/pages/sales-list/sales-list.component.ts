@@ -13,11 +13,12 @@ import { ConfirmService } from '@shared/components/confirm/confirm.service';
 import { NotifyService } from '@shared/services/notify.service';
 import { AdminService, AdminBranch } from '@features/superadmin/services/admin.service';
 import { generateVoucherPDF } from '@shared/utils/voucher-pdf.util';
+import { DlxPaginationComponent } from '@shared/ui/pagination.component';
 
 @Component({
   selector: 'dlx-sales-list',
   standalone: true,
-  imports: [DlxStatCardComponent, DlxSearchInputComponent, CommonModule, FormsModule, RouterLink, RowActionsComponent],
+  imports: [DlxStatCardComponent, DlxSearchInputComponent, CommonModule, FormsModule, RouterLink, RowActionsComponent, DlxPaginationComponent],
   changeDetection: ChangeDetectionStrategy.OnPush,
   template: `
     <div class="flex items-end justify-between gap-4 mb-6">
@@ -47,13 +48,13 @@ import { generateVoucherPDF } from '@shared/utils/voucher-pdf.util';
     <div class="card p-4 mb-4 flex flex-wrap gap-3 items-center filter-bar">
       <dlx-search-input [fluid]="true" [value]="search()" (valueChange)="onSearch($event)" placeholder="Buscar por código, cliente..." class="flex-1 min-w-64" />
       @if (auth.multiBranch()) {
-        <select [(ngModel)]="branchFilter" (change)="reload()"
+        <select [(ngModel)]="branchFilter" (change)="onFilter()"
                 class="eg-input border-transparent">
           <option [ngValue]="null">Todas las sucursales</option>
           @for (b of branches(); track b.id) { <option [ngValue]="b.id">{{ b.name }}</option> }
         </select>
       }
-      <select [(ngModel)]="statusFilter" (change)="reload()"
+      <select [(ngModel)]="statusFilter" (change)="onFilter()"
               class="eg-input border-transparent">
         <option value="">Todos los estados</option>
         <option value="PENDING">Pendientes</option>
@@ -61,7 +62,7 @@ import { generateVoucherPDF } from '@shared/utils/voucher-pdf.util';
         <option value="CANCELLED">Canceladas</option>
         <option value="REFUNDED">Devueltas</option>
       </select>
-      <select [(ngModel)]="channelFilter" (change)="reload()"
+      <select [(ngModel)]="channelFilter" (change)="onFilter()"
               class="eg-input border-transparent">
         <option value="">Todos los canales</option>
         <option value="POS">POS</option>
@@ -101,7 +102,25 @@ import { generateVoucherPDF } from '@shared/utils/voucher-pdf.util';
                 <td class="px-5 py-3 font-mono text-xs font-semibold">{{ o.code }}</td>
                 <td class="px-5 py-3 text-xs text-slate-600">{{ o.created_at | date:'short' }}</td>
                 <td class="px-5 py-3 text-xs">{{ o.branch_name }}</td>
-                <td class="px-5 py-3 text-xs">{{ o.customer_name || '—' }}</td>
+                <td class="px-5 py-3 text-xs">
+                  @if (o.customer_name) {
+                    <p>{{ o.customer_name }}</p>
+                    @if (o.customer_email || o.customer_phone) {
+                      <div class="flex items-center gap-2.5 mt-1 text-slate-400">
+                        @if (o.customer_email) {
+                          <a [href]="'mailto:' + o.customer_email" [title]="o.customer_email"
+                             class="hover:text-sky-500"><i class="fa-solid fa-envelope"></i></a>
+                        }
+                        @if (o.customer_phone) {
+                          <a [href]="'tel:' + o.customer_phone" [title]="o.customer_phone"
+                             class="hover:text-sky-500"><i class="fa-solid fa-phone"></i></a>
+                          <a [href]="waLink(o.customer_phone)" target="_blank" rel="noopener" [title]="'WhatsApp ' + o.customer_phone"
+                             class="hover:text-emerald-500"><i class="fa-brands fa-whatsapp"></i></a>
+                        }
+                      </div>
+                    }
+                  } @else { — }
+                </td>
                 <td class="px-5 py-3 text-xs">{{ o.seller_name || 'Mostrador' }}</td>
                 <td class="px-5 py-3 text-center">
                   <span class="inline-flex items-center px-2 py-0.5 rounded-md text-[11px] font-bold uppercase"
@@ -129,6 +148,11 @@ import { generateVoucherPDF } from '@shared/utils/voucher-pdf.util';
         </table>
       }
     </div>
+
+    @if (!loading() && total() > 0) {
+      <dlx-pagination [page]="page()" [pageSize]="pageSize()" [total]="total()"
+                      (pageChange)="onPage($event)" (pageSizeChange)="onSize($event)" />
+    }
   `,
 })
 export class SalesListComponent implements OnInit {
@@ -140,6 +164,9 @@ export class SalesListComponent implements OnInit {
   private adminSvc = inject(AdminService);
 
   orders = signal<Order[]>([]);
+  total = signal(0);
+  page = signal(1);
+  pageSize = signal(25);
   branches = signal<AdminBranch[]>([]);
   summary = signal<OrderSummary | null>(null);
   loading = signal(true);
@@ -164,13 +191,18 @@ export class SalesListComponent implements OnInit {
       branch: this.branchFilter || undefined,
       status: this.statusFilter || undefined,
       channel: this.channelFilter || undefined,
+      page: this.page(), page_size: this.pageSize(),
     }).subscribe({
-      next: r => { this.orders.set(r.results); this.loading.set(false); },
+      next: r => { this.orders.set(r.results); this.total.set(r.count); this.loading.set(false); },
       error: () => this.loading.set(false),
     });
   }
 
-  onSearch(v: string) { this.search.set(v); this.search$.next(); }
+  onSearch(v: string) { this.search.set(v); this.page.set(1); this.search$.next(); }
+  onFilter() { this.page.set(1); this.reload(); }
+  onPage(p: number) { this.page.set(p); this.reload(); }
+  onSize(s: number) { this.pageSize.set(s); this.page.set(1); this.reload(); }
+  waLink(phone: string) { return 'https://wa.me/' + (phone || '').replace(/[^0-9]/g, ''); }
 
   statusLabel(s: string) {
     return ({

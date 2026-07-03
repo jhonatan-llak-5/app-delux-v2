@@ -58,6 +58,33 @@ class AdminProductViewSet(viewsets.ModelViewSet):
                 ).distinct()
         return qs
 
+    def _summary_base(self):
+        """Catalogo visible por el rol (sin filtros de lista) para KPIs totales."""
+        qs = Product.objects.all()
+        user = self.request.user
+        if getattr(user, 'role', None) and user.role != 'SUPERADMIN':
+            if user.tenant_id:
+                qs = qs.filter(tenant_id=user.tenant_id)
+            if user.role in ('BRANCH_MANAGER', 'SALESPERSON') and user.branch_id:
+                qs = qs.filter(
+                    variants__stocks__branch_id=user.branch_id,
+                    variants__stocks__quantity__gt=0,
+                ).distinct()
+        return qs
+
+    @action(detail=False, methods=['get'])
+    def summary(self, request):
+        """Totales del catalogo (no dependen de la pagina cargada)."""
+        qs = self._summary_base()
+        return Response({
+            'total':     qs.count(),
+            'published': qs.filter(status='PUBLISHED').count(),
+            'draft':     qs.filter(status='DRAFT').count(),
+            'paused':    qs.filter(status='PAUSED').count(),
+            'archived':  qs.filter(status='ARCHIVED').count(),
+            'featured':  qs.filter(is_featured=True).count(),
+        })
+
     def get_serializer_class(self):
         if self.action in ('create', 'update', 'partial_update'):
             return ProductCreateUpdateSerializer

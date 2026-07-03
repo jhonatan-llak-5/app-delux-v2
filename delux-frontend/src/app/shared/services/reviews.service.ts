@@ -38,7 +38,7 @@ export class ReviewsService {
       product: productId, rating, title, comment,
     });
   }
-  list(params: { status?: string; rating?: number; search?: string } = {}) {
+  list(params: { status?: string; rating?: number; search?: string; page?: number; page_size?: number } = {}) {
     let p = new HttpParams();
     Object.entries(params).forEach(([k, v]) => { if (v) p = p.set(k, String(v)); });
     return this.http.get<{ count: number; results: Review[] }>(`${this.base}/admin/reviews/`, { params: p });

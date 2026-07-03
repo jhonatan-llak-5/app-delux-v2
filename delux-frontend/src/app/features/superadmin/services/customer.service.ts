@@ -46,7 +46,7 @@ export class CustomerService {
   private http = inject(HttpClient);
   private base = `${environment.apiUrl}/admin/customers`;
 
-  list(params: { search?: string } = {}): Observable<Paged<Customer>> {
+  list(params: { search?: string; page?: number; page_size?: number } = {}): Observable<Paged<Customer>> {
     let p = new HttpParams();
     if (params.search) p = p.set('search', params.search);
     return this.http.get<Paged<Customer>>(`${this.base}/`, { params: p });

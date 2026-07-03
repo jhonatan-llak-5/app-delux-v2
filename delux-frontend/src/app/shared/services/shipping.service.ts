@@ -25,6 +25,7 @@ export interface Shipment {
   shipping_cost: string;
   recipient_name: string;
   recipient_phone: string;
+  customer_email?: string | null;
   address_line1: string;
   address_line2: string;
   city: string;

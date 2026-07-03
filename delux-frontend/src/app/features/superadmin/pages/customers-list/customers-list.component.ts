@@ -10,11 +10,12 @@ import { Customer, CustomerService } from '@features/superadmin/services/custome
 import { ConfirmService } from '@shared/components/confirm/confirm.service';
 import { NotifyService } from '@shared/services/notify.service';
 import { CustomerFormModalComponent } from '@features/superadmin/components/customer-form-modal/customer-form-modal.component';
+import { DlxPaginationComponent } from '@shared/ui/pagination.component';
 
 @Component({
   selector: 'dlx-customers-list',
   standalone: true,
-  imports: [DlxStatCardComponent, DlxSearchInputComponent, CommonModule, FormsModule, RouterLink, CustomerFormModalComponent],
+  imports: [DlxStatCardComponent, DlxSearchInputComponent, CommonModule, FormsModule, RouterLink, CustomerFormModalComponent, DlxPaginationComponent],
   changeDetection: ChangeDetectionStrategy.OnPush,
   template: `
     <div class="flex flex-wrap items-end justify-between gap-4 mb-6">
@@ -129,6 +130,11 @@ import { CustomerFormModalComponent } from '@features/superadmin/components/cust
       }
     </div>
 
+    @if (!loading() && total() > 0) {
+      <dlx-pagination [page]="page()" [pageSize]="pageSize()" [total]="total()"
+                      (pageChange)="onPage($event)" (pageSizeChange)="onSize($event)" />
+    }
+
     @if (showModal()) {
       <dlx-customer-form-modal [customer]="editing()"
                                 (close)="closeModal()" (saved)="onSaved()" />
@@ -141,6 +147,9 @@ export class CustomersListComponent implements OnInit {
   private notify = inject(NotifyService);
 
   customers = signal<Customer[]>([]);
+  total = signal(0);
+  page = signal(1);
+  pageSize = signal(25);
   summary = signal<{ total_customers: number; with_purchases: number; marketing_subscribers: number } | null>(null);
   loading = signal(true);
   search = signal('');
@@ -156,13 +165,18 @@ export class CustomersListComponent implements OnInit {
 
   reload() {
     this.loading.set(true);
-    this.svc.list({ search: this.search() || undefined }).subscribe({
-      next: r => { this.customers.set(r.results); this.loading.set(false); },
+    this.svc.list({
+      search: this.search() || undefined,
+      page: this.page(), page_size: this.pageSize(),
+    }).subscribe({
+      next: r => { this.customers.set(r.results); this.total.set(r.count); this.loading.set(false); },
       error: () => this.loading.set(false),
     });
   }
 
-  onSearch(v: string) { this.search.set(v); this.search$.next(); }
+  onSearch(v: string) { this.search.set(v); this.page.set(1); this.search$.next(); }
+  onPage(p: number) { this.page.set(p); this.reload(); }
+  onSize(s: number) { this.pageSize.set(s); this.page.set(1); this.reload(); }
 
   initials(n: string) { return n.split(' ').map(s => s[0]).slice(0, 2).join('').toUpperCase() || '?'; }
   avatarColor(c: Customer) {

@@ -45,10 +45,11 @@ export class PayrollService {
   private http = inject(HttpClient);
   private base = `${environment.apiUrl}/admin/payroll`;
 
-  list(params: { year?: number; branch?: number } = {}): Observable<Paged<PayrollRun>> {
+  list(params: { year?: number; branch?: number; page_size?: number } = {}): Observable<Paged<PayrollRun>> {
     let p = new HttpParams();
     if (params.year) p = p.set('year', String(params.year));
     if (params.branch) p = p.set('branch', String(params.branch));
+    if (params.page_size) p = p.set('page_size', String(params.page_size));
     return this.http.get<Paged<PayrollRun>>(`${this.base}/`, { params: p });
   }
 

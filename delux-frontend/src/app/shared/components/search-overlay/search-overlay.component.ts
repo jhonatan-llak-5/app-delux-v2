@@ -47,7 +47,7 @@ import { CatalogService, AutocompleteResp } from '@shared/services/catalog.servi
                          class="flex items-center gap-3 p-2 rounded-lg hover:bg-ink-100 dark:hover:bg-white/5 transition">
                         <img [src]="p.main_image_url" [alt]="p.name"
                              class="w-14 h-14 rounded-lg object-cover bg-ink-100 dark:bg-white/5"
-                             crossorigin="anonymous" (error)="onImgErr($event)" />
+ (error)="onImgErr($event)" />
                         <div class="flex-1 min-w-0">
                           <p class="text-[10px] uppercase tracking-widest text-ink-500 dark:text-white/40 truncate">{{ p.brand_name }}</p>
                           <p class="font-semibold text-ink-950 dark:text-white truncate">{{ p.name }}</p>

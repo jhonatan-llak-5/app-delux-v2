@@ -17,11 +17,12 @@ import { TransferModalComponent } from '@features/superadmin/components/transfer
 import { printProductLabels } from '@shared/utils/print-labels';
 import { BrandingService } from '@core/services/branding.service';
 import { NotifyService } from '@shared/services/notify.service';
+import { DlxPaginationComponent } from '@shared/ui/pagination.component';
 
 @Component({
   selector: 'dlx-inventory-overview',
   standalone: true,
-  imports: [DlxStatCardComponent, DlxSearchInputComponent, CommonModule, FormsModule, RouterLink, StockAdjustModalComponent, TransferModalComponent, RowActionsComponent],
+  imports: [DlxStatCardComponent, DlxSearchInputComponent, CommonModule, FormsModule, RouterLink, StockAdjustModalComponent, TransferModalComponent, RowActionsComponent, DlxPaginationComponent],
   changeDetection: ChangeDetectionStrategy.OnPush,
   template: `
     <div class="flex flex-wrap items-end justify-between gap-4 mb-6">
@@ -96,18 +97,18 @@ import { NotifyService } from '@shared/services/notify.service';
     <div class="card p-4 mb-4 flex flex-wrap gap-3 items-center filter-bar">
       <dlx-search-input [fluid]="true" [value]="search()" (valueChange)="onSearch($event)" placeholder="Buscar por SKU o producto..." class="flex-1 min-w-64" />
       @if (auth.multiBranch()) {
-        <select [(ngModel)]="branchFilter" (change)="reload()"
+        <select [(ngModel)]="branchFilter" (change)="onFilter()"
                 class="eg-input border-transparent">
           <option [ngValue]="null">Todas las sucursales</option>
           @for (b of branches(); track b.id) { <option [ngValue]="b.id">{{ b.name }}</option> }
         </select>
       }
       <label class="flex items-center gap-2 text-sm cursor-pointer">
-        <input type="checkbox" [(ngModel)]="lowOnly" (change)="reload()" class="w-4 h-4 accent-amber-500" />
+        <input type="checkbox" [(ngModel)]="lowOnly" (change)="onFilter()" class="w-4 h-4 accent-amber-500" />
         <span>Solo stock bajo</span>
       </label>
       <label class="flex items-center gap-2 text-sm cursor-pointer">
-        <input type="checkbox" [(ngModel)]="outOnly" (change)="reload()" class="w-4 h-4 accent-rose-500" />
+        <input type="checkbox" [(ngModel)]="outOnly" (change)="onFilter()" class="w-4 h-4 accent-rose-500" />
         <span>Sin stock</span>
       </label>
     </div>
@@ -145,7 +146,7 @@ import { NotifyService } from '@shared/services/notify.service';
                     <div class="flex items-center gap-3">
                       <img [src]="imgSrc(s.product_main_image)" [alt]="s.product_name"
                            class="w-10 h-10 rounded-lg object-cover bg-slate-100"
-                           crossorigin="anonymous" (error)="onImgErr($event)" />
+ (error)="onImgErr($event)" />
                       <div>
                         <p class="font-medium">{{ s.product_name }}</p>
                         <p class="text-[11px] text-slate-500">{{ s.brand_name }} · {{ s.category_name }}</p>
@@ -188,6 +189,11 @@ import { NotifyService } from '@shared/services/notify.service';
       }
     </div>
 
+    @if (!loading() && total() > 0) {
+      <dlx-pagination [page]="page()" [pageSize]="pageSize()" [total]="total()"
+                      (pageChange)="onPage($event)" (pageSizeChange)="onSize($event)" />
+    }
+
     @if (adjustStock()) {
       <dlx-stock-adjust-modal [stock]="adjustStock()!"
                               (close)="adjustStock.set(null)"
@@ -217,6 +223,9 @@ export class InventoryOverviewComponent implements OnInit {
   }
 
   stocks = signal<Stock[]>([]);
+  total = signal(0);
+  page = signal(1);
+  pageSize = signal(50);
   summary = signal<InventorySummary | null>(null);
   branches = signal<AdminBranch[]>([]);
   loading = signal(true);
@@ -246,13 +255,17 @@ export class InventoryOverviewComponent implements OnInit {
       branch: this.branchFilter || undefined,
       low_stock: this.lowOnly,
       out_of_stock: this.outOnly,
+      page: this.page(), page_size: this.pageSize(),
     }).subscribe({
-      next: r => { this.stocks.set(r.results); this.loading.set(false); },
+      next: r => { this.stocks.set(r.results); this.total.set(r.count); this.loading.set(false); },
       error: () => this.loading.set(false),
     });
   }
 
-  onSearch(v: string) { this.search.set(v); this.search$.next(); }
+  onSearch(v: string) { this.search.set(v); this.page.set(1); this.search$.next(); }
+  onFilter() { this.page.set(1); this.reload(); }
+  onPage(p: number) { this.page.set(p); this.reload(); }
+  onSize(s: number) { this.pageSize.set(s); this.page.set(1); this.reload(); }
 
   setBranchFilter(id: number) {
     this.branchFilter = this.branchFilter === id ? null : id;

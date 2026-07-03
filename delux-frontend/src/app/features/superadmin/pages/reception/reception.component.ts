@@ -246,10 +246,21 @@ const KIND_LABELS: Record<string, string> = {
         </div>
 
         @if (cameraOn()) {
-          <div class="rounded-xl overflow-hidden bg-black relative">
-            <video #camVideo class="w-full max-h-60 object-contain" muted playsinline></video>
-            <div class="absolute inset-0 border-4 border-white/30 m-6 rounded-lg pointer-events-none"></div>
-            <p class="absolute bottom-1 left-0 right-0 text-center text-white/80 text-xs">Apunta al código de barras o QR</p>
+          <div class="fixed inset-0 z-[80] bg-black flex flex-col">
+            <div class="flex items-center justify-between px-4 py-3 text-white">
+              <span class="text-sm font-semibold"><i class="fa-solid fa-barcode mr-2"></i>Escanear código</span>
+              <button type="button" (click)="stopCamera()"
+                      class="w-11 h-11 rounded-full bg-white/15 hover:bg-white/25 grid place-items-center transition">
+                <i class="fa-solid fa-xmark text-xl"></i>
+              </button>
+            </div>
+            <div class="flex-1 relative overflow-hidden">
+              <video #camVideo class="absolute inset-0 w-full h-full object-cover" muted playsinline></video>
+              <div class="absolute inset-0 flex items-center justify-center pointer-events-none">
+                <div class="w-4/5 max-w-lg aspect-[3/2] border-4 border-white/70 rounded-2xl shadow-[0_0_0_9999px_rgba(0,0,0,0.45)]"></div>
+              </div>
+              <p class="absolute bottom-10 left-0 right-0 text-center text-white/90 text-sm">Apunta al código de barras o QR</p>
+            </div>
           </div>
         }
         @if (camError()) { <p class="text-xs text-amber-600">{{ camError() }}</p> }

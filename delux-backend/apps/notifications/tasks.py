@@ -24,3 +24,13 @@ def newsletter_daily_digest():
         recipients=admin_recipients(),
     )
     return n
+
+
+@shared_task
+def send_order_state_email(order_id, new_status, tracking_code=''):
+    """Envia el email de cambio de estado en segundo plano (no bloquea la API)."""
+    from apps.orders.models import Order
+    from .services import notify_order_state_change
+    order = Order.objects.filter(pk=order_id).select_related('customer').first()
+    if order:
+        notify_order_state_change(order, new_status, tracking_code=tracking_code)

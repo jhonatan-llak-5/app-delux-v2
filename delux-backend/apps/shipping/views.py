@@ -206,10 +206,10 @@ class AdminShipmentViewSet(viewsets.ModelViewSet):
         except Exception as e:
             print(f'[ws admin] {e}')
 
-        # Email al cliente por cada estado relevante
+        # Email al cliente en segundo plano (Celery): NO bloquea la respuesta.
         try:
-            from apps.notifications.services import notify_order_state_change
-            notify_order_state_change(s.order, new_status, tracking_code=s.tracking_code)
+            from apps.notifications.tasks import send_order_state_email
+            send_order_state_email.delay(s.order_id, new_status, s.tracking_code)
         except Exception as e:
             print(f'[email state] {e}')
 

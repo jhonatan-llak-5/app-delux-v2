@@ -5,12 +5,13 @@ import { FormsModule } from '@angular/forms';
 import { ReviewsService, Review } from '@shared/services/reviews.service';
 import { ConfirmService } from '@shared/components/confirm/confirm.service';
 import { NotifyService } from '@shared/services/notify.service';
+import { DlxPaginationComponent } from '@shared/ui/pagination.component';
 import { StarRatingComponent } from '@shared/components/star-rating/star-rating.component';
 
 @Component({
   selector: 'dlx-reviews-moderation',
   standalone: true,
-  imports: [DlxStatCardComponent, CommonModule, FormsModule, StarRatingComponent],
+  imports: [DlxStatCardComponent, CommonModule, FormsModule, StarRatingComponent, DlxPaginationComponent],
   changeDetection: ChangeDetectionStrategy.OnPush,
   template: `
     <div class="flex items-end justify-between gap-4 mb-6">
@@ -31,14 +32,14 @@ import { StarRatingComponent } from '@shared/components/star-rating/star-rating.
     </div>
 
     <div class="card p-4 mb-4 flex gap-2 items-center flex-wrap filter-bar">
-      <select [(ngModel)]="statusFilter" (change)="reload()"
+      <select [(ngModel)]="statusFilter" (change)="onFilter()"
               class="px-3 py-2 rounded-lg bg-slate-50 border border-transparent text-sm">
         <option value="">Todos los estados</option>
         <option value="PENDING">Pendientes</option>
         <option value="APPROVED">Aprobadas</option>
         <option value="REJECTED">Rechazadas</option>
       </select>
-      <select [(ngModel)]="ratingFilter" (change)="reload()"
+      <select [(ngModel)]="ratingFilter" (change)="onFilter()"
               class="px-3 py-2 rounded-lg bg-slate-50 border border-transparent text-sm">
         <option [ngValue]="undefined">Todas las estrellas</option>
         @for (n of [5,4,3,2,1]; track n) { <option [ngValue]="n">{{ n }} estrellas</option> }
@@ -94,6 +95,11 @@ import { StarRatingComponent } from '@shared/components/star-rating/star-rating.
         </div>
       }
     </div>
+
+    @if (total() > 0) {
+      <dlx-pagination [page]="page()" [pageSize]="pageSize()" [total]="total()"
+                      (pageChange)="onPage($event)" (pageSizeChange)="onSize($event)" />
+    }
   `,
 })
 export class ReviewsModerationComponent implements OnInit {
@@ -101,13 +107,17 @@ export class ReviewsModerationComponent implements OnInit {
   private confirm = inject(ConfirmService);
   private notify = inject(NotifyService);
   items = signal<Review[]>([]);
+  total = signal(0);
+  page = signal(1);
+  pageSize = signal(25);
   statusFilter = '';
   ratingFilter?: number;
 
   ngOnInit() { this.reload(); }
 
   reload() {
-    this.svc.list({ status: this.statusFilter, rating: this.ratingFilter }).subscribe(r => this.items.set(r.results));
+    this.svc.list({ status: this.statusFilter, rating: this.ratingFilter, page: this.page(), page_size: this.pageSize() })
+      .subscribe(r => { this.items.set(r.results); this.total.set(r.count); });
   }
 
   countBy(s: string) { return this.items().filter(r => r.status === s).length; }
@@ -119,6 +129,9 @@ export class ReviewsModerationComponent implements OnInit {
       REJECTED: 'bg-rose-100 text-rose-700',
     } as any)[s];
   }
+  onFilter() { this.page.set(1); this.reload(); }
+  onPage(p: number) { this.page.set(p); this.reload(); }
+  onSize(s: number) { this.pageSize.set(s); this.page.set(1); this.reload(); }
   approve(r: Review) { this.svc.approve(r.id).subscribe(() => this.reload()); }
   reject(r: Review) { this.svc.reject(r.id).subscribe(() => this.reload()); }
   async remove(r: Review) {

@@ -1,14 +1,17 @@
 import { ChangeDetectionStrategy, Component, OnInit, inject, signal } from '@angular/core';
 import { CommonModule } from '@angular/common';
+import { FormsModule } from '@angular/forms';
 import { ActivatedRoute, RouterLink } from '@angular/router';
 import { Order, OrderService } from '@features/superadmin/services/order.service';
 import { environment } from '@env/environment';
 import { generateVoucherPDF } from '@shared/utils/voucher-pdf.util';
+import { AuthService } from '@core/services/auth.service';
+import { NotifyService } from '@shared/services/notify.service';
 
 @Component({
   selector: 'dlx-sale-detail',
   standalone: true,
-  imports: [CommonModule, RouterLink],
+  imports: [CommonModule, FormsModule, RouterLink],
   changeDetection: ChangeDetectionStrategy.OnPush,
   template: `
     @if (order(); as o) {
@@ -52,7 +55,7 @@ import { generateVoucherPDF } from '@shared/utils/voucher-pdf.util';
                 <li class="flex items-center gap-4 px-6 py-4">
                   <img [src]="it.product_image" [alt]="it.product_name"
                        class="w-16 h-16 rounded-lg object-cover bg-slate-100"
-                       crossorigin="anonymous" (error)="onImgErr($event)" />
+ (error)="onImgErr($event)" />
                   <div class="flex-1 min-w-0">
                     <p class="font-semibold text-sm">{{ it.product_name }}</p>
                     <p class="text-xs text-slate-500 font-mono mt-0.5">
@@ -104,6 +107,18 @@ import { generateVoucherPDF } from '@shared/utils/voucher-pdf.util';
                     [ngClass]="statusClass(o.status)">
                 {{ statusLabel(o.status) }}
               </span>
+              @if (canManage() && !isFinal(o.status)) {
+                <div class="mt-2 flex items-center gap-2">
+                  <select [ngModel]="o.status" (ngModelChange)="changeStatus($event)" [disabled]="saving()"
+                          class="eg-input text-xs !py-1.5 flex-1">
+                    @for (st of statuses; track st.value) {
+                      <option [value]="st.value">{{ st.label }}</option>
+                    }
+                  </select>
+                  @if (saving()) { <i class="fa-solid fa-spinner fa-spin text-slate-400 text-xs"></i> }
+                </div>
+                <p class="text-[10px] text-slate-400 mt-1">Cambia el estado del pedido y notifica al equipo.</p>
+              }
             </div>
             <div>
               <p class="text-[10px] uppercase tracking-widest text-slate-500 font-semibold">Canal</p>
@@ -127,8 +142,31 @@ import { generateVoucherPDF } from '@shared/utils/voucher-pdf.util';
             </h3>
             @if (o.customer_name) {
               <p class="font-semibold">{{ o.customer_name }}</p>
+              @if (o.customer_document) {
+                <p class="text-xs text-slate-500 mt-0.5"><i class="fa-solid fa-id-card w-4 text-slate-400"></i> {{ o.customer_document }}</p>
+              }
+              @if (o.customer_email) {
+                <p class="text-xs mt-1">
+                  <i class="fa-solid fa-envelope w-4 text-slate-400"></i>
+                  <a [href]="'mailto:' + o.customer_email" class="text-sky-600 hover:underline">{{ o.customer_email }}</a>
+                </p>
+              }
+              @if (o.customer_phone) {
+                <p class="text-xs mt-1 flex items-center gap-2">
+                  <span><i class="fa-solid fa-phone w-4 text-slate-400"></i>
+                    <a [href]="'tel:' + o.customer_phone" class="text-sky-600 hover:underline">{{ o.customer_phone }}</a>
+                  </span>
+                  <a [href]="waLink(o.customer_phone)" target="_blank" rel="noopener"
+                     class="inline-flex items-center gap-1 text-emerald-600 hover:underline">
+                    <i class="fa-brands fa-whatsapp"></i> WhatsApp
+                  </a>
+                </p>
+              }
+              @if (!o.customer_email && !o.customer_phone) {
+                <p class="text-xs text-slate-400 mt-1">Sin datos de contacto registrados.</p>
+              }
             } @else {
-              <p class="text-sm text-slate-400">Sin cliente asociado</p>
+              <p class="text-sm text-slate-400">Sin cliente asociado (venta de mostrador)</p>
             }
           </div>
         </div>
@@ -142,6 +180,37 @@ import { generateVoucherPDF } from '@shared/utils/voucher-pdf.util';
 })
 export class SaleDetailComponent implements OnInit {
   private svc = inject(OrderService);
+  private auth = inject(AuthService);
+  private notify = inject(NotifyService);
+  saving = signal(false);
+  readonly statuses = [
+    { value: 'PENDING',   label: 'Pendiente de pago' },
+    { value: 'PAID',      label: 'Pagado' },
+    { value: 'PREPARING', label: 'Preparando' },
+    { value: 'READY',     label: 'Listo para retirar' },
+    { value: 'SHIPPED',   label: 'Enviado' },
+    { value: 'DELIVERED', label: 'Entregado' },
+    { value: 'CANCELLED', label: 'Cancelado' },
+    { value: 'REFUNDED',  label: 'Devuelto' },
+  ];
+  canManage() {
+    const r = this.auth.user()?.role;
+    return r === 'SUPERADMIN' || r === 'TENANT_ADMIN' || r === 'BRANCH_MANAGER';
+  }
+  isFinal(s: string) { return s === 'CANCELLED' || s === 'REFUNDED'; }
+  waLink(phone: string) {
+    const digits = (phone || '').replace(/[^0-9]/g, '');
+    return 'https://wa.me/' + digits;
+  }
+  changeStatus(newStatus: string) {
+    const o = this.order();
+    if (!o || newStatus === o.status) return;
+    this.saving.set(true);
+    this.svc.setStatus(o.id, newStatus).subscribe({
+      next: updated => { this.order.set(updated); this.saving.set(false); this.notify.success('Estado actualizado'); },
+      error: e => { this.saving.set(false); this.notify.fromServerError(e, 'No se pudo cambiar el estado.'); },
+    });
+  }
   receiptUrl(code: string): string { return `${environment.apiUrl}/admin/checkout/receipt/${code}/`; }
   private route = inject(ActivatedRoute);
 
@@ -156,15 +225,20 @@ export class SaleDetailComponent implements OnInit {
 
   statusLabel(s: string) {
     return ({
-      PENDING: 'Pendiente', PAID: 'Pagada', CANCELLED: 'Cancelada', REFUNDED: 'Devuelta',
+      PENDING: 'Pendiente', PAID: 'Pagada', PREPARING: 'Preparando', READY: 'Lista',
+      SHIPPED: 'Enviada', DELIVERED: 'Entregada', CANCELLED: 'Cancelada', REFUNDED: 'Devuelta',
     } as any)[s] || s;
   }
   statusClass(s: string) {
     return ({
-      PAID: 'bg-emerald-100 text-emerald-700',
-      PENDING: 'bg-amber-100 text-amber-700',
+      PENDING:   'bg-amber-100 text-amber-700',
+      PAID:      'bg-emerald-100 text-emerald-700',
+      PREPARING: 'bg-blue-100 text-blue-700',
+      READY:     'bg-indigo-100 text-indigo-700',
+      SHIPPED:   'bg-cyan-100 text-cyan-700',
+      DELIVERED: 'bg-teal-100 text-teal-700',
       CANCELLED: 'bg-rose-100 text-rose-700',
-      REFUNDED: 'bg-rose-100 text-rose-700',
+      REFUNDED:  'bg-rose-100 text-rose-700',
     } as any)[s] || 'bg-slate-100 text-slate-700';
   }
 

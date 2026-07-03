@@ -52,7 +52,7 @@ import { MeService } from '@features/account/services/me.service';
                 @for (it of o.items.slice(0, 6); track it.id) {
                   <img [src]="it.product_image" [alt]="it.product_name"
                        class="w-16 h-16 rounded-lg object-cover bg-ink-100 dark:bg-white/5 shrink-0"
-                       crossorigin="anonymous" (error)="onImgErr($event)" />
+ (error)="onImgErr($event)" />
                 }
                 @if (o.items.length > 6) {
                   <div class="w-16 h-16 rounded-lg bg-ink-100 dark:bg-white/5 grid place-items-center text-xs font-bold text-ink-500 dark:text-white/50 shrink-0">

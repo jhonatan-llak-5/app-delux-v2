@@ -70,7 +70,7 @@ const IMG_PLACEHOLDER = 'data:image/svg+xml,' + encodeURIComponent(
                             : 'border-transparent opacity-60 hover:opacity-100'">
                     <img [src]="img" [alt]="product().name + ' ' + (i+1)"
                          class="w-full h-full object-cover bg-ink-100 dark:bg-white/[0.04]"
-                         loading="lazy" crossorigin="anonymous" (error)="onImgError($event)" />
+                         loading="lazy" (error)="onImgError($event)" />
                   </button>
                 }
               </div>
@@ -85,7 +85,7 @@ const IMG_PLACEHOLDER = 'data:image/svg+xml,' + encodeURIComponent(
                      class="w-full h-full object-cover transition-transform duration-300"
                      [class.scale-150]="zoomed()"
                      [style.transform-origin]="zoomOrigin()"
-                     loading="eager" crossorigin="anonymous" (error)="onImgError($event)" />
+                     loading="eager" (error)="onImgError($event)" />
 
                 @if (product().tag) {
                   <span class="absolute top-5 left-5 px-3 py-1.5 rounded-full

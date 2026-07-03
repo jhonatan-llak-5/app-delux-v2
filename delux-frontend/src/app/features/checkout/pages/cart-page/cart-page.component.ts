@@ -34,7 +34,7 @@ import { CartService } from '@features/checkout/services/cart.service';
                      class="w-24 h-24 md:w-32 md:h-32 rounded-xl overflow-hidden bg-ink-100 dark:bg-white/5 shrink-0">
                     <img [src]="item.product_image" [alt]="item.product_name"
                          class="w-full h-full object-cover"
-                         crossorigin="anonymous" (error)="onImgErr($event)" />
+ (error)="onImgErr($event)" />
                   </a>
                   <div class="flex-1 min-w-0">
                     @if (item.brand_name) {

@@ -71,7 +71,7 @@ interface Branch { id: string; name: string; city: string; address: string;
               <img [src]="b.image" [alt]="b.name"
                    class="absolute inset-0 w-full h-full object-cover
                           group-hover:scale-105 transition-transform duration-700"
-                   loading="lazy" crossorigin="anonymous" (error)="onImgError($event)" />
+                   loading="lazy" (error)="onImgError($event)" />
               <div class="absolute inset-0 bg-gradient-to-t from-black/30 to-transparent"></div>
             </div>
 

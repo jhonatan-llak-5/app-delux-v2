@@ -70,6 +70,24 @@ import { NotifyService } from '@shared/services/notify.service';
                 <td class="px-5 py-3">
                   <p class="font-medium">{{ s.recipient_name }}</p>
                   <p class="text-xs text-slate-500">{{ s.city }}, {{ s.country }}</p>
+                  @if (s.recipient_phone) {
+                    <p class="text-[11px] mt-1 flex items-center gap-2">
+                      <a [href]="'tel:' + s.recipient_phone" class="text-sky-600 hover:underline">
+                        <i class="fa-solid fa-phone text-[10px]"></i> {{ s.recipient_phone }}
+                      </a>
+                      <a [href]="waLink(s.recipient_phone)" target="_blank" rel="noopener"
+                         class="text-emerald-600 hover:underline" title="WhatsApp">
+                        <i class="fa-brands fa-whatsapp"></i>
+                      </a>
+                    </p>
+                  }
+                  @if (s.customer_email) {
+                    <p class="text-[11px]">
+                      <a [href]="'mailto:' + s.customer_email" class="text-sky-600 hover:underline">
+                        <i class="fa-solid fa-envelope text-[10px]"></i> {{ s.customer_email }}
+                      </a>
+                    </p>
+                  }
                 </td>
                 <td class="px-5 py-3 text-xs">{{ s.carrier_label }}</td>
                 <td class="px-5 py-3 text-center">
@@ -87,15 +105,21 @@ import { NotifyService } from '@shared/services/notify.service';
                   </div>
                 </td>
                 <td class="px-5 py-3 text-right">
-                  <select [ngModel]="s.status" (ngModelChange)="advance(s, $event)"
-                          class="px-2 py-1 rounded text-xs bg-slate-100 border-0">
-                    <option value="CREATED">Creado</option>
-                    <option value="PREPARING">Preparando</option>
-                    <option value="SHIPPED">Enviado</option>
-                    <option value="IN_TRANSIT">En tránsito</option>
-                    <option value="DELIVERED">Entregado</option>
-                    <option value="FAILED">Fallido</option>
-                  </select>
+                  <div class="inline-flex items-center gap-2">
+                    <select [ngModel]="s.status" (ngModelChange)="advance(s, $event)"
+                            [disabled]="savingId() === s.id"
+                            class="px-2 py-1 rounded text-xs bg-slate-100 border-0 disabled:opacity-50">
+                      <option value="CREATED">Creado</option>
+                      <option value="PREPARING">Preparando</option>
+                      <option value="SHIPPED">Enviado</option>
+                      <option value="IN_TRANSIT">En tránsito</option>
+                      <option value="DELIVERED">Entregado</option>
+                      <option value="FAILED">Fallido</option>
+                    </select>
+                    @if (savingId() === s.id) {
+                      <i class="fa-solid fa-spinner fa-spin text-slate-400 text-xs"></i>
+                    }
+                  </div>
                 </td>
               </tr>
             }
@@ -127,9 +151,24 @@ export class ShipmentsListComponent implements OnInit {
       RETURNED: 'bg-rose-100 text-rose-700',
     } as any)[s];
   }
+  savingId = signal<number | null>(null);
+  waLink(phone: string) { return 'https://wa.me/' + (phone || '').replace(/[^0-9]/g, ''); }
   advance(s: Shipment, newStatus: string) {
-    if (newStatus === s.status) return;
-    this.svc.updateStatus(s.id, newStatus).subscribe(() => this.reload());
+    if (newStatus === s.status || this.savingId() !== null) return;
+    this.savingId.set(s.id);
+    this.svc.updateStatus(s.id, newStatus).subscribe({
+      next: (updated) => {
+        // Actualiza solo esa fila con la respuesta (sin recargar toda la lista).
+        this.items.update(list => list.map(it => it.id === s.id ? { ...it, ...updated } : it));
+        this.savingId.set(null);
+        this.notify.success('Estado actualizado');
+      },
+      error: () => {
+        this.savingId.set(null);
+        this.items.update(list => [...list]); // revierte el select al estado real
+        this.notify.error('No se pudo actualizar el estado.');
+      },
+    });
   }
   saveCost(s: Shipment, value: string) {
     const cost = Math.max(0, +value || 0);

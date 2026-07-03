@@ -261,7 +261,7 @@ import { MeService } from '@features/account/services/me.service';
                     <div class="relative w-14 h-14 rounded-lg bg-ink-100 dark:bg-white/5 overflow-hidden shrink-0">
                       <img [src]="l.product_image" [alt]="l.product_name"
                            class="w-full h-full object-cover"
-                           crossorigin="anonymous" (error)="onImgErr($event)" />
+ (error)="onImgErr($event)" />
                       <span class="absolute -top-1 -right-1 w-5 h-5 rounded-full bg-ink-950 dark:bg-white text-white dark:text-ink-950 text-[10px] font-bold grid place-items-center">
                         {{ l.quantity }}
                       </span>

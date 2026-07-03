@@ -6,7 +6,7 @@ import { FormsModule } from '@angular/forms';
 import { Router, RouterLink, ActivatedRoute } from '@angular/router';
 import { debounceTime, Subject } from 'rxjs';
 
-import { Product, ProductService } from '@features/superadmin/services/product.service';
+import { Product, ProductService, ProductSummary } from '@features/superadmin/services/product.service';
 import { BrandService, Brand } from '@features/superadmin/services/brand.service';
 import { CategoryService, Category } from '@features/superadmin/services/category.service';
 import { AdminService, AdminBranch } from '@features/superadmin/services/admin.service';
@@ -30,7 +30,7 @@ import { AuthService } from '@core/services/auth.service';
         </div>
         <h1 class="text-2xl md:text-3xl font-bold tracking-tight text-ink-950 dark:text-white">Productos</h1>
         <p class="text-slate-500 dark:text-white/50 text-sm mt-1">
-          Administra tu catálogo. {{ products().length }} productos en pantalla.
+          Administra tu catálogo. {{ products().length }} de {{ total() }} productos.
         </p>
       </div>
       <div class="flex items-center gap-2 flex-wrap">
@@ -57,20 +57,31 @@ import { AuthService } from '@core/services/auth.service';
     </div>
 
     @if (cameraOn()) {
-      <div class="rounded-2xl overflow-hidden bg-black relative mb-4 max-w-md">
-        <video #camVideo class="w-full max-h-72 object-contain" muted playsinline></video>
-        <div class="absolute inset-0 border-4 border-white/30 m-8 rounded-lg pointer-events-none"></div>
-        <p class="absolute bottom-2 left-0 right-0 text-center text-white/80 text-sm">Apunta al código del producto</p>
+      <div class="fixed inset-0 z-[80] bg-black flex flex-col">
+        <div class="flex items-center justify-between px-4 py-3 text-white">
+          <span class="text-sm font-semibold"><i class="fa-solid fa-barcode mr-2"></i>Escanear producto</span>
+          <button type="button" (click)="stopCamera()"
+                  class="w-11 h-11 rounded-full bg-white/15 hover:bg-white/25 grid place-items-center transition">
+            <i class="fa-solid fa-xmark text-xl"></i>
+          </button>
+        </div>
+        <div class="flex-1 relative overflow-hidden">
+          <video #camVideo class="absolute inset-0 w-full h-full object-cover" muted playsinline></video>
+          <div class="absolute inset-0 flex items-center justify-center pointer-events-none">
+            <div class="w-4/5 max-w-lg aspect-[3/2] border-4 border-white/70 rounded-2xl shadow-[0_0_0_9999px_rgba(0,0,0,0.45)]"></div>
+          </div>
+          <p class="absolute bottom-10 left-0 right-0 text-center text-white/90 text-sm">Apunta al código del producto</p>
+        </div>
       </div>
     }
     @if (camError()) { <p class="text-sm text-amber-600 mb-3">{{ camError() }}</p> }
 
     <!-- KPIs -->
     <div class="grid grid-cols-2 md:grid-cols-4 gap-3 mb-6">
-      <dlx-stat-card label="Total" [value]="products().length" icon="fa-box" />
-      <dlx-stat-card label="Publicados" [value]="countByStatus('PUBLISHED')" icon="fa-circle-check" iconBg="bg-emerald-50 dark:bg-emerald-500/15" iconColor="text-emerald-600 dark:text-emerald-400" />
-      <dlx-stat-card label="Borradores" [value]="countByStatus('DRAFT')" icon="fa-pen-ruler" iconBg="bg-amber-50 dark:bg-amber-500/15" iconColor="text-amber-600 dark:text-amber-400" />
-      <dlx-stat-card label="Destacados" [value]="featuredCount()" icon="fa-star" iconBg="bg-violet-50 dark:bg-violet-500/15" iconColor="text-violet-600 dark:text-violet-400" />
+      <dlx-stat-card label="Total" [value]="summary()?.total ?? total()" icon="fa-box" />
+      <dlx-stat-card label="Publicados" [value]="summary()?.published ?? 0" icon="fa-circle-check" iconBg="bg-emerald-50 dark:bg-emerald-500/15" iconColor="text-emerald-600 dark:text-emerald-400" />
+      <dlx-stat-card label="Borradores" [value]="summary()?.draft ?? 0" icon="fa-pen-ruler" iconBg="bg-amber-50 dark:bg-amber-500/15" iconColor="text-amber-600 dark:text-amber-400" />
+      <dlx-stat-card label="Destacados" [value]="summary()?.featured ?? 0" icon="fa-star" iconBg="bg-violet-50 dark:bg-violet-500/15" iconColor="text-violet-600 dark:text-violet-400" />
     </div>
 
     <!-- Filtros -->
@@ -123,7 +134,7 @@ import { AuthService } from '@core/services/auth.service';
               @if (p.main_image_url) {
                 <img [src]="p.main_image_url" [alt]="p.name"
                      class="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500"
-                     loading="lazy" crossorigin="anonymous" (error)="onImgErr($event)" />
+                     loading="lazy" (error)="onImgErr($event)" />
               } @else {
                 <div class="grid place-items-center h-full text-slate-300">
                   <i class="fa-solid fa-image text-3xl"></i>
@@ -208,6 +219,19 @@ import { AuthService } from '@core/services/auth.service';
           </div>
         }
       </div>
+
+      <!-- Centinela de scroll infinito + indicador de carga -->
+      <div #loadSentinel class="h-10"></div>
+      @if (loadingMore()) {
+        <div class="py-6 text-center text-slate-400">
+          <i class="fa-solid fa-spinner fa-spin text-xl mb-2"></i>
+          <p class="text-sm">Cargando más productos…</p>
+        </div>
+      } @else if (!hasMore() && products().length > 0) {
+        <div class="py-6 text-center text-slate-300 text-xs">
+          Fin del catálogo · {{ total() }} productos
+        </div>
+      }
     }
   `,
 })
@@ -229,7 +253,7 @@ export class ProductsListComponent implements OnInit, OnDestroy {
   private rafId: any = null;
   private detector: any = null;
 
-  ngOnDestroy(): void { this.stopCamera(); }
+  ngOnDestroy(): void { this.stopCamera(); this.io?.disconnect(); }
 
   async startCamera(): Promise<void> {
     this.camError.set(null);
@@ -289,6 +313,22 @@ export class ProductsListComponent implements OnInit, OnDestroy {
   private route = inject(ActivatedRoute);
 
   products = signal<Product[]>([]);
+  total = signal(0);
+  summary = signal<ProductSummary | null>(null);
+  loadingMore = signal(false);
+  private page = 1;
+  private readonly pageSize = 40;
+  hasMore = computed(() => this.products().length < this.total());
+  private io?: IntersectionObserver;
+  @ViewChild('loadSentinel') set sentinel(ref: ElementRef<HTMLElement> | undefined) {
+    this.io?.disconnect();
+    const el = ref?.nativeElement;
+    if (!el || typeof IntersectionObserver === 'undefined') return;
+    this.io = new IntersectionObserver((entries) => {
+      if (entries.some(e => e.isIntersecting)) this.loadMore();
+    }, { rootMargin: '400px' });
+    this.io.observe(el);
+  }
   brands = signal<Brand[]>([]);
   categories = signal<Category[]>([]);
   stores = signal<AdminBranch[]>([]);
@@ -319,19 +359,40 @@ export class ProductsListComponent implements OnInit, OnDestroy {
     this.reload();
   }
 
-  reload(): void {
-    this.loading.set(true);
-    this.svc.list({
+  private filters() {
+    return {
       search: this.search(),
       brand: this.brandFilter || undefined,
       category: this.categoryFilter || undefined,
       status: this.statusFilter || undefined,
       branch: this.branchFilter || undefined,
-    }).subscribe({
-      next: r => { this.products.set(r.results); this.loading.set(false); },
+    };
+  }
+
+  reload(): void {
+    this.loading.set(true);
+    this.page = 1;
+    this.svc.summary().subscribe(sm => this.summary.set(sm));
+    this.svc.list({ ...this.filters(), page: 1, page_size: this.pageSize }).subscribe({
+      next: r => { this.products.set(r.results); this.total.set(r.count); this.loading.set(false); },
       error: () => this.loading.set(false),
     });
   }
+
+  loadMore(): void {
+    if (this.loadingMore() || this.loading() || !this.hasMore()) return;
+    this.loadingMore.set(true);
+    this.page += 1;
+    this.svc.list({ ...this.filters(), page: this.page, page_size: this.pageSize }).subscribe({
+      next: r => {
+        this.products.set([...this.products(), ...r.results]);
+        this.total.set(r.count);
+        this.loadingMore.set(false);
+      },
+      error: () => { this.page -= 1; this.loadingMore.set(false); },
+    });
+  }
+
 
   onSearch(v: string) { this.search.set(v); this.search$.next(); }
 

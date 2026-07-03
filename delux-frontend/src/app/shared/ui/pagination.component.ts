@@ -1,4 +1,4 @@
-import { ChangeDetectionStrategy, Component, EventEmitter, Input, Output, computed, signal } from '@angular/core';
+import { ChangeDetectionStrategy, Component, EventEmitter, Input, Output } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 
@@ -49,10 +49,8 @@ import { FormsModule } from '@angular/forms';
           } @else {
             <button type="button" (click)="goto(p)"
                     class="min-w-[34px] h-8 px-2 rounded-md text-[13px] font-medium transition"
-                    [class.bg-[var(--dash-primary)]]="p === page"
-                    [class.text-white]="p === page"
-                    [class.text-[var(--dash-text-muted)]]="p !== page"
-                    [class.hover:bg-[var(--dash-hover)]]="p !== page">
+                    [style.background]="p === page ? 'var(--dash-primary)' : 'transparent'"
+                    [style.color]="p === page ? '#fff' : 'var(--dash-text-muted)'">
               {{ p }}
             </button>
           }
@@ -77,7 +75,7 @@ export class DlxPaginationComponent {
   @Output() pageChange = new EventEmitter<number>();
   @Output() pageSizeChange = new EventEmitter<number>();
 
-  totalPages = computed(() => Math.max(1, Math.ceil(this.total / this.pageSize)));
+  totalPages(): number { return Math.max(1, Math.ceil(this.total / this.pageSize)); }
 
   rangeText() {
     if (!this.total) return 'Sin resultados';

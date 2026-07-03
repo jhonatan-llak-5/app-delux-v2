@@ -282,6 +282,7 @@ class ReportsViewSet(ViewSet):
         )
         results = [{
             'variant_sku': s.variant.sku,
+            'product_id': s.variant.product_id,
             'product_name': s.variant.product.name,
             'branch_name': s.branch.name,
             'quantity': s.quantity,

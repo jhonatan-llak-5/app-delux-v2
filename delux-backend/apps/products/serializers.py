@@ -43,7 +43,7 @@ class ProductSerializer(serializers.ModelSerializer):
             if key in seen:
                 continue
             seen.add(key)
-            out.append({'size': v.size, 'color': v.color})
+            out.append({'size': v.size, 'color': v.color, 'barcode': v.barcode})
         return out
 
 
@@ -125,16 +125,26 @@ class ProductCreateUpdateSerializer(serializers.ModelSerializer):
 
         branches = list(Branch.objects.filter(tenant=tenant, is_active=True))
         desired, seen = [], set()
+        barcode_map = {}
         for v in variants:
             size = (v.get('size') or '').strip()
             color = (v.get('color') or '').strip()
             key = (size, color)
+            bc = str(v.get('barcode') or '').strip()
+            if bc:
+                barcode_map[key] = bc
             if key in seen:
                 continue
             seen.add(key)
             desired.append(key)
 
         existing = {(vv.size, vv.color): vv for vv in product.variants.all()}
+        # Actualiza el codigo de barras de variantes ya existentes (si vino).
+        for key, var in existing.items():
+            bc = barcode_map.get(key)
+            if bc and var.barcode != bc:
+                var.barcode = bc
+                var.save(update_fields=['barcode'])
 
         for size, color in desired:
             if (size, color) in existing:
@@ -143,6 +153,7 @@ class ProductCreateUpdateSerializer(serializers.ModelSerializer):
             var = Variant.objects.create(
                 tenant=tenant, product=product, sku=sku,
                 size=size, color=color, is_active=True,
+                barcode=barcode_map.get((size, color), ''),
             )
             for b in branches:
                 qty = (stock_map or {}).get(b.id, 0)

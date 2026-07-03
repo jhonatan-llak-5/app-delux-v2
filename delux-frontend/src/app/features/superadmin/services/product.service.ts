@@ -34,7 +34,7 @@ export interface Product {
   images: ProductImage[];
   images_count: number;
   variants_count: number;
-  variants_detail?: { size: string; color: string }[];
+  variants_detail?: { size: string; color: string; barcode?: string }[];
   total_stock: number | null;
   created_at: string;
   updated_at: string;
@@ -57,11 +57,16 @@ export interface ProductPayload {
   meta_title?: string;
   meta_description?: string;
   images?: ProductImage[];
-  variants?: { size: string; color: string }[];
+  variants?: { size: string; color: string; barcode?: string }[];
   initial_stock?: { branch: number; quantity: number }[];
 }
 
-interface Paged<T> { count: number; results: T[]; }
+interface Paged<T> { count: number; results: T[]; next?: string | null; }
+
+export interface ProductSummary {
+  total: number; published: number; draft: number;
+  paused: number; archived: number; featured: number;
+}
 
 @Injectable({ providedIn: 'root' })
 export class ProductService {
@@ -78,12 +83,17 @@ export class ProductService {
     search?: string; brand?: number; category?: number;
     status?: string; tag?: string; gender?: string;
     is_featured?: boolean; branch?: number;
+    page?: number; page_size?: number;
   } = {}): Observable<Paged<Product>> {
     let p = new HttpParams();
     Object.entries(params).forEach(([k, v]) => {
       if (v !== undefined && v !== null && v !== '') p = p.set(k, String(v));
     });
     return this.http.get<Paged<Product>>(`${this.base}/`, { params: p });
+  }
+
+  summary(): Observable<ProductSummary> {
+    return this.http.get<ProductSummary>(`${this.base}/summary/`);
   }
 
   get(id: number) { return this.http.get<Product>(`${this.base}/${id}/`); }

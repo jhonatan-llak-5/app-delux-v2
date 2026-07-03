@@ -48,6 +48,7 @@ export class PublicCatalogService {
     sort?: 'new' | 'featured' | 'price-asc' | 'price-desc';
     price_min?: number; price_max?: number; size?: string; color?: string;
     city?: string; branch?: number;
+    page?: number; page_size?: number;
   } = {}): Observable<{ count: number; results: PublicProduct[] }> {
     let p = new HttpParams();
     Object.entries(params).forEach(([k, v]) => {

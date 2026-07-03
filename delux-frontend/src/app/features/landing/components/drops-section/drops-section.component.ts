@@ -57,7 +57,7 @@ interface Drop {
               <img [src]="d.image" [alt]="d.name"
                    class="absolute inset-0 w-full h-full object-cover
                           group-hover:scale-110 transition-transform duration-700"
-                   loading="lazy" crossorigin="anonymous" (error)="onImgError($event)" />
+                   loading="lazy" (error)="onImgError($event)" />
               <div class="absolute inset-x-0 bottom-0 h-32
                           bg-gradient-to-t from-black/40 dark:from-ink-950/80 to-transparent"></div>
               <div class="absolute inset-x-0 bottom-0 p-3 translate-y-full

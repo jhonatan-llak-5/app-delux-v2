@@ -5,11 +5,12 @@ import { FormsModule } from '@angular/forms';
 import { ReturnsService, ReturnRequest } from '@shared/services/returns.service';
 import { ConfirmService } from '@shared/components/confirm/confirm.service';
 import { NotifyService } from '@shared/services/notify.service';
+import { DlxPaginationComponent } from '@shared/ui/pagination.component';
 
 @Component({
   selector: 'dlx-returns-list',
   standalone: true,
-  imports: [DlxStatCardComponent, CommonModule, FormsModule],
+  imports: [DlxStatCardComponent, CommonModule, FormsModule, DlxPaginationComponent],
   changeDetection: ChangeDetectionStrategy.OnPush,
   template: `
     <div class="mb-6">
@@ -29,7 +30,7 @@ import { NotifyService } from '@shared/services/notify.service';
     </div>
 
     <div class="card p-4 mb-4 flex gap-2 items-center flex-wrap filter-bar">
-      <select [(ngModel)]="statusFilter" (change)="reload()"
+      <select [(ngModel)]="statusFilter" (change)="onFilter()"
               class="px-3 py-2 rounded-lg bg-slate-50 border border-transparent text-sm">
         <option value="">Todos los estados</option>
         <option value="REQUESTED">Solicitadas</option>
@@ -98,6 +99,11 @@ import { NotifyService } from '@shared/services/notify.service';
         </div>
       }
     </div>
+
+    @if (total() > 0) {
+      <dlx-pagination [page]="page()" [pageSize]="pageSize()" [total]="total()"
+                      (pageChange)="onPage($event)" (pageSizeChange)="onSize($event)" />
+    }
   `,
 })
 export class ReturnsListComponent implements OnInit {
@@ -105,10 +111,19 @@ export class ReturnsListComponent implements OnInit {
   private confirm = inject(ConfirmService);
   private notify = inject(NotifyService);
   items = signal<ReturnRequest[]>([]);
+  total = signal(0);
+  page = signal(1);
+  pageSize = signal(25);
   statusFilter = '';
 
   ngOnInit() { this.reload(); }
-  reload() { this.svc.list({ status: this.statusFilter }).subscribe(r => this.items.set(r.results)); }
+  reload() {
+    this.svc.list({ status: this.statusFilter, page: this.page(), page_size: this.pageSize() })
+      .subscribe(r => { this.items.set(r.results); this.total.set(r.count); });
+  }
+  onFilter() { this.page.set(1); this.reload(); }
+  onPage(p: number) { this.page.set(p); this.reload(); }
+  onSize(s: number) { this.pageSize.set(s); this.page.set(1); this.reload(); }
 
   countBy(s: string) { return this.items().filter(r => r.status === s).length; }
   statusBadge(s: string) {

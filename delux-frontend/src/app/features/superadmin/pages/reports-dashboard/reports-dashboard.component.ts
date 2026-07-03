@@ -2,6 +2,7 @@ import { ChangeDetectionStrategy, Component, OnInit, computed, inject, signal } 
 import { AuthService } from '@core/services/auth.service';
 import { DlxStatCardComponent } from '@shared/ui';
 import { CommonModule } from '@angular/common';
+import { RouterLink } from '@angular/router';
 import { FormsModule } from '@angular/forms';
 import { ChartConfiguration } from 'chart.js/auto';
 import * as XLSX from 'xlsx';
@@ -29,7 +30,7 @@ const PALETTE = [VIOLET, ACCENT, MAGENTA, ORANGE, TEAL, AMBER, ROSE, '#3b82f6', 
 @Component({
   selector: 'dlx-reports-dashboard',
   standalone: true,
-  imports: [DlxStatCardComponent, CommonModule, FormsModule, ChartCanvasComponent],
+  imports: [DlxStatCardComponent, CommonModule, FormsModule, ChartCanvasComponent, RouterLink],
   changeDetection: ChangeDetectionStrategy.OnPush,
   template: `
     <div class="flex flex-wrap items-end justify-between gap-4 mb-6">
@@ -153,7 +154,7 @@ const PALETTE = [VIOLET, ACCENT, MAGENTA, ORANGE, TEAL, AMBER, ROSE, '#3b82f6', 
                 <div class="flex items-center gap-3">
                   <img [src]="p.variant__product__main_image_url" alt=""
                        class="w-10 h-10 rounded-lg object-cover bg-slate-100"
-                       crossorigin="anonymous" (error)="onImgErr($event)" />
+ (error)="onImgErr($event)" />
                   <span class="font-medium">{{ p.variant__product__name }}</span>
                 </div>
               </td>
@@ -218,7 +219,11 @@ const PALETTE = [VIOLET, ACCENT, MAGENTA, ORANGE, TEAL, AMBER, ROSE, '#3b82f6', 
             @for (l of lowStock(); track $index) {
               <tr class="border-t border-slate-100">
                 <td class="px-5 py-3">
-                  <p class="font-medium text-xs">{{ l.product_name }}</p>
+                  <a [routerLink]="['/app/admin/products', l.product_id]"
+                     class="font-medium text-xs text-sky-600 hover:text-sky-700 hover:underline inline-flex items-center gap-1">
+                    {{ l.product_name }}
+                    <i class="fa-solid fa-arrow-up-right-from-square text-[9px] opacity-60"></i>
+                  </a>
                   <p class="text-[11px] text-slate-500 font-mono">{{ l.variant_sku }}</p>
                 </td>
                 <td class="px-5 py-3 text-xs">{{ l.branch_name }}</td>

@@ -72,7 +72,7 @@ const FALLBACK_BRANCHES: BranchCard[] = [
               <div class="aspect-[4/3] overflow-hidden bg-ink-100 dark:bg-white/[0.04]">
                 <img [src]="cat.image" [alt]="cat.title"
                      class="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500"
-                     loading="lazy" crossorigin="anonymous" />
+                     loading="lazy" />
               </div>
               <div class="p-7">
                 <h3 class="font-bold text-[20px] tracking-tight text-ink-950 dark:text-white mb-2">
@@ -142,7 +142,7 @@ const FALLBACK_BRANCHES: BranchCard[] = [
                 </span>
                 <img [src]="d.image" [alt]="d.name"
                      class="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500"
-                     loading="lazy" crossorigin="anonymous" (error)="onImgError($event)" />
+                     loading="lazy" (error)="onImgError($event)" />
               </div>
               <div class="p-5">
                 <p class="text-[11px] uppercase tracking-wider text-ink-500 dark:text-white/45 mb-1.5">

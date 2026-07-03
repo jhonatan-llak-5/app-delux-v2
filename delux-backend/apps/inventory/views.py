@@ -38,7 +38,7 @@ class AdminStockViewSet(viewsets.ReadOnlyModelViewSet):
     serializer_class = StockSerializer
     permission_classes = [permissions.IsAuthenticated, IsStaff]
     filter_backends = [filters.SearchFilter, filters.OrderingFilter]
-    search_fields = ['variant__sku', 'variant__product__name']
+    search_fields = ['variant__sku', 'variant__product__name', 'variant__barcode']
     ordering_fields = ['quantity', 'updated_at']
     ordering = ['-updated_at']
 

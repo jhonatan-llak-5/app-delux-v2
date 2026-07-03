@@ -73,7 +73,7 @@ type HeroPhase = 'showcase';
                   @if (currentProduct().image && !imgError()) {
                     <img [src]="currentProduct().image" [alt]="currentProduct().name"
                          class="w-full h-auto object-contain max-h-[460px] md:max-h-[560px]"
-                         loading="eager" crossorigin="anonymous" (error)="imgError.set(true)" />
+                         loading="eager" (error)="imgError.set(true)" />
                   } @else {
                     <div class="grid place-items-center min-h-[300px] md:min-h-[420px] text-center">
                       <div>
@@ -179,7 +179,7 @@ type HeroPhase = 'showcase';
                         <img [src]="p.thumb || p.image" [alt]="p.name"
                              class="absolute inset-0 w-full h-full object-contain p-4 transition-transform duration-500
                                     group-hover:scale-110"
-                             loading="lazy" crossorigin="anonymous" (error)="onImgError($event)" />
+                             loading="lazy" (error)="onImgError($event)" />
 
                         <!-- Número en esquina -->
                         <span class="absolute top-2 left-2 font-mono text-[10px] font-bold tracking-widest

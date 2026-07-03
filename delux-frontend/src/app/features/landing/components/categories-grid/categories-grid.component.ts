@@ -39,7 +39,7 @@ interface Category { slug: string; name: string; caption: string; number: string
             <img [src]="c.image" [alt]="c.name"
                  class="absolute inset-0 w-full h-full object-cover
                         group-hover:scale-110 transition-transform duration-1000"
-                 loading="lazy" crossorigin="anonymous" (error)="onImgError($event)" />
+                 loading="lazy" (error)="onImgError($event)" />
             <div class="absolute inset-0 mix-blend-multiply opacity-50 dark:opacity-60" [ngClass]="c.tint"></div>
             <div class="absolute inset-0 bg-gradient-to-t from-black/80 via-black/30 to-transparent
                         dark:from-ink-950 dark:via-ink-950/40"></div>

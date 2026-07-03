@@ -23,6 +23,9 @@ export interface Order {
   branch_name: string;
   customer: number | null;
   customer_name: string | null;
+  customer_email?: string | null;
+  customer_phone?: string | null;
+  customer_document?: string | null;
   seller: number | null;
   seller_name: string | null;
   channel: string;
@@ -73,7 +76,7 @@ export class OrderService {
   private http = inject(HttpClient);
   private base = `${environment.apiUrl}/admin/orders`;
 
-  list(params: { search?: string; branch?: number; status?: string; channel?: string; date_from?: string; date_to?: string } = {}): Observable<Paged<Order>> {
+  list(params: { search?: string; branch?: number; status?: string; channel?: string; date_from?: string; date_to?: string; page?: number; page_size?: number } = {}): Observable<Paged<Order>> {
     let p = new HttpParams();
     Object.entries(params).forEach(([k, v]) => { if (v) p = p.set(k, String(v)); });
     return this.http.get<Paged<Order>>(`${this.base}/`, { params: p });
@@ -81,6 +84,10 @@ export class OrderService {
 
   get(id: number) { return this.http.get<Order>(`${this.base}/${id}/`); }
   summary() { return this.http.get<OrderSummary>(`${this.base}/summary/`); }
+
+  setStatus(id: number, status: string): Observable<Order> {
+    return this.http.post<Order>(`${this.base}/${id}/set-status/`, { status });
+  }
 
   cancel(id: number) {
     return this.http.post<{ detail: string }>(`${this.base}/${id}/cancel/`, {});

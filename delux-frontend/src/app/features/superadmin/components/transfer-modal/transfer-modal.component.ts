@@ -20,7 +20,7 @@ import { parseApiError } from '@shared/utils/api-error.util';
           <div class="flex items-center gap-3 p-3 rounded-lg bg-slate-50">
             <img [src]="stock.product_main_image" [alt]="stock.product_name"
                  class="w-14 h-14 rounded-lg object-cover bg-white"
-                 crossorigin="anonymous" (error)="onImgErr($event)" />
+ (error)="onImgErr($event)" />
             <div class="flex-1 min-w-0">
               <p class="font-semibold text-sm truncate">{{ stock.product_name }}</p>
               <p class="text-xs text-slate-500 font-mono">

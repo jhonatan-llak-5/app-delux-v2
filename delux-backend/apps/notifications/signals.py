@@ -13,6 +13,7 @@ Fase 2 (operativas / relacion, P2):
   - Nuevo afiliado registrado      -> admins (global)
 """
 from django.db import transaction
+from django.utils import timezone
 from django.db.models.signals import post_save, pre_save
 from django.dispatch import receiver
 
@@ -71,16 +72,29 @@ def _stock_remember_prev(sender, instance, **kwargs):
 @receiver(post_save, dispatch_uid='notif_stock_low')
 def _on_stock_low(sender, instance, created, **kwargs):
     _, Stock, _ = _get_models()
-    if sender is not Stock or created:
+    if sender is not Stock:
         return
     stock = instance
     threshold = getattr(stock, 'min_threshold', 0) or 0
-    qty = getattr(stock, 'quantity', 0)
-    prev = getattr(stock, '_prev_quantity', None)
     if threshold <= 0:
         return
-    if not (qty <= threshold and (prev is None or prev > threshold)):
+    qty = getattr(stock, 'quantity', 0)
+    from .models import Notification
+
+    # Por encima del umbral -> auto-resuelve alertas pendientes de este stock.
+    if qty > threshold:
+        def _resolve():
+            Notification.objects.filter(
+                type='low_stock', is_read=False, meta__stock_id=stock.pk,
+            ).update(is_read=True, read_at=timezone.now())
+        transaction.on_commit(_resolve)
         return
+
+    # No notificar en la creacion: recepcion crea el stock en 0 y luego suma;
+    # avisar aqui daria una falsa alarma antes de sumar lo recibido.
+    if created:
+        return
+
     branch = getattr(stock, 'branch', None)
     tenant = getattr(stock, 'tenant', None)
     variant = getattr(stock, 'variant', None)
@@ -89,6 +103,11 @@ def _on_stock_low(sender, instance, created, **kwargs):
     bname = getattr(branch, 'name', '') if branch else ''
 
     def _send():
+        # Dedup: una sola alerta sin leer por stock (evita spam en cada venta).
+        if Notification.objects.filter(
+            type='low_stock', is_read=False, meta__stock_id=stock.pk,
+        ).exists():
+            return
         push_notification(
             type='low_stock', priority='P1',
             title='Stock bajo' if qty > 0 else 'Producto agotado',

@@ -44,7 +44,7 @@ export interface SellerRow {
   commission: number;
 }
 export interface ChannelRow { channel: string; revenue: string; orders: number; }
-export interface LowStockRow { variant_sku: string; product_name: string; branch_name: string; quantity: number; min_threshold: number; }
+export interface LowStockRow { variant_sku: string; product_id: number; product_name: string; branch_name: string; quantity: number; min_threshold: number; }
 
 export interface MySalesData {
   from: string; to: string;

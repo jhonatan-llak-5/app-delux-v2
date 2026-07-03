@@ -45,7 +45,7 @@ export class ReturnsService {
     });
   }
   // Admin
-  list(params: { status?: string; search?: string } = {}) {
+  list(params: { status?: string; search?: string; page?: number; page_size?: number } = {}) {
     let p = new HttpParams();
     Object.entries(params).forEach(([k, v]) => { if (v) p = p.set(k, String(v)); });
     return this.http.get<{ count: number; results: ReturnRequest[] }>(`${this.base}/admin/returns/`, { params: p });

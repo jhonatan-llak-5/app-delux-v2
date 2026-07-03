@@ -130,6 +130,7 @@ export class InventoryService {
     search?: string; branch?: number; product?: number;
     brand?: number; category?: number;
     low_stock?: boolean; out_of_stock?: boolean;
+    page?: number; page_size?: number;
   } = {}): Observable<Paged<Stock>> {
     let p = new HttpParams();
     Object.entries(params).forEach(([k, v]) => {

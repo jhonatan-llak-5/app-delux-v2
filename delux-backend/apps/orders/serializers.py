@@ -26,11 +26,15 @@ class OrderSerializer(serializers.ModelSerializer):
     branch_name = serializers.CharField(source='branch.name', read_only=True)
     customer_name = serializers.CharField(source='customer.full_name', read_only=True, default=None)
     seller_name = serializers.CharField(source='seller.full_name', read_only=True, default=None)
+    customer_email = serializers.CharField(source='customer.email', read_only=True, default=None)
+    customer_phone = serializers.CharField(source='customer.phone', read_only=True, default=None)
+    customer_document = serializers.CharField(source='customer.document_id', read_only=True, default=None)
 
     class Meta:
         model = Order
         fields = ('id', 'code', 'branch', 'branch_name',
-                  'customer', 'customer_name', 'seller', 'seller_name',
+                  'customer', 'customer_name', 'customer_email', 'customer_phone', 'customer_document',
+                  'seller', 'seller_name',
                   'channel', 'fulfillment', 'status',
                   'subtotal', 'discount', 'shipping_fee', 'tax', 'total',
                   'coupon_code', 'notes',

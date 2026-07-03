@@ -22,7 +22,7 @@ import { BrandingService } from '@core/services/branding.service';
         <img src="https://images.unsplash.com/photo-1542291026-7eec264c27ff?w=1600&q=90&auto=format&fit=crop"
              alt="Delux streetwear"
              class="absolute inset-0 w-full h-full object-cover"
-             crossorigin="anonymous" />
+ />
 
         <div class="absolute inset-0 bg-gradient-to-tr from-black/85 via-black/55 to-black/25"></div>
 

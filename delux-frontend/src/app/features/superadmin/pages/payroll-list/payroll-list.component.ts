@@ -163,7 +163,7 @@ export class PayrollListComponent implements OnInit {
 
   load(): void {
     this.loading.set(true);
-    this.svc.list().subscribe({
+    this.svc.list({ page_size: 100 }).subscribe({
       next: r => { this.rows.set(r.results || []); this.loading.set(false); },
       error: () => this.loading.set(false),
     });

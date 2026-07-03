@@ -1,4 +1,4 @@
-import { ChangeDetectionStrategy, Component, computed, effect, inject, signal } from '@angular/core';
+import { ChangeDetectionStrategy, Component, ElementRef, ViewChild, computed, effect, inject, signal } from '@angular/core';
 import { IMG_PLACEHOLDER } from '@shared/utils/img-placeholder';
 import { CommonModule } from '@angular/common';
 import { RouterLink } from '@angular/router';
@@ -273,7 +273,7 @@ interface Filter { categories: string[]; brands: string[]; sizes: string[]; pric
                     }
                     <img [src]="p.image" [alt]="p.name"
                          class="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500"
-                         loading="lazy" crossorigin="anonymous" (error)="onImgError($event)" />
+                         loading="lazy" (error)="onImgError($event)" />
                   </div>
 
                   <div class="p-5">
@@ -304,6 +304,13 @@ interface Filter { categories: string[]; brands: string[]; sizes: string[]; pric
                 </a>
               }
             </div>
+            <div #loadSentinel class="h-10"></div>
+            @if (loadingMore()) {
+              <div class="py-8 text-center text-ink-400 dark:text-white/40">
+                <i class="fa-solid fa-spinner fa-spin text-xl mb-2"></i>
+                <p class="text-sm">Cargando más productos…</p>
+              </div>
+            }
           }
         </div>
       </div>
@@ -336,33 +343,68 @@ export class ShopListComponent {
 
 products = signal<Product[]>([]);
   loadingProducts = signal(true);
+  loadingMore = signal(false);
+  total = signal(0);
+  private page = 1;
+  private readonly pageSize = 40;
+  private currentCity: string | null = null;
+  hasMore = computed(() => this.products().length < this.total());
+  private io?: IntersectionObserver;
+  @ViewChild('loadSentinel') set sentinel(ref: ElementRef<HTMLElement> | undefined) {
+    this.io?.disconnect();
+    const el = ref?.nativeElement;
+    if (!el || typeof IntersectionObserver === 'undefined') return;
+    this.io = new IntersectionObserver((entries) => {
+      if (entries.some(e => e.isIntersecting)) this.loadMore();
+    }, { rootMargin: '400px' });
+    this.io.observe(el);
+  }
 
   constructor() {
     // Recarga el catálogo segun la ciudad elegida por el cliente.
     effect(() => { const c = this.zone.city(); this.loadProducts(c); });
   }
 
+  private mapProduct = (pp: any): Product => ({
+    id: String(pp.id),
+    name: pp.name,
+    brand: pp.brand_name,
+    category: (pp.category_name || '').toLowerCase() as Product['category'],
+    price: Number(pp.base_price),
+    oldPrice: pp.compare_at_price ? Number(pp.compare_at_price) : undefined,
+    colors: [],
+    sizes: [],
+    image: pp.thumb_url || pp.main_image_url || 'https://images.unsplash.com/photo-1542291026-7eec264c27ff?w=600&q=85',
+    tag: this.mapTag(pp.tag),
+    gender: this.mapGender(pp.gender),
+    available: pp.available_in_city !== false,
+  });
+
   private loadProducts(city: string | null): void {
+    this.currentCity = city;
+    this.page = 1;
     this.loadingProducts.set(true);
-    this.catalog.listProducts({ city: city || undefined, sort: 'new' }).subscribe({
+    this.catalog.listProducts({ city: city || undefined, sort: 'new', page: 1, page_size: this.pageSize }).subscribe({
       next: r => {
-        this.products.set((r.results || []).map(pp => ({
-          id: String(pp.id),
-          name: pp.name,
-          brand: pp.brand_name,
-          category: (pp.category_name || '').toLowerCase() as Product['category'],
-          price: Number(pp.base_price),
-          oldPrice: pp.compare_at_price ? Number(pp.compare_at_price) : undefined,
-          colors: [],
-          sizes: [],
-          image: pp.thumb_url || pp.main_image_url || 'https://images.unsplash.com/photo-1542291026-7eec264c27ff?w=600&q=85',
-          tag: this.mapTag(pp.tag),
-          gender: this.mapGender(pp.gender),
-          available: pp.available_in_city !== false,
-        })));
+        this.products.set((r.results || []).map(this.mapProduct));
+        this.total.set(r.count || 0);
         this.loadingProducts.set(false);
       },
-      error: () => { this.products.set([]); this.loadingProducts.set(false); },
+      error: () => { this.products.set([]); this.total.set(0); this.loadingProducts.set(false); },
+    });
+  }
+
+  loadMore(): void {
+    if (this.loadingMore() || this.loadingProducts() || !this.hasMore()) return;
+    this.loadingMore.set(true);
+    this.page += 1;
+    this.catalog.listProducts({ city: this.currentCity || undefined, sort: 'new', page: this.page, page_size: this.pageSize }).subscribe({
+      next: r => {
+        this.products.set([...this.products(), ...(r.results || []).map(this.mapProduct)]);
+        this.total.set(r.count || 0);
+        this.loadingMore.set(false);
+      },
+      error: () => { this.page -= 1; this.loadingMore.set(false); },
     });
   }
 
