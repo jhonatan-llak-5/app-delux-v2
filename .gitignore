@@ -21,3 +21,8 @@ delux-backend/.venv/
 delux-backend/media/
 delux-backend/staticfiles/
 .env.prod
+
+# Celery beat: archivo de horarios generado en runtime (no versionar)
+celerybeat-schedule
+celerybeat-schedule.*
+celerybeat.pid
