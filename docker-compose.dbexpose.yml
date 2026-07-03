@@ -1,0 +1,16 @@
+# ============================================================================
+# Override OPCIONAL: publica Postgres SOLO en localhost del VPS (127.0.0.1),
+# para poder conectar un cliente gráfico (DBeaver/pgAdmin) por túnel SSH.
+# NO expone la base a internet (solo 127.0.0.1 + SSH).
+#
+# Uso (elige el puerto por entorno con DB_HOST_PORT):
+#   staging:  DB_HOST_PORT=5433 docker compose -f docker-compose.prod.yml -f docker-compose.dbexpose.yml up -d postgres
+#   prod:     DB_HOST_PORT=5434 docker compose -f docker-compose.prod.yml -f docker-compose.dbexpose.yml up -d postgres
+#
+# Para dejar de exponerla, vuelve a levantar sin este archivo:
+#   docker compose -f docker-compose.prod.yml up -d postgres
+# ============================================================================
+services:
+  postgres:
+    ports:
+      - "127.0.0.1:${DB_HOST_PORT:-5433}:5432"
