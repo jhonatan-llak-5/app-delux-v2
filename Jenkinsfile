@@ -41,7 +41,7 @@ pipeline {
 
           echo ">> Actualizando código a origin/$BRANCH_NAME"
           git fetch --all --prune
-          git checkout -B "$BRANCH_NAME" "origin/$BRANCH_NAME"
+          git checkout -f -B "$BRANCH_NAME" "origin/$BRANCH_NAME"
           git reset --hard "origin/$BRANCH_NAME"
 
           echo ">> Reconstruyendo y levantando (con --build)"
