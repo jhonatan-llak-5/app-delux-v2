@@ -1,6 +1,6 @@
 export const environment = {
   production: false,
-  appVersion: '0.0.1',
+  appVersion: '0.0.2',
   apiUrl: '/api/v1',
   wsUrl: 'ws://localhost:8005/ws',
   tenant: 'delux',
