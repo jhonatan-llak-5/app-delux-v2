@@ -186,8 +186,15 @@ const KIND_PRESETS: Record<string, { label: string; sizeLabel: string; sizes: st
 
         <div>
           <label class="eg-label">Código de barras</label>
-          <input [(ngModel)]="nf.barcode" class="eg-input w-full font-mono" placeholder="Escanea o escribe (opcional)" />
-          <p class="text-[11px] text-slate-400 mt-1">Si lo dejas vacío, el sistema genera un código interno.</p>
+          @if (isSingleVariant()) {
+            <input [(ngModel)]="nf.barcode" class="eg-input w-full font-mono" placeholder="Escanea o escribe (opcional)" />
+            <p class="text-[11px] text-slate-400 mt-1">Se guarda el código de fábrica y, además, se genera un código interno propio. Si lo dejas vacío, solo se usa el interno.</p>
+          } @else {
+            <div class="rounded-xl border border-amber-200 dark:border-amber-500/30 bg-amber-50 dark:bg-amber-500/10 px-3 py-2 text-[12px] text-amber-800 dark:text-amber-300">
+              <i class="fa-solid fa-circle-info mr-1"></i>
+              Elegiste varias tallas/colores. El código de barras es único por talla, así que a cada variante se le generará su propio código interno único. Para conservar el de fábrica, agrega una talla/color a la vez.
+            </div>
+          }
         </div>
 
         <div class="grid grid-cols-2 gap-3">
@@ -320,6 +327,7 @@ export class ManualProductModalComponent implements OnInit {
     for (const c of this.colorsOrDefault()) for (const sz of this.sizesOrDefault()) out.push({ key: c + '|' + sz, color: c, size: sz });
     return out;
   }
+  isSingleVariant(): boolean { return this.comboList().length === 1; }
   comboLabel(cb: { color: string; size: string }): string {
     const parts: string[] = [];
     if (cb.color) parts.push(cb.color);

@@ -201,23 +201,47 @@ import { parseApiError } from '@shared/utils/api-error.util';
                     class="px-4 py-2 rounded-lg bg-slate-900 text-white text-sm font-semibold hover:bg-slate-800 disabled:opacity-40">Añadir</button>
           </div>
 
-          <!-- Código de barras -->
+          <!-- Códigos de barras -->
           <div class="mt-5 pt-5 border-t border-slate-100 dark:border-white/5">
             <label class="block text-xs font-semibold uppercase tracking-wider text-slate-600 mb-2">
-              Código de barras
+              Códigos de barras
             </label>
+
+            <!-- Código interno del local (siempre) -->
+            @if (variantsDetail().length === 1) {
+              <div class="flex items-center justify-between rounded-lg bg-slate-50 dark:bg-white/5 px-3 py-2 mb-2">
+                <span class="text-[12px] text-slate-500">Código interno (local)</span>
+                <span class="font-mono text-sm text-ink-950 dark:text-white">{{ variantsDetail()[0].sku || '—' }}</span>
+              </div>
+            } @else if (variantsDetail().length > 1) {
+              <div class="rounded-lg bg-slate-50 dark:bg-white/5 px-3 py-2 mb-2">
+                <p class="text-[12px] text-slate-500 mb-1.5">
+                  <i class="fa-solid fa-circle-info"></i>
+                  Este producto tiene {{ variantsDetail().length }} variantes; cada una tiene su propio código interno único (local).
+                </p>
+                <div class="flex flex-wrap gap-1.5">
+                  @for (v of variantsDetail(); track v.sku) {
+                    <span class="font-mono text-[11px] px-2 py-0.5 rounded bg-white dark:bg-white/10 border border-slate-200 dark:border-white/10">
+                      {{ v.sku }}<span class="text-slate-400"> · {{ v.size || '—' }}/{{ v.color || '—' }}</span>
+                    </span>
+                  }
+                </div>
+              </div>
+            }
+
+            <!-- Código del proveedor (externo, opcional) -->
+            <label class="block text-[11px] font-medium text-slate-500 mb-1">Código del proveedor (opcional)</label>
             <input [(ngModel)]="barcode" name="barcode" maxlength="40"
                    placeholder="Escanea o escribe el código (opcional)"
                    class="eg-input w-full font-mono" [disabled]="variantCount() > 1" />
             @if (variantCount() > 1) {
               <p class="text-[11px] text-amber-600 mt-1">
                 <i class="fa-solid fa-circle-info"></i>
-                Este producto tiene {{ variantCount() }} variantes (talla × color).
-                El código de barras por talla/color se administra en Inventario · Recepción.
+                Con varias tallas/colores, el código del proveedor es único por talla y se administra en Inventario · Recepción.
               </p>
             } @else {
               <p class="text-[11px] text-slate-400 mt-1">
-                Se guarda en la variante del producto. Luego podrás buscarlo escaneándolo en POS e Inventario.
+                Se guarda junto al código interno. Luego podrás buscarlo escaneándolo en POS e Inventario.
               </p>
             }
           </div>
@@ -405,6 +429,7 @@ export class ProductFormComponent implements OnInit {
   sizes = signal<string[]>([]);
   colors = signal<string[]>([]);
   barcode = '';
+  variantsDetail = signal<{ sku?: string; size: string; color: string; barcode?: string }[]>([]);
   newSize = '';
   newColor = '';
   readonly colorPresets = ['Negro', 'Blanco', 'Gris', 'Azul', 'Celeste', 'Rojo', 'Verde', 'Amarillo', 'Naranja', 'Morado', 'Rosa', 'Café', 'Beige'];
@@ -443,6 +468,7 @@ export class ProductFormComponent implements OnInit {
         };
         this.images.set(p.images || []);
         const vs = p.variants_detail || [];
+        this.variantsDetail.set(vs);
         this.sizes.set([...new Set(vs.map(v => v.size).filter(Boolean))]);
         this.colors.set([...new Set(vs.map(v => v.color).filter(Boolean))]);
         // Si el producto tiene una sola variante, precarga su código de barras.

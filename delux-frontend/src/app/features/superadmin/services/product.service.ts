@@ -34,7 +34,7 @@ export interface Product {
   images: ProductImage[];
   images_count: number;
   variants_count: number;
-  variants_detail?: { size: string; color: string; barcode?: string }[];
+  variants_detail?: { sku?: string; size: string; color: string; barcode?: string }[];
   total_stock: number | null;
   created_at: string;
   updated_at: string;

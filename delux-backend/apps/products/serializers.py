@@ -43,7 +43,7 @@ class ProductSerializer(serializers.ModelSerializer):
             if key in seen:
                 continue
             seen.add(key)
-            out.append({'size': v.size, 'color': v.color, 'barcode': v.barcode})
+            out.append({'sku': v.sku, 'size': v.size, 'color': v.color, 'barcode': v.barcode})
         return out
 
 
