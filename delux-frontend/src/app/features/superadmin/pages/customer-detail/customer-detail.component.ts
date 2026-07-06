@@ -1,4 +1,6 @@
 import { ChangeDetectionStrategy, Component, OnInit, inject, signal } from '@angular/core';
+import { DlxEmptyStateComponent } from '@shared/ui/empty-state.component';
+import { OrderStatusLabelPipe, OrderStatusClassPipe } from '@shared/ui/order-status.pipe';
 import { CommonModule } from '@angular/common';
 import { ActivatedRoute, RouterLink } from '@angular/router';
 
@@ -8,7 +10,7 @@ import { Order, OrderService } from '@features/superadmin/services/order.service
 @Component({
   selector: 'dlx-customer-detail',
   standalone: true,
-  imports: [CommonModule, RouterLink],
+  imports: [DlxEmptyStateComponent, OrderStatusLabelPipe, OrderStatusClassPipe, CommonModule, RouterLink],
   changeDetection: ChangeDetectionStrategy.OnPush,
   template: `
     @if (customer(); as c) {
@@ -87,10 +89,7 @@ import { Order, OrderService } from '@features/superadmin/services/order.service
               <h2 class="font-bold tracking-tight">Historial de compras ({{ orders().length }})</h2>
             </div>
             @if (orders().length === 0) {
-              <div class="p-12 text-center text-slate-400">
-                <i class="fa-solid fa-cart-arrow-down text-3xl mb-3"></i>
-                <p>Este cliente aún no ha hecho compras.</p>
-              </div>
+              <dlx-empty-state icon="fa-cart-arrow-down" title="Este cliente aún no ha hecho compras." />
             } @else {
               <table class="w-full text-sm">
                 <thead class="bg-slate-50 text-slate-500">
@@ -117,8 +116,8 @@ import { Order, OrderService } from '@features/superadmin/services/order.service
                       <td class="px-5 py-3 text-right font-bold">\${{ o.total }}</td>
                       <td class="px-5 py-3 text-center">
                         <span class="inline-flex items-center px-2 py-0.5 rounded-md text-[11px] font-bold uppercase"
-                              [ngClass]="statusClass(o.status)">
-                          {{ statusLabel(o.status) }}
+                              [ngClass]="o.status | orderStatusClass">
+                          {{ o.status | orderStatusLabel }}
                         </span>
                       </td>
                     </tr>
@@ -158,15 +157,5 @@ export class CustomerDetailComponent implements OnInit {
   avatarColor(c: Customer) {
     const palette = ['#7c3aed', '#22d3ee', '#14b8a6', '#f59e0b', '#ec4899', '#3b82f6'];
     return palette[c.id % palette.length];
-  }
-  statusLabel(s: string) {
-    return ({ PENDING: 'Pendiente', PAID: 'Pagada', CANCELLED: 'Cancelada' } as any)[s] || s;
-  }
-  statusClass(s: string) {
-    return ({
-      PAID: 'bg-emerald-100 text-emerald-700',
-      PENDING: 'bg-amber-100 text-amber-700',
-      CANCELLED: 'bg-rose-100 text-rose-700',
-    } as any)[s] || 'bg-slate-100 text-slate-700';
   }
 }

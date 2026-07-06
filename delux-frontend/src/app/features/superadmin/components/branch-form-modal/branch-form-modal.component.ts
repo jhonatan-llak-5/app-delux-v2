@@ -1,4 +1,5 @@
 import { ChangeDetectionStrategy, Component, EventEmitter, Input, Output, signal } from '@angular/core';
+import { DlxToggleComponent } from '@shared/ui/toggle.component';
 import { DlxFieldErrorComponent } from '@shared/ui/field-error.component';
 import { CommonModule } from '@angular/common';
 import { DlxModalComponent } from '@shared/ui/modal.component';
@@ -58,7 +59,7 @@ export interface BranchPayload {
 @Component({
   selector: 'dlx-branch-form-modal',
   standalone: true,
-  imports: [DlxFieldErrorComponent, CommonModule, FormsModule, DlxModalComponent],
+  imports: [DlxFieldErrorComponent, CommonModule, FormsModule, DlxModalComponent, DlxToggleComponent],
   changeDetection: ChangeDetectionStrategy.OnPush,
   template: `
     <dlx-modal [open]="true" [maxWidth]="680"
@@ -176,18 +177,9 @@ export interface BranchPayload {
           </div>
 
           <div class="flex flex-wrap gap-6 pt-2">
-            <label class="flex items-center gap-2 cursor-pointer text-sm text-slate-700 dark:text-white/80">
-              <input type="checkbox" [(ngModel)]="form.allows_pickup" name="pickup" class="w-4 h-4 accent-blue-600" />
-              Permite retiro en tienda
-            </label>
-            <label class="flex items-center gap-2 cursor-pointer text-sm text-slate-700 dark:text-white/80">
-              <input type="checkbox" [(ngModel)]="form.free_shipping" name="freeship" class="w-4 h-4 accent-emerald-600" />
-              Envío a domicilio gratis
-            </label>
-            <label class="flex items-center gap-2 cursor-pointer text-sm text-slate-700 dark:text-white/80">
-              <input type="checkbox" [(ngModel)]="form.is_active" name="active" class="w-4 h-4 accent-emerald-500" />
-              Sucursal activa
-            </label>
+            <dlx-toggle [(ngModel)]="form.allows_pickup" name="pickup" text="Permite retiro en tienda" />
+            <dlx-toggle [(ngModel)]="form.free_shipping" name="freeship" text="Envío a domicilio gratis" />
+            <dlx-toggle [(ngModel)]="form.is_active" name="active" text="Sucursal activa" />
           </div>
           @if (form.free_shipping) {
             <div>

@@ -1,4 +1,6 @@
 import { ChangeDetectionStrategy, Component, inject } from '@angular/core';
+import { DlxEmptyStateComponent } from '@shared/ui/empty-state.component';
+import { ImgFallbackDirective } from '@shared/ui/img-fallback.directive';
 import { CommonModule } from '@angular/common';
 import { RouterLink } from '@angular/router';
 import { CartService } from '@features/checkout/services/cart.service';
@@ -6,7 +8,7 @@ import { CartService } from '@features/checkout/services/cart.service';
 @Component({
   selector: 'dlx-cart-page',
   standalone: true,
-  imports: [CommonModule, RouterLink],
+  imports: [DlxEmptyStateComponent, ImgFallbackDirective, CommonModule, RouterLink],
   changeDetection: ChangeDetectionStrategy.OnPush,
   template: `
     <section class="max-w-[1200px] mx-auto px-6 md:px-10 pt-32 pb-24 bg-white dark:bg-ink-950 min-h-screen">
@@ -16,13 +18,11 @@ import { CartService } from '@features/checkout/services/cart.service';
       </h1>
 
       @if (cart.lines().length === 0) {
-        <div class="text-center py-24">
-          <i class="fa-solid fa-cart-arrow-down text-5xl text-ink-300 dark:text-white/20 mb-6"></i>
-          <p class="text-xl text-ink-700 dark:text-white/70 mb-6">Tu carrito está vacío</p>
+        <dlx-empty-state variant="store" icon="fa-cart-arrow-down" title="Tu carrito está vacío">
           <a routerLink="/shop" class="btn-accent text-sm font-semibold px-8 py-4">
             <i class="fa-solid fa-arrow-left text-xs"></i> Explorar catálogo
           </a>
-        </div>
+        </dlx-empty-state>
       } @else {
         <div class="grid grid-cols-1 lg:grid-cols-[1fr_380px] gap-8">
           <!-- Items -->
@@ -34,7 +34,7 @@ import { CartService } from '@features/checkout/services/cart.service';
                      class="w-24 h-24 md:w-32 md:h-32 rounded-xl overflow-hidden bg-ink-100 dark:bg-white/5 shrink-0">
                     <img [src]="item.product_image" [alt]="item.product_name"
                          class="w-full h-full object-cover"
- (error)="onImgErr($event)" />
+ dlxImgFallback />
                   </a>
                   <div class="flex-1 min-w-0">
                     @if (item.brand_name) {
@@ -122,7 +122,4 @@ import { CartService } from '@features/checkout/services/cart.service';
 export class CartPageComponent {
   cart = inject(CartService);
 
-  onImgErr(ev: Event) {
-    (ev.target as HTMLImageElement).src = 'data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 200 200"><rect width="200" height="200" fill="%23e2e8f0"/></svg>';
-  }
 }

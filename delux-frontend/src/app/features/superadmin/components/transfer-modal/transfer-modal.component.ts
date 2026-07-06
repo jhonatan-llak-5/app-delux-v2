@@ -1,4 +1,5 @@
 import { ChangeDetectionStrategy, Component, EventEmitter, Input, OnInit, Output, inject, signal } from '@angular/core';
+import { ImgFallbackDirective } from '@shared/ui/img-fallback.directive';
 import { DlxFieldErrorComponent } from '@shared/ui/field-error.component';
 import { CommonModule } from '@angular/common';
 import { DlxModalComponent } from '@shared/ui/modal.component';
@@ -10,7 +11,7 @@ import { parseApiError } from '@shared/utils/api-error.util';
 @Component({
   selector: 'dlx-transfer-modal',
   standalone: true,
-  imports: [DlxFieldErrorComponent, CommonModule, FormsModule, DlxModalComponent],
+  imports: [ImgFallbackDirective, DlxFieldErrorComponent, CommonModule, FormsModule, DlxModalComponent],
   changeDetection: ChangeDetectionStrategy.OnPush,
   template: `
     <dlx-modal [open]="true" [maxWidth]="520"
@@ -20,7 +21,7 @@ import { parseApiError } from '@shared/utils/api-error.util';
           <div class="flex items-center gap-3 p-3 rounded-lg bg-slate-50">
             <img [src]="stock.product_main_image" [alt]="stock.product_name"
                  class="w-14 h-14 rounded-lg object-cover bg-white"
- (error)="onImgErr($event)" />
+ dlxImgFallback />
             <div class="flex-1 min-w-0">
               <p class="font-semibold text-sm truncate">{{ stock.product_name }}</p>
               <p class="text-xs text-slate-500 font-mono">
@@ -146,7 +147,4 @@ export class TransferModalComponent implements OnInit {
   }
 
   onBackdrop(ev: MouseEvent) { if (ev.target === ev.currentTarget) this.close.emit(); }
-  onImgErr(ev: Event) {
-    (ev.target as HTMLImageElement).src = 'data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 200 200"><rect width="200" height="200" fill="%23e2e8f0"/></svg>';
-  }
 }

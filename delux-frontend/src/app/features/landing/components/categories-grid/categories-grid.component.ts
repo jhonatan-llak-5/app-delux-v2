@@ -1,4 +1,5 @@
 import { ChangeDetectionStrategy, Component } from '@angular/core';
+import { ImgFallbackDirective } from '@shared/ui/img-fallback.directive';
 import { CommonModule } from '@angular/common';
 import { RouterLink } from '@angular/router';
 import { RevealOnScrollDirective } from '@shared/directives/reveal-on-scroll.directive';
@@ -8,7 +9,7 @@ interface Category { slug: string; name: string; caption: string; number: string
 @Component({
   selector: 'dlx-categories-grid',
   standalone: true,
-  imports: [CommonModule, RouterLink, RevealOnScrollDirective],
+  imports: [ImgFallbackDirective, CommonModule, RouterLink, RevealOnScrollDirective],
   changeDetection: ChangeDetectionStrategy.OnPush,
   template: `
     <section class="relative max-w-[1600px] mx-auto px-6 md:px-10 py-20 md:py-32
@@ -39,7 +40,7 @@ interface Category { slug: string; name: string; caption: string; number: string
             <img [src]="c.image" [alt]="c.name"
                  class="absolute inset-0 w-full h-full object-cover
                         group-hover:scale-110 transition-transform duration-1000"
-                 loading="lazy" (error)="onImgError($event)" />
+                 loading="lazy" dlxImgFallback />
             <div class="absolute inset-0 mix-blend-multiply opacity-50 dark:opacity-60" [ngClass]="c.tint"></div>
             <div class="absolute inset-0 bg-gradient-to-t from-black/80 via-black/30 to-transparent
                         dark:from-ink-950 dark:via-ink-950/40"></div>
@@ -81,8 +82,4 @@ export class CategoriesGridComponent {
       image: 'https://images.unsplash.com/photo-1521369909029-2afed882baee?w=800&q=85&auto=format&fit=crop',
       tint: 'bg-gradient-to-br from-brand-teal/30 to-accent-500/30' },
   ];
-  onImgError(ev: Event) {
-    const img = ev.target as HTMLImageElement;
-    img.src = 'data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 300 400"><rect width="300" height="400" fill="%23cbd5e1"/></svg>';
-  }
 }

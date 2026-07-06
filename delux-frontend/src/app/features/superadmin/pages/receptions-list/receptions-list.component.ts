@@ -1,4 +1,5 @@
 import { ChangeDetectionStrategy, Component, OnInit, inject, signal } from '@angular/core';
+import { DlxEmptyStateComponent } from '@shared/ui/empty-state.component';
 import { CommonModule, DatePipe } from '@angular/common';
 import { RouterLink } from '@angular/router';
 import { InventoryService, ReceptionResult } from '@features/superadmin/services/inventory.service';
@@ -11,7 +12,7 @@ import { environment } from '@env/environment';
 @Component({
   selector: 'dlx-receptions-list',
   standalone: true,
-  imports: [CommonModule, RouterLink, DatePipe],
+  imports: [DlxEmptyStateComponent, CommonModule, RouterLink, DatePipe],
   changeDetection: ChangeDetectionStrategy.OnPush,
   template: `
     <div class="mb-5 flex items-start justify-between gap-3 flex-wrap">
@@ -28,13 +29,9 @@ import { environment } from '@env/environment';
     @if (loading()) {
       <div class="card p-10 text-center text-slate-400"><i class="fa-solid fa-spinner fa-spin text-xl"></i></div>
     } @else if (receptions().length === 0) {
-      <div class="card p-10 text-center">
-        <div class="w-14 h-14 rounded-2xl mx-auto mb-4 grid place-items-center bg-slate-100 dark:bg-white/5 text-slate-400">
-          <i class="fa-solid fa-truck-ramp-box text-xl"></i>
-        </div>
-        <p class="text-slate-500 mb-4">Aún no hay recepciones registradas.</p>
+      <dlx-empty-state icon="fa-truck-ramp-box" title="Aún no hay recepciones registradas.">
         <a routerLink="/app/admin/inventory/reception" class="eg-btn-primary"><i class="fa-solid fa-plus"></i> Registrar la primera</a>
-      </div>
+      </dlx-empty-state>
     } @else {
       <!-- Tabla desktop -->
       <div class="card overflow-hidden hidden md:block">

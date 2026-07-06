@@ -1,4 +1,5 @@
 import { ChangeDetectionStrategy, Component, OnInit, computed, inject, signal } from '@angular/core';
+import { DlxEmptyStateComponent } from '@shared/ui/empty-state.component';
 import { CommonModule, DatePipe } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { Subject, debounceTime } from 'rxjs';
@@ -14,7 +15,7 @@ import {
 @Component({
   selector: 'dlx-affiliates-admin',
   standalone: true,
-  imports: [CommonModule, FormsModule, DatePipe, DlxSearchInputComponent],
+  imports: [DlxEmptyStateComponent, CommonModule, FormsModule, DatePipe, DlxSearchInputComponent],
   changeDetection: ChangeDetectionStrategy.OnPush,
   template: `
     <div class="mb-5 flex items-start justify-between gap-3 flex-wrap">
@@ -33,10 +34,7 @@ import {
     @if (loading()) {
       <div class="card p-10 text-center text-slate-400"><i class="fa-solid fa-spinner fa-spin text-xl"></i></div>
     } @else if (rows().length === 0) {
-      <div class="card p-10 text-center text-slate-400">
-        <i class="fa-solid fa-hand-holding-dollar text-3xl mb-3"></i>
-        <p>No hay afiliados registrados todavía.</p>
-      </div>
+      <dlx-empty-state icon="fa-hand-holding-dollar" title="No hay afiliados registrados todavía." />
     } @else {
       <div class="card overflow-hidden">
         <div class="overflow-x-auto">

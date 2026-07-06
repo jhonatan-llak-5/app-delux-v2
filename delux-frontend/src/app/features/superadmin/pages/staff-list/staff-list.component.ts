@@ -1,4 +1,5 @@
 import { ChangeDetectionStrategy, Component, OnInit, inject, signal } from '@angular/core';
+import { DlxEmptyStateComponent } from '@shared/ui/empty-state.component';
 import { AuthService } from '@core/services/auth.service';
 import { DlxStatCardComponent } from '@shared/ui';
 import { DlxSearchInputComponent } from '@shared/ui/search-input.component';
@@ -15,7 +16,7 @@ import { AdminService, AdminBranch } from '@features/superadmin/services/admin.s
 @Component({
   selector: 'dlx-staff-list',
   standalone: true,
-  imports: [DlxStatCardComponent, DlxSearchInputComponent, CommonModule, FormsModule, RouterLink],
+  imports: [DlxEmptyStateComponent, DlxStatCardComponent, DlxSearchInputComponent, CommonModule, FormsModule, RouterLink],
   changeDetection: ChangeDetectionStrategy.OnPush,
   template: `
     <div class="flex flex-wrap items-end justify-between gap-4 mb-6">
@@ -64,10 +65,7 @@ import { AdminService, AdminBranch } from '@features/superadmin/services/admin.s
         <i class="fa-solid fa-spinner fa-spin text-2xl"></i>
       </div>
     } @else if (staff().length === 0) {
-      <div class="card p-12 text-center text-slate-400">
-        <i class="fa-solid fa-users text-3xl mb-3"></i>
-        <p>No hay miembros del equipo.</p>
-      </div>
+      <dlx-empty-state icon="fa-users" title="No hay miembros del equipo." />
     } @else {
       <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
         @for (s of staff(); track s.id) {

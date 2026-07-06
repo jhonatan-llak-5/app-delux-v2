@@ -1,4 +1,5 @@
 import { ChangeDetectionStrategy, Component, EventEmitter, Input, Output, inject, signal } from '@angular/core';
+import { DlxToggleComponent } from '@shared/ui/toggle.component';
 import { DlxFieldErrorComponent } from '@shared/ui/field-error.component';
 import { CommonModule } from '@angular/common';
 import { DlxModalComponent } from '@shared/ui/modal.component';
@@ -10,7 +11,7 @@ import { ProductService } from '@features/superadmin/services/product.service';
 @Component({
   selector: 'dlx-brand-form-modal',
   standalone: true,
-  imports: [DlxFieldErrorComponent, CommonModule, FormsModule, DlxModalComponent],
+  imports: [DlxFieldErrorComponent, CommonModule, FormsModule, DlxModalComponent, DlxToggleComponent],
   changeDetection: ChangeDetectionStrategy.OnPush,
   template: `
     <dlx-modal [open]="true" [maxWidth]="680"
@@ -64,14 +65,8 @@ import { ProductService } from '@features/superadmin/services/product.service';
           </div>
 
           <div class="flex flex-wrap gap-6 pt-2">
-            <label class="flex items-center gap-2 cursor-pointer">
-              <input type="checkbox" [(ngModel)]="form.is_active" name="is_active" class="w-4 h-4" />
-              <span class="text-sm">Activa</span>
-            </label>
-            <label class="flex items-center gap-2 cursor-pointer">
-              <input type="checkbox" [(ngModel)]="form.is_featured" name="is_featured" class="w-4 h-4" />
-              <span class="text-sm">Destacada (aparece en home)</span>
-            </label>
+            <dlx-toggle [(ngModel)]="form.is_active" name="is_active" text="Activa" />
+            <dlx-toggle [(ngModel)]="form.is_featured" name="is_featured" text="Destacada (aparece en home)" />
           </div>
 
           <!-- Footer -->

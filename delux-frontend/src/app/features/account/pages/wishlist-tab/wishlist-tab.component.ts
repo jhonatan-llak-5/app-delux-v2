@@ -1,4 +1,6 @@
 import { ChangeDetectionStrategy, Component, OnInit, inject, signal } from '@angular/core';
+import { DlxEmptyStateComponent } from '@shared/ui/empty-state.component';
+import { ImgFallbackDirective } from '@shared/ui/img-fallback.directive';
 import { CommonModule } from '@angular/common';
 import { RouterLink } from '@angular/router';
 import { MeService, WishlistEntry } from '@features/account/services/me.service';
@@ -6,7 +8,7 @@ import { MeService, WishlistEntry } from '@features/account/services/me.service'
 @Component({
   selector: 'dlx-wishlist-tab',
   standalone: true,
-  imports: [CommonModule, RouterLink],
+  imports: [DlxEmptyStateComponent, ImgFallbackDirective, CommonModule, RouterLink],
   changeDetection: ChangeDetectionStrategy.OnPush,
   template: `
     <div class="editorial-card p-6">
@@ -18,13 +20,11 @@ import { MeService, WishlistEntry } from '@features/account/services/me.service'
           <i class="fa-solid fa-spinner fa-spin text-2xl text-ink-400 dark:text-white/40"></i>
         </div>
       } @else if (items().length === 0) {
-        <div class="text-center py-12">
-          <i class="fa-regular fa-heart text-5xl text-ink-300 dark:text-white/30 mb-3"></i>
-          <p class="text-ink-700 dark:text-white/70 mb-4">Aún no tienes favoritos.</p>
+        <dlx-empty-state variant="store" icon="fa-heart" title="Aún no tienes favoritos.">
           <a routerLink="/shop" class="btn-accent text-sm font-semibold px-6 py-3">
             Descubrir productos
           </a>
-        </div>
+        </dlx-empty-state>
       } @else {
         <div class="grid grid-cols-2 lg:grid-cols-3 gap-4">
           @for (w of items(); track w.id) {
@@ -33,7 +33,7 @@ import { MeService, WishlistEntry } from '@features/account/services/me.service'
                 <div class="relative aspect-square rounded-xl overflow-hidden bg-ink-100 dark:bg-white/5">
                   <img [src]="w.main_image_url" [alt]="w.name"
                        class="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500"
-                       loading="lazy" (error)="onImgErr($event)" />
+                       loading="lazy" dlxImgFallback />
                   <button (click)="remove(w, $event)"
                           class="absolute top-2 right-2 w-9 h-9 rounded-full bg-white/90 dark:bg-ink-950/90 backdrop-blur grid place-items-center hover:bg-rose-500 hover:text-white transition"
                           aria-label="Quitar de favoritos">
@@ -78,7 +78,4 @@ export class WishlistTabComponent implements OnInit {
     this.me.toggleWishlist(w.product_id).subscribe(() => this.reload());
   }
 
-  onImgErr(ev: Event) {
-    (ev.target as HTMLImageElement).src = 'data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 200 200"><rect width="200" height="200" fill="%23e2e8f0"/></svg>';
-  }
 }

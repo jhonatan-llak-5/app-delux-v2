@@ -1,4 +1,5 @@
 import { ChangeDetectionStrategy, Component, OnInit, inject, signal } from '@angular/core';
+import { DlxEmptyStateComponent } from '@shared/ui/empty-state.component';
 import { DlxStatCardComponent } from '@shared/ui';
 import { DlxSearchInputComponent } from '@shared/ui/search-input.component';
 import { CommonModule } from '@angular/common';
@@ -9,7 +10,7 @@ import { NotifyService } from '@shared/services/notify.service';
 @Component({
   selector: 'dlx-shipments-list',
   standalone: true,
-  imports: [DlxStatCardComponent, DlxSearchInputComponent, CommonModule, FormsModule],
+  imports: [DlxEmptyStateComponent, DlxStatCardComponent, DlxSearchInputComponent, CommonModule, FormsModule],
   changeDetection: ChangeDetectionStrategy.OnPush,
   template: `
     <div class="mb-6">
@@ -45,10 +46,7 @@ import { NotifyService } from '@shared/services/notify.service';
 
     <div class="card overflow-hidden">
       @if (items().length === 0) {
-        <div class="p-12 text-center text-slate-400">
-          <i class="fa-solid fa-truck text-3xl mb-3"></i>
-          <p>No hay envíos registrados.</p>
-        </div>
+        <dlx-empty-state icon="fa-truck" title="No hay envíos registrados." />
       } @else {
         <table class="w-full text-sm">
           <thead class="bg-slate-50 text-slate-500">

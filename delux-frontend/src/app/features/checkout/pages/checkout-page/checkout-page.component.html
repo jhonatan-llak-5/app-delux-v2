@@ -1,0 +1,389 @@
+    <section class="max-w-[1400px] mx-auto px-6 md:px-10 pt-32 pb-24 bg-white dark:bg-ink-950 min-h-screen">
+      <p class="eyebrow">/ Checkout</p>
+      <h1 class="display-xl text-4xl md:text-6xl mt-4 mb-12 leading-[0.95] text-ink-950 dark:text-white tracking-[-0.03em]">
+        Finalizar compra
+      </h1>
+
+      @if (cart.lines().length === 0) {
+        <dlx-empty-state variant="store" icon="fa-bag-shopping" title="Tu carrito está vacío.">
+          <a routerLink="/shop" class="btn-outline">Ver catálogo</a>
+        </dlx-empty-state>
+      } @else {
+        <div class="grid grid-cols-1 lg:grid-cols-[1fr_400px] gap-8">
+          <form (ngSubmit)="payNow()" #f="ngForm" class="space-y-6">
+            <!-- 1. Cliente -->
+            <div class="editorial-card p-6">
+              <div class="flex items-center gap-3 mb-4">
+                <span class="w-7 h-7 rounded-full bg-ink-950 dark:bg-white text-white dark:text-ink-950 grid place-items-center font-bold text-sm">1</span>
+                <h2 class="font-display font-bold text-xl text-ink-950 dark:text-white">Información de contacto</h2>
+              </div>
+              <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div>
+                  <label class="text-sm font-semibold text-ink-800 dark:text-white/80 mb-1.5 block">Nombre completo *</label>
+                  <input [(ngModel)]="customer.full_name" name="full_name" required maxlength="160"
+                         class="w-full px-3 py-3 rounded-lg bg-ink-50 dark:bg-white/5 border border-ink-200 dark:border-white/10 text-sm focus:outline-none focus:border-ink-950 dark:focus:border-white" />
+                  <dlx-field-error [error]="fe('full_name')" />
+                </div>
+                <div>
+                  <label class="text-sm font-semibold text-ink-800 dark:text-white/80 mb-1.5 block">Email *</label>
+                  <input [(ngModel)]="customer.email" name="email" type="email" required
+                         [readonly]="emailLocked()"
+                         [class.opacity-60]="emailLocked()"
+                         [class.cursor-not-allowed]="emailLocked()"
+                         class="w-full px-3 py-3 rounded-lg bg-ink-50 dark:bg-white/5 border border-ink-200 dark:border-white/10 text-sm focus:outline-none focus:border-ink-950 dark:focus:border-white" />
+                  @if (emailLocked()) {
+                    <p class="text-xs text-ink-500 dark:text-white/50 mt-1">Usamos el correo de tu cuenta. Los demás datos sí puedes editarlos.</p>
+                  }
+                  <dlx-field-error [error]="fe('email')" />
+                </div>
+                <div>
+                  <label class="text-sm font-semibold text-ink-800 dark:text-white/80 mb-1.5 block">Teléfono *</label>
+                  <input [(ngModel)]="customer.phone" name="phone" required maxlength="30"
+                         class="w-full px-3 py-3 rounded-lg bg-ink-50 dark:bg-white/5 border border-ink-200 dark:border-white/10 text-sm focus:outline-none focus:border-ink-950 dark:focus:border-white" />
+                  <dlx-field-error [error]="fe('phone')" />
+                </div>
+                <div>
+                  <label class="text-sm font-semibold text-ink-800 dark:text-white/80 mb-1.5 block">Cédula</label>
+                  <input [(ngModel)]="customer.document_id" name="document_id" maxlength="30"
+                         class="w-full px-3 py-3 rounded-lg bg-ink-50 dark:bg-white/5 border border-ink-200 dark:border-white/10 text-sm focus:outline-none focus:border-ink-950 dark:focus:border-white font-mono" />
+                </div>
+              </div>
+            </div>
+
+            <!-- 2. Sucursal -->
+            <div class="editorial-card p-6">
+              <div class="flex items-center gap-3 mb-4">
+                <span class="w-7 h-7 rounded-full bg-ink-950 dark:bg-white text-white dark:text-ink-950 grid place-items-center font-bold text-sm">2</span>
+                <h2 class="font-display font-bold text-xl text-ink-950 dark:text-white">Sucursal de despacho</h2>
+              </div>
+              <p class="text-sm text-ink-700 dark:text-white/70 mb-4">El stock se reserva en la sucursal seleccionada.</p>
+
+              <!-- Tipo de entrega -->
+              <div class="grid grid-cols-2 gap-3 mb-4">
+                <button type="button" (click)="fulfillment = 'SHIPPING'; onShippingSelected()"
+                        class="p-3 rounded-xl border-2 text-left transition flex items-center gap-3"
+                        [class.border-accent-500]="fulfillment === 'SHIPPING'"
+                        [class.bg-accent-50]="fulfillment === 'SHIPPING'"
+                        [class.dark:bg-white/10]="fulfillment === 'SHIPPING'"
+                        [class.border-ink-200]="fulfillment !== 'SHIPPING'"
+                        [class.dark:border-white/10]="fulfillment !== 'SHIPPING'">
+                  <i class="fa-solid fa-truck text-accent-600"></i>
+                  <span>
+                    <span class="block font-semibold text-ink-950 dark:text-white text-sm">Envío a domicilio</span>
+                    <span class="block text-xs text-ink-600 dark:text-white/55">Costo coordinado contigo</span>
+                  </span>
+                </button>
+                <button type="button" (click)="fulfillment = 'PICKUP'"
+                        class="p-3 rounded-xl border-2 text-left transition flex items-center gap-3"
+                        [class.border-accent-500]="fulfillment === 'PICKUP'"
+                        [class.bg-accent-50]="fulfillment === 'PICKUP'"
+                        [class.dark:bg-white/10]="fulfillment === 'PICKUP'"
+                        [class.border-ink-200]="fulfillment !== 'PICKUP'"
+                        [class.dark:border-white/10]="fulfillment !== 'PICKUP'">
+                  <i class="fa-solid fa-store text-accent-600"></i>
+                  <span>
+                    <span class="block font-semibold text-ink-950 dark:text-white text-sm">Retiro en tienda</span>
+                    <span class="block text-xs text-ink-600 dark:text-white/55">Sin costo de envío</span>
+                  </span>
+                </button>
+              </div>
+
+              <div class="grid grid-cols-1 md:grid-cols-3 gap-3">
+                @for (b of branches(); track b.id) {
+                  <button type="button" (click)="branchId = b.id"
+                          class="p-4 rounded-xl border-2 text-left transition"
+                          [class.border-accent-500]="branchId === b.id"
+                          [class.bg-accent-50]="branchId === b.id"
+                          [class.dark:bg-white/10]="branchId === b.id"
+                          [class.border-ink-200]="branchId !== b.id"
+                          [class.dark:border-white/10]="branchId !== b.id">
+                    <p class="font-mono text-[10px] uppercase tracking-widest text-ink-500 dark:text-white/50">{{ b.code }}</p>
+                    <p class="font-semibold text-ink-950 dark:text-white mt-0.5">{{ b.name }}</p>
+                    <p class="text-xs text-ink-700 dark:text-white/60 mt-0.5">{{ b.city }}</p>
+                  </button>
+                }
+              </div>
+
+              @if (fulfillment === 'SHIPPING') {
+                @if (freeShipping()) {
+                  <div class="mt-4 flex items-center gap-2.5 rounded-xl border border-emerald-200 dark:border-emerald-500/30 bg-emerald-50 dark:bg-emerald-500/10 px-3.5 py-3">
+                    <i class="fa-solid fa-truck-fast text-emerald-600 dark:text-emerald-400"></i>
+                    <p class="text-[13px] text-emerald-800 dark:text-emerald-300 leading-snug">
+                      <strong>{{ freeShippingLabel() }}</strong> Esta tienda cubre el costo del envío para tu pedido.
+                    </p>
+                  </div>
+                } @else {
+                  <div class="mt-4 flex items-start gap-2.5 rounded-xl border border-amber-200 dark:border-amber-500/30 bg-amber-50 dark:bg-amber-500/10 px-3.5 py-3">
+                    <i class="fa-solid fa-truck-fast text-amber-600 dark:text-amber-400 mt-0.5"></i>
+                    <p class="text-[13px] text-ink-700 dark:text-white/75 leading-snug">
+                      El <strong>costo del envío a domicilio se gestiona directamente contigo</strong>. Al confirmar tu pedido nos comunicaremos para coordinar el envío (motorizado o courier) y acordar el valor según tu ubicación.
+                    </p>
+                  </div>
+                }
+                <div class="mt-5 pt-5 border-t border-ink-200 dark:border-white/10">
+                  <label class="block text-xs font-semibold uppercase tracking-wider text-ink-500 dark:text-white/50 mb-2">
+                    Dirección de entrega *
+                  </label>
+                  <div class="flex gap-2 mb-3">
+                    <input [(ngModel)]="shippingAddress" name="ship_addr"
+                           placeholder="Calle, número, referencia..."
+                           class="flex-1 px-3 py-2.5 rounded-xl bg-ink-50 dark:bg-white/5
+                                  border border-ink-200 dark:border-white/10 text-sm
+                                  text-ink-950 dark:text-white focus:outline-none" />
+                    <button type="button" (click)="useMyLocation()" [disabled]="locating()"
+                            class="px-3 py-2.5 rounded-xl bg-ink-950 dark:bg-white text-white dark:text-ink-950
+                                   text-xs font-semibold inline-flex items-center gap-2 disabled:opacity-50 shrink-0">
+                      @if (locating()) { <i class="fa-solid fa-spinner fa-spin"></i> }
+                      @else { <i class="fa-solid fa-location-crosshairs"></i> }
+                      Mi ubicación
+                    </button>
+                  </div>
+                  <div id="dlx-ship-map"
+                       class="w-full h-56 rounded-xl overflow-hidden border border-ink-200 dark:border-white/10
+                              bg-ink-100 dark:bg-white/5"></div>
+                  <p class="text-[11px] text-ink-500 dark:text-white/50 mt-2">
+                    <i class="fa-solid fa-circle-info"></i>
+                    Toca el mapa o arrastra el pin para ubicar tu dirección exacta.
+                  </p>
+                </div>
+              }
+            </div>
+
+            <!-- 3. Pago -->
+            <div class="editorial-card p-6">
+              <div class="flex items-center gap-3 mb-4">
+                <span class="w-7 h-7 rounded-full bg-ink-950 dark:bg-white text-white dark:text-ink-950 grid place-items-center font-bold text-sm">3</span>
+                <h2 class="font-display font-bold text-xl text-ink-950 dark:text-white">Método de pago</h2>
+              </div>
+
+              <div class="space-y-3">
+                <!-- Contra entrega -->
+                <button type="button" (click)="paymentMethod.set('COD')"
+                        class="w-full text-left p-5 rounded-xl border-2 transition flex items-center gap-3"
+                        [class.border-emerald-400]="paymentMethod()==='COD'"
+                        [class.bg-emerald-50]="paymentMethod()==='COD'"
+                        [class.dark:bg-emerald-500/10]="paymentMethod()==='COD'"
+                        [class.border-ink-200]="paymentMethod()!=='COD'"
+                        [class.dark:border-white/10]="paymentMethod()!=='COD'">
+                  <div class="w-12 h-12 rounded-lg bg-emerald-600 text-white grid place-items-center shrink-0">
+                    <i class="fa-solid fa-hand-holding-dollar text-xl"></i>
+                  </div>
+                  <div class="flex-1">
+                    <p class="font-bold text-ink-950 dark:text-white">Pago contra entrega</p>
+                    <p class="text-xs text-ink-700 dark:text-white/70">Paga en efectivo al recibir tu pedido</p>
+                  </div>
+                  <i class="fa-solid text-xl"
+                     [class.fa-circle-check]="paymentMethod()==='COD'" [class.text-emerald-600]="paymentMethod()==='COD'"
+                     [class.fa-circle]="paymentMethod()!=='COD'" [class.text-ink-300]="paymentMethod()!=='COD'"></i>
+                </button>
+
+                <!-- Transferencia bancaria -->
+                @if (branding.transferEnabled()) {
+                  <button type="button" (click)="paymentMethod.set('TRANSFER')"
+                          class="w-full text-left p-5 rounded-xl border-2 transition flex items-center gap-3"
+                          [class.border-sky-400]="paymentMethod()==='TRANSFER'"
+                          [class.bg-sky-50]="paymentMethod()==='TRANSFER'"
+                          [class.dark:bg-sky-500/10]="paymentMethod()==='TRANSFER'"
+                          [class.border-ink-200]="paymentMethod()!=='TRANSFER'"
+                          [class.dark:border-white/10]="paymentMethod()!=='TRANSFER'">
+                    <div class="w-12 h-12 rounded-lg bg-sky-600 text-white grid place-items-center shrink-0">
+                      <i class="fa-solid fa-building-columns text-xl"></i>
+                    </div>
+                    <div class="flex-1">
+                      <p class="font-bold text-ink-950 dark:text-white">Transferencia bancaria</p>
+                      <p class="text-xs text-ink-700 dark:text-white/70">Transfiere y sube tu comprobante</p>
+                    </div>
+                    <i class="fa-solid text-xl"
+                       [class.fa-circle-check]="paymentMethod()==='TRANSFER'" [class.text-sky-600]="paymentMethod()==='TRANSFER'"
+                       [class.fa-circle]="paymentMethod()!=='TRANSFER'" [class.text-ink-300]="paymentMethod()!=='TRANSFER'"></i>
+                  </button>
+                }
+
+                <!-- DE UNA -->
+                @if (branding.deunaEnabled()) {
+                  <button type="button" (click)="paymentMethod.set('DEUNA')"
+                          class="w-full text-left p-5 rounded-xl border-2 transition flex items-center gap-3"
+                          [class.border-fuchsia-400]="paymentMethod()==='DEUNA'"
+                          [class.bg-fuchsia-50]="paymentMethod()==='DEUNA'"
+                          [class.dark:bg-fuchsia-500/10]="paymentMethod()==='DEUNA'"
+                          [class.border-ink-200]="paymentMethod()!=='DEUNA'"
+                          [class.dark:border-white/10]="paymentMethod()!=='DEUNA'">
+                    <div class="w-12 h-12 rounded-lg bg-fuchsia-600 text-white grid place-items-center shrink-0">
+                      <i class="fa-solid fa-qrcode text-xl"></i>
+                    </div>
+                    <div class="flex-1">
+                      <p class="font-bold text-ink-950 dark:text-white">DE UNA</p>
+                      <p class="text-xs text-ink-700 dark:text-white/70">Escanea el QR y paga al instante</p>
+                    </div>
+                    <i class="fa-solid text-xl"
+                       [class.fa-circle-check]="paymentMethod()==='DEUNA'" [class.text-fuchsia-600]="paymentMethod()==='DEUNA'"
+                       [class.fa-circle]="paymentMethod()!=='DEUNA'" [class.text-ink-300]="paymentMethod()!=='DEUNA'"></i>
+                  </button>
+                }
+              </div>
+
+              <!-- Datos de pago + comprobante (transferencia / DE UNA) -->
+              @if (paymentMethod()==='TRANSFER' || paymentMethod()==='DEUNA') {
+                <div class="mt-4 rounded-xl border border-ink-200 dark:border-white/10 bg-ink-50 dark:bg-white/5 p-4 space-y-4">
+
+                  @if (paymentMethod()==='TRANSFER') {
+                    <div>
+                      <p class="text-xs font-bold uppercase tracking-wider text-ink-500 dark:text-white/50 mb-2">Datos para la transferencia</p>
+                      <dl class="text-sm space-y-1.5">
+                        <div class="flex justify-between gap-4"><dt class="text-ink-600 dark:text-white/60">Banco</dt><dd class="font-semibold text-ink-950 dark:text-white text-right">{{ branding.bankData().bank_name }}</dd></div>
+                        @if (branding.bankData().account_type) {
+                          <div class="flex justify-between gap-4"><dt class="text-ink-600 dark:text-white/60">Tipo de cuenta</dt><dd class="font-semibold text-ink-950 dark:text-white text-right">{{ branding.bankData().account_type }}</dd></div>
+                        }
+                        <div class="flex justify-between gap-4"><dt class="text-ink-600 dark:text-white/60">Titular</dt><dd class="font-semibold text-ink-950 dark:text-white text-right">{{ branding.bankData().account_holder }}</dd></div>
+                        <div class="flex justify-between gap-4 items-center"><dt class="text-ink-600 dark:text-white/60">N° de cuenta</dt>
+                          <dd class="font-mono font-bold text-ink-950 dark:text-white text-right">{{ branding.bankData().account_number }}
+                            <button type="button" (click)="copy(branding.bankData().account_number)" class="ml-2 text-sky-600 hover:text-sky-800"><i class="fa-solid fa-copy"></i></button>
+                          </dd>
+                        </div>
+                        @if (branding.bankData().account_document) {
+                          <div class="flex justify-between gap-4"><dt class="text-ink-600 dark:text-white/60">Cédula/RUC</dt><dd class="font-mono text-ink-950 dark:text-white text-right">{{ branding.bankData().account_document }}</dd></div>
+                        }
+                        @if (branding.bankData().contact_email) {
+                          <div class="flex justify-between gap-4"><dt class="text-ink-600 dark:text-white/60">Email</dt><dd class="text-ink-950 dark:text-white text-right">{{ branding.bankData().contact_email }}</dd></div>
+                        }
+                        @if (branding.bankData().contact_whatsapp) {
+                          <div class="flex justify-between gap-4"><dt class="text-ink-600 dark:text-white/60">WhatsApp</dt><dd class="text-ink-950 dark:text-white text-right">{{ branding.bankData().contact_whatsapp }}</dd></div>
+                        }
+                      </dl>
+                      @if (branding.bankData().instructions) {
+                        <p class="text-xs text-ink-600 dark:text-white/60 mt-2">{{ branding.bankData().instructions }}</p>
+                      }
+                    </div>
+                  }
+
+                  @if (paymentMethod()==='DEUNA') {
+                    <div class="text-center">
+                      <p class="text-xs font-bold uppercase tracking-wider text-ink-500 dark:text-white/50 mb-2">Escanea con la app DE UNA</p>
+                      @if (branding.deunaQrUrl()) {
+                        <img [src]="branding.deunaQrUrl()" alt="QR DE UNA" class="mx-auto w-48 h-48 object-contain rounded-lg bg-white p-2 border border-ink-200" />
+                      }
+                      @if (branding.deunaInstructions()) {
+                        <p class="text-xs text-ink-600 dark:text-white/60 mt-2">{{ branding.deunaInstructions() }}</p>
+                      }
+                    </div>
+                  }
+
+                  <!-- Comprobante obligatorio -->
+                  <div class="pt-3 border-t border-ink-200 dark:border-white/10">
+                    <label class="block text-sm font-semibold text-ink-800 dark:text-white/80 mb-1.5">Sube tu comprobante de pago *</label>
+                    <input type="file" accept="image/*" (change)="onVoucherSelected($event)"
+                           class="block w-full text-sm text-ink-700 dark:text-white/70
+                                  file:mr-3 file:py-2 file:px-4 file:rounded-lg file:border-0
+                                  file:text-sm file:font-semibold file:bg-ink-950 file:text-white
+                                  dark:file:bg-white dark:file:text-ink-950 file:cursor-pointer" />
+                    @if (voucherName()) {
+                      <p class="text-xs text-emerald-600 dark:text-emerald-400 mt-1.5"><i class="fa-solid fa-circle-check"></i> {{ voucherName() }}</p>
+                    } @else {
+                      <p class="text-xs text-ink-500 dark:text-white/50 mt-1.5">Adjunta una captura o foto del comprobante. Validaremos tu pago y confirmaremos el pedido.</p>
+                    }
+                  </div>
+                </div>
+              }
+
+              @if (error()) {
+                <div class="mt-4 p-3 rounded-lg bg-rose-50 border border-rose-200 text-rose-700 text-sm">
+                  <i class="fa-solid fa-circle-exclamation"></i> {{ error() }}
+                </div>
+              }
+            </div>
+          </form>
+
+          <!-- Resumen -->
+          <aside class="lg:sticky lg:top-24 self-start">
+            <div class="editorial-card p-6">
+              <h2 class="font-display font-bold text-xl mb-4 text-ink-950 dark:text-white">Tu orden</h2>
+
+              <ul class="space-y-3 max-h-72 overflow-y-auto pb-3 border-b border-ink-200 dark:border-white/10">
+                @for (l of cart.lines(); track l.variant_id) {
+                  <li class="flex gap-2.5">
+                    <div class="relative w-14 h-14 rounded-lg bg-ink-100 dark:bg-white/5 overflow-hidden shrink-0">
+                      <img [src]="l.product_image" [alt]="l.product_name"
+                           class="w-full h-full object-cover"
+ dlxImgFallback />
+                      <span class="absolute -top-1 -right-1 w-5 h-5 rounded-full bg-ink-950 dark:bg-white text-white dark:text-ink-950 text-[10px] font-bold grid place-items-center">
+                        {{ l.quantity }}
+                      </span>
+                    </div>
+                    <div class="flex-1 min-w-0">
+                      <p class="text-xs font-semibold truncate text-ink-950 dark:text-white">{{ l.product_name }}</p>
+                      <p class="text-[10px] text-ink-500 dark:text-white/50 font-mono truncate">{{ l.size }} · {{ l.color }}</p>
+                    </div>
+                    <span class="text-xs font-bold text-ink-950 dark:text-white">${{ (l.unit_price * l.quantity).toFixed(2) }}</span>
+                  </li>
+                }
+              </ul>
+
+              <!-- Cupón -->
+              @if (!appliedCoupon()) {
+                <div class="mt-4 flex gap-2">
+                  <input [(ngModel)]="couponInput" placeholder="Código de cupón"
+                         class="flex-1 px-3 py-2 rounded-lg bg-ink-50 dark:bg-white/5 border border-ink-200 dark:border-white/10 text-xs font-mono uppercase focus:outline-none" />
+                  <button type="button" (click)="applyCoupon()" [disabled]="!couponInput || validating()"
+                          class="px-3 py-2 rounded-lg bg-violet-600 text-white text-xs font-semibold hover:bg-violet-700 disabled:opacity-40">
+                    @if (validating()) { <i class="fa-solid fa-spinner fa-spin"></i> } @else { Aplicar }
+                  </button>
+                </div>
+                @if (couponError()) {
+                  <p class="text-[10px] text-rose-600 mt-1"><i class="fa-solid fa-circle-exclamation"></i> {{ couponError() }}</p>
+                }
+              } @else {
+                <div class="mt-4 flex items-center justify-between p-2 rounded-lg bg-violet-50 dark:bg-violet-500/10 border border-violet-200 dark:border-violet-400/30">
+                  <div>
+                    <p class="text-[10px] uppercase tracking-widest text-violet-600 dark:text-violet-300 font-bold">Cupón</p>
+                    <p class="font-mono text-xs font-bold text-violet-700 dark:text-violet-200">{{ appliedCoupon()!.code }}</p>
+                  </div>
+                  <button (click)="removeCoupon()" class="text-violet-600 hover:text-violet-800">
+                    <i class="fa-solid fa-xmark text-xs"></i>
+                  </button>
+                </div>
+              }
+
+              <div class="mt-4 pt-4 border-t border-ink-200 dark:border-white/10 space-y-2 text-sm">
+                <div class="flex justify-between">
+                  <span class="text-ink-700 dark:text-white/70">Subtotal</span>
+                  <span class="text-ink-950 dark:text-white font-semibold">${{ cart.subtotal().toFixed(2) }}</span>
+                </div>
+                @if (discount() > 0) {
+                  <div class="flex justify-between text-violet-600">
+                    <span>Descuento</span>
+                    <span>-${{ discount().toFixed(2) }}</span>
+                  </div>
+                }
+                <div class="flex justify-between pt-3 border-t border-ink-200 dark:border-white/10">
+                  <span class="font-bold text-ink-950 dark:text-white">TOTAL</span>
+                  <span class="font-display text-2xl font-bold text-ink-950 dark:text-white">
+                    ${{ total().toFixed(2) }}
+                  </span>
+                </div>
+              </div>
+
+              <button type="button" (click)="payNow()" [disabled]="!canPay() || saving()"
+                      class="w-full mt-5 btn-accent text-sm font-semibold py-4 disabled:opacity-50">
+                @if (saving()) { <i class="fa-solid fa-spinner fa-spin"></i> Procesando... }
+                @else if (paymentMethod()==='PAYPHONE') {
+                  <i class="fa-solid fa-lock"></i> Pagar ${{ total().toFixed(2) }}
+                } @else {
+                  <i class="fa-solid fa-bag-shopping"></i> Confirmar pedido · ${{ total().toFixed(2) }}
+                }
+              </button>
+
+              <p class="text-[10px] text-ink-500 dark:text-white/40 mt-3 text-center">
+                @if (paymentMethod()==='COD') {
+                  Pagarás en efectivo al recibir tu pedido.
+                } @else if (paymentMethod()==='TRANSFER' || paymentMethod()==='DEUNA') {
+                  Validaremos tu comprobante y confirmaremos tu pedido.
+                } @else {
+                  Serás redirigido a PayPhone para completar el pago.
+                }
+              </p>
+            </div>
+          </aside>
+        </div>
+      }
+    </section>
+  

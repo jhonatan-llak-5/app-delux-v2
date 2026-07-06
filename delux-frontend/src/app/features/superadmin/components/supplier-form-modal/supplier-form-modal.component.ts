@@ -1,4 +1,5 @@
 import { ChangeDetectionStrategy, Component, EventEmitter, Input, OnInit, Output, inject, signal } from '@angular/core';
+import { DlxToggleComponent } from '@shared/ui/toggle.component';
 import { DlxFieldErrorComponent } from '@shared/ui/field-error.component';
 import { DlxModalComponent } from '@shared/ui/modal.component';
 import { CommonModule } from '@angular/common';
@@ -14,7 +15,7 @@ interface SupplierForm {
 @Component({
   selector: 'dlx-supplier-form-modal',
   standalone: true,
-  imports: [DlxFieldErrorComponent, DlxModalComponent, CommonModule, FormsModule],
+  imports: [DlxFieldErrorComponent, DlxModalComponent, CommonModule, FormsModule, DlxToggleComponent],
   changeDetection: ChangeDetectionStrategy.OnPush,
   template: `
     <dlx-modal [open]="true" [maxWidth]="540"
@@ -55,10 +56,7 @@ interface SupplierForm {
             <label class="eg-label">Notas</label>
             <textarea [(ngModel)]="form.notes" name="notes" rows="2" maxlength="400" class="eg-input" placeholder="Datos de contacto, condiciones, etc."></textarea>
           </div>
-          <label class="flex items-center gap-2 cursor-pointer">
-            <input type="checkbox" [(ngModel)]="form.is_active" name="is_active" class="w-4 h-4 accent-[var(--dash-primary)]" />
-            <span class="text-sm">Activo (aparece para seleccionar en recepción)</span>
-          </label>
+          <dlx-toggle [(ngModel)]="form.is_active" name="is_active" text="Activo (aparece para seleccionar en recepción)" />
           <div class="flex justify-end gap-3 pt-2 border-t border-slate-100 dark:border-white/10">
             <button type="button" class="btn-secondary" (click)="cancel.emit()">Cancelar</button>
             <button type="submit" class="eg-btn-primary" [disabled]="saving()">

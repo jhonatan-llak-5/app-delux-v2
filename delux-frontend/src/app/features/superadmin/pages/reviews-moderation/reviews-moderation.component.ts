@@ -1,4 +1,5 @@
 import { ChangeDetectionStrategy, Component, OnInit, inject, signal } from '@angular/core';
+import { DlxEmptyStateComponent } from '@shared/ui/empty-state.component';
 import { DlxStatCardComponent } from '@shared/ui';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
@@ -11,7 +12,7 @@ import { StarRatingComponent } from '@shared/components/star-rating/star-rating.
 @Component({
   selector: 'dlx-reviews-moderation',
   standalone: true,
-  imports: [DlxStatCardComponent, CommonModule, FormsModule, StarRatingComponent, DlxPaginationComponent],
+  imports: [DlxEmptyStateComponent, DlxStatCardComponent, CommonModule, FormsModule, StarRatingComponent, DlxPaginationComponent],
   changeDetection: ChangeDetectionStrategy.OnPush,
   template: `
     <div class="flex items-end justify-between gap-4 mb-6">
@@ -89,10 +90,7 @@ import { StarRatingComponent } from '@shared/components/star-rating/star-rating.
         </div>
       }
       @if (items().length === 0) {
-        <div class="card p-12 text-center text-slate-400">
-          <i class="fa-regular fa-comment-dots text-3xl mb-3"></i>
-          <p>No hay reseñas con esos filtros.</p>
-        </div>
+        <dlx-empty-state icon="fa-comment-dots" title="No hay reseñas con esos filtros." />
       }
     </div>
 

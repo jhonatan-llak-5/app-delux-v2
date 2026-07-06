@@ -1,4 +1,5 @@
 import { ChangeDetectionStrategy, Component, OnInit, inject, signal } from '@angular/core';
+import { DlxEmptyStateComponent } from '@shared/ui/empty-state.component';
 import { DlxStatCardComponent } from '@shared/ui';
 import { DlxSearchInputComponent } from '@shared/ui/search-input.component';
 import { CommonModule } from '@angular/common';
@@ -11,7 +12,7 @@ import { CouponFormModalComponent } from '@features/superadmin/components/coupon
 @Component({
   selector: 'dlx-coupons-list',
   standalone: true,
-  imports: [DlxStatCardComponent, DlxSearchInputComponent, CommonModule, FormsModule, CouponFormModalComponent],
+  imports: [DlxEmptyStateComponent, DlxStatCardComponent, DlxSearchInputComponent, CommonModule, FormsModule, CouponFormModalComponent],
   changeDetection: ChangeDetectionStrategy.OnPush,
   template: `
     <div class="flex flex-wrap items-end justify-between gap-4 mb-6">
@@ -51,10 +52,7 @@ import { CouponFormModalComponent } from '@features/superadmin/components/coupon
         <i class="fa-solid fa-spinner fa-spin text-2xl"></i>
       </div>
     } @else if (coupons().length === 0) {
-      <div class="card p-12 text-center text-slate-400">
-        <i class="fa-solid fa-ticket text-3xl mb-3"></i>
-        <p>Aún no hay cupones creados.</p>
-      </div>
+      <dlx-empty-state icon="fa-ticket" title="Aún no hay cupones creados." />
     } @else {
       <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
         @for (c of coupons(); track c.id) {

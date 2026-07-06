@@ -1,4 +1,5 @@
 import { ChangeDetectionStrategy, Component, signal } from '@angular/core';
+import { ImgFallbackDirective } from '@shared/ui/img-fallback.directive';
 import { CommonModule } from '@angular/common';
 import { RevealOnScrollDirective } from '@shared/directives/reveal-on-scroll.directive';
 
@@ -8,7 +9,7 @@ interface Branch { id: string; name: string; city: string; address: string;
 @Component({
   selector: 'dlx-branches-section',
   standalone: true,
-  imports: [CommonModule, RevealOnScrollDirective],
+  imports: [ImgFallbackDirective, CommonModule, RevealOnScrollDirective],
   changeDetection: ChangeDetectionStrategy.OnPush,
   template: `
     <section id="branches" class="relative max-w-[1600px] mx-auto px-6 md:px-10 py-20 md:py-32
@@ -71,7 +72,7 @@ interface Branch { id: string; name: string; city: string; address: string;
               <img [src]="b.image" [alt]="b.name"
                    class="absolute inset-0 w-full h-full object-cover
                           group-hover:scale-105 transition-transform duration-700"
-                   loading="lazy" (error)="onImgError($event)" />
+                   loading="lazy" dlxImgFallback />
               <div class="absolute inset-0 bg-gradient-to-t from-black/30 to-transparent"></div>
             </div>
 
@@ -117,8 +118,4 @@ export class BranchesSectionComponent {
       image: 'https://images.unsplash.com/photo-1582539588230-a6c69a7c6f54?w=900&q=85&auto=format&fit=crop' },
   ];
 
-  onImgError(ev: Event) {
-    const img = ev.target as HTMLImageElement;
-    img.src = 'data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 400 250"><rect width="400" height="250" fill="%23cbd5e1"/></svg>';
-  }
 }

@@ -1,4 +1,6 @@
 import { ChangeDetectionStrategy, Component, OnInit, inject, signal } from '@angular/core';
+import { DlxEmptyStateComponent } from '@shared/ui/empty-state.component';
+import { DlxToggleComponent } from '@shared/ui/toggle.component';
 import { DlxSearchInputComponent } from '@shared/ui/search-input.component';
 import { DlxFieldErrorComponent } from '@shared/ui/field-error.component';
 import { CommonModule } from '@angular/common';
@@ -17,7 +19,7 @@ interface SupplierForm {
 @Component({
   selector: 'dlx-suppliers-list',
   standalone: true,
-  imports: [DlxSearchInputComponent, DlxFieldErrorComponent, CommonModule, FormsModule, DlxConfirmDialogComponent],
+  imports: [DlxEmptyStateComponent, DlxSearchInputComponent, DlxFieldErrorComponent, CommonModule, FormsModule, DlxConfirmDialogComponent, DlxToggleComponent],
   changeDetection: ChangeDetectionStrategy.OnPush,
   template: `
     <div class="mb-5 flex items-start justify-between gap-3 flex-wrap">
@@ -38,13 +40,9 @@ interface SupplierForm {
     @if (loading()) {
       <div class="card p-10 text-center text-slate-400"><i class="fa-solid fa-spinner fa-spin text-xl"></i></div>
     } @else if (suppliers().length === 0) {
-      <div class="card p-10 text-center">
-        <div class="w-14 h-14 rounded-2xl mx-auto mb-4 grid place-items-center bg-slate-100 dark:bg-white/5 text-slate-400">
-          <i class="fa-solid fa-truck-field text-xl"></i>
-        </div>
-        <p class="text-slate-500 mb-4">Aún no tienes proveedores registrados.</p>
+      <dlx-empty-state icon="fa-truck-field" title="Aún no tienes proveedores registrados.">
         <button class="eg-btn-primary" (click)="openCreate()"><i class="fa-solid fa-plus"></i> Agregar el primero</button>
-      </div>
+      </dlx-empty-state>
     } @else {
       <!-- Tabla desktop -->
       <div class="card overflow-hidden hidden md:block">
@@ -153,10 +151,7 @@ interface SupplierForm {
               <label class="eg-label">Notas</label>
               <textarea [(ngModel)]="form.notes" name="notes" rows="2" maxlength="400" class="eg-input" placeholder="Datos de contacto, condiciones, etc."></textarea>
             </div>
-            <label class="flex items-center gap-2 cursor-pointer">
-              <input type="checkbox" [(ngModel)]="form.is_active" name="is_active" class="w-4 h-4 accent-[var(--dash-primary)]" />
-              <span class="text-sm">Activo (aparece para seleccionar en recepción)</span>
-            </label>
+            <dlx-toggle [(ngModel)]="form.is_active" name="is_active" text="Activo (aparece para seleccionar en recepción)" />
             <div class="flex justify-end gap-3 pt-2 border-t border-slate-100 dark:border-white/10">
               <button type="button" class="btn-secondary" (click)="closeModal()">Cancelar</button>
               <button type="submit" class="eg-btn-primary" [disabled]="saving()">

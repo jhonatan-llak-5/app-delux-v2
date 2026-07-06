@@ -1,4 +1,5 @@
 import { ChangeDetectionStrategy, Component, OnInit, inject, signal } from '@angular/core';
+import { DlxEmptyStateComponent } from '@shared/ui/empty-state.component';
 import { DlxStatCardComponent } from '@shared/ui';
 import { DlxSearchInputComponent } from '@shared/ui/search-input.component';
 import { CommonModule } from '@angular/common';
@@ -15,7 +16,7 @@ import { DlxPaginationComponent } from '@shared/ui/pagination.component';
 @Component({
   selector: 'dlx-customers-list',
   standalone: true,
-  imports: [DlxStatCardComponent, DlxSearchInputComponent, CommonModule, FormsModule, RouterLink, CustomerFormModalComponent, DlxPaginationComponent],
+  imports: [DlxEmptyStateComponent, DlxStatCardComponent, DlxSearchInputComponent, CommonModule, FormsModule, RouterLink, CustomerFormModalComponent, DlxPaginationComponent],
   changeDetection: ChangeDetectionStrategy.OnPush,
   template: `
     <div class="flex flex-wrap items-end justify-between gap-4 mb-6">
@@ -51,10 +52,7 @@ import { DlxPaginationComponent } from '@shared/ui/pagination.component';
           <i class="fa-solid fa-spinner fa-spin text-2xl"></i>
         </div>
       } @else if (customers().length === 0) {
-        <div class="p-12 text-center text-slate-400">
-          <i class="fa-solid fa-user-group text-3xl mb-3"></i>
-          <p>Aún no hay clientes registrados.</p>
-        </div>
+        <dlx-empty-state icon="fa-user-group" title="Aún no hay clientes registrados." />
       } @else {
         <table class="w-full text-sm">
           <thead class="bg-slate-50 text-slate-500">

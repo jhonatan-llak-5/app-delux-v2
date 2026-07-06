@@ -1,4 +1,5 @@
 import { ChangeDetectionStrategy, Component, OnInit, computed, inject, signal } from '@angular/core';
+import { DlxEmptyStateComponent } from '@shared/ui/empty-state.component';
 import { DlxStatCardComponent } from '@shared/ui';
 import { DlxSearchInputComponent } from '@shared/ui/search-input.component';
 import { CommonModule } from '@angular/common';
@@ -12,7 +13,7 @@ import { RowActionsComponent, RowAction } from '@shared/ui/row-actions.component
 @Component({
   selector: 'dlx-categories-tree',
   standalone: true,
-  imports: [DlxStatCardComponent, DlxSearchInputComponent, CommonModule, FormsModule, CategoryFormModalComponent, RowActionsComponent],
+  imports: [DlxEmptyStateComponent, DlxStatCardComponent, DlxSearchInputComponent, CommonModule, FormsModule, CategoryFormModalComponent, RowActionsComponent],
   changeDetection: ChangeDetectionStrategy.OnPush,
   template: `
     <div class="flex flex-wrap items-end justify-between gap-4 mb-6">
@@ -71,13 +72,11 @@ import { RowActionsComponent, RowAction } from '@shared/ui/row-actions.component
           <p>Cargando árbol...</p>
         </div>
       } @else if (tree().length === 0) {
-        <div class="px-6 py-16 text-center text-slate-400">
-          <i class="fa-solid fa-folder-tree text-3xl mb-3"></i>
-          <p class="mb-3">Aún no hay categorías.</p>
+        <dlx-empty-state icon="fa-folder-tree" title="Aún no hay categorías.">
           <button (click)="openCreate(null)" class="btn-secondary text-sm">
             <i class="fa-solid fa-plus"></i> Crear primera categoría
           </button>
-        </div>
+        </dlx-empty-state>
       } @else {
         <ul class="divide-y divide-slate-100">
           @for (root of filteredTree(); track root.id) {

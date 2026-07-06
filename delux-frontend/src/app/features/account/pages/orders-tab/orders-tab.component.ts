@@ -1,4 +1,7 @@
 import { ChangeDetectionStrategy, Component, OnInit, inject, signal } from '@angular/core';
+import { DlxEmptyStateComponent } from '@shared/ui/empty-state.component';
+import { OrderStatusLabelPipe, OrderStatusClassPipe } from '@shared/ui/order-status.pipe';
+import { ImgFallbackDirective } from '@shared/ui/img-fallback.directive';
 import { CommonModule } from '@angular/common';
 import { RouterLink } from '@angular/router';
 import { MeService } from '@features/account/services/me.service';
@@ -6,7 +9,7 @@ import { MeService } from '@features/account/services/me.service';
 @Component({
   selector: 'dlx-orders-tab',
   standalone: true,
-  imports: [CommonModule, RouterLink],
+  imports: [DlxEmptyStateComponent, OrderStatusLabelPipe, OrderStatusClassPipe, ImgFallbackDirective, CommonModule, RouterLink],
   changeDetection: ChangeDetectionStrategy.OnPush,
   template: `
     <div class="editorial-card p-6">
@@ -18,13 +21,11 @@ import { MeService } from '@features/account/services/me.service';
           <i class="fa-solid fa-spinner fa-spin text-2xl text-ink-400 dark:text-white/40"></i>
         </div>
       } @else if (orders().length === 0) {
-        <div class="text-center py-12">
-          <i class="fa-solid fa-cart-arrow-down text-4xl text-ink-300 dark:text-white/30 mb-3"></i>
-          <p class="text-ink-700 dark:text-white/70 mb-4">Aún no has hecho compras.</p>
+        <dlx-empty-state variant="store" icon="fa-cart-arrow-down" title="Aún no has hecho compras.">
           <a routerLink="/shop" class="btn-accent text-sm font-semibold px-6 py-3">
             Explorar catálogo
           </a>
-        </div>
+        </dlx-empty-state>
       } @else {
         <ul class="space-y-4">
           @for (o of orders(); track o.id) {
@@ -43,8 +44,8 @@ import { MeService } from '@features/account/services/me.service';
                   <p class="text-xs text-ink-950 dark:text-white">{{ o.branch_name }}</p>
                 </div>
                 <span class="inline-flex items-center px-3 py-1 rounded-full text-[10px] font-bold uppercase tracking-widest"
-                      [ngClass]="statusClass(o.status)">
-                  {{ statusLabel(o.status) }}
+                      [ngClass]="o.status | orderStatusClass">
+                  {{ o.status | orderStatusLabel }}
                 </span>
               </div>
 
@@ -52,7 +53,7 @@ import { MeService } from '@features/account/services/me.service';
                 @for (it of o.items.slice(0, 6); track it.id) {
                   <img [src]="it.product_image" [alt]="it.product_name"
                        class="w-16 h-16 rounded-lg object-cover bg-ink-100 dark:bg-white/5 shrink-0"
- (error)="onImgErr($event)" />
+ dlxImgFallback />
                 }
                 @if (o.items.length > 6) {
                   <div class="w-16 h-16 rounded-lg bg-ink-100 dark:bg-white/5 grid place-items-center text-xs font-bold text-ink-500 dark:text-white/50 shrink-0">
@@ -86,17 +87,4 @@ export class OrdersTabComponent implements OnInit {
     });
   }
 
-  statusLabel(s: string) {
-    return ({ PENDING: 'Pendiente', PAID: 'Pagada', CANCELLED: 'Cancelada', REFUNDED: 'Devuelta', READY: 'Listo', SHIPPED: 'Enviado', DELIVERED: 'Entregado' } as any)[s] || s;
-  }
-  statusClass(s: string) {
-    return ({
-      PAID: 'bg-emerald-100 text-emerald-700 dark:bg-emerald-500/20 dark:text-emerald-300',
-      PENDING: 'bg-amber-100 text-amber-700 dark:bg-amber-500/20 dark:text-amber-300',
-      CANCELLED: 'bg-rose-100 text-rose-700 dark:bg-rose-500/20 dark:text-rose-300',
-    } as any)[s] || 'bg-ink-100 text-ink-700 dark:bg-white/10 dark:text-white/70';
-  }
-  onImgErr(ev: Event) {
-    (ev.target as HTMLImageElement).src = 'data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 200 200"><rect width="200" height="200" fill="%23e2e8f0"/></svg>';
-  }
 }

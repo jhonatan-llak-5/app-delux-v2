@@ -1,4 +1,5 @@
 import { ChangeDetectionStrategy, Component, OnInit, inject, signal } from '@angular/core';
+import { DlxEmptyStateComponent } from '@shared/ui/empty-state.component';
 import { DlxStatCardComponent } from '@shared/ui';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
@@ -10,7 +11,7 @@ import { DlxPaginationComponent } from '@shared/ui/pagination.component';
 @Component({
   selector: 'dlx-returns-list',
   standalone: true,
-  imports: [DlxStatCardComponent, CommonModule, FormsModule, DlxPaginationComponent],
+  imports: [DlxEmptyStateComponent, DlxStatCardComponent, CommonModule, FormsModule, DlxPaginationComponent],
   changeDetection: ChangeDetectionStrategy.OnPush,
   template: `
     <div class="mb-6">
@@ -93,10 +94,7 @@ import { DlxPaginationComponent } from '@shared/ui/pagination.component';
         </div>
       }
       @if (items().length === 0) {
-        <div class="card p-12 text-center text-slate-400">
-          <i class="fa-solid fa-rotate-left text-3xl mb-3"></i>
-          <p>No hay solicitudes de devolución.</p>
-        </div>
+        <dlx-empty-state icon="fa-rotate-left" title="No hay solicitudes de devolución." />
       }
     </div>
 

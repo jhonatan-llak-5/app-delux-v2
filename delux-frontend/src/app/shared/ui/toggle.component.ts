@@ -6,8 +6,9 @@ import { ControlValueAccessor, NG_VALUE_ACCESSOR } from '@angular/forms';
  * Interruptor (toggle) reutilizable. Implementa ControlValueAccessor, así que
  * se usa con `formControlName` o `[(ngModel)]` en cualquier formulario.
  *
- *   <dlx-toggle formControlName="active" label="Envío activo" />
- *   <dlx-toggle formControlName="on" />   (variante compacta, solo el switch + texto)
+ *   <dlx-toggle formControlName="active" label="Envío activo" />   (campo con label arriba)
+ *   <dlx-toggle [(ngModel)]="form.is_active" text="Activa" />       (switch + texto al lado)
+ *   <dlx-toggle formControlName="on" />                             (switch + Activado/Desactivado)
  */
 @Component({
   selector: 'dlx-toggle',
@@ -32,16 +33,22 @@ import { ControlValueAccessor, NG_VALUE_ACCESSOR } from '@angular/forms';
         @if (hint) { <p class="text-xs text-slate-500 dark:text-slate-400 mt-1.5">{{ hint }}</p> }
       </div>
     } @else {
-      <span class="inline-flex items-center gap-3" [class.opacity-50]="disabled">
-        <span class="eg-switch" [class.is-on]="value" (click)="toggle()" role="switch"
-              [attr.aria-checked]="value"></span>
-        <span class="text-sm text-slate-700 dark:text-slate-300">{{ value ? onLabel : offLabel }}</span>
-      </span>
+      <button type="button" (click)="toggle()" [disabled]="disabled" role="switch"
+              [attr.aria-checked]="value"
+              class="inline-flex items-center gap-2 cursor-pointer bg-transparent p-0 border-0 text-left disabled:opacity-50 disabled:cursor-not-allowed">
+        <span class="eg-switch" [class.is-on]="value"></span>
+        @if (text) {
+          <span class="text-sm text-slate-700 dark:text-slate-300">{{ text }}</span>
+        } @else {
+          <span class="text-sm text-slate-700 dark:text-slate-300">{{ value ? onLabel : offLabel }}</span>
+        }
+      </button>
     }
   `,
 })
 export class DlxToggleComponent implements ControlValueAccessor {
   @Input() label = '';
+  @Input() text = '';
   @Input() hint = '';
   @Input() onLabel = 'Activado';
   @Input() offLabel = 'Desactivado';

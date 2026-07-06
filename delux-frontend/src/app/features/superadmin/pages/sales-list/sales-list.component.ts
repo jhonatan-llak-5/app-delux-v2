@@ -1,4 +1,6 @@
 import { ChangeDetectionStrategy, Component, OnInit, inject, signal } from '@angular/core';
+import { DlxEmptyStateComponent } from '@shared/ui/empty-state.component';
+import { OrderStatusLabelPipe, OrderStatusClassPipe } from '@shared/ui/order-status.pipe';
 import { AuthService } from '@core/services/auth.service';
 import { DlxStatCardComponent } from '@shared/ui';
 import { DlxSearchInputComponent } from '@shared/ui/search-input.component';
@@ -18,7 +20,7 @@ import { DlxPaginationComponent } from '@shared/ui/pagination.component';
 @Component({
   selector: 'dlx-sales-list',
   standalone: true,
-  imports: [DlxStatCardComponent, DlxSearchInputComponent, CommonModule, FormsModule, RouterLink, RowActionsComponent, DlxPaginationComponent],
+  imports: [DlxEmptyStateComponent, OrderStatusLabelPipe, OrderStatusClassPipe, DlxStatCardComponent, DlxSearchInputComponent, CommonModule, FormsModule, RouterLink, RowActionsComponent, DlxPaginationComponent],
   changeDetection: ChangeDetectionStrategy.OnPush,
   template: `
     <div class="flex items-end justify-between gap-4 mb-6">
@@ -76,10 +78,7 @@ import { DlxPaginationComponent } from '@shared/ui/pagination.component';
           <i class="fa-solid fa-spinner fa-spin text-2xl"></i>
         </div>
       } @else if (orders().length === 0) {
-        <div class="p-12 text-center text-slate-400">
-          <i class="fa-solid fa-receipt text-3xl mb-3"></i>
-          <p>No hay ventas registradas con esos filtros.</p>
-        </div>
+        <dlx-empty-state icon="fa-receipt" title="No hay ventas registradas con esos filtros." />
       } @else {
         <table class="w-full text-sm">
           <thead class="bg-slate-50 text-slate-500">
@@ -135,8 +134,8 @@ import { DlxPaginationComponent } from '@shared/ui/pagination.component';
                 <td class="px-5 py-3 text-right font-bold">\${{ o.total }}</td>
                 <td class="px-5 py-3 text-center">
                   <span class="inline-flex items-center px-2 py-0.5 rounded-md text-[11px] font-bold uppercase"
-                        [ngClass]="statusClass(o.status)">
-                    {{ statusLabel(o.status) }}
+                        [ngClass]="o.status | orderStatusClass">
+                    {{ o.status | orderStatusLabel }}
                   </span>
                 </td>
                 <td class="px-5 py-3 text-right">
@@ -204,21 +203,6 @@ export class SalesListComponent implements OnInit {
   onSize(s: number) { this.pageSize.set(s); this.page.set(1); this.reload(); }
   waLink(phone: string) { return 'https://wa.me/' + (phone || '').replace(/[^0-9]/g, ''); }
 
-  statusLabel(s: string) {
-    return ({
-      PENDING: 'Pendiente', PAID: 'Pagada', PREPARING: 'Preparando',
-      READY: 'Lista', SHIPPED: 'Enviada', DELIVERED: 'Entregada',
-      CANCELLED: 'Cancelada', REFUNDED: 'Devuelta',
-    } as any)[s] || s;
-  }
-  statusClass(s: string) {
-    return ({
-      PAID: 'bg-emerald-100 text-emerald-700',
-      PENDING: 'bg-amber-100 text-amber-700',
-      CANCELLED: 'bg-rose-100 text-rose-700',
-      REFUNDED: 'bg-rose-100 text-rose-700',
-    } as any)[s] || 'bg-slate-100 text-slate-700';
-  }
 
   rowActions(o: Order): RowAction[] {
     return [

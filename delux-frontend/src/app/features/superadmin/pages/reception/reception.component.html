@@ -1,0 +1,556 @@
+    <div class="mb-5 flex items-start justify-between gap-3 flex-wrap">
+      <div>
+        <h1 class="text-2xl md:text-3xl font-bold tracking-tight">Recepción de mercadería</h1>
+        <p class="text-slate-500 text-sm mt-1">Ingresa productos de golpe: escanea, agrega y confirma. Genera código e imprime etiquetas.</p>
+      </div>
+      <button class="btn-secondary text-sm" (click)="startTour()">
+        <i class="fa-solid fa-circle-question"></i> ¿Cómo funciona?
+      </button>
+    </div>
+
+    @if (result(); as r) {
+      <div class="card p-6 max-w-2xl">
+        <div class="flex items-center gap-3 mb-2">
+          <div class="w-10 h-10 rounded-full bg-emerald-100 text-emerald-600 grid place-items-center">
+            <i class="fa-solid fa-check text-lg"></i>
+          </div>
+          <div>
+            <h2 class="text-lg font-bold">Recepción confirmada</h2>
+            <p class="text-sm text-slate-500">{{ r.code }} · {{ r.branch_name }} · {{ r.total_units }} unidad(es)</p>
+          </div>
+        </div>
+        <div class="flex flex-wrap gap-2 mt-4">
+          <button class="eg-btn-primary" (click)="printLabels()">
+            <i class="fa-solid fa-print"></i> Imprimir etiquetas
+          </button>
+          <label class="inline-flex items-center gap-2 text-sm text-slate-600 px-2">
+            <input type="checkbox" [(ngModel)]="labelPerUnit" class="w-4 h-4 accent-[var(--dash-primary)]" />
+            Una etiqueta por unidad
+          </label>
+          <button class="btn-secondary text-sm" (click)="reset()">
+            <i class="fa-solid fa-plus"></i> Nueva recepción
+          </button>
+        </div>
+      </div>
+    } @else {
+
+    <!-- Stepper -->
+    <div class="mb-6">
+      @if (items().length) {
+        <div class="flex justify-end mb-3">
+          <span class="inline-flex items-center gap-1.5 text-xs font-semibold px-3 py-1.5 rounded-full
+                       bg-[var(--dash-primary)]/10 text-[var(--dash-primary)] dark:bg-[#3b82f6]/15 dark:text-[var(--dash-primary)]">
+            <i class="fa-solid fa-box"></i>
+            {{ totalUnits() }} uds · {{ money(totalCost()) }}
+          </span>
+        </div>
+      }
+      <div class="flex items-center">
+        @for (s of steps; track s.id; let i = $index; let last = $last) {
+          <button type="button" (click)="goStep(s.id)"
+                  class="flex items-center gap-3 shrink-0 focus:outline-none group">
+            <span class="relative grid place-items-center w-11 h-11 rounded-full font-bold text-sm transition-all duration-300"
+                  [ngClass]="stepCircleCls(s.id)">
+              @if (stepState(s.id) === 'done') {
+                <i class="fa-solid fa-check"></i>
+              } @else {
+                {{ i + 1 }}
+              }
+              @if (s.id === 'review' && items().length) {
+                <span class="absolute -top-1.5 -right-1.5 min-w-[20px] h-5 px-1 grid place-items-center rounded-full
+                             bg-emerald-500 text-white text-[10px] font-bold ring-2 ring-white dark:ring-[#0d1320]">
+                  {{ items().length }}
+                </span>
+              }
+            </span>
+            <div class="text-left hidden sm:block pr-1">
+              <p class="text-[10px] font-semibold uppercase tracking-wider transition-colors"
+                 [ngClass]="stepState(s.id) === 'todo' ? 'text-slate-400 dark:text-white/30' : 'text-[var(--dash-primary)] dark:text-[var(--dash-primary)]'">
+                Paso {{ i + 1 }}
+              </p>
+              <p class="text-sm font-bold leading-tight transition-colors"
+                 [ngClass]="stepState(s.id) === 'todo' ? 'text-slate-400 dark:text-white/40' : 'text-slate-800 dark:text-white'">
+                {{ s.label }}
+              </p>
+            </div>
+          </button>
+          @if (!last) {
+            <div class="flex-1 h-1 mx-2 sm:mx-4 rounded-full transition-colors duration-300 min-w-[1.5rem]"
+                 [ngClass]="stepDone(s.id) ? 'bg-[var(--dash-primary)]' : 'bg-slate-200 dark:bg-white/10'"></div>
+          }
+        }
+      </div>
+    </div>
+
+    <!-- ════════ TAB 1: SUBIR ════════ -->
+    @if (tab() === 'upload') {
+    <div class="grid grid-cols-1 lg:grid-cols-2 gap-5">
+      <!-- Config: sucursales / proveedor / nota -->
+      <div class="card p-5 space-y-4">
+        <div data-tour="recv-branch">
+          <label class="eg-label">¿A qué sucursales llega? *</label>
+          <div class="space-y-1.5 mt-1">
+            @for (b of branches(); track b.id) {
+              <label class="flex items-center gap-2 px-3 py-2.5 rounded-xl border cursor-pointer transition"
+                     [ngClass]="isSelected(b.id) ? 'border-[var(--dash-primary)] bg-[var(--dash-primary)]/5' : 'border-slate-200 dark:border-white/10 hover:border-slate-300'">
+                <input type="checkbox" [checked]="isSelected(b.id)" (change)="toggleBranch(b.id)" [disabled]="isBranchLocked(b.id)" class="w-4 h-4 accent-[var(--dash-primary)]" />
+                <span class="text-sm">{{ b.name }} · {{ b.city }}</span>
+              </label>
+            }
+          </div>
+          @if (selectedBranches().length > 1) {
+            <p class="text-[11px] text-slate-400 mt-1">Asigna la sucursal de cada producto en la pestaña Revisar.</p>
+          }
+        </div>
+        <div data-tour="recv-supplier">
+          <label class="eg-label">Proveedor</label>
+          <div class="flex gap-2">
+            <div class="relative flex-1">
+              <input [(ngModel)]="supplierName" (focus)="supplierOpen.set(true)"
+                     (ngModelChange)="supplierOpen.set(true); saveState()" (blur)="closeSupplierSoon()"
+                     class="eg-input w-full" placeholder="Nombre del proveedor" autocomplete="off" />
+              @if (supplierOpen() && filteredSuppliers().length) {
+                <div class="absolute left-0 right-0 top-full mt-1 z-30 max-h-52 overflow-y-auto rounded-xl py-1
+                            bg-white dark:bg-[#161a26] border border-slate-200 dark:border-white/10 shadow-xl">
+                  @for (sp of filteredSuppliers(); track sp.id) {
+                    <button type="button" (click)="pickSupplier(sp.name)"
+                            class="w-full text-left px-3 py-2.5 text-sm hover:bg-slate-100 dark:hover:bg-white/5 transition flex items-center gap-2">
+                      <i class="fa-solid fa-truck-field text-slate-400 text-xs"></i> {{ sp.name }}
+                    </button>
+                  }
+                </div>
+              }
+            </div>
+            <button type="button" class="eg-btn-secondary shrink-0" (click)="showSupplierModal.set(true)" title="Agregar proveedor con todos sus datos">
+              <i class="fa-solid fa-plus"></i>
+            </button>
+          </div>
+          <p class="text-[11px] text-slate-400 mt-1">Escribe el nombre, o usa <b>+</b> para registrar un proveedor con todos sus datos.</p>
+        </div>
+        <div>
+          <label class="eg-label">Nota (opcional)</label>
+          <input [(ngModel)]="note" (ngModelChange)="saveState()" class="eg-input" placeholder="Ej. Contenedor junio" />
+        </div>
+      </div>
+
+      <!-- Formas de agregar -->
+      <div class="card p-5 space-y-4">
+        <div>
+          <label class="eg-label">Buscar producto existente</label>
+          <div class="relative">
+            <i class="fa-solid fa-magnifying-glass absolute left-3 top-1/2 -translate-y-1/2 text-slate-400"></i>
+            <input [(ngModel)]="prodQuery" (ngModelChange)="prodSearch$.next($event)"
+                   (focus)="searchOpen.set(true)" (blur)="closeSearchSoon()"
+                   class="eg-input has-icon-left" placeholder="Nombre, talla, color o código… (ej. jogger negro 35)"
+                   autocomplete="off" [disabled]="!selectedBranches().length" />
+            @if (searchOpen() && searchResults().length) {
+              <div class="absolute left-0 right-0 top-full mt-1 z-30 max-h-64 overflow-y-auto rounded-xl py-1
+                          bg-white dark:bg-[#161a26] border border-slate-200 dark:border-white/10 shadow-xl">
+                @for (v of searchResults(); track v.id) {
+                  <button type="button" (click)="addExisting(v)"
+                          class="w-full text-left px-3 py-2.5 hover:bg-slate-100 dark:hover:bg-white/5 transition">
+                    <p class="text-sm font-medium truncate">{{ v.product_name }}</p>
+                    <p class="text-xs text-slate-400">{{ v.size || '—' }} / {{ v.color || '—' }} · {{ v.sku }}@if (v.barcode) { · {{ v.barcode }} }</p>
+                  </button>
+                }
+              </div>
+            }
+          </div>
+          <p class="text-[11px] text-slate-400 mt-1">Si ya lo subiste antes, búscalo por nombre o código de barras y se suma a la lista.</p>
+        </div>
+
+        <div data-tour="recv-scan">
+          <label class="eg-label">Escanear código de barras</label>
+          <div class="relative">
+            <i class="fa-solid fa-barcode absolute left-3 top-1/2 -translate-y-1/2 text-slate-400"></i>
+            <input #scan [(ngModel)]="scanCode" (keyup.enter)="onScan()" [disabled]="!selectedBranches().length"
+                   class="eg-input has-icon-left" placeholder="Escanea o escribe y Enter" autocomplete="off" />
+          </div>
+          @if (scanMsg()) { <p class="text-xs text-slate-500 mt-1">{{ scanMsg() }}</p> }
+        </div>
+
+        <div class="grid grid-cols-1 sm:grid-cols-2 gap-2.5">
+          <button type="button"
+                  class="h-12 rounded-xl border-2 font-semibold text-sm inline-flex items-center justify-center gap-2 transition
+                         border-[var(--dash-primary)] text-[var(--dash-primary)] dark:text-[var(--dash-primary)] dark:border-[#3b82f6]
+                         hover:bg-[var(--dash-primary)]/5 dark:hover:bg-[#3b82f6]/10 disabled:opacity-40 disabled:cursor-not-allowed"
+                  (click)="cameraOn() ? stopCamera() : startCamera()" [disabled]="!selectedBranches().length">
+            <i class="fa-solid" [class.fa-camera]="!cameraOn()" [class.fa-xmark]="cameraOn()"></i>
+            {{ cameraOn() ? 'Cerrar cámara' : 'Escanear con cámara' }}
+          </button>
+          <button type="button"
+                  class="h-12 rounded-xl font-semibold text-sm inline-flex items-center justify-center gap-2 transition text-white
+                         bg-gradient-to-r from-[var(--dash-primary)] to-[#2563eb] hover:from-[var(--dash-primary-d)] hover:to-[#3b82f6]
+                         shadow-lg shadow-[var(--dash-primary)]/20 disabled:opacity-40 disabled:cursor-not-allowed disabled:shadow-none"
+                  (click)="openNew('')" [disabled]="!selectedBranches().length" data-tour="recv-manual">
+            <i class="fa-solid fa-plus"></i> Agregar producto manual
+          </button>
+        </div>
+
+        @if (cameraOn()) {
+          <div class="fixed inset-0 z-[80] bg-black flex flex-col">
+            <div class="flex items-center justify-between px-4 py-3 text-white">
+              <span class="text-sm font-semibold"><i class="fa-solid fa-barcode mr-2"></i>Escanear código</span>
+              <button type="button" (click)="stopCamera()"
+                      class="w-11 h-11 rounded-full bg-white/15 hover:bg-white/25 grid place-items-center transition">
+                <i class="fa-solid fa-xmark text-xl"></i>
+              </button>
+            </div>
+            <div class="flex-1 relative overflow-hidden">
+              <video #camVideo class="absolute inset-0 w-full h-full object-cover" muted playsinline></video>
+              <div class="absolute inset-0 flex items-center justify-center pointer-events-none">
+                <div class="w-4/5 max-w-lg aspect-[3/2] border-4 border-white/70 rounded-2xl shadow-[0_0_0_9999px_rgba(0,0,0,0.45)]"></div>
+              </div>
+              <p class="absolute bottom-10 left-0 right-0 text-center text-white/90 text-sm">Apunta al código de barras o QR</p>
+            </div>
+          </div>
+        }
+        @if (camError()) { <p class="text-xs text-amber-600">{{ camError() }}</p> }
+        @if (!selectedBranches().length) { <p class="text-xs text-amber-600">Elige al menos una sucursal destino arriba.</p> }
+
+        @if (items().length) {
+          <button type="button" (click)="tab.set('review')"
+                  class="w-full h-11 rounded-xl bg-slate-100 dark:bg-white/5 hover:bg-slate-200 dark:hover:bg-white/10 transition
+                         font-semibold text-sm inline-flex items-center justify-center gap-2">
+            <i class="fa-solid fa-list-check"></i> Ver lista ({{ items().length }}) →
+          </button>
+        }
+      </div>
+    </div>
+    }
+
+    <!-- ════════ TAB 2: REVISAR ════════ -->
+    @if (tab() === 'review') {
+    <div data-tour="recv-list">
+      <div class="flex items-center justify-between mb-3 flex-wrap gap-2">
+        <h2 class="font-bold tracking-tight">Productos a ingresar <span class="text-slate-400 font-normal">· {{ items().length }}</span></h2>
+        @if (items().length) {
+          <div class="flex items-center gap-2">
+            <button class="btn-secondary text-sm text-rose-600" (click)="askClear()">
+              <i class="fa-solid fa-trash-can"></i> Limpiar lista
+            </button>
+            <button class="eg-btn-primary text-sm" (click)="tab.set('confirm')">
+              Continuar <i class="fa-solid fa-arrow-right"></i>
+            </button>
+          </div>
+        }
+      </div>
+
+      @if (items().length === 0) {
+        <div class="card p-10 text-center">
+          <div class="w-14 h-14 rounded-2xl mx-auto mb-4 grid place-items-center bg-slate-100 dark:bg-white/5 text-slate-400">
+            <i class="fa-solid fa-box-open text-xl"></i>
+          </div>
+          <p class="text-slate-500 mb-4">Aún no hay productos en la lista.</p>
+          <button class="eg-btn-primary" (click)="tab.set('upload')">
+            <i class="fa-solid fa-plus"></i> Agregar productos
+          </button>
+        </div>
+      } @else {
+        <div class="space-y-2.5">
+          @for (it of items(); track it.key) {
+            <div class="card p-4">
+              <div class="flex items-start justify-between gap-3">
+                <div class="flex items-start gap-3 min-w-0">
+                  @if (it.images && it.images.length) {
+                    <img [src]="it.images[0]" [alt]="it.product_name" dlxImgFallback
+                         class="w-12 h-12 rounded-lg object-cover border border-slate-200 dark:border-white/10 shrink-0" />
+                  } @else {
+                    <div class="w-12 h-12 rounded-lg grid place-items-center bg-slate-100 dark:bg-white/5 text-slate-300 shrink-0">
+                      <i class="fa-solid fa-image"></i>
+                    </div>
+                  }
+                  <div class="min-w-0">
+                    <p class="font-medium truncate flex items-center gap-1.5">
+                      <span class="truncate">{{ it.product_name }}</span>
+                      @if (it.isNew) { <span class="shrink-0 px-1.5 py-0.5 rounded-md text-[10px] font-bold uppercase tracking-wide bg-emerald-100 text-emerald-700 dark:bg-emerald-500/15 dark:text-emerald-400">Nuevo</span> }
+                    </p>
+                    <p class="text-xs text-slate-400 truncate">
+                      {{ it.size || '—' }} / {{ it.color || '—' }}
+                      @if (it.sku) { · {{ it.sku }} } @else if (it.brand_name) { · {{ it.brand_name }} }
+                    </p>
+                  </div>
+                </div>
+                <div class="flex items-center gap-3 shrink-0">
+                  <button class="text-slate-400 hover:text-[var(--dash-primary)]" (click)="openDetail(it)" title="Ver detalle"><i class="fa-solid fa-eye text-sm"></i></button>
+                  <button class="text-rose-500 hover:text-rose-700" (click)="removeRow(it.key)" title="Quitar"><i class="fa-solid fa-trash text-sm"></i></button>
+                </div>
+              </div>
+
+              <div class="grid grid-cols-1 sm:grid-cols-[170px_1fr] gap-4 mt-3">
+                <div>
+                  <label class="text-[11px] text-slate-400">Costo unitario</label>
+                  <dlx-price-input [(ngModel)]="it.unit_cost" (ngModelChange)="touchItems()" extraClass="!h-9 w-full" />
+                </div>
+
+                <div>
+                  <label class="text-[11px] text-slate-400">Cantidad por sucursal</label>
+                  <div class="space-y-1.5 mt-0.5">
+                    @for (b of rowBranchOptions(it); track b.id) {
+                      <div class="flex items-center gap-2 rounded-xl border pl-3 pr-1.5 h-11 transition"
+                           [ngClass]="hasBranch(it, b.id) ? 'border-[var(--dash-primary)] bg-[var(--dash-primary)]/5' : 'border-slate-200 dark:border-white/10'">
+                        <label class="flex items-center gap-2 flex-1 min-w-0 h-full cursor-pointer">
+                          <input type="checkbox" [checked]="hasBranch(it, b.id)" (change)="toggleRowBranch(it, b.id)" class="w-4 h-4 accent-[var(--dash-primary)] shrink-0" />
+                          <span class="text-sm truncate">{{ b.name }} · {{ b.city }}</span>
+                        </label>
+                        @if (hasBranch(it, b.id)) {
+                          <div class="w-20 shrink-0">
+                            <input type="number" min="0" [ngModel]="it.branchQty[b.id]" (ngModelChange)="setRowQty(it, b.id, $event)"
+                                   class="eg-input !h-8 w-full text-center text-sm" placeholder="0" />
+                          </div>
+                        }
+                      </div>
+                    }
+                  </div>
+                </div>
+              </div>
+
+              <div class="flex items-center justify-between mt-3 pt-2.5 border-t border-slate-100 dark:border-white/5 text-sm">
+                <span class="text-slate-500">{{ rowUnits(it) }} uds @if (rowBranchSummary(it)) { <span class="text-slate-400">· {{ rowBranchSummary(it) }}</span> }</span>
+                <span class="font-bold">{{ money(rowUnits(it) * (+it.unit_cost || 0)) }}</span>
+              </div>
+            </div>
+          }
+        </div>
+      }
+    </div>
+    }
+
+    <!-- ════════ TAB 3: CONFIRMAR ════════ -->
+    @if (tab() === 'confirm') {
+    <div class="max-w-3xl">
+      @if (items().length === 0) {
+        <div class="card p-10 text-center">
+          <p class="text-slate-500 mb-4">No hay productos para confirmar.</p>
+          <button class="eg-btn-primary" (click)="tab.set('upload')"><i class="fa-solid fa-plus"></i> Agregar productos</button>
+        </div>
+      } @else {
+        <div class="card p-5 space-y-4">
+          <h2 class="font-bold tracking-tight text-lg">Resumen de la recepción</h2>
+          <div class="grid grid-cols-2 sm:grid-cols-4 gap-3">
+            <div class="rounded-xl bg-slate-50 dark:bg-white/5 p-3">
+              <p class="text-[11px] uppercase tracking-wide text-slate-400">Productos</p>
+              <p class="text-xl font-bold">{{ items().length }}</p>
+            </div>
+            <div class="rounded-xl bg-slate-50 dark:bg-white/5 p-3">
+              <p class="text-[11px] uppercase tracking-wide text-slate-400">Unidades</p>
+              <p class="text-xl font-bold">{{ totalUnits() }}</p>
+            </div>
+            <div class="rounded-xl bg-slate-50 dark:bg-white/5 p-3">
+              <p class="text-[11px] uppercase tracking-wide text-slate-400">Costo total</p>
+              <p class="text-xl font-bold">{{ money(totalCost()) }}</p>
+            </div>
+            <div class="rounded-xl bg-slate-50 dark:bg-white/5 p-3">
+              <p class="text-[11px] uppercase tracking-wide text-slate-400">Sucursales</p>
+              <p class="text-xl font-bold">{{ selectedBranches().length }}</p>
+            </div>
+          </div>
+
+          <div class="text-sm space-y-1.5 border-t border-slate-100 dark:border-white/5 pt-3">
+            <div class="flex justify-between"><span class="text-slate-500">Destino</span><span class="font-medium text-right">{{ branchNames() }}</span></div>
+            <div class="flex justify-between"><span class="text-slate-500">Proveedor</span><span class="font-medium">{{ supplierName.trim() || '—' }}</span></div>
+            @if (note.trim()) { <div class="flex justify-between"><span class="text-slate-500">Nota</span><span class="font-medium text-right">{{ note.trim() }}</span></div> }
+          </div>
+
+          <div class="space-y-2 max-h-80 overflow-y-auto pr-0.5">
+            @for (g of groupedSummary(); track g.key) {
+              <div class="rounded-xl border border-slate-200 dark:border-white/10 overflow-hidden">
+                <div class="flex items-center justify-between gap-2 px-3 py-2 bg-slate-50 dark:bg-white/5">
+                  <div class="min-w-0 flex items-center gap-2">
+                    <p class="font-semibold truncate">{{ g.name }}</p>
+                    @if (g.isNew) {
+                      <span class="shrink-0 px-1.5 py-0.5 rounded-md text-[10px] font-bold uppercase tracking-wide bg-emerald-100 text-emerald-700 dark:bg-emerald-500/15 dark:text-emerald-400">Nuevo</span>
+                    } @else {
+                      <span class="shrink-0 px-1.5 py-0.5 rounded-md text-[10px] font-bold uppercase tracking-wide bg-slate-200 text-slate-500 dark:bg-white/10 dark:text-white/50">Existente</span>
+                    }
+                  </div>
+                  <div class="text-right shrink-0 text-xs whitespace-nowrap">
+                    <span class="font-bold">{{ groupUnits(g.rows) }} uds</span>
+                    <span class="text-slate-400"> · {{ money(groupCost(g.rows)) }}</span>
+                  </div>
+                </div>
+                <div class="divide-y divide-slate-100 dark:divide-white/5">
+                  @for (it of g.rows; track it.key) {
+                    <div class="flex items-center justify-between gap-3 px-3 py-1.5 text-sm">
+                      <div class="min-w-0 flex items-center gap-2 flex-wrap">
+                        <span class="inline-flex items-center px-1.5 py-0.5 rounded-md text-[11px] font-medium bg-slate-100 dark:bg-white/10 text-slate-600 dark:text-white/70">{{ it.size || '—' }} / {{ it.color || '—' }}</span>
+                        @if (rowBranchSummary(it)) { <span class="text-[11px] text-slate-400 truncate">{{ rowBranchSummary(it) }}</span> }
+                      </div>
+                      <div class="text-right shrink-0 whitespace-nowrap">
+                        <span class="font-medium">{{ rowUnits(it) }} × {{ money(it.unit_cost) }}</span>
+                        <span class="text-xs text-slate-400 ml-1.5">{{ money(rowUnits(it) * (+it.unit_cost || 0)) }}</span>
+                      </div>
+                    </div>
+                  }
+                </div>
+              </div>
+            }
+          </div>
+
+          <div class="flex items-center justify-between gap-3 flex-wrap pt-2">
+            <button class="btn-secondary text-sm" (click)="tab.set('review')">
+              <i class="fa-solid fa-arrow-left"></i> Volver a la lista
+            </button>
+            <button class="eg-btn-primary" [disabled]="!canConfirm() || saving()" (click)="confirmOpen.set(true)" data-tour="recv-confirm">
+              @if (saving()) { <i class="fa-solid fa-spinner fa-spin"></i> Guardando... }
+              @else { <i class="fa-solid fa-check"></i> Confirmar recepción }
+            </button>
+          </div>
+        </div>
+      }
+    </div>
+    }
+
+    <!-- Modal manual -->
+    @if (showManual()) {
+      <dlx-manual-product-modal [brands]="brands()" [categories]="categories()" [categoryParents]="categoryParents()" [barcode]="manualBarcode()"
+                                (add)="onManualAdd($event)" (cancel)="showManual.set(false)" />
+    }
+
+    <!-- Modal proveedor completo -->
+    @if (showSupplierModal()) {
+      <dlx-supplier-form-modal [initialName]="supplierName"
+                               (saved)="onSupplierCreated($event)" (cancel)="showSupplierModal.set(false)" />
+    }
+
+    <!-- Panel: agregar producto existente a la lista -->
+    @if (addDraft(); as d) {
+      <div class="fixed inset-0 z-50 grid place-items-center p-4 bg-black/40 backdrop-blur-sm">
+        <div class="w-full max-w-lg rounded-2xl bg-white dark:bg-[#121826] border border-slate-200 dark:border-white/10 shadow-2xl max-h-[88vh] overflow-y-auto" (click)="$event.stopPropagation()">
+          <div class="flex items-center justify-between px-5 py-4 border-b border-slate-100 dark:border-white/10">
+            <h2 class="font-bold text-lg">Agregar a la lista</h2>
+            <button class="text-slate-400 hover:text-slate-600" (click)="addDraft.set(null)"><i class="fa-solid fa-xmark text-lg"></i></button>
+          </div>
+          <div class="p-5 space-y-4">
+            <div class="flex items-start gap-3">
+              @if (d.variant.images && d.variant.images.length) {
+                <img [src]="d.variant.images[0]" [alt]="d.variant.product_name" dlxImgFallback
+                     class="w-20 h-20 rounded-xl object-cover border border-slate-200 dark:border-white/10 shrink-0" />
+              } @else {
+                <div class="w-20 h-20 rounded-xl grid place-items-center bg-slate-100 dark:bg-white/5 text-slate-300 shrink-0">
+                  <i class="fa-solid fa-image text-xl"></i>
+                </div>
+              }
+              <div class="min-w-0">
+                <p class="font-bold truncate">{{ d.variant.product_name }}</p>
+                <p class="text-xs text-slate-400">{{ d.variant.size || '—' }} / {{ d.variant.color || '—' }}</p>
+                <p class="text-xs text-slate-400 font-mono truncate">{{ d.variant.sku }}@if (d.variant.barcode) { · {{ d.variant.barcode }} }</p>
+              </div>
+            </div>
+
+            <div>
+              <label class="text-[11px] text-slate-400">Costo unitario</label>
+              <div class="sm:max-w-[180px]">
+                <dlx-price-input [(ngModel)]="d.unit_cost" extraClass="!h-10 w-full" />
+              </div>
+            </div>
+
+            <div>
+              <label class="text-[11px] text-slate-400">¿A qué sucursal(es) y cuántas?</label>
+              @if (!selectedBranches().length) {
+                <p class="text-xs text-amber-600 mt-1">Primero selecciona al menos una sucursal en el paso 1.</p>
+              } @else {
+                <div class="space-y-1.5 mt-0.5">
+                  @for (b of selectedBranchList(); track b.id) {
+                    <div class="flex items-center gap-2 rounded-xl border pl-3 pr-1.5 h-11 transition"
+                         [ngClass]="d.branchQty[b.id] != null ? 'border-[var(--dash-primary)] bg-[var(--dash-primary)]/5' : 'border-slate-200 dark:border-white/10'">
+                      <label class="flex items-center gap-2 flex-1 min-w-0 h-full cursor-pointer">
+                        <input type="checkbox" [checked]="d.branchQty[b.id] != null" (change)="panelToggle(b.id)" class="w-4 h-4 accent-[var(--dash-primary)] shrink-0" />
+                        <span class="text-sm truncate">{{ b.name }} · {{ b.city }}</span>
+                      </label>
+                      @if (d.branchQty[b.id] != null) {
+                        <div class="w-20 shrink-0">
+                          <input type="number" min="0" [ngModel]="d.branchQty[b.id]" (ngModelChange)="panelSetQty(b.id, $event)"
+                                 class="eg-input !h-8 w-full text-center text-sm" placeholder="0" />
+                        </div>
+                      }
+                    </div>
+                  }
+                </div>
+              }
+            </div>
+          </div>
+          <div class="flex justify-end gap-3 px-5 py-4 border-t border-slate-100 dark:border-white/10">
+            <button class="btn-secondary" (click)="addDraft.set(null)">Cancelar</button>
+            <button class="eg-btn-primary" (click)="confirmAddExisting()"><i class="fa-solid fa-plus"></i> Agregar a la lista</button>
+          </div>
+        </div>
+      </div>
+    }
+
+    <!-- Popup detalle -->
+    @if (detailRow(); as d) {
+      <div class="fixed inset-0 z-50 grid place-items-center p-4 bg-black/40 backdrop-blur-sm">
+        <div class="w-full max-w-md rounded-2xl bg-white dark:bg-[#121826] border border-slate-200 dark:border-white/10 shadow-2xl p-5 max-h-[85vh] overflow-y-auto" (click)="$event.stopPropagation()">
+          <div class="flex items-start justify-between gap-3 mb-3">
+            <div class="min-w-0">
+              <h3 class="font-bold text-lg truncate">{{ d.product_name }}</h3>
+              <p class="text-xs text-slate-400">
+                {{ kindLabel(d.kind) }}
+                @if (d.isNew) { <span class="text-emerald-600">· producto nuevo</span> }
+                @else { <span class="text-slate-400">· ya existía</span> }
+              </p>
+            </div>
+            <button class="text-slate-400 hover:text-slate-600" (click)="detailRow.set(null)"><i class="fa-solid fa-xmark text-lg"></i></button>
+          </div>
+          @if (d.images && d.images.length) {
+            <div class="mb-4">
+              <div class="rounded-xl overflow-hidden bg-slate-100 dark:bg-white/5 aspect-square grid place-items-center">
+                @if (!isImgBroken(detailImg())) {
+                  <img [src]="d.images[detailImg()]" [alt]="d.product_name" class="w-full h-full object-contain" (error)="markImgBroken(detailImg())" />
+                } @else {
+                  <div class="text-slate-300 dark:text-white/20 text-center">
+                    <i class="fa-solid fa-image text-3xl"></i>
+                    <p class="text-xs mt-1">Imagen no disponible</p>
+                  </div>
+                }
+              </div>
+              @if (d.images.length > 1) {
+                <div class="flex gap-2 mt-2 overflow-x-auto pb-1">
+                  @for (img of d.images; track $index; let idx = $index) {
+                    <button type="button" (click)="detailImg.set(idx)"
+                            class="w-14 h-14 rounded-lg overflow-hidden shrink-0 border-2 transition grid place-items-center bg-slate-100 dark:bg-white/5"
+                            [ngClass]="detailImg() === idx ? 'border-[var(--dash-primary)]' : 'border-transparent opacity-60 hover:opacity-100'">
+                      @if (!isImgBroken(idx)) {
+                        <img [src]="img" class="w-full h-full object-cover" (error)="markImgBroken(idx)" />
+                      } @else {
+                        <i class="fa-solid fa-image text-slate-300 dark:text-white/20"></i>
+                      }
+                    </button>
+                  }
+                </div>
+              }
+            </div>
+          }
+          <dl class="text-sm divide-y divide-slate-100 dark:divide-white/5">
+            <div class="flex justify-between py-2"><dt class="text-slate-500">Marca</dt><dd class="font-medium">{{ d.brand_name || '—' }}</dd></div>
+            <div class="flex justify-between py-2"><dt class="text-slate-500">Categoría</dt><dd class="font-medium">{{ d.category_name || '—' }}</dd></div>
+            <div class="flex justify-between py-2"><dt class="text-slate-500">Talla / Color</dt><dd class="font-medium">{{ d.size || '—' }} / {{ d.color || '—' }}</dd></div>
+            <div class="flex justify-between py-2"><dt class="text-slate-500">Código de barras</dt><dd class="font-mono text-xs">{{ d.barcode || '—' }}</dd></div>
+            @if (d.sku) { <div class="flex justify-between py-2"><dt class="text-slate-500">Código interno</dt><dd class="font-mono text-xs">{{ d.sku }}</dd></div> }
+            <div class="flex justify-between py-2"><dt class="text-slate-500">Sucursales</dt><dd class="font-medium text-right">{{ rowBranchSummary(d) || '—' }}</dd></div>
+            <div class="flex justify-between py-2"><dt class="text-slate-500">Costo unitario</dt><dd class="font-medium">{{ money(d.unit_cost) }}</dd></div>
+            @if (d.price) { <div class="flex justify-between py-2"><dt class="text-slate-500">Precio venta</dt><dd class="font-medium">{{ money(d.price) }}</dd></div> }
+            <div class="flex justify-between py-2"><dt class="text-slate-500">Cantidad total</dt><dd class="font-bold">{{ rowUnits(d) }}</dd></div>
+            <div class="flex justify-between py-2"><dt class="text-slate-500">Subtotal</dt><dd class="font-bold">{{ money(rowUnits(d) * (+d.unit_cost || 0)) }}</dd></div>
+          </dl>
+        </div>
+      </div>
+    }
+
+    <dlx-confirm-dialog
+      [open]="clearOpen()"
+      title="¿Limpiar la lista?"
+      message="Se quitarán todos los productos que aún no has confirmado. Esta acción no se puede deshacer."
+      variant="danger" icon="fa-trash-can" confirmText="Limpiar"
+      (confirmed)="doClear()" (cancelled)="clearOpen.set(false)" />
+
+    <dlx-confirm-dialog
+      [open]="confirmOpen()"
+      title="¿Ingresar la mercadería al inventario?"
+      [message]="confirmMessage()"
+      variant="info" icon="fa-boxes-stacked" confirmText="Sí, ingresar al stock"
+      [loading]="saving()"
+      (confirmed)="confirm()" (cancelled)="confirmOpen.set(false)" />
+    }
+  

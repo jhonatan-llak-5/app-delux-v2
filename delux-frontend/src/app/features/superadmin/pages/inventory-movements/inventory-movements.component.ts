@@ -1,4 +1,5 @@
 import { ChangeDetectionStrategy, Component, OnInit, inject, signal } from '@angular/core';
+import { DlxEmptyStateComponent } from '@shared/ui/empty-state.component';
 import { AuthService } from '@core/services/auth.service';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
@@ -9,7 +10,7 @@ import { AdminService, AdminBranch } from '@features/superadmin/services/admin.s
 @Component({
   selector: 'dlx-inventory-movements',
   standalone: true,
-  imports: [CommonModule, FormsModule, RouterLink],
+  imports: [DlxEmptyStateComponent, CommonModule, FormsModule, RouterLink],
   changeDetection: ChangeDetectionStrategy.OnPush,
   template: `
     <div class="flex items-center gap-2 text-xs text-slate-500 mb-1">
@@ -47,10 +48,7 @@ import { AdminService, AdminBranch } from '@features/superadmin/services/admin.s
           <i class="fa-solid fa-spinner fa-spin text-2xl"></i>
         </div>
       } @else if (items().length === 0) {
-        <div class="p-12 text-center text-slate-400">
-          <i class="fa-solid fa-clock-rotate-left text-3xl mb-3"></i>
-          <p>No hay movimientos registrados.</p>
-        </div>
+        <dlx-empty-state icon="fa-clock-rotate-left" title="No hay movimientos registrados." />
       } @else {
         <table class="w-full text-sm">
           <thead class="bg-slate-50 text-slate-500">

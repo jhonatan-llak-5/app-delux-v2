@@ -1,4 +1,5 @@
 import { ChangeDetectionStrategy, Component } from '@angular/core';
+import { ImgFallbackDirective } from '@shared/ui/img-fallback.directive';
 import { CommonModule } from '@angular/common';
 import { RouterLink } from '@angular/router';
 import { RevealOnScrollDirective } from '@shared/directives/reveal-on-scroll.directive';
@@ -11,7 +12,7 @@ interface Drop {
 @Component({
   selector: 'dlx-drops-section',
   standalone: true,
-  imports: [CommonModule, RouterLink, RevealOnScrollDirective],
+  imports: [ImgFallbackDirective, CommonModule, RouterLink, RevealOnScrollDirective],
   changeDetection: ChangeDetectionStrategy.OnPush,
   template: `
     <section id="drops" class="relative max-w-[1600px] mx-auto px-6 md:px-10 py-20 md:py-32
@@ -57,7 +58,7 @@ interface Drop {
               <img [src]="d.image" [alt]="d.name"
                    class="absolute inset-0 w-full h-full object-cover
                           group-hover:scale-110 transition-transform duration-700"
-                   loading="lazy" (error)="onImgError($event)" />
+                   loading="lazy" dlxImgFallback />
               <div class="absolute inset-x-0 bottom-0 h-32
                           bg-gradient-to-t from-black/40 dark:from-ink-950/80 to-transparent"></div>
               <div class="absolute inset-x-0 bottom-0 p-3 translate-y-full
@@ -109,8 +110,4 @@ export class DropsSectionComponent {
     { id: '8', name: 'Old Skool', brand: 'Vans', price: 85, oldPrice: 110, tag: 'Oferta',
       image: 'https://images.unsplash.com/photo-1525966222134-fcfa99b8ae77?w=600&q=85&auto=format&fit=crop' },
   ];
-  onImgError(ev: Event) {
-    const img = ev.target as HTMLImageElement;
-    img.src = 'data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 200 250"><rect width="200" height="250" fill="%23cbd5e1"/></svg>';
-  }
 }

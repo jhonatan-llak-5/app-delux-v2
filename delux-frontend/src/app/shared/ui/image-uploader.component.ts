@@ -1,4 +1,5 @@
 import { ChangeDetectionStrategy, Component, EventEmitter, Input, Output, forwardRef, inject, signal } from '@angular/core';
+import { ImgFallbackDirective } from '@shared/ui/img-fallback.directive';
 import { CommonModule } from '@angular/common';
 import { FormsModule, ControlValueAccessor, NG_VALUE_ACCESSOR } from '@angular/forms';
 import { FileValidatorService } from '@shared/services/file-validator.service';
@@ -22,7 +23,7 @@ export interface DlxImageItem {
 @Component({
   selector: 'dlx-image-uploader',
   standalone: true,
-  imports: [CommonModule, FormsModule],
+  imports: [ImgFallbackDirective, CommonModule, FormsModule],
   changeDetection: ChangeDetectionStrategy.OnPush,
   providers: [
     { provide: NG_VALUE_ACCESSOR, useExisting: forwardRef(() => DlxImageUploaderComponent), multi: true },
@@ -54,7 +55,7 @@ export interface DlxImageItem {
               }
               <img [src]="img.url" [alt]="'Imagen ' + (i + 1)"
                    class="w-full h-full object-cover bg-[var(--dash-hover)]"
-                   (error)="onImgErr($event)" />
+                   dlxImgFallback />
               <!-- Overlay con acciones -->
               <div class="absolute inset-0 bg-black/0 group-hover:bg-black/45 transition
                           flex items-center justify-center gap-1 opacity-0 group-hover:opacity-100">
@@ -286,10 +287,4 @@ export class DlxImageUploaderComponent implements ControlValueAccessor {
     this.emit();
   }
 
-  onImgErr(ev: Event) {
-    (ev.target as HTMLImageElement).src =
-      'data:image/svg+xml;utf8,<svg xmlns=\'http://www.w3.org/2000/svg\' viewBox=\'0 0 100 100\'>' +
-      '<rect width=\'100\' height=\'100\' fill=\'%23e2e8f0\'/>' +
-      '<text x=\'50\' y=\'55\' text-anchor=\'middle\' fill=\'%2394a3b8\' font-size=\'12\'>error</text></svg>';
-  }
 }

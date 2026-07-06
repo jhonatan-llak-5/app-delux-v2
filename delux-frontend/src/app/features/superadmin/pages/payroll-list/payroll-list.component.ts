@@ -1,4 +1,5 @@
 import { ChangeDetectionStrategy, Component, OnInit, computed, inject, signal } from '@angular/core';
+import { DlxEmptyStateComponent } from '@shared/ui/empty-state.component';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { RouterLink } from '@angular/router';
@@ -12,7 +13,7 @@ import { PayrollService, PayrollRun } from '@features/superadmin/services/payrol
 @Component({
   selector: 'dlx-payroll-list',
   standalone: true,
-  imports: [CommonModule, FormsModule, RouterLink, DlxStatCardComponent],
+  imports: [DlxEmptyStateComponent, CommonModule, FormsModule, RouterLink, DlxStatCardComponent],
   changeDetection: ChangeDetectionStrategy.OnPush,
   template: `
     <div class="mb-5 flex items-start justify-between gap-3 flex-wrap">
@@ -42,10 +43,7 @@ import { PayrollService, PayrollRun } from '@features/superadmin/services/payrol
       @if (loading()) {
         <div class="p-10 text-center text-slate-400"><i class="fa-solid fa-spinner fa-spin text-xl"></i></div>
       } @else if (rows().length === 0) {
-        <div class="p-10 text-center text-slate-400">
-          <i class="fa-solid fa-money-check-dollar text-3xl mb-3"></i>
-          <p>Aún no has generado nóminas. Usa "Generar pagos" para crear la del mes.</p>
-        </div>
+        <dlx-empty-state icon="fa-money-check-dollar" title="Aún no has generado nóminas. Usa &quot;Generar pagos&quot; para crear la del mes." />
       } @else {
         <div class="overflow-x-auto">
           <table class="w-full text-sm">

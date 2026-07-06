@@ -1,4 +1,5 @@
 import { ChangeDetectionStrategy, Component, OnInit, computed, inject, signal } from '@angular/core';
+import { DlxEmptyStateComponent } from '@shared/ui/empty-state.component';
 import { DlxStatCardComponent } from '@shared/ui';
 import { CommonModule, DatePipe } from '@angular/common';
 import { FormsModule } from '@angular/forms';
@@ -14,7 +15,7 @@ import { NewsletterService, Subscriber } from '@features/superadmin/services/new
 @Component({
   selector: 'dlx-newsletter-subscribers',
   standalone: true,
-  imports: [DlxStatCardComponent, CommonModule, FormsModule, DatePipe, DlxSearchInputComponent, DlxConfirmDialogComponent],
+  imports: [DlxEmptyStateComponent, DlxStatCardComponent, CommonModule, FormsModule, DatePipe, DlxSearchInputComponent, DlxConfirmDialogComponent],
   changeDetection: ChangeDetectionStrategy.OnPush,
   template: `
     <div class="mb-5 flex items-start justify-between gap-3 flex-wrap">
@@ -43,10 +44,7 @@ import { NewsletterService, Subscriber } from '@features/superadmin/services/new
     @if (loading()) {
       <div class="card p-10 text-center text-slate-400"><i class="fa-solid fa-spinner fa-spin text-xl"></i></div>
     } @else if (rows().length === 0) {
-      <div class="card p-10 text-center text-slate-400">
-        <i class="fa-solid fa-envelope-open-text text-3xl mb-3"></i>
-        <p>Aún no hay suscriptores.</p>
-      </div>
+      <dlx-empty-state icon="fa-envelope-open-text" title="Aún no hay suscriptores." />
     } @else {
       <div class="card overflow-hidden">
         <div class="overflow-x-auto">

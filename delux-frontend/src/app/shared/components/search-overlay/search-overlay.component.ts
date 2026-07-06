@@ -1,4 +1,5 @@
 import { ChangeDetectionStrategy, Component, EventEmitter, Output, inject, signal } from '@angular/core';
+import { ImgFallbackDirective } from '@shared/ui/img-fallback.directive';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { Router, RouterLink } from '@angular/router';
@@ -8,7 +9,7 @@ import { CatalogService, AutocompleteResp } from '@shared/services/catalog.servi
 @Component({
   selector: 'dlx-search-overlay',
   standalone: true,
-  imports: [CommonModule, FormsModule, RouterLink],
+  imports: [ImgFallbackDirective, CommonModule, FormsModule, RouterLink],
   changeDetection: ChangeDetectionStrategy.OnPush,
   template: `
     <div class="fixed inset-0 z-[60] bg-white/95 dark:bg-ink-950/95 backdrop-blur-xl animate-fade-in"
@@ -47,7 +48,7 @@ import { CatalogService, AutocompleteResp } from '@shared/services/catalog.servi
                          class="flex items-center gap-3 p-2 rounded-lg hover:bg-ink-100 dark:hover:bg-white/5 transition">
                         <img [src]="p.main_image_url" [alt]="p.name"
                              class="w-14 h-14 rounded-lg object-cover bg-ink-100 dark:bg-white/5"
- (error)="onImgErr($event)" />
+ dlxImgFallback />
                         <div class="flex-1 min-w-0">
                           <p class="text-[10px] uppercase tracking-widest text-ink-500 dark:text-white/40 truncate">{{ p.brand_name }}</p>
                           <p class="font-semibold text-ink-950 dark:text-white truncate">{{ p.name }}</p>
@@ -141,8 +142,5 @@ export class SearchOverlayComponent {
 
   onBackdrop(ev: MouseEvent) {
     if (ev.target === ev.currentTarget) this.close.emit();
-  }
-  onImgErr(ev: Event) {
-    (ev.target as HTMLImageElement).src = 'data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 200 200"><rect width="200" height="200" fill="%23e2e8f0"/></svg>';
   }
 }

@@ -1,4 +1,5 @@
 import { ChangeDetectionStrategy, Component, OnInit, inject, signal } from '@angular/core';
+import { DlxToggleComponent } from '@shared/ui/toggle.component';
 import { DlxModalComponent } from '@shared/ui/modal.component';
 import { DlxFieldErrorComponent } from '@shared/ui/field-error.component';
 import { parseApiError } from '@shared/utils/api-error.util';
@@ -11,7 +12,7 @@ import { NotifyService } from '@shared/services/notify.service';
 @Component({
   selector: 'dlx-addresses-tab',
   standalone: true,
-  imports: [DlxModalComponent, DlxFieldErrorComponent, CommonModule, FormsModule],
+  imports: [DlxModalComponent, DlxFieldErrorComponent, CommonModule, FormsModule, DlxToggleComponent],
   changeDetection: ChangeDetectionStrategy.OnPush,
   template: `
     <div class="editorial-card p-6">
@@ -101,10 +102,7 @@ import { NotifyService } from '@shared/services/notify.service';
                      class="w-full px-3 py-3 rounded-lg bg-ink-50 dark:bg-white/5 border border-ink-200 dark:border-white/10 text-sm focus:outline-none" />
             </div>
           </div>
-          <label class="flex items-center gap-2 cursor-pointer">
-            <input type="checkbox" [(ngModel)]="form.is_default" name="is_default" class="w-4 h-4 accent-accent-500" />
-            <span class="text-sm">Predeterminada</span>
-          </label>
+          <dlx-toggle [(ngModel)]="form.is_default" name="is_default" text="Predeterminada" />
 
           <div class="flex justify-end gap-2 pt-2 border-t border-ink-100 dark:border-white/10">
             <button type="button" (click)="closeForm()" class="px-4 py-2.5 rounded-lg bg-ink-100 dark:bg-white/10 text-sm font-semibold">Cancelar</button>
