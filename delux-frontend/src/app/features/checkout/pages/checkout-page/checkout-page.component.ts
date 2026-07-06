@@ -1,4 +1,5 @@
-import { AfterViewInit, ChangeDetectionStrategy, ChangeDetectorRef, Component, OnInit, computed, effect, inject, signal } from '@angular/core';
+import { AfterViewInit, ChangeDetectionStrategy, ChangeDetectorRef, Component, OnDestroy, OnInit, computed, effect, inject, signal } from '@angular/core';
+import { DlxAddressAutocompleteComponent, AddressHit } from '@shared/ui/address-autocomplete.component';
 import { DlxEmptyStateComponent } from '@shared/ui/empty-state.component';
 import { ImgFallbackDirective } from '@shared/ui/img-fallback.directive';
 import { RefService } from '@core/services/ref.service';
@@ -22,11 +23,11 @@ import { MeService } from '@features/account/services/me.service';
 @Component({
   selector: 'dlx-checkout-page',
   standalone: true,
-  imports: [DlxEmptyStateComponent, ImgFallbackDirective, DlxFieldErrorComponent, CommonModule, FormsModule, RouterLink],
+  imports: [DlxAddressAutocompleteComponent, DlxEmptyStateComponent, ImgFallbackDirective, DlxFieldErrorComponent, CommonModule, FormsModule, RouterLink],
   changeDetection: ChangeDetectionStrategy.OnPush,
   templateUrl: './checkout-page.component.html',
 })
-export class CheckoutPageComponent implements OnInit, AfterViewInit {
+export class CheckoutPageComponent implements OnInit, AfterViewInit, OnDestroy {
   cart = inject(CartService);
   private checkout = inject(CheckoutService);
   private notify = inject(NotifyService);
@@ -143,17 +144,42 @@ export class CheckoutPageComponent implements OnInit, AfterViewInit {
     document.head.appendChild(link);
   }
 
+  private destroyMap() {
+    try { this.mapResizeObs?.disconnect(); } catch { /* noop */ }
+    this.mapResizeObs = null;
+    try { this.map?.remove(); } catch { /* noop */ }
+    this.map = null;
+    this.marker = null;
+  }
+
+  ngOnDestroy() { this.destroyMap(); }
+
   private initShipMap(retry = 0) {
     if (typeof document === 'undefined') return;
     this.ensureLeafletCss();
     const el = document.getElementById('dlx-ship-map') as HTMLElement | null;
     if (!el) { if (retry < 20) setTimeout(() => this.initShipMap(retry + 1), 120); return; }
-    if (this.map) { this.map.invalidateSize(); return; }
+    if (this.map) {
+      // Si el contenedor sigue siendo el mismo, basta con recalcular tamaño.
+      // Al pasar a "Retiro" y volver, el <div> del mapa se recrea: el mapa viejo
+      // quedó colgado del elemento eliminado, así que lo destruimos y rehacemos.
+      const prev = this.map.getContainer && this.map.getContainer();
+      if (prev === el && typeof document !== 'undefined' && document.body.contains(prev)) {
+        this.map.invalidateSize(); return;
+      }
+      this.destroyMap();
+    }
     // No crear el mapa hasta que el contenedor tenga altura real (evita el mapa
     // gris cuando el bloque aún no está dimensionado en el primer render).
     if (!el.clientHeight && retry < 20) { setTimeout(() => this.initShipMap(retry + 1), 120); return; }
     const center: [number, number] = [this.shipLat() ?? -0.1807, this.shipLng() ?? -78.4678];
     this.map = L.map(el, { center, zoom: 13, scrollWheelZoom: false });
+    // Zoom con Ctrl + rueda (sin Ctrl, la página hace scroll normal).
+    el.addEventListener('wheel', (e: WheelEvent) => {
+      if (!this.map || !e.ctrlKey) return;
+      e.preventDefault();
+      this.map.setZoom(this.map.getZoom() + (e.deltaY < 0 ? 1 : -1));
+    }, { passive: false });
     L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
       maxZoom: 19, attribution: 'OpenStreetMap contributors',
     }).addTo(this.map);
@@ -233,6 +259,21 @@ export class CheckoutPageComponent implements OnInit, AfterViewInit {
       () => { this.locating.set(false); this.notify.warning('No pudimos obtener tu ubicación. Ubícala en el mapa.'); },
       { enableHighAccuracy: true, timeout: 8000 },
     );
+  }
+
+  /** El usuario eligió una sugerencia del buscador: la marca en el mapa. */
+  onAddressSelected(hit: AddressHit) {
+    this.shippingAddress = hit.display_name;
+    this.initShipMap();
+    const apply = (tries = 0) => {
+      if (!this.map) { if (tries < 25) setTimeout(() => apply(tries + 1), 120); return; }
+      this.map.setView([hit.lat, hit.lng], 16);
+      this.marker?.setLatLng([hit.lat, hit.lng]);
+      this.shipLat.set(hit.lat); this.shipLng.set(hit.lng);
+      if (hit.address) this.applyDetectedCity(hit.address);
+      this.cdr.markForCheck();
+    };
+    apply();
   }
 
   private shippingPayload() {

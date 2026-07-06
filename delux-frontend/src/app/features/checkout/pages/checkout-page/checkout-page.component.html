@@ -125,11 +125,11 @@
                     Dirección de entrega *
                   </label>
                   <div class="flex gap-2 mb-3">
-                    <input [(ngModel)]="shippingAddress" name="ship_addr"
-                           placeholder="Calle, número, referencia..."
-                           class="flex-1 px-3 py-2.5 rounded-xl bg-ink-50 dark:bg-white/5
-                                  border border-ink-200 dark:border-white/10 text-sm
-                                  text-ink-950 dark:text-white focus:outline-none" />
+                    <dlx-address-autocomplete class="flex-1"
+                        [value]="shippingAddress" (valueChange)="shippingAddress = $event"
+                        [biasLat]="shipLat()" [biasLng]="shipLng()"
+                        placeholder="Escribe tu dirección y elige una sugerencia…"
+                        (selected)="onAddressSelected($event)" />
                     <button type="button" (click)="useMyLocation()" [disabled]="locating()"
                             class="px-3 py-2.5 rounded-xl bg-ink-950 dark:bg-white text-white dark:text-ink-950
                                    text-xs font-semibold inline-flex items-center gap-2 disabled:opacity-50 shrink-0">
@@ -139,11 +139,11 @@
                     </button>
                   </div>
                   <div id="dlx-ship-map"
-                       class="w-full h-56 rounded-xl overflow-hidden border border-ink-200 dark:border-white/10
+                       class="w-full h-80 rounded-xl overflow-hidden border border-ink-200 dark:border-white/10
                               bg-ink-100 dark:bg-white/5"></div>
                   <p class="text-[11px] text-ink-500 dark:text-white/50 mt-2">
                     <i class="fa-solid fa-circle-info"></i>
-                    Toca el mapa o arrastra el pin para ubicar tu dirección exacta.
+                    Escribe y elige una sugerencia, o toca el mapa / arrastra el pin. Usa <strong>Ctrl + rueda</strong> para hacer zoom.
                   </p>
                 </div>
               }
