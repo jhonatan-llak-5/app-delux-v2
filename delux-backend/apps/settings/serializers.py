@@ -32,6 +32,12 @@ class PlatformSettingsSerializer(serializers.ModelSerializer):
             # PayPhone
             'payphone_enabled', 'payphone_token', 'payphone_store_id',
             'payphone_api_url', 'payphone_sandbox',
+            # Transferencia bancaria
+            'transfer_enabled', 'bank_name', 'bank_account_type',
+            'bank_account_holder', 'bank_account_number', 'bank_account_document',
+            'bank_contact_email', 'bank_contact_whatsapp', 'transfer_instructions',
+            # DE UNA
+            'deuna_enabled', 'deuna_qr', 'deuna_instructions',
             # Audit
             'updated_at',
         )
@@ -45,7 +51,7 @@ class PlatformSettingsSerializer(serializers.ModelSerializer):
         token = getattr(instance, 'payphone_token', '')
         data['payphone_token_masked'] = ('••••••••' + token[-4:]) if token else ''
         # URLs absolutas de archivos
-        for fld in ('site_logo', 'site_favicon'):
+        for fld in ('site_logo', 'site_favicon', 'deuna_qr'):
             f = getattr(instance, fld, None)
             try:
                 url = f.url if f else None  # relativa: /media/... (proxy la sirve)

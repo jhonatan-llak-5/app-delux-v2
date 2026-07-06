@@ -6,12 +6,19 @@ class PaymentSerializer(serializers.ModelSerializer):
     order_code = serializers.CharField(source='order.code', read_only=True)
     method_label = serializers.CharField(source='get_method_display', read_only=True)
     status_label = serializers.CharField(source='get_status_display', read_only=True)
+    voucher_url = serializers.SerializerMethodField()
 
     class Meta:
         model = Payment
         fields = ('id', 'order', 'order_code', 'method', 'method_label',
                   'status', 'status_label', 'amount', 'external_id',
-                  'created_at', 'updated_at')
+                  'voucher_url', 'created_at', 'updated_at')
+
+    def get_voucher_url(self, obj):
+        try:
+            return obj.voucher.url if obj.voucher else None
+        except Exception:
+            return None
 
 
 class PayPhoneInitOrderSerializer(serializers.Serializer):
@@ -44,6 +51,22 @@ class CheckoutCODSerializer(serializers.Serializer):
     fulfillment = serializers.ChoiceField(
         choices=['SHIPPING', 'PICKUP'], required=False, default='SHIPPING'
     )
+    customer_data = serializers.DictField()
+    items = serializers.ListField(child=serializers.DictField(), allow_empty=False)
+    discount = serializers.DecimalField(max_digits=10, decimal_places=2, default=0)
+    coupon_code = serializers.CharField(required=False, allow_blank=True)
+    affiliate_ref = serializers.CharField(required=False, allow_blank=True, max_length=20)
+    notes = serializers.CharField(max_length=500, required=False, allow_blank=True)
+    shipping_address = serializers.DictField(required=False)
+
+
+class CheckoutTransferSerializer(serializers.Serializer):
+    """Pedido WEB con pago por Transferencia o DE UNA (comprobante aparte)."""
+    branch_id = serializers.IntegerField()
+    fulfillment = serializers.ChoiceField(
+        choices=['SHIPPING', 'PICKUP'], required=False, default='SHIPPING'
+    )
+    method = serializers.ChoiceField(choices=['TRANSFER', 'DEUNA'], default='TRANSFER')
     customer_data = serializers.DictField()
     items = serializers.ListField(child=serializers.DictField(), allow_empty=False)
     discount = serializers.DecimalField(max_digits=10, decimal_places=2, default=0)

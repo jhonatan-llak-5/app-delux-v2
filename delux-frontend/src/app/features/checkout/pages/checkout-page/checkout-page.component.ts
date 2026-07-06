@@ -203,44 +203,113 @@ import { MeService } from '@features/account/services/me.service';
                      [class.fa-circle]="paymentMethod()!=='COD'" [class.text-ink-300]="paymentMethod()!=='COD'"></i>
                 </button>
 
-                <!-- PayPhone (bloqueado si no hay claves configuradas) -->
-                @if (branding.payphoneAvailable()) {
-                  <button type="button" (click)="paymentMethod.set('PAYPHONE')"
+                <!-- Transferencia bancaria -->
+                @if (branding.transferEnabled()) {
+                  <button type="button" (click)="paymentMethod.set('TRANSFER')"
                           class="w-full text-left p-5 rounded-xl border-2 transition flex items-center gap-3"
-                          [class.border-violet-400]="paymentMethod()==='PAYPHONE'"
-                          [class.bg-violet-50]="paymentMethod()==='PAYPHONE'"
-                          [class.dark:bg-violet-500/10]="paymentMethod()==='PAYPHONE'"
-                          [class.border-ink-200]="paymentMethod()!=='PAYPHONE'"
-                          [class.dark:border-white/10]="paymentMethod()!=='PAYPHONE'">
-                    <div class="w-12 h-12 rounded-lg bg-violet-600 text-white grid place-items-center shrink-0">
-                      <i class="fa-solid fa-mobile-screen text-xl"></i>
+                          [class.border-sky-400]="paymentMethod()==='TRANSFER'"
+                          [class.bg-sky-50]="paymentMethod()==='TRANSFER'"
+                          [class.dark:bg-sky-500/10]="paymentMethod()==='TRANSFER'"
+                          [class.border-ink-200]="paymentMethod()!=='TRANSFER'"
+                          [class.dark:border-white/10]="paymentMethod()!=='TRANSFER'">
+                    <div class="w-12 h-12 rounded-lg bg-sky-600 text-white grid place-items-center shrink-0">
+                      <i class="fa-solid fa-building-columns text-xl"></i>
                     </div>
                     <div class="flex-1">
-                      <p class="font-bold text-ink-950 dark:text-white">PayPhone</p>
-                      <p class="text-xs text-ink-700 dark:text-white/70">Tarjeta de crédito, débito o PayPhone wallet</p>
+                      <p class="font-bold text-ink-950 dark:text-white">Transferencia bancaria</p>
+                      <p class="text-xs text-ink-700 dark:text-white/70">Transfiere y sube tu comprobante</p>
                     </div>
                     <i class="fa-solid text-xl"
-                       [class.fa-circle-check]="paymentMethod()==='PAYPHONE'" [class.text-violet-600]="paymentMethod()==='PAYPHONE'"
-                       [class.fa-circle]="paymentMethod()!=='PAYPHONE'" [class.text-ink-300]="paymentMethod()!=='PAYPHONE'"></i>
+                       [class.fa-circle-check]="paymentMethod()==='TRANSFER'" [class.text-sky-600]="paymentMethod()==='TRANSFER'"
+                       [class.fa-circle]="paymentMethod()!=='TRANSFER'" [class.text-ink-300]="paymentMethod()!=='TRANSFER'"></i>
                   </button>
-                } @else {
-                  <div class="w-full p-5 rounded-xl border-2 border-dashed border-ink-200 dark:border-white/10
-                              bg-ink-50 dark:bg-white/5 flex items-center gap-3 opacity-80 cursor-not-allowed">
-                    <div class="w-12 h-12 rounded-lg bg-ink-300 dark:bg-white/10 text-white grid place-items-center shrink-0">
-                      <i class="fa-solid fa-mobile-screen text-xl"></i>
+                }
+
+                <!-- DE UNA -->
+                @if (branding.deunaEnabled()) {
+                  <button type="button" (click)="paymentMethod.set('DEUNA')"
+                          class="w-full text-left p-5 rounded-xl border-2 transition flex items-center gap-3"
+                          [class.border-fuchsia-400]="paymentMethod()==='DEUNA'"
+                          [class.bg-fuchsia-50]="paymentMethod()==='DEUNA'"
+                          [class.dark:bg-fuchsia-500/10]="paymentMethod()==='DEUNA'"
+                          [class.border-ink-200]="paymentMethod()!=='DEUNA'"
+                          [class.dark:border-white/10]="paymentMethod()!=='DEUNA'">
+                    <div class="w-12 h-12 rounded-lg bg-fuchsia-600 text-white grid place-items-center shrink-0">
+                      <i class="fa-solid fa-qrcode text-xl"></i>
                     </div>
                     <div class="flex-1">
-                      <p class="font-bold text-ink-500 dark:text-white/50">
-                        PayPhone
-                        <span class="ml-1 px-2 py-0.5 rounded-full bg-amber-100 text-amber-700
-                                     dark:bg-amber-500/20 dark:text-amber-300 text-[10px] font-bold uppercase tracking-wider">Próximamente</span>
-                      </p>
-                      <p class="text-xs text-ink-400 dark:text-white/40">Tarjeta de crédito, débito o wallet — disponible pronto</p>
+                      <p class="font-bold text-ink-950 dark:text-white">DE UNA</p>
+                      <p class="text-xs text-ink-700 dark:text-white/70">Escanea el QR y paga al instante</p>
                     </div>
-                    <i class="fa-solid fa-lock text-ink-300 dark:text-white/30"></i>
-                  </div>
+                    <i class="fa-solid text-xl"
+                       [class.fa-circle-check]="paymentMethod()==='DEUNA'" [class.text-fuchsia-600]="paymentMethod()==='DEUNA'"
+                       [class.fa-circle]="paymentMethod()!=='DEUNA'" [class.text-ink-300]="paymentMethod()!=='DEUNA'"></i>
+                  </button>
                 }
               </div>
+
+              <!-- Datos de pago + comprobante (transferencia / DE UNA) -->
+              @if (paymentMethod()==='TRANSFER' || paymentMethod()==='DEUNA') {
+                <div class="mt-4 rounded-xl border border-ink-200 dark:border-white/10 bg-ink-50 dark:bg-white/5 p-4 space-y-4">
+
+                  @if (paymentMethod()==='TRANSFER') {
+                    <div>
+                      <p class="text-xs font-bold uppercase tracking-wider text-ink-500 dark:text-white/50 mb-2">Datos para la transferencia</p>
+                      <dl class="text-sm space-y-1.5">
+                        <div class="flex justify-between gap-4"><dt class="text-ink-600 dark:text-white/60">Banco</dt><dd class="font-semibold text-ink-950 dark:text-white text-right">{{ branding.bankData().bank_name }}</dd></div>
+                        @if (branding.bankData().account_type) {
+                          <div class="flex justify-between gap-4"><dt class="text-ink-600 dark:text-white/60">Tipo de cuenta</dt><dd class="font-semibold text-ink-950 dark:text-white text-right">{{ branding.bankData().account_type }}</dd></div>
+                        }
+                        <div class="flex justify-between gap-4"><dt class="text-ink-600 dark:text-white/60">Titular</dt><dd class="font-semibold text-ink-950 dark:text-white text-right">{{ branding.bankData().account_holder }}</dd></div>
+                        <div class="flex justify-between gap-4 items-center"><dt class="text-ink-600 dark:text-white/60">N° de cuenta</dt>
+                          <dd class="font-mono font-bold text-ink-950 dark:text-white text-right">{{ branding.bankData().account_number }}
+                            <button type="button" (click)="copy(branding.bankData().account_number)" class="ml-2 text-sky-600 hover:text-sky-800"><i class="fa-solid fa-copy"></i></button>
+                          </dd>
+                        </div>
+                        @if (branding.bankData().account_document) {
+                          <div class="flex justify-between gap-4"><dt class="text-ink-600 dark:text-white/60">Cédula/RUC</dt><dd class="font-mono text-ink-950 dark:text-white text-right">{{ branding.bankData().account_document }}</dd></div>
+                        }
+                        @if (branding.bankData().contact_email) {
+                          <div class="flex justify-between gap-4"><dt class="text-ink-600 dark:text-white/60">Email</dt><dd class="text-ink-950 dark:text-white text-right">{{ branding.bankData().contact_email }}</dd></div>
+                        }
+                        @if (branding.bankData().contact_whatsapp) {
+                          <div class="flex justify-between gap-4"><dt class="text-ink-600 dark:text-white/60">WhatsApp</dt><dd class="text-ink-950 dark:text-white text-right">{{ branding.bankData().contact_whatsapp }}</dd></div>
+                        }
+                      </dl>
+                      @if (branding.bankData().instructions) {
+                        <p class="text-xs text-ink-600 dark:text-white/60 mt-2">{{ branding.bankData().instructions }}</p>
+                      }
+                    </div>
+                  }
+
+                  @if (paymentMethod()==='DEUNA') {
+                    <div class="text-center">
+                      <p class="text-xs font-bold uppercase tracking-wider text-ink-500 dark:text-white/50 mb-2">Escanea con la app DE UNA</p>
+                      @if (branding.deunaQrUrl()) {
+                        <img [src]="branding.deunaQrUrl()" alt="QR DE UNA" class="mx-auto w-48 h-48 object-contain rounded-lg bg-white p-2 border border-ink-200" />
+                      }
+                      @if (branding.deunaInstructions()) {
+                        <p class="text-xs text-ink-600 dark:text-white/60 mt-2">{{ branding.deunaInstructions() }}</p>
+                      }
+                    </div>
+                  }
+
+                  <!-- Comprobante obligatorio -->
+                  <div class="pt-3 border-t border-ink-200 dark:border-white/10">
+                    <label class="block text-sm font-semibold text-ink-800 dark:text-white/80 mb-1.5">Sube tu comprobante de pago *</label>
+                    <input type="file" accept="image/*" (change)="onVoucherSelected($event)"
+                           class="block w-full text-sm text-ink-700 dark:text-white/70
+                                  file:mr-3 file:py-2 file:px-4 file:rounded-lg file:border-0
+                                  file:text-sm file:font-semibold file:bg-ink-950 file:text-white
+                                  dark:file:bg-white dark:file:text-ink-950 file:cursor-pointer" />
+                    @if (voucherName()) {
+                      <p class="text-xs text-emerald-600 dark:text-emerald-400 mt-1.5"><i class="fa-solid fa-circle-check"></i> {{ voucherName() }}</p>
+                    } @else {
+                      <p class="text-xs text-ink-500 dark:text-white/50 mt-1.5">Adjunta una captura o foto del comprobante. Validaremos tu pago y confirmaremos el pedido.</p>
+                    }
+                  </div>
+                </div>
+              }
 
               @if (error()) {
                 <div class="mt-4 p-3 rounded-lg bg-rose-50 border border-rose-200 text-rose-700 text-sm">
@@ -322,16 +391,18 @@ import { MeService } from '@features/account/services/me.service';
               <button type="button" (click)="payNow()" [disabled]="!canPay() || saving()"
                       class="w-full mt-5 btn-accent text-sm font-semibold py-4 disabled:opacity-50">
                 @if (saving()) { <i class="fa-solid fa-spinner fa-spin"></i> Procesando... }
-                @else if (paymentMethod()==='COD') {
-                  <i class="fa-solid fa-bag-shopping"></i> Confirmar pedido · \${{ total().toFixed(2) }}
-                } @else {
+                @else if (paymentMethod()==='PAYPHONE') {
                   <i class="fa-solid fa-lock"></i> Pagar \${{ total().toFixed(2) }}
+                } @else {
+                  <i class="fa-solid fa-bag-shopping"></i> Confirmar pedido · \${{ total().toFixed(2) }}
                 }
               </button>
 
               <p class="text-[10px] text-ink-500 dark:text-white/40 mt-3 text-center">
                 @if (paymentMethod()==='COD') {
                   Pagarás en efectivo al recibir tu pedido.
+                } @else if (paymentMethod()==='TRANSFER' || paymentMethod()==='DEUNA') {
+                  Validaremos tu comprobante y confirmaremos tu pedido.
                 } @else {
                   Serás redirigido a PayPhone para completar el pago.
                 }
@@ -382,7 +453,9 @@ export class CheckoutPageComponent implements OnInit, AfterViewInit {
   error = signal<string | null>(null);
   fieldErrors = signal<Record<string, string>>({});
   fe(k: string): string | undefined { return this.fieldErrors()[k]; }
-  paymentMethod = signal<'PAYPHONE' | 'COD'>('COD');
+  paymentMethod = signal<'PAYPHONE' | 'COD' | 'TRANSFER' | 'DEUNA'>('COD');
+  voucherFile = signal<File | null>(null);
+  voucherName = signal<string>('');
   shippingAddress = '';
   shipLat = signal<number | null>(null);
   shipLng = signal<number | null>(null);
@@ -416,10 +489,28 @@ export class CheckoutPageComponent implements OnInit, AfterViewInit {
   /** Método (no computed): se reevalúa en cada ciclo de detección,
    *  así reacciona a los campos de cliente/sucursal que no son signals. */
   canPay(): boolean {
+    const needsVoucher = this.paymentMethod() === 'TRANSFER' || this.paymentMethod() === 'DEUNA';
     return this.cart.lines().length > 0 && this.branchId !== null &&
       !!this.customer.full_name.trim() && !!this.customer.email.trim() &&
       !!this.customer.phone.trim() &&
-      (this.fulfillment !== 'SHIPPING' || !!this.shippingAddress.trim());
+      (this.fulfillment !== 'SHIPPING' || !!this.shippingAddress.trim()) &&
+      (!needsVoucher || !!this.voucherFile());
+  }
+
+  onVoucherSelected(ev: Event) {
+    const input = ev.target as HTMLInputElement;
+    const file = input.files && input.files[0];
+    if (!file) { this.voucherFile.set(null); this.voucherName.set(''); return; }
+    this.voucherFile.set(file);
+    this.voucherName.set(file.name);
+  }
+
+  copy(text: string) {
+    if (!text) return;
+    try {
+      navigator.clipboard?.writeText(text);
+      this.notify.success('Número de cuenta copiado.');
+    } catch { /* clipboard no disponible */ }
   }
 
   ngAfterViewInit() {
@@ -539,8 +630,8 @@ export class CheckoutPageComponent implements OnInit, AfterViewInit {
   }
 
   ngOnInit() {
-    // Método por defecto: PayPhone si está configurado; si no, contra entrega.
-    this.paymentMethod.set(this.branding.payphoneAvailable() ? 'PAYPHONE' : 'COD');
+    // Método por defecto: contra entrega (PayPhone está oculto por ahora).
+    this.paymentMethod.set('COD');
     // Carga las ciudades/sucursales de la zona; el effect cargará el paso 2.
     this.zone.load(false);
     // Autocompletar los datos de contacto con el perfil del usuario logueado
@@ -588,7 +679,9 @@ export class CheckoutPageComponent implements OnInit, AfterViewInit {
 
   payNow() {
     if (!this.canPay() || !this.branchId) return;
-    if (this.paymentMethod() === 'COD') { this.placeCOD(); return; }
+    const m = this.paymentMethod();
+    if (m === 'COD') { this.placeCOD(); return; }
+    if (m === 'TRANSFER' || m === 'DEUNA') { this.placeTransfer(m); return; }
     this.saving.set(true);
     this.error.set(null);
     this.fieldErrors.set({});
@@ -655,6 +748,44 @@ export class CheckoutPageComponent implements OnInit, AfterViewInit {
         this.notify.success('¡Pedido registrado!');
         this.router.navigate(['/checkout/result'], {
           queryParams: { success: 'true', code: r.order_code, cod: 'true', track: r.tracking_code || '' },
+        });
+      },
+      error: e => {
+        this.saving.set(false);
+        const p = parseApiError(e);
+        this.fieldErrors.set(p.fieldErrors);
+        const msg = p.message || 'No se pudo registrar el pedido.';
+        if (!Object.keys(p.fieldErrors).length) { this.error.set(msg); this.notify.error(msg); }
+      },
+    });
+  }
+
+  private placeTransfer(method: 'TRANSFER' | 'DEUNA') {
+    const voucher = this.voucherFile();
+    if (!voucher) {
+      this.notify.warning('Debes subir el comprobante de pago.');
+      return;
+    }
+    this.saving.set(true);
+    this.error.set(null);
+    this.fieldErrors.set({});
+    this.checkout.placeTransfer({
+      method,
+      branch_id: this.branchId!,
+      fulfillment: this.fulfillment,
+      customer_data: this.customer,
+      items: this.cart.lines().map(l => ({ variant_id: l.variant_id, quantity: l.quantity })),
+      discount: this.discount(),
+      coupon_code: this.appliedCoupon()?.code,
+      affiliate_ref: this.ref.currentRef() || undefined,
+      shipping_address: this.shippingPayload(),
+    }, voucher).subscribe({
+      next: r => {
+        this.saving.set(false);
+        if (r.error) { this.error.set(r.error); this.notify.error(r.error); return; }
+        this.notify.success('¡Pedido registrado! Validaremos tu comprobante.');
+        this.router.navigate(['/checkout/result'], {
+          queryParams: { success: 'true', code: r.order_code, pending: 'true' },
         });
       },
       error: e => {

@@ -1,7 +1,23 @@
 import { Injectable, inject } from '@angular/core';
 import { HttpClient, HttpParams } from '@angular/common/http';
 import { Observable } from 'rxjs';
+import { map } from 'rxjs/operators';
 import { environment } from '@env/environment';
+
+export interface Payment {
+  id: number;
+  order: number;
+  order_code: string;
+  method: string;
+  method_label: string;
+  status: string;
+  status_label: string;
+  amount: string;
+  external_id: string;
+  voucher_url: string | null;
+  created_at: string;
+  updated_at: string;
+}
 
 export interface OrderItem {
   id: number;
@@ -95,5 +111,20 @@ export class OrderService {
 
   posCheckout(payload: POSPayload): Observable<Order> {
     return this.http.post<Order>(`${this.base}/pos-checkout/`, payload);
+  }
+
+  // ── Pagos (comprobantes de transferencia / DE UNA) ──
+  private paymentsBase = `${environment.apiUrl}/admin/payments`;
+
+  payments(orderId: number): Observable<Payment[]> {
+    const p = new HttpParams().set('order', String(orderId));
+    return this.http.get<any>(`${this.paymentsBase}/`, { params: p })
+      .pipe(map(r => Array.isArray(r) ? r : (r.results || [])));
+  }
+  confirmPayment(id: number): Observable<Payment> {
+    return this.http.post<Payment>(`${this.paymentsBase}/${id}/confirm/`, {});
+  }
+  rejectPayment(id: number): Observable<Payment> {
+    return this.http.post<Payment>(`${this.paymentsBase}/${id}/reject/`, {});
   }
 }

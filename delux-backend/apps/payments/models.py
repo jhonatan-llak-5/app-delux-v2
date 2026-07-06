@@ -6,6 +6,7 @@ class PaymentMethod(models.TextChoices):
     PAYPHONE = 'PAYPHONE', 'PayPhone'
     CARD     = 'CARD',     'Tarjeta'
     TRANSFER = 'TRANSFER', 'Transferencia'
+    DEUNA    = 'DEUNA',    'DE UNA'
     CASH     = 'CASH',     'Efectivo'
 
 
@@ -26,3 +27,6 @@ class Payment(TenantOwnedModel):
     amount = models.DecimalField(max_digits=10, decimal_places=2)
     external_id = models.CharField(max_length=120, blank=True)
     raw_payload = models.JSONField(default=dict, blank=True)
+    # Comprobante de pago (transferencia / DE UNA). Lo sube el cliente y el
+    # panel de Ventas lo valida antes de marcar el pedido como pagado.
+    voucher = models.ImageField(upload_to='payments/vouchers/', blank=True, null=True)

@@ -107,6 +107,20 @@ class PublicUploadConfigView(APIView):
             'payphone_available': bool(
                 c.payphone_enabled and c.payphone_token and c.payphone_store_id),
             'cod_enabled': True,
+            # Transferencia bancaria
+            'transfer_enabled': bool(c.transfer_enabled),
+            'bank_name': c.bank_name or '',
+            'bank_account_type': c.bank_account_type or '',
+            'bank_account_holder': c.bank_account_holder or '',
+            'bank_account_number': c.bank_account_number or '',
+            'bank_account_document': c.bank_account_document or '',
+            'bank_contact_email': c.bank_contact_email or '',
+            'bank_contact_whatsapp': c.bank_contact_whatsapp or '',
+            'transfer_instructions': c.transfer_instructions or '',
+            # DE UNA
+            'deuna_enabled': bool(c.deuna_enabled),
+            'deuna_qr_url': _url(getattr(c, 'deuna_qr', None)),
+            'deuna_instructions': c.deuna_instructions or '',
             'recaptcha_site_key': c.recaptcha_site_key or '',
             'tax_rate': float(c.tax_rate or 0),
             'affiliate_commission_rate': float(c.affiliate_commission_rate or 0),

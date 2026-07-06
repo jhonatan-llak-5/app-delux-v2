@@ -2,7 +2,8 @@ import { ChangeDetectionStrategy, Component, OnInit, inject, signal } from '@ang
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { ActivatedRoute, RouterLink } from '@angular/router';
-import { Order, OrderService } from '@features/superadmin/services/order.service';
+import { Order, OrderService, Payment } from '@features/superadmin/services/order.service';
+import { ConfirmService } from '@shared/components/confirm/confirm.service';
 import { environment } from '@env/environment';
 import { generateVoucherPDF } from '@shared/utils/voucher-pdf.util';
 import { AuthService } from '@core/services/auth.service';
@@ -169,6 +170,50 @@ import { NotifyService } from '@shared/services/notify.service';
               <p class="text-sm text-slate-400">Sin cliente asociado (venta de mostrador)</p>
             }
           </div>
+
+          <!-- Pago / comprobante -->
+          @if (payments().length) {
+            <div class="card p-5 space-y-3">
+              <h3 class="font-bold tracking-tight flex items-center gap-2">
+                <i class="fa-solid fa-receipt text-slate-400"></i> Pago
+              </h3>
+              @for (p of payments(); track p.id) {
+                <div class="rounded-lg border border-slate-100 p-3 space-y-2">
+                  <div class="flex items-center justify-between">
+                    <span class="text-sm font-semibold">{{ p.method_label }}</span>
+                    <span class="inline-flex items-center px-2 py-0.5 rounded-md text-xs font-bold uppercase"
+                          [ngClass]="paymentStatusClass(p.status)">{{ p.status_label }}</span>
+                  </div>
+                  <p class="text-xs text-slate-500">Monto: <span class="font-semibold text-slate-700">\${{ p.amount }}</span></p>
+
+                  @if (p.voucher_url) {
+                    <a [href]="p.voucher_url" target="_blank" rel="noopener" class="block">
+                      <img [src]="p.voucher_url" alt="Comprobante"
+                           class="w-full max-h-64 object-contain rounded-lg border border-slate-200 bg-slate-50" />
+                      <span class="text-[11px] text-sky-600 hover:underline mt-1 inline-block">
+                        <i class="fa-solid fa-up-right-from-square"></i> Ver comprobante en grande
+                      </span>
+                    </a>
+                  } @else if (p.method === 'TRANSFER' || p.method === 'DEUNA') {
+                    <p class="text-xs text-slate-400">Sin comprobante adjunto.</p>
+                  }
+
+                  @if (canManage() && p.status === 'PENDING' && (p.method === 'TRANSFER' || p.method === 'DEUNA')) {
+                    <div class="flex gap-2 pt-1">
+                      <button type="button" (click)="confirmPayment(p)" [disabled]="validating()"
+                              class="flex-1 px-3 py-2 rounded-lg bg-emerald-600 text-white text-xs font-semibold hover:bg-emerald-700 disabled:opacity-50">
+                        <i class="fa-solid fa-check"></i> Validar
+                      </button>
+                      <button type="button" (click)="rejectPayment(p)" [disabled]="validating()"
+                              class="flex-1 px-3 py-2 rounded-lg bg-rose-100 text-rose-700 text-xs font-semibold hover:bg-rose-200 disabled:opacity-50">
+                        <i class="fa-solid fa-xmark"></i> Rechazar
+                      </button>
+                    </div>
+                  }
+                </div>
+              }
+            </div>
+          }
         </div>
       </div>
     } @else {
@@ -182,7 +227,60 @@ export class SaleDetailComponent implements OnInit {
   private svc = inject(OrderService);
   private auth = inject(AuthService);
   private notify = inject(NotifyService);
+  private confirm = inject(ConfirmService);
   saving = signal(false);
+  payments = signal<Payment[]>([]);
+  validating = signal(false);
+
+  private loadPayments(orderId: number) {
+    this.svc.payments(orderId).subscribe({
+      next: ps => this.payments.set(ps),
+      error: () => {},
+    });
+  }
+
+  async confirmPayment(p: Payment) {
+    const ok = await this.confirm.ask({
+      title: 'Validar comprobante',
+      message: 'Confirmas que el pago fue recibido correctamente. El pedido pasará a PAGADO y se descontará el stock.',
+      confirmText: 'Validar pago',
+    });
+    if (!ok) return;
+    this.validating.set(true);
+    this.svc.confirmPayment(p.id).subscribe({
+      next: () => {
+        this.validating.set(false);
+        this.notify.success('Comprobante validado. Pedido marcado como pagado.');
+        this.reload();
+      },
+      error: e => { this.validating.set(false); this.notify.fromServerError(e, 'No se pudo validar.'); },
+    });
+  }
+
+  async rejectPayment(p: Payment) {
+    const ok = await this.confirm.ask({
+      title: 'Rechazar comprobante',
+      message: '¿Rechazar este comprobante? El pedido se cancelará y se liberará el stock reservado.',
+      variant: 'danger', confirmText: 'Rechazar',
+    });
+    if (!ok) return;
+    this.validating.set(true);
+    this.svc.rejectPayment(p.id).subscribe({
+      next: () => {
+        this.validating.set(false);
+        this.notify.success('Comprobante rechazado. Pedido cancelado.');
+        this.reload();
+      },
+      error: e => { this.validating.set(false); this.notify.fromServerError(e, 'No se pudo rechazar.'); },
+    });
+  }
+
+  private reload() {
+    const o = this.order();
+    if (!o) return;
+    this.svc.get(o.id).subscribe(u => this.order.set(u));
+    this.loadPayments(o.id);
+  }
   readonly statuses = [
     { value: 'PENDING',   label: 'Pendiente de pago' },
     { value: 'PAID',      label: 'Pagado' },
@@ -219,6 +317,16 @@ export class SaleDetailComponent implements OnInit {
   ngOnInit() {
     const id = +this.route.snapshot.paramMap.get('id')!;
     this.svc.get(id).subscribe(o => this.order.set(o));
+    this.loadPayments(id);
+  }
+
+  paymentStatusClass(s: string) {
+    return ({
+      PENDING: 'bg-amber-100 text-amber-700',
+      SUCCEEDED: 'bg-emerald-100 text-emerald-700',
+      FAILED: 'bg-rose-100 text-rose-700',
+      REFUNDED: 'bg-slate-100 text-slate-700',
+    } as any)[s] || 'bg-slate-100 text-slate-700';
   }
 
   print() { if (this.order()) generateVoucherPDF(this.order()!); }

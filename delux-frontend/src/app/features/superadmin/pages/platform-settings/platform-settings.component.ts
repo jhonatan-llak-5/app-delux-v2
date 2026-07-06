@@ -6,6 +6,7 @@ import { NotifyService } from '@shared/services/notify.service';
 import { parseApiError } from '@shared/utils/api-error.util';
 import { FileValidatorService } from '@shared/services/file-validator.service';
 import { BrandingService } from '@core/services/branding.service';
+import { DlxToggleComponent } from '@shared/ui/toggle.component';
 
 type TabId = 'email' | 'recaptcha' | 'brand' | 'uploads' | 'payments';
 type ExtControl = 'allowed_image_extensions' | 'allowed_file_extensions' | 'allowed_video_extensions';
@@ -41,7 +42,7 @@ const VIDEO_EXTENSIONS: ExtensionOption[] = [
 @Component({
   selector: 'dlx-platform-settings',
   standalone: true,
-  imports: [CommonModule, FormsModule, ReactiveFormsModule],
+  imports: [CommonModule, FormsModule, ReactiveFormsModule, DlxToggleComponent],
   changeDetection: ChangeDetectionStrategy.OnPush,
   template: `
     <div class="eg-page space-y-6">
@@ -91,17 +92,7 @@ const VIDEO_EXTENSIONS: ExtensionOption[] = [
             </div>
 
             <div class="grid gap-4 md:grid-cols-2">
-              <label class="block">
-                <span class="eg-label">Envío activo</span>
-                <div class="flex items-center gap-3 h-11 px-3.5 rounded-lg border border-slate-300 dark:border-[#334155] bg-white dark:bg-[#0b1220]">
-                  <span class="eg-switch" [class.is-on]="form.value.email_active"
-                        (click)="toggleBool('email_active')"></span>
-                  <span class="text-sm text-slate-700 dark:text-slate-300">
-                    {{ form.value.email_active ? 'Activado' : 'Desactivado' }}
-                  </span>
-                  <input type="checkbox" formControlName="email_active" class="hidden" />
-                </div>
-              </label>
+              <dlx-toggle formControlName="email_active" label="Envío activo" />
               <label class="block">
                 <span class="eg-label">Proveedor SMTP</span>
                 <select class="eg-input" formControlName="email_provider">
@@ -447,28 +438,8 @@ const VIDEO_EXTENSIONS: ExtensionOption[] = [
             </div>
 
             <div class="grid gap-4 md:grid-cols-2">
-              <label class="block">
-                <span class="eg-label">PayPhone activo</span>
-                <div class="flex items-center gap-3 h-11 px-3.5 rounded-lg border border-slate-300 dark:border-[#334155] bg-white dark:bg-[#0b1220]">
-                  <span class="eg-switch" [class.is-on]="form.value.payphone_enabled"
-                        (click)="toggleBool('payphone_enabled')"></span>
-                  <span class="text-sm text-slate-700 dark:text-slate-300">
-                    {{ form.value.payphone_enabled ? 'Activado' : 'Desactivado' }}
-                  </span>
-                  <input type="checkbox" formControlName="payphone_enabled" class="hidden" />
-                </div>
-              </label>
-              <label class="block">
-                <span class="eg-label">Modo Sandbox</span>
-                <div class="flex items-center gap-3 h-11 px-3.5 rounded-lg border border-slate-300 dark:border-[#334155] bg-white dark:bg-[#0b1220]">
-                  <span class="eg-switch" [class.is-on]="form.value.payphone_sandbox"
-                        (click)="toggleBool('payphone_sandbox')"></span>
-                  <span class="text-sm text-slate-700 dark:text-slate-300">
-                    {{ form.value.payphone_sandbox ? 'Pruebas (sin cobros)' : 'Producción' }}
-                  </span>
-                  <input type="checkbox" formControlName="payphone_sandbox" class="hidden" />
-                </div>
-              </label>
+              <dlx-toggle formControlName="payphone_enabled" label="PayPhone activo" />
+              <dlx-toggle formControlName="payphone_sandbox" label="Modo Sandbox" onLabel="Pruebas (sin cobros)" offLabel="Producción" />
             </div>
 
             <label class="block"><span class="eg-label">Store ID</span>
@@ -495,6 +466,99 @@ const VIDEO_EXTENSIONS: ExtensionOption[] = [
               </button>
             </div>
           </section>
+
+          <!-- Transferencia bancaria -->
+          <section class="eg-card-padded space-y-5">
+            <div class="flex items-start justify-between gap-4">
+              <div>
+                <h2 class="text-base font-bold text-slate-900 dark:text-slate-50">Transferencia bancaria</h2>
+                <p class="text-sm text-slate-500 dark:text-slate-400">Datos de la cuenta que verá el cliente al pagar por transferencia.</p>
+              </div>
+              <dlx-toggle formControlName="transfer_enabled" />
+            </div>
+
+            <div class="grid gap-4 md:grid-cols-2">
+              <label class="block"><span class="eg-label">Banco</span>
+                <input class="eg-input" formControlName="bank_name" placeholder="Banco Pichincha" />
+              </label>
+              <div class="block"><span class="eg-label">Tipo de cuenta</span>
+                <div class="flex gap-3 mt-1">
+                  <label class="flex-1 flex items-center gap-2 h-11 px-3.5 rounded-lg border cursor-pointer transition"
+                         [class.border-[var(--dash-primary)]]="form.value.bank_account_type === 'Ahorros'"
+                         [class.bg-blue-50]="form.value.bank_account_type === 'Ahorros'"
+                         [class.dark:bg-blue-500/10]="form.value.bank_account_type === 'Ahorros'"
+                         [class.border-slate-300]="form.value.bank_account_type !== 'Ahorros'"
+                         [class.dark:border-[#334155]]="form.value.bank_account_type !== 'Ahorros'">
+                    <input type="radio" formControlName="bank_account_type" value="Ahorros" class="w-4 h-4 accent-blue-600" />
+                    <span class="text-sm text-slate-700 dark:text-slate-300">Ahorros</span>
+                  </label>
+                  <label class="flex-1 flex items-center gap-2 h-11 px-3.5 rounded-lg border cursor-pointer transition"
+                         [class.border-[var(--dash-primary)]]="form.value.bank_account_type === 'Corriente'"
+                         [class.bg-blue-50]="form.value.bank_account_type === 'Corriente'"
+                         [class.dark:bg-blue-500/10]="form.value.bank_account_type === 'Corriente'"
+                         [class.border-slate-300]="form.value.bank_account_type !== 'Corriente'"
+                         [class.dark:border-[#334155]]="form.value.bank_account_type !== 'Corriente'">
+                    <input type="radio" formControlName="bank_account_type" value="Corriente" class="w-4 h-4 accent-blue-600" />
+                    <span class="text-sm text-slate-700 dark:text-slate-300">Corriente</span>
+                  </label>
+                </div>
+              </div>
+              <label class="block"><span class="eg-label">Nombre del propietario</span>
+                <input class="eg-input" formControlName="bank_account_holder" placeholder="Jhonatan Llamuca" />
+              </label>
+              <label class="block"><span class="eg-label">Número de cuenta</span>
+                <input class="eg-input font-mono" formControlName="bank_account_number" placeholder="1264564687" />
+              </label>
+              <label class="block"><span class="eg-label">Cédula / RUC (opcional)</span>
+                <input class="eg-input font-mono" formControlName="bank_account_document" placeholder="17XXXXXXXX" />
+              </label>
+              <label class="block"><span class="eg-label">Email de contacto</span>
+                <input class="eg-input" formControlName="bank_contact_email" placeholder="jhonatanmll@gmail.com" />
+              </label>
+              <label class="block"><span class="eg-label">WhatsApp</span>
+                <input class="eg-input" formControlName="bank_contact_whatsapp" placeholder="0699556456" />
+              </label>
+            </div>
+            <label class="block"><span class="eg-label">Instrucciones (opcional)</span>
+              <textarea class="eg-input" rows="2" formControlName="transfer_instructions"
+                        placeholder="Envía el comprobante al WhatsApp para agilizar la validación."></textarea>
+            </label>
+          </section>
+
+          <!-- DE UNA (QR) -->
+          <section class="eg-card-padded space-y-5">
+            <div class="flex items-start justify-between gap-4">
+              <div>
+                <h2 class="text-base font-bold text-slate-900 dark:text-slate-50">DE UNA (QR)</h2>
+                <p class="text-sm text-slate-500 dark:text-slate-400">Sube el QR de DE UNA para que el cliente escanee y pague al instante.</p>
+              </div>
+              <dlx-toggle formControlName="deuna_enabled" />
+            </div>
+
+            <div class="flex items-center gap-5">
+              <div class="w-32 h-32 rounded-xl border border-slate-200 dark:border-[#334155] bg-white grid place-items-center overflow-hidden shrink-0">
+                @if (deunaQrPreview() || deunaSavedQr()) {
+                  <img [src]="deunaQrPreview() || deunaSavedQr()" alt="QR DE UNA" class="w-full h-full object-contain p-1" />
+                } @else {
+                  <i class="fa-solid fa-qrcode text-4xl text-slate-300"></i>
+                }
+              </div>
+              <div class="space-y-2">
+                <label class="eg-btn-secondary cursor-pointer inline-flex">
+                  <i class="fa-solid fa-upload"></i> Subir QR
+                  <input type="file" accept="image/*" (change)="onDeunaQrSelected($event)" class="hidden" />
+                </label>
+                @if (deunaQrFile()) {
+                  <button type="button" (click)="clearDeunaQr()" class="eg-btn-ghost text-rose-600 ml-2">Quitar</button>
+                }
+                <p class="text-xs text-slate-500 dark:text-slate-400">PNG o JPG del código QR de tu cuenta DE UNA.</p>
+              </div>
+            </div>
+            <label class="block"><span class="eg-label">Instrucciones (opcional)</span>
+              <textarea class="eg-input" rows="2" formControlName="deuna_instructions"
+                        placeholder="Escanea el QR con la app DE UNA y sube tu comprobante."></textarea>
+            </label>
+          </section>
         }
 
         <!-- ═════ STICKY FOOTER (idéntico a elitegroup) ═════ -->
@@ -505,17 +569,17 @@ const VIDEO_EXTENSIONS: ExtensionOption[] = [
                       dark:border-[#334155] dark:bg-[#0f172a]/95">
             <div>
               <p class="text-sm font-semibold text-slate-900 dark:text-slate-100">
-                {{ (form.dirty || logoFile() || faviconFile()) ? 'Cambios pendientes' : 'Configuración guardada' }}
+                {{ (form.dirty || logoFile() || faviconFile() || deunaQrFile()) ? 'Cambios pendientes' : 'Configuración guardada' }}
               </p>
               <p class="text-xs text-slate-500 dark:text-slate-400">
-                {{ (form.dirty || logoFile() || faviconFile())
+                {{ (form.dirty || logoFile() || faviconFile() || deunaQrFile())
                   ? 'Guarda antes de cambiar de sección o enviar pruebas.'
                   : 'Puedes enviar una prueba SMTP cuando el correo esté activo.' }}
               </p>
             </div>
             <button type="submit"
                     class="eg-btn-primary h-11 px-6 md:min-w-44"
-                    [disabled]="form.invalid || saving() || (!form.dirty && !logoFile() && !faviconFile())">
+                    [disabled]="form.invalid || saving() || (!form.dirty && !logoFile() && !faviconFile() && !deunaQrFile())">
               @if (saving()) { <i class="fa-solid fa-spinner fa-spin"></i> Guardando... }
               @else { Guardar cambios }
             </button>
@@ -555,6 +619,8 @@ export class PlatformSettingsComponent implements OnInit {
   logoPreview = signal<string | null>(null);
   faviconFile = signal<File | null>(null);
   faviconPreview = signal<string | null>(null);
+  deunaQrFile = signal<File | null>(null);
+  deunaQrPreview = signal<string | null>(null);
 
   form = this.fb.nonNullable.group({
     email_active: [true],
@@ -588,16 +654,24 @@ export class PlatformSettingsComponent implements OnInit {
     payphone_store_id: [''],
     payphone_token: [''],
     payphone_api_url: ['https://pay.payphonetodoesposible.com/api'],
+    // Transferencia bancaria
+    transfer_enabled: [true],
+    bank_name: [''],
+    bank_account_type: [''],
+    bank_account_holder: [''],
+    bank_account_number: [''],
+    bank_account_document: [''],
+    bank_contact_email: ['', [Validators.email]],
+    bank_contact_whatsapp: [''],
+    transfer_instructions: [''],
+    // DE UNA
+    deuna_enabled: [false],
+    deuna_instructions: [''],
   });
 
   ngOnInit() { this.loadSettings(); }
   setTab(id: TabId) { this.tab.set(id); }
 
-  toggleBool(key: 'email_active' | 'payphone_enabled' | 'payphone_sandbox') {
-    const cur = (this.form.value as any)[key];
-    this.form.patchValue({ [key]: !cur } as any);
-    this.form.markAsDirty();
-  }
 
   // ── Extension pills helpers ──
   toggleImageExt(ext: string) { this.toggleCsvValue('allowed_image_extensions', ext); }
@@ -662,6 +736,19 @@ export class PlatformSettingsComponent implements OnInit {
   }
   clearFavicon() { this.faviconFile.set(null); this.faviconPreview.set(null); }
 
+  onDeunaQrSelected(ev: Event) {
+    const file = (ev.target as HTMLInputElement).files?.[0];
+    if (!file) return;
+    const res = this.validator.validate(file, 'image');
+    if (!res.ok) { this.notify.warning('QR inválido', { description: res.reason }); return; }
+    this.deunaQrFile.set(file);
+    const r = new FileReader();
+    r.onload = () => this.deunaQrPreview.set(r.result as string);
+    r.readAsDataURL(file);
+  }
+  clearDeunaQr() { this.deunaQrFile.set(null); this.deunaQrPreview.set(null); }
+  deunaSavedQr(): string | null { return (this.settings() as any)?.deuna_qr_url || null; }
+
   /** Mapea errores de validación del backend a los controles del form. */
   private applyServerErrors(e: unknown): void {
     const p = parseApiError(e);
@@ -680,7 +767,7 @@ export class PlatformSettingsComponent implements OnInit {
     for (const k of ['smtp_password', 'recaptcha_secret_key', 'payphone_token']) {
       if (!raw[k]) delete raw[k];
     }
-    const hasFiles = !!this.logoFile() || !!this.faviconFile();
+    const hasFiles = !!this.logoFile() || !!this.faviconFile() || !!this.deunaQrFile();
     if (hasFiles) {
       const fd = new FormData();
       for (const [k, v] of Object.entries(raw)) {
@@ -689,6 +776,7 @@ export class PlatformSettingsComponent implements OnInit {
       }
       if (this.logoFile()) fd.append('site_logo', this.logoFile()!);
       if (this.faviconFile()) fd.append('site_favicon', this.faviconFile()!);
+      if (this.deunaQrFile()) fd.append('deuna_qr', this.deunaQrFile()!);
       this.admin.updateSettingsMultipart(fd).subscribe({
         next: s => this.afterSave(s),
         error: e => { this.saving.set(false); this.applyServerErrors(e); },
@@ -707,6 +795,7 @@ export class PlatformSettingsComponent implements OnInit {
     this.form.markAsPristine();
     this.clearLogo();
     this.clearFavicon();
+    this.clearDeunaQr();
     this.saving.set(false);
     // Refresca el branding global (logo, favicon, nombre) sin recargar la página.
     this.branding.load();

@@ -16,9 +16,11 @@ from apps.inventory.models import Stock, StockMovement
 from .models import Payment, PaymentMethod, PaymentStatus
 from .serializers import (
     PaymentSerializer, PayPhoneInitOrderSerializer, PayPhoneConfirmSerializer,
-    CheckoutCODSerializer,
+    CheckoutCODSerializer, CheckoutTransferSerializer,
 )
 from .services import init_payphone_transaction, confirm_payment
+from rest_framework.parsers import MultiPartParser, FormParser, JSONParser
+from rest_framework.decorators import action
 
 
 def _active_tenant():
@@ -195,7 +197,57 @@ class AdminPaymentViewSet(viewsets.ReadOnlyModelViewSet):
         params = self.request.query_params
         if params.get('status'): qs = qs.filter(status=params['status'])
         if params.get('method'): qs = qs.filter(method=params['method'])
+        if params.get('order'): qs = qs.filter(order_id=params['order'])
         return qs.order_by('-created_at')
+
+    @action(detail=True, methods=['post'])
+    def confirm(self, request, pk=None):
+        """Valida el comprobante: confirma el pago, marca el pedido PAGADO y
+        convierte la reserva de stock en salida real."""
+        payment = self.get_object()
+        if payment.status == PaymentStatus.SUCCEEDED:
+            return Response({'detail': 'El pago ya estaba confirmado.'}, status=200)
+        with transaction.atomic():
+            confirm_payment(payment, True, {'validated_by': request.user.id})
+            order = payment.order
+            for item in order.items.all():
+                item_branch = item.branch_id or order.branch_id
+                stock = Stock.objects.select_for_update().filter(
+                    variant=item.variant, branch_id=item_branch
+                ).first()
+                if stock:
+                    stock.reserved = max(0, stock.reserved - item.quantity)
+                    stock.quantity = max(0, stock.quantity - item.quantity)
+                    stock.save(update_fields=['reserved', 'quantity', 'updated_at'])
+                    StockMovement.objects.create(
+                        tenant=payment.tenant, stock=stock,
+                        type=StockMovement.TYPE_OUT, quantity=-item.quantity,
+                        note=f'Venta WEB {order.code} (comprobante validado)',
+                    )
+        return Response(self.get_serializer(payment).data)
+
+    @action(detail=True, methods=['post'])
+    def reject(self, request, pk=None):
+        """Rechaza el comprobante: marca el pago fallido, libera la reserva y
+        cancela el pedido."""
+        payment = self.get_object()
+        with transaction.atomic():
+            payment.status = PaymentStatus.FAILED
+            payment.raw_payload = {**(payment.raw_payload or {}),
+                                   'rejected_by': request.user.id}
+            payment.save(update_fields=['status', 'raw_payload'])
+            order = payment.order
+            for item in order.items.all():
+                item_branch = item.branch_id or order.branch_id
+                stock = Stock.objects.filter(
+                    variant=item.variant, branch_id=item_branch
+                ).first()
+                if stock:
+                    stock.reserved = max(0, stock.reserved - item.quantity)
+                    stock.save(update_fields=['reserved', 'updated_at'])
+            order.status = OrderStatus.CANCELLED
+            order.save(update_fields=['status', 'updated_at'])
+        return Response(self.get_serializer(payment).data)
 
 
 class CheckoutPayPhoneInitView(APIView):
@@ -278,6 +330,65 @@ class CheckoutCODView(APIView):
             'method': 'CASH',
             'order_status': order.status,
             'tracking_code': shipment.tracking_code if shipment else None,
+        }, status=status.HTTP_201_CREATED)
+
+
+class CheckoutTransferView(APIView):
+    """Crea un pedido WEB con pago por TRANSFERENCIA o DE UNA. PUBLICO.
+
+    Recibe multipart: `payload` (JSON con los datos del pedido) + `voucher`
+    (imagen del comprobante, OBLIGATORIO). El pedido queda PENDING a la espera
+    de que el panel de Ventas valide el comprobante; ahí se confirma el pago y
+    se descuenta el stock (mientras tanto queda reservado).
+    """
+    permission_classes = [permissions.AllowAny]
+    parser_classes = [MultiPartParser, FormParser, JSONParser]
+
+    def post(self, request):
+        import json
+        raw = request.data.get('payload')
+        if raw:
+            try:
+                data_in = json.loads(raw) if isinstance(raw, str) else raw
+            except Exception:
+                raise ValidationError({'detail': 'payload inválido.'})
+        else:
+            data_in = request.data
+
+        method = (data_in.get('method') or 'TRANSFER').upper()
+        if method not in ('TRANSFER', 'DEUNA'):
+            raise ValidationError({'method': 'Método de pago inválido.'})
+
+        voucher = request.FILES.get('voucher')
+        if voucher is None:
+            raise ValidationError({'voucher': 'Debes subir el comprobante de pago.'})
+
+        s = CheckoutTransferSerializer(data=data_in)
+        s.is_valid(raise_exception=True)
+        data = s.validated_data
+
+        tenant = _active_tenant()
+        with transaction.atomic():
+            order = create_web_order(tenant, data, user=request.user)
+            Payment.objects.create(
+                tenant=tenant, order=order,
+                method=(PaymentMethod.DEUNA if method == 'DEUNA'
+                        else PaymentMethod.TRANSFER),
+                status=PaymentStatus.PENDING,
+                amount=order.total,
+                voucher=voucher,
+                raw_payload={'awaiting_validation': True, 'method': method},
+            )
+
+        _broadcast_new_order(order)
+        _email_receipt(order)
+
+        return Response({
+            'order_id': order.id,
+            'order_code': order.code,
+            'order_total': str(order.total),
+            'method': method,
+            'order_status': order.status,
         }, status=status.HTTP_201_CREATED)
 
 

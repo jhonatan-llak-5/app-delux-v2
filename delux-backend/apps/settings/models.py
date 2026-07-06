@@ -96,6 +96,32 @@ class PlatformSettings(models.Model):
     )
     payphone_sandbox = models.BooleanField(default=True)
 
+    # ─── Pago por transferencia bancaria ───
+    transfer_enabled = models.BooleanField(
+        default=True, help_text='Habilita el pago por transferencia bancaria en el checkout.')
+    bank_name = models.CharField(max_length=120, blank=True, default='')
+    bank_account_type = models.CharField(
+        max_length=40, blank=True, default='',
+        help_text='Ahorros / Corriente')
+    bank_account_holder = models.CharField(max_length=160, blank=True, default='')
+    bank_account_number = models.CharField(max_length=60, blank=True, default='')
+    bank_account_document = models.CharField(
+        max_length=40, blank=True, default='',
+        help_text='Cédula/RUC del titular (opcional).')
+    bank_contact_email = models.EmailField(blank=True, default='')
+    bank_contact_whatsapp = models.CharField(max_length=30, blank=True, default='')
+    transfer_instructions = models.TextField(
+        blank=True, default='',
+        help_text='Instrucciones que ve el cliente al pagar por transferencia.')
+
+    # ─── Pago con DE UNA (QR Banco Pichincha) ───
+    deuna_enabled = models.BooleanField(
+        default=False, help_text='Habilita el pago con DE UNA (QR) en el checkout.')
+    deuna_qr = models.ImageField(upload_to='platform/deuna/', blank=True, null=True)
+    deuna_instructions = models.TextField(
+        blank=True, default='',
+        help_text='Instrucciones que ve el cliente al pagar con DE UNA.')
+
     updated_at = models.DateTimeField(auto_now=True)
 
     class Meta:

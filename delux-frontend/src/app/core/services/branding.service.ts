@@ -13,6 +13,31 @@ interface BrandConfig {
   cod_enabled?: boolean;
   recaptcha_site_key?: string;
   tax_rate?: number;
+  // Transferencia bancaria
+  transfer_enabled?: boolean;
+  bank_name?: string;
+  bank_account_type?: string;
+  bank_account_holder?: string;
+  bank_account_number?: string;
+  bank_account_document?: string;
+  bank_contact_email?: string;
+  bank_contact_whatsapp?: string;
+  transfer_instructions?: string;
+  // DE UNA
+  deuna_enabled?: boolean;
+  deuna_qr_url?: string | null;
+  deuna_instructions?: string;
+}
+
+export interface BankData {
+  bank_name: string;
+  account_type: string;
+  account_holder: string;
+  account_number: string;
+  account_document: string;
+  contact_email: string;
+  contact_whatsapp: string;
+  instructions: string;
 }
 
 /**
@@ -39,6 +64,29 @@ export class BrandingService {
   /** Métodos de pago disponibles (según config del superadmin). */
   readonly payphoneAvailable = computed(() => this._cfg()?.payphone_available === true);
   readonly codEnabled = computed(() => this._cfg()?.cod_enabled !== false);
+  /** Transferencia bancaria disponible (habilitada + al menos banco y cuenta). */
+  readonly transferEnabled = computed(() => {
+    const c = this._cfg();
+    return c?.transfer_enabled === true && !!(c?.bank_name && c?.bank_account_number);
+  });
+  readonly bankData = computed<BankData>(() => {
+    const c = this._cfg();
+    return {
+      bank_name: c?.bank_name || '',
+      account_type: c?.bank_account_type || '',
+      account_holder: c?.bank_account_holder || '',
+      account_number: c?.bank_account_number || '',
+      account_document: c?.bank_account_document || '',
+      contact_email: c?.bank_contact_email || '',
+      contact_whatsapp: c?.bank_contact_whatsapp || '',
+      instructions: c?.transfer_instructions || '',
+    };
+  });
+  /** DE UNA disponible (habilitado + QR subido). */
+  readonly deunaEnabled = computed(() =>
+    this._cfg()?.deuna_enabled === true && !!this._cfg()?.deuna_qr_url);
+  readonly deunaQrUrl = computed(() => this._cfg()?.deuna_qr_url || null);
+  readonly deunaInstructions = computed(() => this._cfg()?.deuna_instructions || '');
   readonly recaptchaSiteKey = computed(() => this._cfg()?.recaptcha_site_key || '');
   /** Tasa de IVA (%) configurada por el superadmin. Default 15. */
   readonly affiliateCommissionRate = computed(() => +(this._cfg()?.affiliate_commission_rate ?? 10) || 0);

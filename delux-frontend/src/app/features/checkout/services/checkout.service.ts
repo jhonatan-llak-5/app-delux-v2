@@ -59,6 +59,20 @@ export class CheckoutService {
     return this.http.post<CheckoutInitResponse>(`${this.base}/checkout/cod/`, payload);
   }
 
+  /**
+   * Crea el pedido con pago por Transferencia o DE UNA. El comprobante
+   * (voucher) es OBLIGATORIO. Se envía como multipart: payload JSON + archivo.
+   */
+  placeTransfer(
+    payload: Omit<CheckoutInitPayload, 'return_url'> & { method: 'TRANSFER' | 'DEUNA' },
+    voucher: File,
+  ): Observable<CheckoutInitResponse> {
+    const form = new FormData();
+    form.append('payload', JSON.stringify(payload));
+    form.append('voucher', voucher);
+    return this.http.post<CheckoutInitResponse>(`${this.base}/checkout/transfer/`, form);
+  }
+
   confirmPayPhone(payment_id: number, success: boolean, raw?: any): Observable<CheckoutConfirmResponse> {
     return this.http.post<CheckoutConfirmResponse>(`${this.base}/checkout/payphone/confirm/`, {
       payment_id, success, raw,
