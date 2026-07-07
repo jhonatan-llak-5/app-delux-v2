@@ -1,5 +1,6 @@
 import { AfterViewInit, ChangeDetectionStrategy, ChangeDetectorRef, Component, OnDestroy, OnInit, computed, effect, inject, signal } from '@angular/core';
 import { DlxAddressAutocompleteComponent, AddressHit } from '@shared/ui/address-autocomplete.component';
+import { ConfirmService } from '@shared/components/confirm/confirm.service';
 import { DlxEmptyStateComponent } from '@shared/ui/empty-state.component';
 import { ImgFallbackDirective } from '@shared/ui/img-fallback.directive';
 import { RefService } from '@core/services/ref.service';
@@ -39,6 +40,7 @@ export class CheckoutPageComponent implements OnInit, AfterViewInit, OnDestroy {
   private ref = inject(RefService);
   private auth = inject(AuthService);
   private me = inject(MeService);
+  private confirm = inject(ConfirmService);
   private cdr = inject(ChangeDetectorRef);
 
   constructor() {
@@ -330,9 +332,30 @@ export class CheckoutPageComponent implements OnInit, AfterViewInit, OnDestroy {
     this.discount.set(0);
   }
 
-  payNow() {
+  /** Indicaciones que ve el cliente antes de confirmar. */
+  private confirmMessage(): string {
+    const parts: string[] = [];
+    if (this.fulfillment === 'SHIPPING') {
+      parts.push('Nos comunicaremos contigo para coordinar el envío y acordar su costo según tu ubicación.');
+    } else {
+      parts.push('Retirarás tu pedido en la sucursal seleccionada; te avisaremos cuando esté listo.');
+    }
+    const m = this.paymentMethod();
+    if (m === 'COD') parts.push('Pagarás en efectivo al recibir tu pedido.');
+    else if (m === 'TRANSFER' || m === 'DEUNA') parts.push('Validaremos tu comprobante y confirmaremos tu pedido.');
+    parts.push('Revisa que tu dirección y datos de contacto sean correctos antes de continuar.');
+    return parts.join(' ');
+  }
+
+  async payNow() {
     if (!this.canPay() || !this.branchId) return;
     const m = this.paymentMethod();
+    const ok = await this.confirm.ask({
+      title: 'Confirmar pedido',
+      message: this.confirmMessage(),
+      confirmText: 'Sí, confirmar pedido',
+    });
+    if (!ok) return;
     if (m === 'COD') { this.placeCOD(); return; }
     if (m === 'TRANSFER' || m === 'DEUNA') { this.placeTransfer(m); return; }
     this.saving.set(true);

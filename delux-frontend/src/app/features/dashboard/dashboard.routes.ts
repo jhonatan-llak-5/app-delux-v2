@@ -65,7 +65,7 @@ export const DASHBOARD_ROUTES: Routes = [
       },
       {
         path: 'account',
-        canActivate: [roleGuard(['CUSTOMER'])],
+        canActivate: [roleGuard(['CUSTOMER', 'AFFILIATE', 'SALESPERSON', 'BRANCH_MANAGER', 'TENANT_ADMIN', 'SUPERADMIN'])],
         children: [
           { path: '', pathMatch: 'full', redirectTo: 'profile' },
           { path: 'profile',   loadComponent: () => import('@features/account/pages/profile-tab/profile-tab.component').then(m => m.ProfileTabComponent) },

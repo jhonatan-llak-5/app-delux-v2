@@ -108,6 +108,9 @@ def auto_create_shipment(order, address=None):
     return sh
 
 
+from django.db.models import Q
+
+
 class PublicTrackingView(APIView):
     """GET público — devuelve estado + timeline + coordenadas para Leaflet."""
     permission_classes = [permissions.AllowAny]
@@ -117,7 +120,7 @@ class PublicTrackingView(APIView):
             Shipment.objects
             .select_related('order', 'order__branch')
             .prefetch_related('events')
-            .filter(tracking_code__iexact=tracking_code)
+            .filter(Q(tracking_code__iexact=tracking_code) | Q(order__code__iexact=tracking_code))
             .first()
         )
         if not s:

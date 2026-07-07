@@ -116,12 +116,18 @@
           @if (payload.role !== 'TENANT_ADMIN') {
             <div>
               <label class="eg-label">Sucursal asignada *</label>
-              <select [(ngModel)]="payload.branch" name="branch" required
-                      class="eg-input" [class.!border-rose-400]="fe('branch')">
-                <option [ngValue]="null">— Seleccionar —</option>
-                @for (b of branches(); track b.id) { <option [ngValue]="b.id">{{ b.name }} · {{ b.city }}</option> }
-              </select>
-              <dlx-field-error [error]="fe('branch')" />
+              @if (auth.multiBranch()) {
+                <select [(ngModel)]="payload.branch" name="branch" required
+                        class="eg-input" [class.!border-rose-400]="fe('branch')">
+                  <option [ngValue]="null">— Seleccionar —</option>
+                  @for (b of branches(); track b.id) { <option [ngValue]="b.id">{{ b.name }} · {{ b.city }}</option> }
+                </select>
+                <dlx-field-error [error]="fe('branch')" />
+              } @else {
+                <p class="eg-input flex items-center bg-slate-50 dark:bg-white/5 text-slate-600 dark:text-white/70">
+                  {{ assignedBranchName() }}
+                </p>
+              }
             </div>
           }
 

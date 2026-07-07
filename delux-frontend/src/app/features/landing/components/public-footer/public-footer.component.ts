@@ -6,6 +6,7 @@ import { PublicFormsService } from '@shared/services/public-forms.service';
 import { NotifyService } from '@shared/services/notify.service';
 import { parseApiError } from '@shared/utils/api-error.util';
 import { environment } from '@env/environment';
+import { BrandingService } from '@core/services/branding.service';
 
 @Component({
   selector: 'dlx-public-footer',
@@ -49,9 +50,16 @@ import { environment } from '@env/environment';
         <!-- Brand block -->
         <div class="col-span-2 md:col-span-4">
           <a routerLink="/" class="flex items-center gap-2.5 w-fit">
-            <div class="w-10 h-10 rounded-xl bg-ink-950 dark:bg-white grid place-items-center
-                        font-bold text-white dark:text-ink-950 text-base">D</div>
-            <span class="font-bold text-xl tracking-tight text-ink-950 dark:text-white">Delux</span>
+            @if (branding.logoUrl()) {
+              <img [src]="branding.logoUrl()" [alt]="branding.siteName()"
+                   class="h-10 w-auto max-w-[180px] object-contain rounded-xl block dark:hidden" />
+              <img [src]="branding.logoUrlDark()" [alt]="branding.siteName()"
+                   class="h-10 w-auto max-w-[180px] object-contain rounded-xl hidden dark:block" />
+            } @else {
+              <div class="w-10 h-10 rounded-xl bg-ink-950 dark:bg-white grid place-items-center
+                          font-bold text-white dark:text-ink-950 text-base">{{ branding.siteName().charAt(0) }}</div>
+              <span class="font-bold text-xl tracking-tight text-ink-950 dark:text-white">{{ branding.siteName() }}</span>
+            }
           </a>
           <p class="text-ink-600 dark:text-white/55 text-[14px] leading-relaxed mt-5 max-w-sm">
             Streetwear premium en Ecuador. Drops exclusivos de las marcas que definen
@@ -79,8 +87,6 @@ import { environment } from '@env/environment';
             <i class="fa-brands fa-cc-mastercard" title="Mastercard"></i>
             <i class="fa-brands fa-cc-amex" title="Amex"></i>
             <i class="fa-brands fa-cc-diners-club" title="Diners"></i>
-            <span class="w-px h-5 bg-ink-200 dark:bg-white/15"></span>
-            <span class="text-[11px] font-semibold uppercase tracking-wider">PayPhone</span>
           </div>
         </div>
 
@@ -137,7 +143,7 @@ import { environment } from '@env/environment';
         <div class="max-w-[1400px] mx-auto px-6 md:px-10 py-5
                     flex flex-col md:flex-row items-center justify-between gap-4">
           <p class="text-[12px] text-ink-500 dark:text-white/45">
-            © {{ year }} Delux. Todos los derechos reservados.
+            © {{ year }} {{ branding.siteName() }}. Todos los derechos reservados.
             <span class="ml-2 opacity-60">· v{{ appVersion }}</span>
           </p>
           <div class="flex items-center gap-5 text-[12px] text-ink-500 dark:text-white/45">
@@ -162,6 +168,7 @@ import { environment } from '@env/environment';
 export class PublicFooterComponent {
   private forms = inject(PublicFormsService);
   private notify = inject(NotifyService);
+  branding = inject(BrandingService);
   email = '';
   fieldErr = signal<string | null>(null);
   readonly year = new Date().getFullYear();

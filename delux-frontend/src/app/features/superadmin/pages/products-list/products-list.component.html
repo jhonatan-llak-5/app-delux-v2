@@ -81,13 +81,6 @@
         <option value="PAUSED">Pausados</option>
         <option value="ARCHIVED">Archivados</option>
       </select>
-      @if (showStoreFilter()) {
-        <select [(ngModel)]="branchFilter" (change)="reload()" title="Filtrar por tienda"
-                class="eg-input border-transparent">
-          <option [ngValue]="null">Todas las tiendas</option>
-          @for (b of stores(); track b.id) { <option [ngValue]="b.id">{{ b.name }} · {{ b.city }}</option> }
-        </select>
-      }
     </div>
 
     <!-- Grid -->

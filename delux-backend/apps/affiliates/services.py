@@ -79,8 +79,14 @@ def pay_affiliate_commissions(affiliate, method, reference='', paid_by=None,
             f'El total por pagar (${total}) no alcanza el minimo de pago (${min_payout}).')
 
     now = timezone.now()
+    # Los afiliados son globales (tenant=None); el payout necesita tenant, así
+    # que usamos el de quien registra el pago (o el primer tenant activo).
+    payout_tenant = affiliate.tenant or getattr(paid_by, 'tenant', None)
+    if payout_tenant is None:
+        from apps.tenants.models import Tenant
+        payout_tenant = Tenant.objects.filter(is_active=True).first()
     payout = CommissionPayout.objects.create(
-        tenant=affiliate.tenant, affiliate=affiliate,
+        tenant=payout_tenant, affiliate=affiliate,
         amount=total, method=method, reference=reference,
         commissions_count=len(pending), paid_by=paid_by,
     )

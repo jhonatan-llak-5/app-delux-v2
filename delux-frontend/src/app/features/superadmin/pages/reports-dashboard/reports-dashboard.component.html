@@ -26,13 +26,6 @@
                class="px-3 py-2 rounded-lg bg-slate-50 border border-slate-200 text-xs" />
         <input type="date" [(ngModel)]="to" (change)="onCustomRange()"
                class="px-3 py-2 rounded-lg bg-slate-50 border border-slate-200 text-xs" />
-        @if (auth.multiBranch()) {
-          <select [(ngModel)]="branchId" (change)="reload()"
-                  class="px-3 py-2 rounded-lg bg-slate-50 border border-slate-200 text-xs">
-            <option [ngValue]="null">Todas las sucursales</option>
-            @for (b of branches(); track b.id) { <option [ngValue]="b.id">{{ b.name }}</option> }
-          </select>
-        }
       </div>
     </div>
 

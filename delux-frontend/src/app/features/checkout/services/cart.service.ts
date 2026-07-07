@@ -1,4 +1,5 @@
-import { Injectable, computed, signal } from '@angular/core';
+import { Injectable, computed, effect, inject, signal } from '@angular/core';
+import { AuthService } from '@core/services/auth.service';
 
 export interface CartLine {
   variant_id: number;
@@ -15,26 +16,48 @@ export interface CartLine {
   brand_name?: string;
 }
 
-const KEY = 'dlx_cart_v1';
+const BASE_KEY = 'dlx_cart_v1';
 
 @Injectable({ providedIn: 'root' })
 export class CartService {
-  lines = signal<CartLine[]>(this.loadFromStorage());
+  private auth = inject(AuthService);
+
+  /** Clave de almacenamiento propia de la cuenta actual (o 'guest' si anónimo). */
+  private ownerKey = signal<string>(this.keyForCurrentUser());
+  lines = signal<CartLine[]>(this.loadFromStorage(this.ownerKey()));
 
   subtotal = computed(() =>
     this.lines().reduce((s, l) => s + l.unit_price * l.quantity, 0)
   );
   itemCount = computed(() => this.lines().reduce((s, l) => s + l.quantity, 0));
 
-  private loadFromStorage(): CartLine[] {
+  constructor() {
+    // Al cambiar de identidad (login / logout / cambio de cuenta) se recarga el
+    // carrito PROPIO de esa cuenta, para que nunca se mezclen carritos de
+    // cuentas distintas ni el de un usuario anónimo.
+    effect(() => {
+      const key = this.keyForCurrentUser();   // reacciona a auth.user()
+      if (key !== this.ownerKey()) {
+        this.ownerKey.set(key);
+        this.lines.set(this.loadFromStorage(key));
+      }
+    }, { allowSignalWrites: true });
+  }
+
+  private keyForCurrentUser(): string {
+    const id = this.auth.user()?.id;
+    return `${BASE_KEY}::${id ?? 'guest'}`;
+  }
+
+  private loadFromStorage(key: string): CartLine[] {
     try {
-      const raw = localStorage.getItem(KEY);
+      const raw = localStorage.getItem(key);
       return raw ? JSON.parse(raw) : [];
     } catch { return []; }
   }
 
   private persist() {
-    try { localStorage.setItem(KEY, JSON.stringify(this.lines())); } catch {}
+    try { localStorage.setItem(this.ownerKey(), JSON.stringify(this.lines())); } catch {}
   }
 
   add(line: Omit<CartLine, 'quantity'>, qty = 1) {

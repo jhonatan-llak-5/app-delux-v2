@@ -22,11 +22,10 @@ export class BranchContextService {
     return r === 'SUPERADMIN' || r === 'TENANT_ADMIN';
   });
 
-  /** Muestra el widget de sucursal solo para roles del panel (no clientes). */
-  readonly showWidget = computed(() => {
-    const r = this.auth.user()?.role;
-    return r === 'SUPERADMIN' || r === 'TENANT_ADMIN' || r === 'BRANCH_MANAGER' || r === 'SALESPERSON';
-  });
+  /** Muestra el selector de sucursal solo a quienes pueden cambiarla
+   * (admin/superadmin). Vendedor/gerente están fijos a su sucursal, así que no
+   * se les muestra el widget (evita un "selector" que no hace nada). */
+  readonly showWidget = computed(() => this.canSwitch());
 
   readonly currentName = computed(() => {
     const id = this._current();

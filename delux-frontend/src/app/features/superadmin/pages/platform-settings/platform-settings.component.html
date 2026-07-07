@@ -384,6 +384,8 @@
 
         <!-- ═════ TAB PAYMENTS ═════ -->
         @if (tab() === 'payments') {
+          <!-- PayPhone oculto: no se manejan pagos en línea por ahora -->
+          @if (false) {
           <section class="eg-card-padded space-y-5">
             <div>
               <h2 class="text-base font-bold text-slate-900 dark:text-slate-50">PayPhone</h2>
@@ -419,6 +421,7 @@
               </button>
             </div>
           </section>
+          }
 
           <!-- Transferencia bancaria -->
           <section class="eg-card-padded space-y-5">

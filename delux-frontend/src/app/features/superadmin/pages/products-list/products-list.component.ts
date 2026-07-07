@@ -1,4 +1,4 @@
-import { ChangeDetectionStrategy, Component, ElementRef, OnDestroy, OnInit, ViewChild, computed, inject, signal } from '@angular/core';
+import { ChangeDetectionStrategy, Component, ElementRef, OnDestroy, OnInit, ViewChild, computed, inject, signal, effect} from '@angular/core';
 import { DlxEmptyStateComponent } from '@shared/ui/empty-state.component';
 import { ImgFallbackDirective } from '@shared/ui/img-fallback.directive';
 import { DlxStatCardComponent } from '@shared/ui';
@@ -17,6 +17,7 @@ import { ConfirmService } from '@shared/components/confirm/confirm.service';
 import { onImageError } from '@shared/utils/img-placeholder';
 import { NotifyService } from '@shared/services/notify.service';
 import { AuthService } from '@core/services/auth.service';
+import { BranchContextService } from '@core/services/branch-context.service';
 
 @Component({
   selector: 'dlx-products-list',
@@ -35,6 +36,12 @@ export class ProductsListComponent implements OnInit, OnDestroy {
   private router = inject(Router);
   private inv = inject(InventoryService);
   private auth = inject(AuthService);
+  private branchCtx = inject(BranchContextService);
+  private ready = false;
+  constructor() {
+    // Reacciona al selector GLOBAL de sucursal del header.
+    effect(() => { this.branchCtx.current(); if (this.ready) this.reload(); }, { allowSignalWrites: true });
+  }
 
   @ViewChild('camVideo') camVideo?: ElementRef<HTMLVideoElement>;
   cameraOn = signal(false);
@@ -145,8 +152,8 @@ export class ProductsListComponent implements OnInit, OnDestroy {
     });
     this.brandSvc.list({ search: '' }).subscribe(r => this.brands.set(r.results || []));
     this.catSvc.list().subscribe(r => this.categories.set(r.results || []));
-    this.adminSvc.listBranches().subscribe(r => this.stores.set(r.results || []));
     this.reload();
+    this.ready = true;
   }
 
   private filters() {
@@ -155,7 +162,7 @@ export class ProductsListComponent implements OnInit, OnDestroy {
       brand: this.brandFilter || undefined,
       category: this.categoryFilter || undefined,
       status: this.statusFilter || undefined,
-      branch: this.branchFilter || undefined,
+      branch: this.branchCtx.current() || undefined,
     };
   }
 

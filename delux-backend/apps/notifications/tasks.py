@@ -34,3 +34,10 @@ def send_order_state_email(order_id, new_status, tracking_code=''):
     order = Order.objects.filter(pk=order_id).select_related('customer').first()
     if order:
         notify_order_state_change(order, new_status, tracking_code=tracking_code)
+
+
+@shared_task(name='notifications.deliver_email')
+def deliver_email(from_email, to_email, raw_message):
+    """Envía por SMTP un correo ya renderizado, en segundo plano."""
+    from .services import _smtp_send_raw
+    return _smtp_send_raw(from_email, to_email, raw_message)

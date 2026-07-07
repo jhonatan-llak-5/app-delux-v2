@@ -1,4 +1,5 @@
 import { ChangeDetectionStrategy, Component, OnInit, computed, inject, signal } from '@angular/core';
+import { AuthService } from '@core/services/auth.service';
 import { DlxFieldErrorComponent } from '@shared/ui/field-error.component';
 import { DlxPriceInputComponent } from '@shared/ui/price-input.component';
 import { DlxInputComponent } from '@shared/ui/input.component';
@@ -18,6 +19,10 @@ import { parseApiError } from '@shared/utils/api-error.util';
   templateUrl: './staff-form.component.html',
 })
 export class StaffFormComponent implements OnInit {
+  auth = inject(AuthService);
+  assignedBranchName(): string {
+    return this.branches().find(b => b.id === this.payload.branch)?.name || 'Tu sucursal';
+  }
   private svc = inject(StaffService);
   private adminSvc = inject(AdminService);
   private route = inject(ActivatedRoute);
@@ -41,7 +46,12 @@ export class StaffFormComponent implements OnInit {
   };
 
   ngOnInit() {
-    this.adminSvc.listBranches().subscribe(r => this.branches.set(r.results || []));
+    this.adminSvc.listBranches().subscribe(r => {
+      this.branches.set(r.results || []);
+      if (!this.auth.multiBranch() && !this.payload.branch) {
+        this.payload.branch = this.auth.user()?.branch_id as any;
+      }
+    });
     const id = this.route.snapshot.paramMap.get('id');
     if (id && id !== 'new') {
       this.staffId.set(+id);

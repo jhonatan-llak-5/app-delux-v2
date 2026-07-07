@@ -7,11 +7,35 @@ from django.template.loader import render_to_string
 from apps.settings.models import PlatformSettings
 
 
-def send_html_email(to_email: str, subject: str, template: str, ctx: dict, text_fallback: str = ''):
-    """Envia email HTML usando SMTP configurado en PlatformSettings."""
+def _smtp_send_raw(from_email: str, to_email: str, raw_message: str) -> bool:
+    """Envío SMTP real (bloqueante). Lo usa la tarea Celery y el fallback."""
     s = PlatformSettings.load()
     if not s.smtp_host:
-        # Sin SMTP configurado, log y salir
+        print(f'[email skipped] → {to_email}')
+        return False
+    try:
+        if s.smtp_use_ssl:
+            smtp = smtplib.SMTP_SSL(s.smtp_host, s.smtp_port, timeout=20)
+        else:
+            smtp = smtplib.SMTP(s.smtp_host, s.smtp_port, timeout=20)
+            if s.smtp_use_tls:
+                smtp.starttls()
+        if s.smtp_username:
+            smtp.login(s.smtp_username, s.smtp_password)
+        smtp.sendmail(from_email, [to_email], raw_message)
+        smtp.quit()
+        return True
+    except Exception as e:
+        print(f'[email error] → {to_email}: {e}')
+        return False
+
+
+def send_html_email(to_email: str, subject: str, template: str, ctx: dict, text_fallback: str = ''):
+    """Renderiza el correo (rápido) y lo envía EN SEGUNDO PLANO con Celery, para
+    no bloquear la respuesta de la API con el SMTP. Si el broker no responde,
+    cae a envío síncrono para no perder el correo."""
+    s = PlatformSettings.load()
+    if not s.smtp_host:
         print(f'[email skipped] {subject} → {to_email}')
         return False
 
@@ -29,21 +53,18 @@ def send_html_email(to_email: str, subject: str, template: str, ctx: dict, text_
     msg.attach(MIMEText(text_fallback or subject, 'plain', 'utf-8'))
     msg.attach(MIMEText(html, 'html', 'utf-8'))
 
+    from_email = s.default_from_email
+    raw = msg.as_string()
+
+    # Encola el envío (Celery). Redis recibe el mensaje al instante; el worker
+    # hace el SMTP lento aparte, sin que el usuario espere.
     try:
-        if s.smtp_use_ssl:
-            smtp = smtplib.SMTP_SSL(s.smtp_host, s.smtp_port, timeout=15)
-        else:
-            smtp = smtplib.SMTP(s.smtp_host, s.smtp_port, timeout=15)
-            if s.smtp_use_tls:
-                smtp.starttls()
-        if s.smtp_username:
-            smtp.login(s.smtp_username, s.smtp_password)
-        smtp.sendmail(s.default_from_email, [to_email], msg.as_string())
-        smtp.quit()
+        from .tasks import deliver_email
+        deliver_email.delay(from_email, to_email, raw)
         return True
     except Exception as e:
-        print(f'[email error] {subject} → {to_email}: {e}')
-        return False
+        print(f'[email queue failed → envío síncrono] {e}')
+        return _smtp_send_raw(from_email, to_email, raw)
 
 
 def notify_order_paid(order):

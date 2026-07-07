@@ -1,4 +1,5 @@
 import { ChangeDetectionStrategy, Component, OnInit, inject, signal } from '@angular/core';
+import { AuthService } from '@core/services/auth.service';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { ScheduleService, BranchSchedule } from '@features/superadmin/services/schedule.service';
@@ -39,11 +40,13 @@ const WEEKDAYS = [
         <h1 class="text-2xl md:text-3xl font-bold tracking-tight">Horarios de atención</h1>
         <p class="text-slate-500 text-sm mt-1">Define apertura y cierre por día por sucursal.</p>
       </div>
-      <select [(ngModel)]="branchId" (change)="loadBranch()"
-              class="px-4 py-2.5 rounded-lg bg-ink-950 text-white font-semibold text-sm cursor-pointer">
-        <option [ngValue]="null">— Seleccionar sucursal —</option>
-        @for (b of branches(); track b.id) { <option [ngValue]="b.id">{{ b.name }}</option> }
-      </select>
+      @if (auth.multiBranch()) {
+        <select [(ngModel)]="branchId" (change)="loadBranch()"
+                class="px-4 py-2.5 rounded-lg bg-ink-950 text-white font-semibold text-sm cursor-pointer">
+          <option [ngValue]="null">— Seleccionar sucursal —</option>
+          @for (b of branches(); track b.id) { <option [ngValue]="b.id">{{ b.name }}</option> }
+        </select>
+      }
     </div>
 
     @if (!branchId) {
@@ -163,6 +166,7 @@ const WEEKDAYS = [
   `,
 })
 export class ScheduleEditorComponent implements OnInit {
+  auth = inject(AuthService);
   private svc = inject(ScheduleService);
   private adminSvc = inject(AdminService);
 
@@ -176,7 +180,11 @@ export class ScheduleEditorComponent implements OnInit {
   ngOnInit() {
     this.adminSvc.listBranches().subscribe(r => {
       this.branches.set(r.results || []);
-      if (r.results?.length) {
+      const fixed = this.auth.user()?.branch_id;
+      if (!this.auth.multiBranch() && fixed) {
+        this.branchId = fixed;
+        this.loadBranch();
+      } else if (r.results?.length) {
         this.branchId = r.results[0].id;
         this.loadBranch();
       }

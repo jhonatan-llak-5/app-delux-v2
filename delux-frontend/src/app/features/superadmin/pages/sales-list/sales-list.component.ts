@@ -1,7 +1,8 @@
-import { ChangeDetectionStrategy, Component, OnInit, inject, signal } from '@angular/core';
+import { ChangeDetectionStrategy, Component, OnInit, inject, signal, effect} from '@angular/core';
 import { DlxEmptyStateComponent } from '@shared/ui/empty-state.component';
 import { OrderStatusLabelPipe, OrderStatusClassPipe } from '@shared/ui/order-status.pipe';
 import { AuthService } from '@core/services/auth.service';
+import { BranchContextService } from '@core/services/branch-context.service';
 import { DlxStatCardComponent } from '@shared/ui';
 import { DlxSearchInputComponent } from '@shared/ui/search-input.component';
 import { CommonModule } from '@angular/common';
@@ -49,13 +50,6 @@ import { DlxPaginationComponent } from '@shared/ui/pagination.component';
 
     <div class="card p-4 mb-4 flex flex-wrap gap-3 items-center filter-bar">
       <dlx-search-input [fluid]="true" [value]="search()" (valueChange)="onSearch($event)" placeholder="Buscar por código, cliente..." class="flex-1 min-w-64" />
-      @if (auth.multiBranch()) {
-        <select [(ngModel)]="branchFilter" (change)="onFilter()"
-                class="eg-input border-transparent">
-          <option [ngValue]="null">Todas las sucursales</option>
-          @for (b of branches(); track b.id) { <option [ngValue]="b.id">{{ b.name }}</option> }
-        </select>
-      }
       <select [(ngModel)]="statusFilter" (change)="onFilter()"
               class="eg-input border-transparent">
         <option value="">Todos los estados</option>
@@ -161,6 +155,11 @@ export class SalesListComponent implements OnInit {
   private confirm = inject(ConfirmService);
   private notify = inject(NotifyService);
   private adminSvc = inject(AdminService);
+  private branchCtx = inject(BranchContextService);
+  private ready = false;
+  constructor() {
+    effect(() => { this.branchCtx.current(); if (this.ready) this.reload(); }, { allowSignalWrites: true });
+  }
 
   orders = signal<Order[]>([]);
   total = signal(0);
@@ -178,16 +177,16 @@ export class SalesListComponent implements OnInit {
 
   ngOnInit() {
     this.search$.pipe(debounceTime(300)).subscribe(() => this.reload());
-    this.adminSvc.listBranches().subscribe(r => this.branches.set(r.results || []));
     this.svc.summary().subscribe(s => this.summary.set(s));
     this.reload();
+    this.ready = true;
   }
 
   reload() {
     this.loading.set(true);
     this.svc.list({
       search: this.search() || undefined,
-      branch: this.branchFilter || undefined,
+      branch: this.branchCtx.current() || undefined,
       status: this.statusFilter || undefined,
       channel: this.channelFilter || undefined,
       page: this.page(), page_size: this.pageSize(),

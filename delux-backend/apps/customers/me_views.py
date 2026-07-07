@@ -11,19 +11,40 @@ from .serializers import AddressSerializer
 
 
 def get_or_create_customer_for_user(user):
-    """Asegura que cada User tenga un Customer asociado."""
+    """Asegura que cada User tenga un Customer asociado, sin duplicar por email."""
+    from django.db import IntegrityError, transaction
     from apps.tenants.models import Tenant
     if hasattr(user, 'customer_profile') and user.customer_profile:
         return user.customer_profile
     tenant = user.tenant or Tenant.objects.filter(is_active=True).first()
-    customer, _ = Customer.objects.get_or_create(
-        tenant=tenant, user=user,
-        defaults={
-            'full_name': user.full_name or user.email,
-            'email': user.email,
-        },
-    )
-    return customer
+    # Reutiliza un Customer existente con el mismo email (sin importar
+    # mayúsculas) y lo vincula al usuario, en vez de crear otro. Así se evita
+    # violar el constraint único uniq_customer_tenant_email cuando la ficha ya
+    # existía (p. ej. creada en un checkout como invitado).
+    existing = (Customer.objects
+                .filter(tenant=tenant, email__iexact=user.email)
+                .order_by('id').first())
+    if existing:
+        if existing.user_id is None:
+            existing.user = user
+            existing.save(update_fields=['user'])
+        return existing
+    try:
+        with transaction.atomic():
+            return Customer.objects.create(
+                tenant=tenant, user=user,
+                full_name=user.full_name or user.email,
+                email=user.email,
+            )
+    except IntegrityError:
+        # Carrera: se creó en paralelo -> recupéralo y vincúlalo.
+        existing = (Customer.objects
+                    .filter(tenant=tenant, email__iexact=user.email)
+                    .order_by('id').first())
+        if existing and existing.user_id is None:
+            existing.user = user
+            existing.save(update_fields=['user'])
+        return existing
 
 
 class MeProfileView(APIView):

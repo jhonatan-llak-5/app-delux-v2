@@ -68,6 +68,15 @@ import { MeService } from '@features/account/services/me.service';
                   \${{ o.total }}
                 </span>
               </div>
+
+              @if (o.fulfillment === 'SHIPPING') {
+                <div class="mt-3 pt-3 border-t border-ink-100 dark:border-white/10 flex justify-end">
+                  <a [routerLink]="['/tracking', o.code]"
+                     class="inline-flex items-center gap-2 text-sm font-semibold text-accent-600 hover:text-accent-700 dark:text-accent-400 dark:hover:text-accent-300">
+                    <i class="fa-solid fa-truck-fast"></i> Seguir mi pedido
+                  </a>
+                </div>
+              }
             </li>
           }
         </ul>

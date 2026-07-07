@@ -110,9 +110,6 @@ import { CartService } from '@features/checkout/services/cart.service';
               </a>
             </div>
 
-            <p class="text-xs text-ink-500 dark:text-white/40 mt-4 text-center">
-              <i class="fa-solid fa-shield-halved text-emerald-500"></i> Pago seguro con PayPhone
-            </p>
           </aside>
         </div>
       }

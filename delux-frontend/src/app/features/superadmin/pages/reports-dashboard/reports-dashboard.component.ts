@@ -1,6 +1,7 @@
-import { ChangeDetectionStrategy, Component, OnInit, computed, inject, signal } from '@angular/core';
+import { ChangeDetectionStrategy, Component, OnInit, computed, inject, signal, effect} from '@angular/core';
 import { ImgFallbackDirective } from '@shared/ui/img-fallback.directive';
 import { AuthService } from '@core/services/auth.service';
+import { BranchContextService } from '@core/services/branch-context.service';
 import { DlxStatCardComponent } from '@shared/ui';
 import { CommonModule } from '@angular/common';
 import { RouterLink } from '@angular/router';
@@ -39,6 +40,11 @@ export class ReportsDashboardComponent implements OnInit {
   protected auth = inject(AuthService);
   private svc = inject(ReportsService);
   private adminSvc = inject(AdminService);
+  private branchCtx = inject(BranchContextService);
+  private ready = false;
+  constructor() {
+    effect(() => { this.branchCtx.current(); if (this.ready) this.reload(); }, { allowSignalWrites: true });
+  }
 
   branches = signal<AdminBranch[]>([]);
   branchId: number | null = null;
@@ -57,8 +63,8 @@ export class ReportsDashboardComponent implements OnInit {
   lowStock = signal<LowStockRow[]>([]);
 
   ngOnInit() {
-    this.adminSvc.listBranches().subscribe(r => this.branches.set(r.results || []));
     this.setPreset(30);
+    this.ready = true;
   }
 
   setPreset(days: number) {
@@ -82,7 +88,7 @@ export class ReportsDashboardComponent implements OnInit {
     return {
       from: this.from || undefined,
       to: this.to || undefined,
-      branch: this.branchId || undefined,
+      branch: this.branchCtx.current() || undefined,
     };
   }
 
