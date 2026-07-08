@@ -459,4 +459,14 @@ class CheckoutReceiptView(APIView):
                  .prefetch_related('items', 'payments')
                  .filter(code=code).first())
         if not order:
-            return
+            return HttpResponse('Comprobante no encontrado.', status=404)
+        from .receipt import build_order_receipt_pdf
+        try:
+            pdf = build_order_receipt_pdf(order, request)
+        except Exception:
+            import logging
+            logging.getLogger(__name__).exception('Error generando comprobante %s', code)
+            return HttpResponse('No se pudo generar el comprobante.', status=500)
+        resp = HttpResponse(pdf, content_type='application/pdf')
+        resp['Content-Disposition'] = f'inline; filename="comprobante-{order.code}.pdf"'
+        return resp

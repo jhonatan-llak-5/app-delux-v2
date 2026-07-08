@@ -7,6 +7,7 @@ export interface Stock {
   id: number;
   variant: number;
   variant_sku: string;
+  barcode?: string | null;
   variant_size: string;
   variant_color: string;
   product_id: number;

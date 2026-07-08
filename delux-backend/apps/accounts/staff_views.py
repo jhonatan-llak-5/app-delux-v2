@@ -5,7 +5,7 @@ from rest_framework import filters, permissions, status, viewsets
 from rest_framework.decorators import action
 from rest_framework.response import Response
 
-from .permissions import IsBranchManager
+from .permissions import IsBranchManager, IsSuperadmin
 from .staff_serializers import StaffSerializer, StaffCreateSerializer
 
 User = get_user_model()
@@ -80,6 +80,19 @@ class StaffViewSet(viewsets.ModelViewSet):
         u.is_active = not u.is_active
         u.save(update_fields=['is_active'])
         return Response({'is_active': u.is_active})
+
+    @action(detail=True, methods=['post'], url_path='set-password',
+            permission_classes=[permissions.IsAuthenticated, IsSuperadmin])
+    def set_password(self, request, pk=None):
+        """Restablece la contraseña de un usuario del sistema. Solo superadmin."""
+        u = self.get_object()
+        pwd = (request.data.get('password') or '').strip()
+        if len(pwd) < 8:
+            return Response({'detail': 'La contraseña debe tener al menos 8 caracteres.'},
+                            status=status.HTTP_400_BAD_REQUEST)
+        u.set_password(pwd)
+        u.save(update_fields=['password'])
+        return Response({'detail': f'Contraseña actualizada para {u.full_name or u.email}.'})
 
     @action(detail=True, methods=['get'])
     def sales_metrics(self, request, pk=None):

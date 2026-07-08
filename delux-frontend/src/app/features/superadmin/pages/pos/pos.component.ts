@@ -1,8 +1,9 @@
-import { ChangeDetectionStrategy, Component, OnInit, computed, inject, signal } from '@angular/core';
+import { ChangeDetectionStrategy, Component, ElementRef, OnDestroy, OnInit, ViewChild, computed, effect, inject, signal } from '@angular/core';
 import { DlxEmptyStateComponent } from '@shared/ui/empty-state.component';
 import { ImgFallbackDirective } from '@shared/ui/img-fallback.directive';
 import { DlxSearchInputComponent } from '@shared/ui/search-input.component';
 import { AuthService } from '@core/services/auth.service';
+import { BranchContextService } from '@core/services/branch-context.service';
 import { BrandingService } from '@core/services/branding.service';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
@@ -35,12 +36,13 @@ interface CartItem {
   changeDetection: ChangeDetectionStrategy.OnPush,
   templateUrl: './pos.component.html',
 })
-export class PosComponent implements OnInit {
+export class PosComponent implements OnInit, OnDestroy {
   private inv = inject(InventoryService);
   private ord = inject(OrderService);
   private adminSvc = inject(AdminService);
   private couponSvc = inject(CouponService);
   private auth = inject(AuthService);
+  branchCtx = inject(BranchContextService);
   private branding = inject(BrandingService);
 
   couponInput = '';
@@ -48,13 +50,22 @@ export class PosComponent implements OnInit {
   validatingCoupon = signal(false);
   couponError = signal<string | null>(null);
 
-  branches = signal<AdminBranch[]>([]);
-  branchId: number | null = null;
-  branchLocked = false;
+  branchId = signal<number | null>(null);
   stocks = signal<Stock[]>([]);
   cart = signal<CartItem[]>([]);
   loading = signal(false);
   search = signal('');
+  searched = signal(false);      // ¿ya se ejecutó una búsqueda?
+  scanCode = '';
+  scanMsg = signal<{ ok: boolean; text: string } | null>(null);
+  @ViewChild('camVideo') camVideo?: ElementRef<HTMLVideoElement>;
+  cameraOn = signal(false);
+  camError = signal<string | null>(null);
+  private camStream?: MediaStream;
+  private detector: any = null;
+  private rafId: any = null;
+  private lastScan = '';
+  private lastScanAt = 0;
   discount = signal(0);
   saving = signal(false);
   confirmOpen = signal(false);
@@ -72,7 +83,7 @@ export class PosComponent implements OnInit {
     return r === 'SUPERADMIN' || r === 'TENANT_ADMIN' || r === 'BRANCH_MANAGER';
   });
   sellersForBranch = computed(() =>
-    this.sellers().filter(u => u.id !== this.myId && (!this.branchId || u.branch_id === this.branchId)));
+    this.sellers().filter(u => u.id !== this.myId && (!this.branchId() || u.branch_id === this.branchId())));
 
   private search$ = new Subject<void>();
 
@@ -88,42 +99,76 @@ export class PosComponent implements OnInit {
   total = computed(() => Math.max(0, this.subtotal() - this.discount()));
   /** Precio unitario con IVA para mostrar. */
   unitWithTax(i: CartItem): number { return i.unit_price * (1 + this.taxRate() / 100); }
-  canCheckout = computed(() => this.cart().length > 0 && !!this.branchId);
+  canCheckout = computed(() => this.cart().length > 0 && !!this.branchId());
+
+  constructor() {
+    // Sigue el selector global de sucursal del header.
+    effect(() => {
+      const id = this.branchCtx.current();
+      this.branchId.set(id);
+      this.clearSearch();
+      this.cameraOn() && this.stopCamera();
+    }, { allowSignalWrites: true });
+  }
 
   ngOnInit() {
     this.search$.pipe(debounceTime(300)).subscribe(() => this.reload());
-    this.adminSvc.listBranches().subscribe(r => {
-      let list = r.results || [];
-      const u = this.auth.user();
-      // Gerente de sucursal: queda fijo a su sucursal.
-      if ((u?.role === 'BRANCH_MANAGER' || u?.role === 'SALESPERSON') && u.branch_id) {
-        list = list.filter(b => b.id === u.branch_id);
-        this.branchLocked = true;
-      }
-      this.branches.set(list);
-      if (this.isManager()) {
-        this.adminSvc.listUsers({ role: 'SALESPERSON' }).subscribe(r => this.sellers.set(r.results || []));
-      }
-      if (list.length) {
-        this.branchId = list[0].id;
-        this.reload();
-      }
-    });
+    if (this.isManager()) {
+      this.adminSvc.listUsers({ role: 'SALESPERSON' }).subscribe(r => this.sellers.set(r.results || []));
+    }
   }
 
   reload() {
-    if (!this.branchId) return;
+    const term = this.search().trim();
+    if (!this.branchId() || !term) {
+      this.stocks.set([]);
+      this.searched.set(false);
+      this.loading.set(false);
+      return;
+    }
     this.loading.set(true);
-    this.inv.stocks({
-      branch: this.branchId,
-      search: this.search() || undefined,
-    }).subscribe({
+    this.searched.set(true);
+    this.inv.stocks({ branch: this.branchId()!, search: term }).subscribe({
       next: r => { this.stocks.set((r.results || []).filter(s => s.quantity > 0)); this.loading.set(false); },
       error: () => this.loading.set(false),
     });
   }
 
-  onSearch(v: string) { this.search.set(v); this.search$.next(); }
+  onSearch(v: string) {
+    this.search.set(v);
+    if (!v.trim()) { this.stocks.set([]); this.searched.set(false); return; }
+    this.search$.next();
+  }
+
+  clearSearch() { this.search.set(''); this.stocks.set([]); this.searched.set(false); }
+
+  /** Escáner de código de barras: busca coincidencia exacta y la agrega al carrito. */
+  onScan() {
+    const code = this.scanCode.trim();
+    if (!code || !this.branchId()) return;
+    this.inv.stocks({ branch: this.branchId()!, search: code }).subscribe({
+      next: r => {
+        const list = (r.results || []).filter(s => s.quantity > 0);
+        const lc = code.toLowerCase();
+        const exact = list.find(s =>
+          (s.barcode || '').toLowerCase() === lc || (s.variant_sku || '').toLowerCase() === lc);
+        const hit = exact || (list.length === 1 ? list[0] : null);
+        if (hit) {
+          this.addToCart(hit);
+          this.scanMsg.set({ ok: true, text: hit.product_name });
+        } else {
+          this.scanMsg.set({ ok: false, text: `Sin resultados para "${code}"` });
+        }
+        this.scanCode = '';
+        setTimeout(() => this.scanMsg.set(null), 2600);
+      },
+      error: () => {
+        this.scanMsg.set({ ok: false, text: 'Error al escanear' });
+        this.scanCode = '';
+        setTimeout(() => this.scanMsg.set(null), 2600);
+      },
+    });
+  }
 
   private priceOf(s: Stock): number {
     return +(s.price_override || s.base_price || '0');
@@ -204,11 +249,11 @@ export class PosComponent implements OnInit {
   }
 
   checkout() {
-    if (!this.canCheckout() || !this.branchId) return;
+    if (!this.canCheckout() || !this.branchId()) return;
     this.saving.set(true);
     this.error.set(null);
     const payload = {
-      branch_id: this.branchId,
+      branch_id: this.branchId()!,
       items: this.cart().map(i => ({ variant_id: i.variant_id, quantity: i.quantity })),
       discount: this.discount(),
       customer_data: this.customerData.email ? this.customerData : undefined,
@@ -228,6 +273,62 @@ export class PosComponent implements OnInit {
       },
     });
   }
+
+  // ---- Escáner con cámara (BarcodeDetector) ----
+  async startCamera(): Promise<void> {
+    this.camError.set(null);
+    const w: any = window;
+    if (typeof window === 'undefined' || !('BarcodeDetector' in w)) {
+      this.camError.set('Tu navegador no soporta cámara para escanear. Usa una pistola o el buscador.');
+      this.cameraOn.set(true);
+      return;
+    }
+    try {
+      this.camStream = await navigator.mediaDevices.getUserMedia({ video: { facingMode: 'environment' } });
+    } catch {
+      this.camError.set('No se pudo acceder a la cámara (requiere HTTPS y permiso).');
+      this.cameraOn.set(true);
+      return;
+    }
+    this.detector = new w.BarcodeDetector({ formats: ['qr_code', 'code_128', 'ean_13', 'ean_8', 'upc_a', 'upc_e', 'code_39'] });
+    this.cameraOn.set(true);
+    setTimeout(() => {
+      const v = this.camVideo?.nativeElement;
+      if (v && this.camStream) { v.srcObject = this.camStream; v.play().catch(() => {}); this.scanLoop(); }
+    }, 60);
+  }
+
+  private async scanLoop(): Promise<void> {
+    const v = this.camVideo?.nativeElement;
+    if (!v || !this.cameraOn() || !this.detector) return;
+    try {
+      const codes = await this.detector.detect(v);
+      if (codes && codes.length) this.onCameraCode(codes[0].rawValue || '');
+    } catch { /* frame sin código */ }
+    if (this.cameraOn()) this.rafId = requestAnimationFrame(() => this.scanLoop());
+  }
+
+  stopCamera(): void {
+    this.cameraOn.set(false);
+    this.camError.set(null);
+    if (this.rafId) { cancelAnimationFrame(this.rafId); this.rafId = null; }
+    this.camStream?.getTracks().forEach(t => t.stop());
+    this.camStream = undefined;
+  }
+
+  private onCameraCode(raw: string): void {
+    let code = (raw || '').trim();
+    const m = code.match(/[?&]code=([^&]+)/);
+    if (m) code = decodeURIComponent(m[1]);
+    if (!code) return;
+    const now = Date.now();
+    if (code === this.lastScan && now - this.lastScanAt < 2500) return;
+    this.lastScan = code; this.lastScanAt = now;
+    this.scanCode = code;
+    this.onScan();
+  }
+
+  ngOnDestroy(): void { this.stopCamera(); }
 
   printVoucher() {
     if (this.completedOrder()) generateVoucherPDF(this.completedOrder()!);

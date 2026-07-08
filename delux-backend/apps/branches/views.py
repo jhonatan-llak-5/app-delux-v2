@@ -3,7 +3,7 @@ from rest_framework import permissions, viewsets
 from rest_framework.decorators import action
 from rest_framework.response import Response
 
-from apps.accounts.permissions import IsBranchManager
+from apps.accounts.permissions import IsBranchManager, IsStaffReadOrManager
 
 from .models import Branch
 from .serializers import BranchSerializer
@@ -11,7 +11,7 @@ from .serializers import BranchSerializer
 
 class AdminBranchViewSet(viewsets.ModelViewSet):
     serializer_class = BranchSerializer
-    permission_classes = [permissions.IsAuthenticated, IsBranchManager]
+    permission_classes = [permissions.IsAuthenticated, IsStaffReadOrManager]
 
     def get_queryset(self):
         qs = (
@@ -35,7 +35,7 @@ class AdminBranchViewSet(viewsets.ModelViewSet):
         role_u = getattr(u, 'role', None)
         if role_u == 'TENANT_ADMIN' and u.tenant_id:
             qs = qs.filter(tenant_id=u.tenant_id)
-        elif role_u == 'BRANCH_MANAGER' and u.branch_id:
+        elif role_u in ('BRANCH_MANAGER', 'SALESPERSON') and u.branch_id:
             qs = qs.filter(id=u.branch_id)
         return qs
 

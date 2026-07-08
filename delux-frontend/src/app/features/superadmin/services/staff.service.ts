@@ -69,4 +69,7 @@ export class StaffService {
   delete(id: number) { return this.http.delete<void>(`${this.base}/${id}/`); }
   toggleActive(id: number) { return this.http.post<{ is_active: boolean }>(`${this.base}/${id}/toggle_active/`, {}); }
   metrics(id: number) { return this.http.get<SalesMetrics>(`${this.base}/${id}/sales_metrics/`); }
+  setPassword(id: number, password: string) {
+    return this.http.post<{ detail: string }>(`${this.base}/${id}/set-password/`, { password });
+  }
 }

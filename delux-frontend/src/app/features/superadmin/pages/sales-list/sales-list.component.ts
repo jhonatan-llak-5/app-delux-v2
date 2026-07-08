@@ -64,6 +64,14 @@ import { DlxPaginationComponent } from '@shared/ui/pagination.component';
         <option value="POS">POS</option>
         <option value="WEB">Web</option>
       </select>
+      <label class="flex items-center gap-2 px-3 h-11 rounded-lg cursor-pointer select-none transition text-sm font-semibold border"
+             [ngClass]="onlyMine()
+                ? 'bg-[var(--dash-primary)] text-white border-[var(--dash-primary)]'
+                : 'bg-slate-50 dark:bg-white/5 text-slate-600 dark:text-slate-300 border-slate-200 dark:border-white/10'">
+        <input type="checkbox" class="sr-only" [checked]="onlyMine()" (change)="toggleMine()" />
+        <i class="fa-solid" [class.fa-square-check]="onlyMine()" [class.fa-square]="!onlyMine()"></i>
+        Solo mis ventas
+      </label>
     </div>
 
     <div class="card overflow-hidden">
@@ -173,6 +181,7 @@ export class SalesListComponent implements OnInit {
   branchFilter: number | null = null;
   statusFilter = '';
   channelFilter = '';
+  onlyMine = signal(false);
   private search$ = new Subject<void>();
 
   ngOnInit() {
@@ -189,6 +198,7 @@ export class SalesListComponent implements OnInit {
       branch: this.branchCtx.current() || undefined,
       status: this.statusFilter || undefined,
       channel: this.channelFilter || undefined,
+      mine: this.onlyMine() || undefined,
       page: this.page(), page_size: this.pageSize(),
     }).subscribe({
       next: r => { this.orders.set(r.results); this.total.set(r.count); this.loading.set(false); },
@@ -198,6 +208,7 @@ export class SalesListComponent implements OnInit {
 
   onSearch(v: string) { this.search.set(v); this.page.set(1); this.search$.next(); }
   onFilter() { this.page.set(1); this.reload(); }
+  toggleMine() { this.onlyMine.update(v => !v); this.page.set(1); this.reload(); }
   onPage(p: number) { this.page.set(p); this.reload(); }
   onSize(s: number) { this.pageSize.set(s); this.page.set(1); this.reload(); }
   waLink(phone: string) { return 'https://wa.me/' + (phone || '').replace(/[^0-9]/g, ''); }

@@ -59,7 +59,13 @@ export class DashboardLayoutComponent implements AfterViewInit, OnDestroy {
   constructor() {
     // Color principal por rol: rosa para clientes, azul para el resto.
     effect(() => this.applyRoleTheme(this.auth.user()?.role));
-    this.branchCtx.load();
+    // Refresca el usuario desde el backend (rol, sucursal, etc. actualizados) y
+    // recién ahí carga el contexto de sucursal, para no usar datos en caché viejos
+    // (p. ej. una sucursal asignada después de iniciar sesión).
+    this.auth.me().subscribe({
+      next: () => this.branchCtx.load(),
+      error: () => this.branchCtx.load(),
+    });
     // En móvil/tablet: abrir el drawer cuando el tour muestra el menú.
     effect(() => {
       if (!this.tour.active()) return;
@@ -229,10 +235,9 @@ export class DashboardLayoutComponent implements AfterViewInit, OnDestroy {
       items: [
         { label: 'Mi panel',    icon: 'fa-gauge-high',     route: '/app/admin/seller', exact: true },
         { label: 'POS',         icon: 'fa-cash-register',  route: '/app/admin/pos' },
-        { label: 'Mis ventas',  icon: 'fa-receipt',        route: '/app/admin/sales' },
+        { label: 'Ventas',      icon: 'fa-receipt',        route: '/app/admin/sales' },
         { label: 'Productos',   icon: 'fa-box',            route: '/app/admin/products' },
         { label: 'Inventario',  icon: 'fa-boxes-stacked',  route: '/app/admin/inventory', exact: true },
-        { label: 'Afiliados',   icon: 'fa-hand-holding-dollar', route: '/app/admin/affiliates' },
         { label: 'Mis favoritos', icon: 'fa-heart', route: '/app/account/wishlist' },
         { label: 'Mi perfil',   icon: 'fa-id-card',        route: '/app/profile' },
       ],

@@ -22,10 +22,12 @@ export class BranchContextService {
     return r === 'SUPERADMIN' || r === 'TENANT_ADMIN';
   });
 
-  /** Muestra el selector de sucursal solo a quienes pueden cambiarla
-   * (admin/superadmin). Vendedor/gerente están fijos a su sucursal, así que no
-   * se les muestra el widget (evita un "selector" que no hace nada). */
-  readonly showWidget = computed(() => this.canSwitch());
+  /** Admin/superadmin ven un SELECTOR; gerente/vendedor ven solo una ETIQUETA
+   * estática con su sucursal (informativa, no cambian de sucursal). */
+  readonly showWidget = computed(() => {
+    const r = this.auth.user()?.role;
+    return r === 'SUPERADMIN' || r === 'TENANT_ADMIN' || r === 'BRANCH_MANAGER' || r === 'SALESPERSON';
+  });
 
   readonly currentName = computed(() => {
     const id = this._current();

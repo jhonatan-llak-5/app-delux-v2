@@ -176,9 +176,11 @@
             <div class="relative">
               @if (branchCtx.canSwitch()) {
                 <button (click)="branchOpen.set(!branchOpen())"
-                        class="flex items-center gap-2 px-3 h-10 rounded-lg border border-slate-200 dark:border-white/15
-                               text-sm font-semibold text-slate-700 dark:text-white/80 hover:bg-slate-100 dark:hover:bg-white/10 transition">
-                  <i class="fa-solid fa-store text-xs text-slate-400"></i>
+                        class="flex items-center gap-2 px-3 h-10 rounded-lg border
+                               border-[var(--dash-primary)]/30 bg-[var(--dash-primary)]/10
+                               text-sm font-bold text-[var(--dash-primary-d)] dark:text-blue-300
+                               hover:bg-[var(--dash-primary)]/20 transition">
+                  <i class="fa-solid fa-store text-xs"></i>
                   <span class="truncate max-w-[150px]">{{ branchCtx.currentName() }}</span>
                   <i class="fa-solid fa-chevron-down text-[10px]"></i>
                 </button>
@@ -198,9 +200,10 @@
                   </div>
                 }
               } @else {
-                <span class="flex items-center gap-2 px-3 h-10 rounded-lg bg-slate-100 dark:bg-white/5
-                             text-sm font-semibold text-slate-700 dark:text-white/80">
-                  <i class="fa-solid fa-store text-xs text-slate-400"></i> {{ branchCtx.currentName() }}
+                <span class="flex items-center gap-2 px-3 h-10 rounded-lg border
+                             border-[var(--dash-primary)]/30 bg-[var(--dash-primary)]/10
+                             text-sm font-bold text-[var(--dash-primary-d)] dark:text-blue-300">
+                  <i class="fa-solid fa-store text-xs"></i> {{ branchCtx.currentName() }}
                 </span>
               }
             </div>

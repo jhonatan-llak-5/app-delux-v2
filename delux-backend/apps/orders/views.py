@@ -28,6 +28,8 @@ class AdminOrderViewSet(viewsets.ReadOnlyModelViewSet):
         if params.get('branch'):   qs = qs.filter(branch_id=params['branch'])
         if params.get('status'):   qs = qs.filter(status=params['status'])
         if params.get('channel'):  qs = qs.filter(channel=params['channel'])
+        if params.get('mine') == 'true':
+            qs = qs.filter(seller=self.request.user)
         if params.get('date_from'):
             qs = qs.filter(created_at__date__gte=params['date_from'])
         if params.get('date_to'):

@@ -4,6 +4,7 @@ from .models import Stock, StockMovement, Supplier, Reception, ReceptionItem
 
 class StockSerializer(serializers.ModelSerializer):
     variant_sku = serializers.CharField(source='variant.sku', read_only=True)
+    barcode = serializers.CharField(source='variant.barcode', read_only=True, default=None)
     variant_size = serializers.CharField(source='variant.size', read_only=True)
     variant_color = serializers.CharField(source='variant.color', read_only=True)
     product_id = serializers.IntegerField(source='variant.product.id', read_only=True)
@@ -21,7 +22,7 @@ class StockSerializer(serializers.ModelSerializer):
     class Meta:
         model = Stock
         fields = (
-            'id', 'variant', 'variant_sku', 'variant_size', 'variant_color',
+            'id', 'variant', 'variant_sku', 'barcode', 'variant_size', 'variant_color',
             'product_id', 'product_name', 'product_main_image',
             'brand_name', 'category_name',
             'branch', 'branch_name', 'branch_code',

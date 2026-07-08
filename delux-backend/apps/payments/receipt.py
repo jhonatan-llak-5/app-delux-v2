@@ -14,8 +14,9 @@ from reportlab.lib.pagesizes import A4
 from reportlab.lib.styles import getSampleStyleSheet, ParagraphStyle
 from reportlab.lib.units import mm
 from reportlab.platypus import (
-    SimpleDocTemplate, Paragraph, Spacer, Table, TableStyle,
+    SimpleDocTemplate, Paragraph, Spacer, Table, TableStyle, Image as RLImage,
 )
+from reportlab.lib.utils import ImageReader
 from reportlab.graphics.shapes import Drawing
 from reportlab.graphics.barcode.qr import QrCodeWidget
 from reportlab.graphics import renderPDF
@@ -51,6 +52,33 @@ def _qr_drawing(data: str, size_mm: float = 32):
     return d
 
 
+def _logo_flowable(cfg, max_h_mm: float = 14, max_w_mm: float = 70):
+    """Logo del app escalado (conserva proporción). None si no hay o falla."""
+    f = getattr(cfg, 'site_logo', None)
+    if not f:
+        return None
+    try:
+        f.open('rb')
+        data = f.read()
+        f.close()
+        if not data:
+            return None
+        iw, ih = ImageReader(io.BytesIO(data)).getSize()
+        if not iw or not ih:
+            return None
+        ratio = iw / ih
+        h = max_h_mm * mm
+        w = h * ratio
+        if w > max_w_mm * mm:
+            w = max_w_mm * mm
+            h = w / ratio
+        img = RLImage(io.BytesIO(data), width=w, height=h)
+        img.hAlign = 'LEFT'
+        return img
+    except Exception:
+        return None
+
+
 def build_order_receipt_pdf(order, request=None) -> bytes:
     from apps.settings.models import PlatformSettings
     cfg = PlatformSettings.load()
@@ -77,10 +105,12 @@ def build_order_receipt_pdf(order, request=None) -> bytes:
 
     story = []
 
-    # ── Encabezado: título + QR ──
+    # ── Encabezado: logo (o nombre) + QR ──
     qr_url = receipt_public_url(order, request)
+    brand = _logo_flowable(cfg) or Paragraph(store_name, h_title)
     header = Table([[
-        [Paragraph(store_name, h_title),
+        [brand,
+         Spacer(1, 4),
          Paragraph('COMPROBANTE DE PEDIDO', h_sub),
          Spacer(1, 4),
          Paragraph(f'<b>{order.code}</b>', val),

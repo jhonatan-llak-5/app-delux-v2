@@ -28,8 +28,8 @@
           @if (!isEdit()) {
             <dlx-input label="Contraseña inicial" [(ngModel)]="payload.password" name="password" [mono]="true"
                        [error]="fe('password')"
-                       placeholder="Mínimo 8 caracteres (se genera automáticamente si vacío)"
-                       hint="Si lo dejas en blanco, se genera una contraseña aleatoria. El usuario debe cambiarla en su primer login." />
+                       placeholder="Escribe una contraseña de mínimo 8 caracteres, o déjalo vacío"
+                       hint="Puedes asignar una contraseña ahora (mínimo 8 caracteres). Si dejas el campo vacío, el sistema creará una contraseña temporal automáticamente. En ambos casos, el usuario deberá cambiarla la primera vez que inicie sesión." />
           }
         </div>
 
@@ -38,7 +38,7 @@
             <h2 class="font-bold tracking-tight mb-4 flex items-center gap-2">
               <i class="fa-solid fa-chart-line text-emerald-500"></i> Métricas de ventas
             </h2>
-            <div class="grid grid-cols-2 md:grid-cols-5 gap-3">
+            <div class="grid grid-cols-2 md:grid-cols-4 gap-3">
               <div class="p-3 rounded-lg bg-slate-50">
                 <p class="text-[10px] uppercase tracking-widest text-slate-500 font-semibold">Hoy</p>
                 <p class="text-xl font-bold mt-1">{{ metrics()!.today_sales }}</p>
@@ -55,10 +55,12 @@
                 <p class="text-[10px] uppercase tracking-widest text-emerald-600 font-semibold">Total $</p>
                 <p class="text-xl font-bold text-emerald-700 mt-1">${{ metrics()!.total_revenue | number:'1.2-2' }}</p>
               </div>
-              <div class="p-3 rounded-lg bg-violet-50">
-                <p class="text-[10px] uppercase tracking-widest text-violet-600 font-semibold">Comisión</p>
-                <p class="text-xl font-bold text-violet-700 mt-1">${{ metrics()!.commission_total | number:'1.2-2' }}</p>
-              </div>
+              @if (false) {
+                <div class="p-3 rounded-lg bg-violet-50">
+                  <p class="text-[10px] uppercase tracking-widest text-violet-600 font-semibold">Comisión</p>
+                  <p class="text-xl font-bold text-violet-700 mt-1">${{ metrics()!.commission_total | number:'1.2-2' }}</p>
+                </div>
+              }
             </div>
           </div>
         }
@@ -131,9 +133,12 @@
             </div>
           }
 
+          <div class="pt-2"></div>
           <dlx-input label="Fecha de ingreso" type="date" [(ngModel)]="payload.hire_date" name="hire_date" />
 
-          @if (payload.role === 'SALESPERSON') {
+          <!-- Comisión por venta oculta: por ahora solo los afiliados tienen comisión.
+               El campo se conserva (BD intacta) para futuras implementaciones. -->
+          @if (false) {
             <div>
               <label class="eg-label">
                 Comisión por venta (%)
@@ -179,6 +184,31 @@
         </div>
       </div>
     </form>
+
+    @if (auth.isSuperadmin() && isEdit()) {
+      <div class="card p-6 mt-6 border border-amber-200 dark:border-amber-500/25">
+        <h2 class="font-bold tracking-tight mb-1 flex items-center gap-2">
+          <i class="fa-solid fa-key text-amber-500"></i> Restablecer contraseña
+        </h2>
+        <p class="text-sm text-slate-500 mb-4">Solo tú (superadmin) puedes cambiar la contraseña de este usuario. Reemplaza la anterior de inmediato.</p>
+        <div class="grid md:grid-cols-[1fr_auto] gap-3 items-end">
+          <div>
+            <label class="eg-label">Nueva contraseña</label>
+            <div class="relative">
+              <input [type]="showPwd() ? 'text' : 'password'" [(ngModel)]="newPassword" [ngModelOptions]="{ standalone: true }"
+                     minlength="8" autocomplete="new-password" class="eg-input pr-10" placeholder="Mínimo 8 caracteres" />
+              <button type="button" class="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600" (click)="showPwd.set(!showPwd())">
+                <i class="fa-solid" [class.fa-eye]="!showPwd()" [class.fa-eye-slash]="showPwd()"></i>
+              </button>
+            </div>
+          </div>
+          <button type="button" class="eg-btn-primary" [disabled]="newPassword.length < 8 || settingPwd()" (click)="resetPassword()">
+            @if (settingPwd()) { <i class="fa-solid fa-spinner fa-spin"></i> } @else { <i class="fa-solid fa-key"></i> }
+            Restablecer
+          </button>
+        </div>
+      </div>
+    }
 
     @if (createdCreds(); as c) {
       <div class="fixed inset-0 z-[9999] flex items-center justify-center p-4">

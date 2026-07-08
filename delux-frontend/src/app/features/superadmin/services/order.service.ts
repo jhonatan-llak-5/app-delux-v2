@@ -92,7 +92,7 @@ export class OrderService {
   private http = inject(HttpClient);
   private base = `${environment.apiUrl}/admin/orders`;
 
-  list(params: { search?: string; branch?: number; status?: string; channel?: string; date_from?: string; date_to?: string; page?: number; page_size?: number } = {}): Observable<Paged<Order>> {
+  list(params: { search?: string; branch?: number; status?: string; channel?: string; mine?: boolean; date_from?: string; date_to?: string; page?: number; page_size?: number } = {}): Observable<Paged<Order>> {
     let p = new HttpParams();
     Object.entries(params).forEach(([k, v]) => { if (v) p = p.set(k, String(v)); });
     return this.http.get<Paged<Order>>(`${this.base}/`, { params: p });

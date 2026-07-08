@@ -46,9 +46,12 @@ import { generateVoucherPDF } from '@shared/utils/voucher-pdf.util';
     } @else if (!order()) {
       <div class="text-center py-20 text-slate-400">No se encontró la venta.</div>
     } @else {
-      <!-- Preview centrado, estilo papel térmico -->
+      <!-- Preview centrado, estilo papel térmico.
+           Fondo blanco y texto oscuro SIEMPRE (inline gana sobre el tema oscuro),
+           para que se vea bien en dark mode sin afectar la impresión. -->
       <div class="flex justify-center">
-        <div class="bg-white shadow-xl rounded-lg p-6" style="width: 340px;">
+        <div class="shadow-xl rounded-lg p-6"
+             style="width:340px;background:#ffffff;color:#111827;">
           <div [innerHTML]="receiptSafe()"></div>
         </div>
       </div>

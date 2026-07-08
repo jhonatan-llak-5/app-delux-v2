@@ -1,9 +1,9 @@
-import { ChangeDetectionStrategy, Component, OnInit, inject, signal } from '@angular/core';
+import { ChangeDetectionStrategy, Component, effect, inject, signal } from '@angular/core';
 import { AuthService } from '@core/services/auth.service';
+import { BranchContextService } from '@core/services/branch-context.service';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { ScheduleService, BranchSchedule } from '@features/superadmin/services/schedule.service';
-import { AdminService, AdminBranch } from '@features/superadmin/services/admin.service';
 import { parseApiError } from '@shared/utils/api-error.util';
 
 interface DayRow {
@@ -38,21 +38,19 @@ const WEEKDAYS = [
           <span class="uppercase tracking-widest font-semibold">Operación</span>
         </div>
         <h1 class="text-2xl md:text-3xl font-bold tracking-tight">Horarios de atención</h1>
-        <p class="text-slate-500 text-sm mt-1">Define apertura y cierre por día por sucursal.</p>
+        <p class="text-slate-500 text-sm mt-1">Define apertura y cierre por día. Usa el selector de sucursal de la parte superior.</p>
       </div>
-      @if (auth.multiBranch()) {
-        <select [(ngModel)]="branchId" (change)="loadBranch()"
-                class="px-4 py-2.5 rounded-lg bg-ink-950 text-white font-semibold text-sm cursor-pointer">
-          <option [ngValue]="null">— Seleccionar sucursal —</option>
-          @for (b of branches(); track b.id) { <option [ngValue]="b.id">{{ b.name }}</option> }
-        </select>
-      }
     </div>
 
-    @if (!branchId) {
-      <div class="card p-12 text-center text-slate-400">
-        <i class="fa-solid fa-building text-3xl mb-3"></i>
-        <p>Selecciona una sucursal para editar su horario.</p>
+    @if (!branchId()) {
+      <div class="card p-8 text-center border-2 border-dashed border-[var(--dash-primary)]/40 bg-[var(--dash-primary)]/5">
+        <div class="w-14 h-14 rounded-full bg-[var(--dash-primary)]/15 text-[var(--dash-primary)] grid place-items-center mx-auto mb-4">
+          <i class="fa-solid fa-store text-2xl"></i>
+        </div>
+        <h3 class="font-bold text-lg text-[var(--dash-primary-d)] dark:text-blue-300">Selecciona una sucursal</h3>
+        <p class="text-slate-500 text-sm mt-1 max-w-md mx-auto">
+          Elige una sucursal en el selector <b>de la parte superior</b> para establecer su horario de atención.
+        </p>
       </div>
     } @else {
       <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
@@ -165,37 +163,33 @@ const WEEKDAYS = [
     }
   `,
 })
-export class ScheduleEditorComponent implements OnInit {
+export class ScheduleEditorComponent {
   auth = inject(AuthService);
+  branchCtx = inject(BranchContextService);
   private svc = inject(ScheduleService);
-  private adminSvc = inject(AdminService);
 
-  branches = signal<AdminBranch[]>([]);
-  branchId: number | null = null;
+  branchId = signal<number | null>(null);
   days = signal<DayRow[]>([]);
   saving = signal(false);
   error = signal<string | null>(null);
   savedAt = signal<Date | null>(null);
 
-  ngOnInit() {
-    this.adminSvc.listBranches().subscribe(r => {
-      this.branches.set(r.results || []);
-      const fixed = this.auth.user()?.branch_id;
-      if (!this.auth.multiBranch() && fixed) {
-        this.branchId = fixed;
-        this.loadBranch();
-      } else if (r.results?.length) {
-        this.branchId = r.results[0].id;
-        this.loadBranch();
-      }
-    });
+  constructor() {
+    // Sigue el selector global de sucursal del header.
+    effect(() => {
+      const id = this.branchCtx.current();
+      this.branchId.set(id);
+      if (id) this.loadBranch();
+      else this.days.set([]);
+    }, { allowSignalWrites: true });
   }
 
   loadBranch() {
-    if (!this.branchId) return;
+    const id = this.branchId();
+    if (!id) return;
     this.savedAt.set(null);
     // Cargar horarios existentes o crear default
-    this.svc.list(this.branchId).subscribe(r => {
+    this.svc.list(id).subscribe(r => {
       const existing = new Map(r.results.map(s => [s.weekday, s]));
       const rows: DayRow[] = WEEKDAYS.map(w => {
         const found = existing.get(w.weekday);
@@ -230,11 +224,12 @@ export class ScheduleEditorComponent implements OnInit {
   }
 
   save() {
-    if (!this.branchId) return;
+    const id = this.branchId();
+    if (!id) return;
     this.saving.set(true);
     this.error.set(null);
     const payload: BranchSchedule[] = this.days().map(d => ({
-      branch: this.branchId!,
+      branch: id,
       weekday: d.weekday,
       open_time: d.is_closed ? null : `${d.open_time}:00`,
       close_time: d.is_closed ? null : `${d.close_time}:00`,

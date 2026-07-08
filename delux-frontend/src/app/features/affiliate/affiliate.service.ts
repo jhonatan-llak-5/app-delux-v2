@@ -90,6 +90,16 @@ function rangeParams(r?: DateRange): HttpParams {
   return p;
 }
 
+export interface AffiliateReportPayout {
+  affiliate: string; ref_code: string; amount: string; method: string;
+  reference: string; commissions_count: number; date: string;
+}
+export interface AffiliateReport {
+  total_paid: string; total_pending: string; payouts_count: number; affiliates_paid: number;
+  by_month: { month: string; total: string; count: number }[];
+  payouts: AffiliateReportPayout[];
+}
+
 interface Paged<T> { count: number; results: T[]; }
 
 @Injectable({ providedIn: 'root' })
@@ -141,5 +151,14 @@ export class AffiliateService {
 
   createPayout(body: PayoutCreatePayload): Observable<PayoutRow> {
     return this.http.post<PayoutRow>(`${this.base}/admin/payouts/`, body);
+  }
+
+  payAllAffiliates(method: 'CASH' | 'TRANSFER', reference = ''): Observable<{ paid_count: number; total: string; detail: string }> {
+    return this.http.post<{ paid_count: number; total: string; detail: string }>(
+      `${this.base}/admin/payouts/pay-all/`, { method, reference });
+  }
+
+  affiliateReport(range?: DateRange): Observable<AffiliateReport> {
+    return this.http.get<AffiliateReport>(`${this.base}/admin/payouts/report/`, { params: rangeParams(range) });
   }
 }

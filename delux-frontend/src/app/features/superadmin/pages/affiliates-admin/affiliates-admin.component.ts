@@ -2,6 +2,8 @@ import { ChangeDetectionStrategy, Component, OnInit, computed, inject, signal } 
 import { DlxEmptyStateComponent } from '@shared/ui/empty-state.component';
 import { CommonModule, DatePipe } from '@angular/common';
 import { FormsModule } from '@angular/forms';
+import { RouterLink } from '@angular/router';
+import { DlxStatCardComponent } from '@shared/ui';
 import { Subject, debounceTime } from 'rxjs';
 import { DlxSearchInputComponent } from '@shared/ui/search-input.component';
 import { NotifyService } from '@shared/services/notify.service';
@@ -15,7 +17,7 @@ import {
 @Component({
   selector: 'dlx-affiliates-admin',
   standalone: true,
-  imports: [DlxEmptyStateComponent, CommonModule, FormsModule, DatePipe, DlxSearchInputComponent],
+  imports: [DlxEmptyStateComponent, CommonModule, FormsModule, DatePipe, DlxSearchInputComponent, RouterLink, DlxStatCardComponent],
   changeDetection: ChangeDetectionStrategy.OnPush,
   template: `
     <div class="mb-5 flex items-start justify-between gap-3 flex-wrap">
@@ -23,7 +25,23 @@ import {
         <h1 class="text-2xl md:text-3xl font-bold tracking-tight">Afiliados</h1>
         <p class="text-slate-500 text-sm mt-1">Vendedores afiliados, sus comisiones y registro de pagos.</p>
       </div>
-      <button class="btn-secondary text-sm" (click)="reload()"><i class="fa-solid fa-arrows-rotate"></i> Recargar</button>
+      <div class="flex gap-2 flex-wrap">
+        <button class="btn-secondary text-sm" (click)="reload()"><i class="fa-solid fa-arrows-rotate"></i> Recargar</button>
+        <a routerLink="/app/admin/affiliates/reporte" class="btn-secondary text-sm"><i class="fa-solid fa-chart-column"></i> Reporte</a>
+        @if (canRegisterPay()) {
+          <button class="eg-btn-primary text-sm" [disabled]="totalPending() <= 0" (click)="askPayAll()"><i class="fa-solid fa-money-bill-wave"></i> Pagar a todos</button>
+        }
+      </div>
+    </div>
+
+    <div class="grid grid-cols-2 lg:grid-cols-4 gap-3 mb-4">
+      <dlx-stat-card label="Afiliados" [value]="rows().length" icon="fa-users" />
+      <dlx-stat-card label="Por pagar" [value]="money(totalPending())" icon="fa-hourglass-half"
+        iconBg="bg-amber-50 dark:bg-amber-500/15" iconColor="text-amber-600 dark:text-amber-400" />
+      <dlx-stat-card label="Pagado" [value]="money(totalPaid())" icon="fa-circle-check"
+        iconBg="bg-emerald-50 dark:bg-emerald-500/15" iconColor="text-emerald-600 dark:text-emerald-400" />
+      <dlx-stat-card label="Total generado" [value]="money(totalGenerated())" icon="fa-sack-dollar"
+        iconBg="bg-violet-50 dark:bg-violet-500/15" iconColor="text-violet-600 dark:text-violet-400" />
     </div>
 
     <div class="card p-3 mb-4">
@@ -184,6 +202,31 @@ import {
         </div>
       </div>
     }
+
+    @if (payingAll()) {
+      <div class="fixed inset-0 z-[60] grid place-items-center bg-black/50 p-4" (click)="payingAll.set(false)">
+        <div class="card w-full max-w-md p-6" (click)="$event.stopPropagation()">
+          <h2 class="text-lg font-bold mb-1">Pagar a todos los afiliados</h2>
+          <p class="text-sm text-slate-500 mb-4">
+            Se pagará a <strong>todos los afiliados con saldo por pagar</strong> (que alcancen el mínimo), por un total aprox. de <strong class="text-amber-600">{{ money(totalPending()) }}</strong>. Se genera un comprobante por cada uno.
+          </p>
+          <label class="block text-sm font-semibold mb-1">Método</label>
+          <select class="eg-input mb-3" [(ngModel)]="payAllMethod">
+            <option value="TRANSFER">Transferencia</option>
+            <option value="CASH">Efectivo</option>
+          </select>
+          <label class="block text-sm font-semibold mb-1">Referencia / nota <span class="text-slate-400 font-normal">(opcional)</span></label>
+          <input class="eg-input mb-4" [(ngModel)]="payAllReference" maxlength="160" placeholder="N° de lote, observación…" />
+          <div class="flex justify-end gap-2">
+            <button class="btn-secondary" (click)="payingAll.set(false)" [disabled]="saving()">Cancelar</button>
+            <button class="eg-btn-primary" (click)="confirmPayAll()" [disabled]="saving()">
+              @if (saving()) { <i class="fa-solid fa-spinner fa-spin"></i> } @else { <i class="fa-solid fa-check"></i> }
+              Confirmar pago a todos
+            </button>
+          </div>
+        </div>
+      </div>
+    }
   `,
 })
 export class AffiliatesAdminComponent implements OnInit {
@@ -209,6 +252,26 @@ export class AffiliatesAdminComponent implements OnInit {
   payMethod: 'CASH' | 'TRANSFER' = 'CASH';
   payReference = '';
   saving = signal(false);
+
+  totalPending = computed(() => this.rows().reduce((s, a) => s + (+a.commission_pending || 0), 0));
+  totalPaid = computed(() => this.rows().reduce((s, a) => s + (+a.commission_paid || 0), 0));
+  totalGenerated = computed(() => this.totalPending() + this.totalPaid());
+
+  payingAll = signal(false);
+  payAllMethod: 'CASH' | 'TRANSFER' = 'TRANSFER';
+  payAllReference = '';
+  askPayAll(): void { this.payAllMethod = 'TRANSFER'; this.payAllReference = ''; this.payingAll.set(true); }
+  confirmPayAll(): void {
+    this.saving.set(true);
+    this.svc.payAllAffiliates(this.payAllMethod, this.payAllReference.trim()).subscribe({
+      next: r => {
+        this.saving.set(false); this.payingAll.set(false);
+        this.notify.success('Pagos registrados', { description: r.detail });
+        this.load();
+      },
+      error: e => { this.saving.set(false); this.notify.error(parseApiError(e).message || 'No se pudo pagar a todos.'); },
+    });
+  }
 
   ngOnInit(): void {
     this.load();

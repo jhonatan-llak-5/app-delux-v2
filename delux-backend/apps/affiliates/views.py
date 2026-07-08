@@ -264,3 +264,86 @@ class AdminPayoutViewSet(viewsets.ReadOnlyModelViewSet):
 
         return Response(PayoutSerializer(payout).data,
                         status=http_status.HTTP_201_CREATED)
+
+    @action(detail=False, methods=['post'], url_path='pay-all')
+    def pay_all(self, request):
+        """Paga a TODOS los afiliados con saldo por pagar >= el mínimo, de una.
+        Genera un comprobante por cada afiliado. Devuelve el resumen."""
+        from decimal import Decimal
+        from django.db import transaction
+        from apps.settings.models import PlatformSettings
+
+        method = request.data.get('method', 'TRANSFER')
+        reference = request.data.get('reference', '')
+        min_payout = Decimal(str(PlatformSettings.load().affiliate_min_payout or 0))
+
+        # Afiliados con comisiones aprobadas (por pagar) y su total.
+        agg = (Commission.objects
+               .filter(status=CommissionStatus.APPROVED)
+               .values('affiliate_id')
+               .annotate(pending=Sum('amount')))
+
+        paid_count = 0
+        total = Decimal('0')
+        for row in agg:
+            pend = row['pending'] or Decimal('0')
+            if pend <= 0:
+                continue
+            if min_payout > 0 and pend < min_payout:
+                continue
+            aff = User.objects.filter(id=row['affiliate_id'], role=Role.AFFILIATE).first()
+            if not aff:
+                continue
+            try:
+                with transaction.atomic():
+                    payout = pay_affiliate_commissions(
+                        affiliate=aff, method=method, reference=reference,
+                        paid_by=request.user)
+                paid_count += 1
+                total += payout.amount
+            except ValueError:
+                continue
+
+        return Response({
+            'paid_count': paid_count,
+            'total': str(total),
+            'detail': (f'Se pagaron {paid_count} afiliado(s) por un total de ${total}.'
+                       if paid_count else 'No hay afiliados con saldo por pagar (o no alcanzan el mínimo).'),
+        }, status=http_status.HTTP_200_OK)
+
+    @action(detail=False, methods=['get'])
+    def report(self, request):
+        """Reporte de pagos a afiliados con filtros de fecha: KPIs, por mes y detalle."""
+        from decimal import Decimal
+        p = request.query_params
+        qs = CommissionPayout.objects.select_related('affiliate')
+        if p.get('from'):
+            qs = qs.filter(created_at__date__gte=p['from'])
+        if p.get('to'):
+            qs = qs.filter(created_at__date__lte=p['to'])
+        payouts = list(qs.order_by('-created_at'))
+        total_paid = sum((x.amount for x in payouts), Decimal('0'))
+        by_month = (qs.annotate(m=TruncMonth('created_at')).values('m')
+                    .annotate(total=Sum('amount'), count=Count('id')).order_by('m'))
+        total_pending = (Commission.objects
+                         .filter(status=CommissionStatus.APPROVED)
+                         .aggregate(s=Sum('amount'))['s']) or Decimal('0')
+        return Response({
+            'total_paid': str(total_paid),
+            'total_pending': str(total_pending),
+            'payouts_count': len(payouts),
+            'affiliates_paid': len({x.affiliate_id for x in payouts}),
+            'by_month': [{
+                'month': (r['m'].date().isoformat() if r['m'] else ''),
+                'total': str(r['total'] or 0), 'count': r['count'],
+            } for r in by_month],
+            'payouts': [{
+                'affiliate': (x.affiliate.full_name if x.affiliate else '—'),
+                'ref_code': (getattr(x.affiliate, 'ref_code', '') or ''),
+                'amount': str(x.amount),
+                'method': x.get_method_display(),
+                'reference': x.reference or '',
+                'commissions_count': x.commissions_count,
+                'date': x.created_at.isoformat(),
+            } for x in payouts],
+        })

@@ -1,5 +1,6 @@
 import { ChangeDetectionStrategy, Component, OnInit, computed, inject, signal } from '@angular/core';
 import { AuthService } from '@core/services/auth.service';
+import { NotifyService } from '@shared/services/notify.service';
 import { DlxFieldErrorComponent } from '@shared/ui/field-error.component';
 import { DlxPriceInputComponent } from '@shared/ui/price-input.component';
 import { DlxInputComponent } from '@shared/ui/input.component';
@@ -27,6 +28,7 @@ export class StaffFormComponent implements OnInit {
   private adminSvc = inject(AdminService);
   private route = inject(ActivatedRoute);
   private router = inject(Router);
+  private notify = inject(NotifyService);
 
   branches = signal<AdminBranch[]>([]);
   staffId = signal<number | null>(null);
@@ -36,6 +38,21 @@ export class StaffFormComponent implements OnInit {
   fieldErrors = signal<Record<string, string>>({});
   fe(k: string): string { return this.fieldErrors()[k] || ''; }
   metrics = signal<SalesMetrics | null>(null);
+
+  // Restablecer contraseña (solo superadmin).
+  newPassword = '';
+  showPwd = signal(false);
+  settingPwd = signal(false);
+  resetPassword(): void {
+    const id = this.staffId();
+    if (!id) return;
+    if (this.newPassword.length < 8) { this.notify.warning('La contraseña debe tener al menos 8 caracteres.'); return; }
+    this.settingPwd.set(true);
+    this.svc.setPassword(id, this.newPassword).subscribe({
+      next: r => { this.settingPwd.set(false); this.newPassword = ''; this.showPwd.set(false); this.notify.success(r.detail || 'Contraseña actualizada.'); },
+      error: e => { this.settingPwd.set(false); this.notify.error(e?.error?.detail || 'No se pudo cambiar la contraseña.'); },
+    });
+  }
   createdCreds = signal<{ email: string; password: string; generated: boolean; emailed: boolean } | null>(null);
 
   payload: StaffPayload = {

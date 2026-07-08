@@ -191,6 +191,12 @@ export const SUPERADMIN_ROUTES: Routes = [
           import('./pages/affiliates-admin/affiliates-admin.component').then(m => m.AffiliatesAdminComponent),
       },
       {
+        path: 'affiliates/reporte',
+        canActivate: [roleGuard(['SUPERADMIN', 'TENANT_ADMIN', 'BRANCH_MANAGER', 'SALESPERSON'])],
+        loadComponent: () =>
+          import('./pages/affiliate-report/affiliate-report.component').then(m => m.AffiliateReportComponent),
+      },
+      {
         path: 'subscribers',
         canActivate: [roleGuard(['SUPERADMIN', 'TENANT_ADMIN'])],
         loadComponent: () =>

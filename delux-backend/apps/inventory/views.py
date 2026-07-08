@@ -37,8 +37,7 @@ def _product_images(product):
 class AdminStockViewSet(viewsets.ReadOnlyModelViewSet):
     serializer_class = StockSerializer
     permission_classes = [permissions.IsAuthenticated, IsStaff]
-    filter_backends = [filters.SearchFilter, filters.OrderingFilter]
-    search_fields = ['variant__sku', 'variant__product__name', 'variant__barcode']
+    filter_backends = [filters.OrderingFilter]
     ordering_fields = ['quantity', 'updated_at']
     ordering = ['-updated_at']
 
@@ -61,6 +60,29 @@ class AdminStockViewSet(viewsets.ReadOnlyModelViewSet):
             qs = qs.filter(quantity__lte=F('min_threshold'))
         if params.get('out_of_stock') == 'true':
             qs = qs.filter(quantity=0)
+
+        # Búsqueda amplia por palabras (AND entre tokens; cada token puede
+        # coincidir en nombre, descripción, talla, color, marca, SKU, código o precio).
+        # Ej: "delux celeste 40" -> exige que aparezcan las tres.
+        term = (params.get('search') or '').strip()
+        if term:
+            from decimal import Decimal, InvalidOperation
+            for token in term.split():
+                cond = (
+                    Q(variant__sku__icontains=token)
+                    | Q(variant__barcode__icontains=token)
+                    | Q(variant__product__name__icontains=token)
+                    | Q(variant__product__description__icontains=token)
+                    | Q(variant__product__brand__name__icontains=token)
+                    | Q(variant__size__icontains=token)
+                    | Q(variant__color__icontains=token)
+                )
+                try:
+                    val = Decimal(token.replace(',', '.'))
+                    cond |= Q(variant__product__base_price=val) | Q(variant__price_override=val)
+                except (InvalidOperation, ValueError):
+                    pass
+                qs = qs.filter(cond)
 
         # Scoping por rol: gerente de sucursal solo ve el stock de su sucursal.
         user = self.request.user

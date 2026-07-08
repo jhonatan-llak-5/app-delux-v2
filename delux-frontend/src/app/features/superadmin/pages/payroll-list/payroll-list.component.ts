@@ -1,4 +1,5 @@
-import { ChangeDetectionStrategy, Component, OnInit, computed, inject, signal } from '@angular/core';
+import { ChangeDetectionStrategy, Component, OnInit, computed, effect, inject, signal } from '@angular/core';
+import { BranchContextService } from '@core/services/branch-context.service';
 import { DlxEmptyStateComponent } from '@shared/ui/empty-state.component';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
@@ -128,7 +129,13 @@ export class PayrollListComponent implements OnInit {
   private svc = inject(PayrollService);
   private adminSvc = inject(AdminService);
   private auth = inject(AuthService);
+  branchCtx = inject(BranchContextService);
   private notify = inject(NotifyService);
+
+  constructor() {
+    // Recarga la nómina según el selector global de sucursal del header.
+    effect(() => { this.branchCtx.current(); this.load(); }, { allowSignalWrites: true });
+  }
 
   rows = signal<PayrollRun[]>([]);
   loading = signal(true);
@@ -153,7 +160,7 @@ export class PayrollListComponent implements OnInit {
   pendingCount = computed(() => this.rows().filter(r => r.status !== 'PAID').length);
 
   ngOnInit(): void {
-    this.load();
+    // La carga la dispara el effect (según sucursal global).
     if (!this.branchLocked()) {
       this.adminSvc.listBranches().subscribe(r => this.branches.set(r.results || []));
     }
@@ -161,7 +168,7 @@ export class PayrollListComponent implements OnInit {
 
   load(): void {
     this.loading.set(true);
-    this.svc.list({ page_size: 100 }).subscribe({
+    this.svc.list({ page_size: 100, branch: this.branchCtx.current() || undefined }).subscribe({
       next: r => { this.rows.set(r.results || []); this.loading.set(false); },
       error: () => this.loading.set(false),
     });
@@ -170,7 +177,7 @@ export class PayrollListComponent implements OnInit {
   openGenerate(): void {
     this.genMonth = new Date().getMonth() + 1;
     this.genYear = new Date().getFullYear();
-    this.genBranch = null;
+    this.genBranch = this.branchCtx.current();
     this.genOpen.set(true);
   }
 
