@@ -22,6 +22,10 @@ migrate:
 seed:
 	docker compose exec backend python manage.py seed_delux
 
+# Seed MÍNIMO de producción (superadmin + tienda + sucursal Delux Valle + gerente)
+seed-prod:
+	docker compose -f docker-compose.prod.yml exec backend python manage.py seed_prod
+
 reset:
 	docker compose down -v
 	docker compose up -d --build
