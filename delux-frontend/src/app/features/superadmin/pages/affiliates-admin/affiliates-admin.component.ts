@@ -1,4 +1,6 @@
 import { ChangeDetectionStrategy, Component, OnInit, computed, inject, signal } from '@angular/core';
+import { DlxExportMenuComponent } from '@shared/ui/export-menu.component';
+import { ExportColumn } from '@shared/utils/export.util';
 import { DlxEmptyStateComponent } from '@shared/ui/empty-state.component';
 import { CommonModule, DatePipe } from '@angular/common';
 import { FormsModule } from '@angular/forms';
@@ -17,7 +19,7 @@ import {
 @Component({
   selector: 'dlx-affiliates-admin',
   standalone: true,
-  imports: [DlxEmptyStateComponent, CommonModule, FormsModule, DatePipe, DlxSearchInputComponent, RouterLink, DlxStatCardComponent],
+  imports: [DlxEmptyStateComponent, CommonModule, FormsModule, DatePipe, DlxSearchInputComponent, RouterLink, DlxStatCardComponent, DlxExportMenuComponent],
   changeDetection: ChangeDetectionStrategy.OnPush,
   template: `
     <div class="mb-5 flex items-start justify-between gap-3 flex-wrap">
@@ -27,6 +29,7 @@ import {
       </div>
       <div class="flex gap-2 flex-wrap">
         <button class="btn-secondary text-sm" (click)="reload()"><i class="fa-solid fa-arrows-rotate"></i> Recargar</button>
+        <dlx-export-menu [columns]="exportColumns" [rows]="rows()" filename="afiliados" title="Afiliados" orientation="l" />
         <a routerLink="/app/admin/affiliates/reporte" class="btn-secondary text-sm"><i class="fa-solid fa-chart-column"></i> Reporte</a>
         @if (canRegisterPay()) {
           <button class="eg-btn-primary text-sm" [disabled]="totalPending() <= 0" (click)="askPayAll()"><i class="fa-solid fa-money-bill-wave"></i> Pagar a todos</button>
@@ -239,6 +242,15 @@ export class AffiliatesAdminComponent implements OnInit {
   canRegisterPay = computed(() => this.auth.role() !== 'SALESPERSON');
 
   rows = signal<AffiliateAdminRow[]>([]);
+  exportColumns: ExportColumn<AffiliateAdminRow>[] = [
+    { header: 'Afiliado', key: 'full_name' },
+    { header: 'Email', key: 'email' },
+    { header: 'Código', key: 'ref_code' },
+    { header: 'Ventas', key: 'sales_count' },
+    { header: 'Comisión pendiente', key: a => Number(a.commission_pending || 0).toFixed(2) },
+    { header: 'Comisión pagada', key: a => Number(a.commission_paid || 0).toFixed(2) },
+    { header: 'Activo', key: a => (a.is_active ? 'Sí' : 'No') },
+  ];
   loading = signal(true);
   search = '';
   search$ = new Subject<string>();

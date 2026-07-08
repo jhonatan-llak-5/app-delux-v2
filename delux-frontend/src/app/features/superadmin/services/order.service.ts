@@ -101,8 +101,8 @@ export class OrderService {
   get(id: number) { return this.http.get<Order>(`${this.base}/${id}/`); }
   summary() { return this.http.get<OrderSummary>(`${this.base}/summary/`); }
 
-  setStatus(id: number, status: string): Observable<Order> {
-    return this.http.post<Order>(`${this.base}/${id}/set-status/`, { status });
+  setStatus(id: number, status: string, notes?: string): Observable<Order> {
+    return this.http.post<Order>(`${this.base}/${id}/set-status/`, { status, notes });
   }
 
   cancel(id: number) {

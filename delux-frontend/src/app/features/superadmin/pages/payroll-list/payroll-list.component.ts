@@ -1,4 +1,6 @@
 import { ChangeDetectionStrategy, Component, OnInit, computed, effect, inject, signal } from '@angular/core';
+import { DlxExportMenuComponent } from '@shared/ui/export-menu.component';
+import { ExportColumn } from '@shared/utils/export.util';
 import { BranchContextService } from '@core/services/branch-context.service';
 import { DlxEmptyStateComponent } from '@shared/ui/empty-state.component';
 import { CommonModule } from '@angular/common';
@@ -14,7 +16,7 @@ import { PayrollService, PayrollRun } from '@features/superadmin/services/payrol
 @Component({
   selector: 'dlx-payroll-list',
   standalone: true,
-  imports: [DlxEmptyStateComponent, CommonModule, FormsModule, RouterLink, DlxStatCardComponent],
+  imports: [DlxEmptyStateComponent, CommonModule, FormsModule, RouterLink, DlxStatCardComponent, DlxExportMenuComponent],
   changeDetection: ChangeDetectionStrategy.OnPush,
   template: `
     <div class="mb-5 flex items-start justify-between gap-3 flex-wrap">
@@ -27,6 +29,7 @@ import { PayrollService, PayrollRun } from '@features/superadmin/services/payrol
         <p class="text-slate-500 text-sm mt-1">Genera y da seguimiento a los pagos mensuales de tu equipo.</p>
       </div>
       <div class="flex gap-2">
+        <dlx-export-menu [columns]="exportColumns" [rows]="rows()" filename="nomina" title="Nómina de empleados" orientation="l" />
         <a routerLink="/app/admin/payroll/reporte" class="btn-secondary text-sm"><i class="fa-solid fa-chart-column"></i> Reporte</a>
         <button class="eg-btn-primary text-sm" (click)="openGenerate()"><i class="fa-solid fa-plus"></i> Generar pagos</button>
       </div>
@@ -138,6 +141,13 @@ export class PayrollListComponent implements OnInit {
   }
 
   rows = signal<PayrollRun[]>([]);
+  exportColumns: ExportColumn<PayrollRun>[] = [
+    { header: 'Periodo', key: r => this.monthName(r.month) + ' ' + r.year },
+    { header: 'Sucursal', key: r => r.branch_name || 'Todas' },
+    { header: 'Empleados', key: r => r.paid_count + '/' + r.items_count },
+    { header: 'Total', key: r => Number(r.total_amount || 0).toFixed(2) },
+    { header: 'Estado', key: r => this.label(r.status) },
+  ];
   loading = signal(true);
   branches = signal<AdminBranch[]>([]);
 

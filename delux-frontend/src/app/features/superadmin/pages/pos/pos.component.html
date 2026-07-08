@@ -61,11 +61,77 @@
           <dlx-empty-state icon="fa-box-open" title="Sin resultados"
                            [description]="'No encontramos productos para «' + search() + '».'" />
         } @else {
-          <p class="text-xs text-slate-400 px-1">{{ stocks().length }} resultado(s)</p>
+          <div class="flex items-center justify-between px-1">
+            <p class="text-xs text-slate-400">{{ stocks().length }} resultado(s)</p>
+            <div class="flex items-center rounded-lg border border-slate-200 dark:border-white/10 overflow-hidden">
+              <button type="button" (click)="setView('grid')" title="Vista tarjetas"
+                      class="w-9 h-9 grid place-items-center transition"
+                      [ngClass]="view() === 'grid' ? 'bg-[var(--dash-primary)] text-white' : 'text-slate-500 hover:bg-slate-100 dark:hover:bg-white/5'">
+                <i class="fa-solid fa-table-cells-large text-sm"></i>
+              </button>
+              <button type="button" (click)="setView('table')" title="Vista tabla"
+                      class="w-9 h-9 grid place-items-center transition"
+                      [ngClass]="view() === 'table' ? 'bg-[var(--dash-primary)] text-white' : 'text-slate-500 hover:bg-slate-100 dark:hover:bg-white/5'">
+                <i class="fa-solid fa-list text-sm"></i>
+              </button>
+            </div>
+          </div>
+
+          @if (view() === 'table') {
+            <div class="card overflow-hidden">
+              <table class="w-full text-sm">
+                <thead class="bg-slate-50 dark:bg-white/5 text-slate-500 text-left">
+                  <tr>
+                    <th class="px-3 py-2.5 font-semibold">Producto</th>
+                    <th class="px-3 py-2.5 font-semibold">Variante</th>
+                    <th class="px-3 py-2.5 font-semibold">SKU</th>
+                    <th class="px-3 py-2.5 font-semibold text-center">Stock</th>
+                    <th class="px-3 py-2.5 font-semibold text-right">Precio</th>
+                    <th class="px-3 py-2.5"></th>
+                  </tr>
+                </thead>
+                <tbody>
+                  @for (s of stocks(); track s.id) {
+                    <tr (click)="addToCart(s)"
+                        class="group border-t border-slate-100 dark:border-white/5 cursor-pointer transition-colors
+                               hover:bg-[var(--dash-primary)]/10 hover:shadow-[inset_4px_0_0_0_var(--dash-primary)]"
+                        [class.opacity-40]="s.quantity === 0" [class.pointer-events-none]="s.quantity === 0">
+                      <td class="px-3 py-2.5">
+                        <div class="flex items-center gap-2.5">
+                          <img [src]="imgSrc(s.product_main_image)" [alt]="s.product_name"
+                               class="w-9 h-9 rounded object-cover bg-slate-100 shrink-0" loading="lazy" dlxImgFallback />
+                          <div class="min-w-0">
+                            <p class="font-semibold truncate max-w-[220px]">{{ s.product_name }}</p>
+                            <p class="text-[10px] font-mono uppercase text-slate-400">{{ s.brand_name }}</p>
+                          </div>
+                        </div>
+                      </td>
+                      <td class="px-3 py-2.5 text-xs text-slate-600 dark:text-slate-300">{{ s.variant_size }} · {{ s.variant_color }}</td>
+                      <td class="px-3 py-2.5 text-xs font-mono text-slate-400">{{ s.variant_sku }}</td>
+                      <td class="px-3 py-2.5 text-center">
+                        <span class="text-[11px] font-bold px-2 py-0.5 rounded-md"
+                              [class.bg-emerald-100]="!s.is_low" [class.text-emerald-700]="!s.is_low"
+                              [class.bg-amber-100]="s.is_low && s.quantity > 0" [class.text-amber-700]="s.is_low && s.quantity > 0"
+                              [class.bg-rose-100]="s.quantity === 0" [class.text-rose-700]="s.quantity === 0">{{ s.quantity }}</span>
+                      </td>
+                      <td class="px-3 py-2.5 text-right font-bold">${{ priceWithTax(s).toFixed(2) }}</td>
+                      <td class="px-3 py-2.5 text-right">
+                        <span class="inline-flex items-center gap-1 px-2.5 py-1 rounded-lg text-xs font-semibold transition
+                                     text-[var(--dash-primary)] group-hover:bg-[var(--dash-primary)] group-hover:text-white">
+                          <i class="fa-solid fa-plus"></i> Agregar
+                        </span>
+                      </td>
+                    </tr>
+                  }
+                </tbody>
+              </table>
+            </div>
+          } @else {
           <div class="grid grid-cols-2 md:grid-cols-3 xl:grid-cols-4 gap-3">
             @for (s of stocks(); track s.id) {
               <button (click)="addToCart(s)" [disabled]="s.quantity === 0"
-                      class="card overflow-hidden hover:shadow-lg hover:ring-2 hover:ring-[var(--dash-primary)]/30 transition text-left disabled:opacity-50 disabled:cursor-not-allowed group">
+                      class="card overflow-hidden transition-all duration-200 text-left disabled:opacity-50 disabled:cursor-not-allowed group
+                             hover:shadow-xl hover:ring-2 hover:ring-[var(--dash-primary)]/50 hover:-translate-y-1">
                 <div class="aspect-square bg-slate-100 relative overflow-hidden">
                   <img [src]="imgSrc(s.product_main_image)" [alt]="s.product_name"
                        class="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500"
@@ -96,6 +162,7 @@
               </button>
             }
           </div>
+          }
         }
       </div>
 
@@ -107,9 +174,18 @@
             <h2 class="font-bold tracking-tight flex items-center gap-2 text-base">
               <i class="fa-solid fa-cart-shopping"></i> Carrito
             </h2>
-            <span class="text-xs bg-white/15 px-2.5 py-0.5 rounded-full font-bold">
-              {{ cart().length }} {{ cart().length === 1 ? 'ítem' : 'ítems' }}
-            </span>
+            <div class="flex items-center gap-2">
+              <span class="text-xs bg-white/15 px-2.5 py-0.5 rounded-full font-bold">
+                {{ cart().length }} {{ cart().length === 1 ? 'ítem' : 'ítems' }}
+              </span>
+              @if (cart().length) {
+                <button (click)="clearCart()" title="Vaciar carrito"
+                        class="flex items-center gap-1 text-xs font-semibold text-white/70 hover:text-white
+                               hover:bg-white/10 px-2 py-1 rounded-lg transition">
+                  <i class="fa-solid fa-trash-can"></i> Vaciar
+                </button>
+              }
+            </div>
           </div>
 
           <div class="p-5">
@@ -222,14 +298,14 @@
             <i class="fa-solid fa-user"></i> Cliente <span class="text-xs text-slate-400 font-normal">(opcional)</span>
           </h2>
           <div class="space-y-2">
-            <input [(ngModel)]="customerData.full_name" placeholder="Nombre completo"
+            <input [(ngModel)]="customerData.full_name" (ngModelChange)="persistCustomer()" placeholder="Nombre completo"
                    class="eg-input" />
-            <input [(ngModel)]="customerData.email" type="email" placeholder="email@ejemplo.com"
+            <input [(ngModel)]="customerData.email" (ngModelChange)="persistCustomer()" type="email" placeholder="email@ejemplo.com"
                    class="eg-input" />
             <div class="grid grid-cols-2 gap-2">
-              <input [(ngModel)]="customerData.phone" placeholder="Teléfono"
+              <input [(ngModel)]="customerData.phone" (ngModelChange)="persistCustomer()" placeholder="Teléfono"
                      class="eg-input" />
-              <input [(ngModel)]="customerData.document_id" placeholder="Cédula / RUC"
+              <input [(ngModel)]="customerData.document_id" (ngModelChange)="persistCustomer()" placeholder="Cédula / RUC"
                      class="eg-input" />
             </div>
           </div>

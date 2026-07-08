@@ -154,6 +154,57 @@
             }
           </div>
 
+          <!-- Envío (pedidos con despacho a domicilio) -->
+          @if (shipment(); as sh) {
+            <div class="card p-5 space-y-3">
+              <h3 class="font-bold tracking-tight flex items-center gap-2">
+                <i class="fa-solid fa-truck text-slate-400"></i> Envío
+              </h3>
+              <div>
+                <p class="text-[10px] uppercase tracking-widest text-slate-500 font-semibold">Estado del envío</p>
+                <span class="inline-flex items-center px-2 py-0.5 rounded-md text-xs font-bold uppercase mt-1" [ngClass]="shipBadge(sh.status)">
+                  {{ sh.status_label }}
+                </span>
+                @if (canManage()) {
+                  <div class="mt-2 flex items-center gap-2">
+                    <select [ngModel]="sh.status" (ngModelChange)="changeShipStatus($event)" [disabled]="savingShip()"
+                            class="eg-input text-xs !py-1.5 flex-1">
+                      @for (st of shipStatuses; track st.value) {
+                        <option [value]="st.value">{{ st.label }}</option>
+                      }
+                    </select>
+                    @if (savingShip()) { <i class="fa-solid fa-spinner fa-spin text-slate-400 text-xs"></i> }
+                  </div>
+                  <p class="text-[10px] text-slate-400 mt-1">Al marcar Fallido o Devuelto se pedirá el motivo.</p>
+                }
+              </div>
+              <div class="grid grid-cols-2 gap-3 text-sm">
+                <div>
+                  <p class="text-[10px] uppercase tracking-widest text-slate-500 font-semibold">Tracking</p>
+                  <p class="font-mono text-xs mt-0.5">{{ sh.tracking_code }}</p>
+                </div>
+                <div>
+                  <p class="text-[10px] uppercase tracking-widest text-slate-500 font-semibold">Transportadora</p>
+                  <p class="text-xs mt-0.5">{{ sh.carrier_label }}</p>
+                </div>
+                <div>
+                  <p class="text-[10px] uppercase tracking-widest text-slate-500 font-semibold">Costo de envío</p>
+                  <p class="text-xs mt-0.5 font-semibold">${{ sh.shipping_cost }}</p>
+                </div>
+                <div>
+                  <p class="text-[10px] uppercase tracking-widest text-slate-500 font-semibold">Destino</p>
+                  <p class="text-xs mt-0.5">{{ sh.city || '—' }}</p>
+                </div>
+              </div>
+              @if (sh.address_line1) {
+                <p class="text-xs text-slate-500"><i class="fa-solid fa-location-dot w-4 text-slate-400"></i> {{ sh.address_line1 }}{{ sh.address_line2 ? ', ' + sh.address_line2 : '' }}</p>
+              }
+              <a [routerLink]="['/app/admin/shipments']" class="text-[var(--dash-primary)] text-xs font-semibold hover:underline">
+                <i class="fa-solid fa-map-location-dot"></i> Ver seguimiento completo
+              </a>
+            </div>
+          }
+
           <!-- Pago / comprobante -->
           @if (payments().length) {
             <div class="card p-5 space-y-3">
@@ -204,4 +255,38 @@
         <i class="fa-solid fa-spinner fa-spin text-2xl"></i>
       </div>
     }
-  
+
+    @if (obsOpen()) {
+      <div class="fixed inset-0 z-50 grid place-items-center bg-black/50 backdrop-blur-sm p-4 animate-fade-in"
+           (click)="cancelObs()">
+        <div class="w-full max-w-md rounded-2xl bg-white dark:bg-[#121826] shadow-2xl overflow-hidden border border-slate-200 dark:border-white/10"
+             (click)="$event.stopPropagation()">
+          <div class="p-6">
+            <div class="w-12 h-12 rounded-full bg-rose-100 text-rose-600 grid place-items-center mb-4">
+              <i class="fa-solid fa-triangle-exclamation text-xl"></i>
+            </div>
+            <h3 class="text-lg font-bold tracking-tight">Observaciones del pedido</h3>
+            <p class="text-slate-500 text-sm mt-1">
+              Indica el motivo por el que este pedido se marca como cancelado o devuelto. Quedará registrado en el pedido.
+            </p>
+            <textarea [(ngModel)]="obsText" rows="4" maxlength="500"
+                      placeholder="Ej: El cliente no recogió el pedido / pago no confirmado / producto sin stock…"
+                      class="eg-input mt-4 w-full resize-none"></textarea>
+            <p class="text-[11px] text-slate-400 mt-1">Este campo es obligatorio.</p>
+          </div>
+          <div class="p-5 pt-0 flex gap-2 justify-end">
+            <button (click)="cancelObs()" [disabled]="saving()"
+                    class="px-4 py-2.5 rounded-xl bg-slate-100 dark:bg-white/5 hover:bg-slate-200 dark:hover:bg-white/10 text-slate-600 dark:text-slate-300 text-sm font-semibold transition">
+              Cancelar
+            </button>
+            <button (click)="confirmObs()" [disabled]="!obsText.trim() || saving()"
+                    class="px-5 py-2.5 rounded-xl bg-rose-600 hover:bg-rose-700 text-white text-sm font-bold transition disabled:opacity-40 flex items-center gap-2">
+              @if (saving()) { <i class="fa-solid fa-spinner fa-spin"></i> }
+              @else { <i class="fa-solid fa-check"></i> }
+              Guardar y cambiar estado
+            </button>
+          </div>
+        </div>
+      </div>
+    }
+

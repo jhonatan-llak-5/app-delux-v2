@@ -18,11 +18,15 @@ import { onImageError } from '@shared/utils/img-placeholder';
 import { NotifyService } from '@shared/services/notify.service';
 import { AuthService } from '@core/services/auth.service';
 import { BranchContextService } from '@core/services/branch-context.service';
+import { DlxExportMenuComponent } from '@shared/ui/export-menu.component';
+import { firstValueFrom } from 'rxjs';
+import { ExportColumn } from '@shared/utils/export.util';
+import { ViewMode, readViewPref, writeViewPref } from '@shared/utils/view-pref.util';
 
 @Component({
   selector: 'dlx-products-list',
   standalone: true,
-  imports: [DlxEmptyStateComponent, ImgFallbackDirective, DlxStatCardComponent, DlxSearchInputComponent, CommonModule, FormsModule, RouterLink],
+  imports: [DlxEmptyStateComponent, ImgFallbackDirective, DlxStatCardComponent, DlxSearchInputComponent, CommonModule, FormsModule, RouterLink, DlxExportMenuComponent],
   changeDetection: ChangeDetectionStrategy.OnPush,
   templateUrl: './products-list.component.html',
 })
@@ -192,6 +196,31 @@ export class ProductsListComponent implements OnInit, OnDestroy {
 
 
   onSearch(v: string) { this.search.set(v); this.search$.next(); }
+
+  // ---- Vista tarjetas / tabla (preferencia persistida por cuenta) ----
+  view = signal<ViewMode>(readViewPref('dlx_products_view', this.auth.user()?.id));
+  setView(v: ViewMode) {
+    this.view.set(v);
+    writeViewPref('dlx_products_view', this.auth.user()?.id, v);
+  }
+
+  // ---- Exportación (CSV / Excel / PDF) ----
+  exportColumns: ExportColumn<Product>[] = [
+    { header: 'Nombre', key: 'name' },
+    { header: 'Marca', key: 'brand_name' },
+    { header: 'Categoría', key: 'category_name' },
+    { header: 'Precio', key: p => Number(p.base_price || 0).toFixed(2) },
+    { header: 'Variantes', key: 'variants_count' },
+    { header: 'Stock', key: p => p.total_stock ?? 0 },
+    { header: 'Estado', key: p => this.statusLabel(p.status) },
+    { header: 'Destacado', key: p => (p.is_featured ? 'Sí' : 'No') },
+    { header: 'Creado', key: p => new Date(p.created_at).toLocaleDateString('es-EC') },
+  ];
+  /** Trae TODOS los productos que cumplen los filtros actuales (sin paginación). */
+  fetchAllForExport = async (): Promise<Product[]> => {
+    const r = await firstValueFrom(this.svc.list({ ...this.filters(), page: 1, page_size: 1000 }));
+    return r.results || [];
+  };
 
   countByStatus(s: string) { return this.products().filter(p => p.status === s).length; }
   featuredCount() { return this.products().filter(p => p.is_featured).length; }

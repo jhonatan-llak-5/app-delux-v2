@@ -1,4 +1,6 @@
 import { ChangeDetectionStrategy, Component, OnInit, computed, inject, signal } from '@angular/core';
+import { DlxExportMenuComponent } from '@shared/ui/export-menu.component';
+import { ExportColumn } from '@shared/utils/export.util';
 import { DlxEmptyStateComponent } from '@shared/ui/empty-state.component';
 import { DlxStatCardComponent } from '@shared/ui';
 import { CommonModule, DatePipe } from '@angular/common';
@@ -15,7 +17,7 @@ import { NewsletterService, Subscriber } from '@features/superadmin/services/new
 @Component({
   selector: 'dlx-newsletter-subscribers',
   standalone: true,
-  imports: [DlxEmptyStateComponent, DlxStatCardComponent, CommonModule, FormsModule, DatePipe, DlxSearchInputComponent, DlxConfirmDialogComponent],
+  imports: [DlxEmptyStateComponent, DlxStatCardComponent, CommonModule, FormsModule, DatePipe, DlxSearchInputComponent, DlxConfirmDialogComponent, DlxExportMenuComponent],
   changeDetection: ChangeDetectionStrategy.OnPush,
   template: `
     <div class="mb-5 flex items-start justify-between gap-3 flex-wrap">
@@ -25,8 +27,7 @@ import { NewsletterService, Subscriber } from '@features/superadmin/services/new
       </div>
       <div class="flex gap-2 flex-wrap">
         <button class="btn-secondary text-sm" (click)="reload()"><i class="fa-solid fa-arrows-rotate"></i> Recargar</button>
-        <button class="btn-secondary text-sm" [disabled]="!rows().length" (click)="exportCsv()"><i class="fa-solid fa-file-csv"></i> CSV</button>
-        <button class="btn-secondary text-sm" [disabled]="!rows().length" (click)="exportPdf()"><i class="fa-solid fa-file-pdf"></i> PDF</button>
+        <dlx-export-menu [columns]="exportColumns" [rows]="rows()" filename="suscriptores" title="Suscriptores del newsletter" />
       </div>
     </div>
 
@@ -102,6 +103,11 @@ export class NewsletterSubscribersComponent implements OnInit {
   private notify = inject(NotifyService);
 
   rows = signal<Subscriber[]>([]);
+  exportColumns: ExportColumn<Subscriber>[] = [
+    { header: 'Email', key: 'email' },
+    { header: 'Estado', key: s => (s.is_active ? 'Activo' : 'Baja') },
+    { header: 'Fecha', key: s => new Date(s.created_at).toLocaleDateString('es-EC') },
+  ];
   loading = signal(true);
   saving = signal(false);
   target = signal<Subscriber | null>(null);

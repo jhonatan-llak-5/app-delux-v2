@@ -1,4 +1,6 @@
 import { ChangeDetectionStrategy, Component, OnInit, inject, signal } from '@angular/core';
+import { DlxExportMenuComponent } from '@shared/ui/export-menu.component';
+import { ExportColumn } from '@shared/utils/export.util';
 import { DlxEmptyStateComponent } from '@shared/ui/empty-state.component';
 import { DlxToggleComponent } from '@shared/ui/toggle.component';
 import { DlxSearchInputComponent } from '@shared/ui/search-input.component';
@@ -19,7 +21,7 @@ interface SupplierForm {
 @Component({
   selector: 'dlx-suppliers-list',
   standalone: true,
-  imports: [DlxEmptyStateComponent, DlxSearchInputComponent, DlxFieldErrorComponent, CommonModule, FormsModule, DlxConfirmDialogComponent, DlxToggleComponent],
+  imports: [DlxEmptyStateComponent, DlxSearchInputComponent, DlxFieldErrorComponent, CommonModule, FormsModule, DlxConfirmDialogComponent, DlxToggleComponent, DlxExportMenuComponent],
   changeDetection: ChangeDetectionStrategy.OnPush,
   template: `
     <div class="mb-5 flex items-start justify-between gap-3 flex-wrap">
@@ -29,6 +31,7 @@ interface SupplierForm {
       </div>
       <div class="flex gap-2">
         <button class="btn-secondary text-sm" (click)="reload()"><i class="fa-solid fa-arrows-rotate"></i> Recargar</button>
+        <dlx-export-menu [columns]="exportColumns" [rows]="suppliers()" filename="proveedores" title="Proveedores" />
         <button class="eg-btn-primary text-sm" (click)="openCreate()"><i class="fa-solid fa-plus"></i> Nuevo proveedor</button>
       </div>
     </div>
@@ -177,6 +180,14 @@ export class SuppliersListComponent implements OnInit {
   private notify = inject(NotifyService);
 
   suppliers = signal<Supplier[]>([]);
+  exportColumns: ExportColumn<Supplier>[] = [
+    { header: 'Proveedor', key: 'name' },
+    { header: 'Contacto', key: 'contact_name' },
+    { header: 'Teléfono', key: 'phone' },
+    { header: 'Email', key: 'email' },
+    { header: 'RUC / ID', key: 'tax_id' },
+    { header: 'Activo', key: s => (s.is_active ? 'Sí' : 'No') },
+  ];
   loading = signal(true);
   search = '';
   search$ = new Subject<string>();

@@ -23,6 +23,8 @@
                   hover:bg-slate-100 dark:hover:bg-[#1e293b] transition flex items-center gap-2">
           <i class="fa-solid fa-file-import"></i> Importar masivo
         </a>
+        <dlx-export-menu [columns]="exportColumns" [rows]="products()" [loader]="fetchAllForExport"
+                         filename="productos" title="Catálogo de productos" orientation="l" />
         <a routerLink="/app/admin/products/new"
            class="px-4 py-2.5 rounded-lg bg-[var(--dash-primary)] dark:bg-[#2563eb]
                   text-white text-sm font-semibold
@@ -81,6 +83,20 @@
         <option value="PAUSED">Pausados</option>
         <option value="ARCHIVED">Archivados</option>
       </select>
+
+      <!-- Toggle vista tarjetas / tabla -->
+      <div class="flex items-center rounded-lg border border-slate-200 dark:border-white/10 overflow-hidden">
+        <button type="button" (click)="setView('grid')" title="Vista tarjetas"
+                class="w-10 h-10 grid place-items-center transition"
+                [ngClass]="view() === 'grid' ? 'bg-[var(--dash-primary)] text-white' : 'text-slate-500 hover:bg-slate-100 dark:hover:bg-white/5'">
+          <i class="fa-solid fa-table-cells-large"></i>
+        </button>
+        <button type="button" (click)="setView('table')" title="Vista tabla"
+                class="w-10 h-10 grid place-items-center transition"
+                [ngClass]="view() === 'table' ? 'bg-[var(--dash-primary)] text-white' : 'text-slate-500 hover:bg-slate-100 dark:hover:bg-white/5'">
+          <i class="fa-solid fa-list"></i>
+        </button>
+      </div>
     </div>
 
     <!-- Grid -->
@@ -92,6 +108,7 @@
     } @else if (products().length === 0) {
       <dlx-empty-state icon="fa-box-open" title="No hay productos que coincidan con los filtros." />
     } @else {
+      @if (view() === 'grid') {
       <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
         @for (p of products(); track p.id) {
           <div class="card overflow-hidden hover:shadow-lg transition group">
@@ -185,6 +202,65 @@
           </div>
         }
       </div>
+    } @else {
+      <!-- Vista tabla -->
+      <div class="card overflow-hidden">
+        <div class="overflow-x-auto">
+          <table class="w-full text-sm">
+            <thead class="bg-slate-50 dark:bg-white/5 text-slate-500 text-left">
+              <tr>
+                <th class="px-4 py-3 font-semibold">Producto</th>
+                <th class="px-4 py-3 font-semibold">Marca</th>
+                <th class="px-4 py-3 font-semibold">Categoría</th>
+                <th class="px-4 py-3 font-semibold text-right">Precio</th>
+                <th class="px-4 py-3 font-semibold text-center">Var.</th>
+                <th class="px-4 py-3 font-semibold text-center">Stock</th>
+                <th class="px-4 py-3 font-semibold text-center">Estado</th>
+                <th class="px-4 py-3 font-semibold text-right">Acciones</th>
+              </tr>
+            </thead>
+            <tbody>
+              @for (p of products(); track p.id) {
+                <tr class="border-t border-slate-100 dark:border-white/5 hover:bg-slate-50/60 dark:hover:bg-white/[0.03]">
+                  <td class="px-4 py-2.5">
+                    <div class="flex items-center gap-3">
+                      <div class="w-10 h-10 rounded-lg bg-slate-100 overflow-hidden shrink-0 grid place-items-center text-slate-300">
+                        @if (p.main_image_url) {
+                          <img [src]="p.main_image_url" [alt]="p.name" class="w-full h-full object-cover" loading="lazy" dlxImgFallback />
+                        } @else { <i class="fa-solid fa-image"></i> }
+                      </div>
+                      <div class="min-w-0">
+                        <p class="font-semibold truncate max-w-[240px]">{{ p.name }}</p>
+                        @if (p.is_featured) { <span class="text-[10px] text-violet-600 font-bold"><i class="fa-solid fa-star"></i> Destacado</span> }
+                      </div>
+                    </div>
+                  </td>
+                  <td class="px-4 py-2.5 text-slate-600 dark:text-slate-300">{{ p.brand_name }}</td>
+                  <td class="px-4 py-2.5 text-slate-600 dark:text-slate-300">{{ p.category_name }}</td>
+                  <td class="px-4 py-2.5 text-right font-bold">${{ p.base_price }}</td>
+                  <td class="px-4 py-2.5 text-center">{{ p.variants_count }}</td>
+                  <td class="px-4 py-2.5 text-center">{{ p.total_stock ?? 0 }}</td>
+                  <td class="px-4 py-2.5 text-center">
+                    <span class="inline-block px-2 py-0.5 rounded-md text-[11px] font-bold uppercase" [ngClass]="statusBadgeClass(p.status)">
+                      {{ statusLabel(p.status) }}
+                    </span>
+                  </td>
+                  <td class="px-4 py-2.5">
+                    <div class="flex items-center justify-end gap-1">
+                      <button (click)="edit(p)" title="Editar" class="w-8 h-8 rounded-lg hover:bg-slate-100 dark:hover:bg-white/10 text-slate-500"><i class="fa-solid fa-pen text-xs"></i></button>
+                      <button (click)="toggleFeatured(p)" [title]="p.is_featured ? 'Quitar destaque' : 'Destacar'"
+                              class="w-8 h-8 rounded-lg hover:bg-violet-100 hover:text-violet-700 transition"
+                              [class.text-violet-600]="p.is_featured" [class.text-slate-400]="!p.is_featured"><i class="fa-solid fa-star text-xs"></i></button>
+                      <button (click)="remove(p)" title="Eliminar" class="w-8 h-8 rounded-lg hover:bg-rose-100 hover:text-rose-700 transition text-slate-400"><i class="fa-solid fa-trash text-xs"></i></button>
+                    </div>
+                  </td>
+                </tr>
+              }
+            </tbody>
+          </table>
+        </div>
+      </div>
+      }
 
       <!-- Centinela de scroll infinito + indicador de carga -->
       <div #loadSentinel class="h-10"></div>

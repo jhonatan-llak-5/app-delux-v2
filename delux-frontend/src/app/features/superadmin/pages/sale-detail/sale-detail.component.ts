@@ -5,6 +5,7 @@ import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { ActivatedRoute, RouterLink } from '@angular/router';
 import { Order, OrderService, Payment } from '@features/superadmin/services/order.service';
+import { ShippingService, Shipment } from '@shared/services/shipping.service';
 import { ConfirmService } from '@shared/components/confirm/confirm.service';
 import { environment } from '@env/environment';
 import { generateVoucherPDF } from '@shared/utils/voucher-pdf.util';
@@ -20,12 +21,39 @@ import { NotifyService } from '@shared/services/notify.service';
 })
 export class SaleDetailComponent implements OnInit {
   private svc = inject(OrderService);
+  private shipSvc = inject(ShippingService);
   private auth = inject(AuthService);
   private notify = inject(NotifyService);
   private confirm = inject(ConfirmService);
   saving = signal(false);
   payments = signal<Payment[]>([]);
   validating = signal(false);
+  shipment = signal<Shipment | null>(null);
+  savingShip = signal(false);
+
+  readonly shipStatuses = [
+    { value: 'CREATED',    label: 'Creado' },
+    { value: 'PREPARING',  label: 'Preparando' },
+    { value: 'SHIPPED',    label: 'Enviado' },
+    { value: 'IN_TRANSIT', label: 'En tránsito' },
+    { value: 'DELIVERED',  label: 'Entregado' },
+    { value: 'FAILED',     label: 'Fallido' },
+    { value: 'RETURNED',   label: 'Devuelto' },
+  ];
+  shipBadge(s: string) {
+    return ({
+      CREATED: 'bg-slate-100 text-slate-700', PREPARING: 'bg-amber-100 text-amber-700',
+      SHIPPED: 'bg-sky-100 text-sky-700', IN_TRANSIT: 'bg-violet-100 text-violet-700',
+      DELIVERED: 'bg-emerald-100 text-emerald-700', FAILED: 'bg-rose-100 text-rose-700',
+      RETURNED: 'bg-slate-200 text-slate-700',
+    } as any)[s] || 'bg-slate-100 text-slate-700';
+  }
+  private loadShipment(orderId: number) {
+    this.shipSvc.byOrder(orderId).subscribe({
+      next: r => this.shipment.set((r.results && r.results[0]) || null),
+      error: () => this.shipment.set(null),
+    });
+  }
 
   private loadPayments(orderId: number) {
     this.svc.payments(orderId).subscribe({
@@ -75,6 +103,7 @@ export class SaleDetailComponent implements OnInit {
     if (!o) return;
     this.svc.get(o.id).subscribe(u => this.order.set(u));
     this.loadPayments(o.id);
+    this.loadShipment(o.id);
   }
   readonly statuses = [
     { value: 'PENDING',   label: 'Pendiente de pago' },
@@ -95,13 +124,78 @@ export class SaleDetailComponent implements OnInit {
     const digits = (phone || '').replace(/[^0-9]/g, '');
     return 'https://wa.me/' + digits;
   }
+  // Modal de observaciones para estados "fallidos" (cancelado/devuelto).
+  obsOpen = signal(false);
+  obsText = '';
+  private pendingStatus: string | null = null;
+
   changeStatus(newStatus: string) {
     const o = this.order();
     if (!o || newStatus === o.status) return;
+    // Cancelado / devuelto requieren un motivo → abrir modal.
+    if (this.isFinal(newStatus)) {
+      this.obsTarget = 'order';
+      this.pendingStatus = newStatus;
+      this.obsText = '';
+      this.obsOpen.set(true);
+      return;
+    }
+    this.applyStatus(newStatus);
+  }
+
+  // Destino del modal de observaciones: estado del pedido o del envío.
+  private obsTarget: 'order' | 'shipment' = 'order';
+
+  confirmObs() {
+    const reason = this.obsText.trim();
+    if (!reason || !this.pendingStatus) return;
+    if (this.obsTarget === 'shipment') this.applyShipStatus(this.pendingStatus, reason);
+    else this.applyStatus(this.pendingStatus, reason);
+    this.obsOpen.set(false);
+  }
+
+  cancelObs() {
+    this.obsOpen.set(false);
+    this.pendingStatus = null;
+    // Restaura los <select> al estado actual (revierte la selección visual).
+    const o = this.order();
+    if (o) this.order.set({ ...o });
+    const sh = this.shipment();
+    if (sh) this.shipment.set({ ...sh });
+  }
+
+  private applyStatus(newStatus: string, notes?: string) {
+    const o = this.order();
+    if (!o) return;
     this.saving.set(true);
-    this.svc.setStatus(o.id, newStatus).subscribe({
+    this.svc.setStatus(o.id, newStatus, notes).subscribe({
       next: updated => { this.order.set(updated); this.saving.set(false); this.notify.success('Estado actualizado'); },
       error: e => { this.saving.set(false); this.notify.fromServerError(e, 'No se pudo cambiar el estado.'); },
+    });
+  }
+
+  // ---- Envío ----
+  private isShipFinal(s: string) { return s === 'FAILED' || s === 'RETURNED'; }
+  changeShipStatus(newStatus: string) {
+    const sh = this.shipment();
+    if (!sh || newStatus === sh.status) return;
+    if (this.isShipFinal(newStatus)) {
+      this.obsTarget = 'shipment';
+      this.pendingStatus = newStatus;
+      this.obsText = '';
+      this.obsOpen.set(true);
+      return;
+    }
+    this.applyShipStatus(newStatus);
+  }
+
+  private applyShipStatus(newStatus: string, description?: string) {
+    const sh = this.shipment();
+    if (!sh) return;
+    this.savingShip.set(true);
+    this.shipSvc.updateStatus(sh.id, newStatus, description || '').subscribe({
+      next: updated => { this.shipment.set(updated); this.savingShip.set(false); this.notify.success('Envío actualizado'); },
+      error: e => { this.savingShip.set(false); this.notify.fromServerError(e, 'No se pudo actualizar el envío.'); },
     });
   }
   receiptUrl(code: string): string { return `${environment.apiUrl}/admin/checkout/receipt/${code}/`; }
@@ -113,6 +207,7 @@ export class SaleDetailComponent implements OnInit {
     const id = +this.route.snapshot.paramMap.get('id')!;
     this.svc.get(id).subscribe(o => this.order.set(o));
     this.loadPayments(id);
+    this.loadShipment(id);
   }
 
   paymentStatusClass(s: string) {

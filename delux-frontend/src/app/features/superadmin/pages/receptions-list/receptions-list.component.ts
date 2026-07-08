@@ -1,4 +1,6 @@
 import { ChangeDetectionStrategy, Component, OnInit, inject, signal } from '@angular/core';
+import { DlxExportMenuComponent } from '@shared/ui/export-menu.component';
+import { ExportColumn } from '@shared/utils/export.util';
 import { DlxEmptyStateComponent } from '@shared/ui/empty-state.component';
 import { CommonModule, DatePipe } from '@angular/common';
 import { RouterLink } from '@angular/router';
@@ -12,7 +14,7 @@ import { environment } from '@env/environment';
 @Component({
   selector: 'dlx-receptions-list',
   standalone: true,
-  imports: [DlxEmptyStateComponent, CommonModule, RouterLink, DatePipe],
+  imports: [DlxEmptyStateComponent, CommonModule, RouterLink, DatePipe, DlxExportMenuComponent],
   changeDetection: ChangeDetectionStrategy.OnPush,
   template: `
     <div class="mb-5 flex items-start justify-between gap-3 flex-wrap">
@@ -22,6 +24,7 @@ import { environment } from '@env/environment';
       </div>
       <div class="flex gap-2">
         <button class="btn-secondary text-sm" (click)="reload()"><i class="fa-solid fa-arrows-rotate"></i> Recargar</button>
+        <dlx-export-menu [columns]="exportColumns" [rows]="receptions()" filename="recepciones" title="Historial de recepciones" orientation="l" />
         <a routerLink="/app/admin/inventory/reception" class="eg-btn-primary text-sm"><i class="fa-solid fa-plus"></i> Nueva recepción</a>
       </div>
     </div>
@@ -154,6 +157,14 @@ export class ReceptionsListComponent implements OnInit {
   private notify = inject(NotifyService);
 
   receptions = signal<ReceptionResult[]>([]);
+  exportColumns: ExportColumn<ReceptionResult>[] = [
+    { header: 'Código', key: 'code' },
+    { header: 'Proveedor', key: r => r.supplier_name || '—' },
+    { header: 'Sucursal', key: 'branch_name' },
+    { header: 'Unidades', key: 'total_units' },
+    { header: 'Estado', key: r => r.status || '' },
+    { header: 'Fecha', key: r => (r.created_at ? new Date(r.created_at).toLocaleDateString('es-EC') : '') },
+  ];
   loading = signal(true);
   detail = signal<ReceptionResult | null>(null);
 

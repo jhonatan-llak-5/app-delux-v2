@@ -1,4 +1,6 @@
 import { ChangeDetectionStrategy, Component, OnInit, inject, signal } from '@angular/core';
+import { DlxExportMenuComponent } from '@shared/ui/export-menu.component';
+import { ExportColumn } from '@shared/utils/export.util';
 import { DlxEmptyStateComponent } from '@shared/ui/empty-state.component';
 import { AuthService } from '@core/services/auth.service';
 import { DlxStatCardComponent } from '@shared/ui';
@@ -16,7 +18,7 @@ import { AdminService, AdminBranch } from '@features/superadmin/services/admin.s
 @Component({
   selector: 'dlx-staff-list',
   standalone: true,
-  imports: [DlxEmptyStateComponent, DlxStatCardComponent, DlxSearchInputComponent, CommonModule, FormsModule, RouterLink],
+  imports: [DlxEmptyStateComponent, DlxStatCardComponent, DlxSearchInputComponent, CommonModule, FormsModule, RouterLink, DlxExportMenuComponent],
   changeDetection: ChangeDetectionStrategy.OnPush,
   template: `
     <div class="flex flex-wrap items-end justify-between gap-4 mb-6">
@@ -30,6 +32,7 @@ import { AdminService, AdminBranch } from '@features/superadmin/services/admin.s
           Gerentes y vendedores por sucursal. {{ staff().length }} miembros en pantalla.
         </p>
       </div>
+      <dlx-export-menu [columns]="exportColumns" [rows]="staff()" filename="usuarios" title="Usuarios del sistema" orientation="l" />
       <a routerLink="/app/admin/staff/new"
          class="px-4 py-2.5 rounded-lg bg-ink-950 text-white text-sm font-semibold hover:bg-ink-900 transition flex items-center gap-2">
         <i class="fa-solid fa-user-plus"></i> Nuevo miembro
@@ -149,6 +152,15 @@ export class StaffListComponent implements OnInit {
   private adminSvc = inject(AdminService);
 
   staff = signal<StaffUser[]>([]);
+  exportColumns: ExportColumn<StaffUser>[] = [
+    { header: 'Nombre', key: 'full_name' },
+    { header: 'Email', key: 'email' },
+    { header: 'Teléfono', key: 'phone' },
+    { header: 'Rol', key: 'role_label' },
+    { header: 'Sucursal', key: s => s.branch_name || '—' },
+    { header: 'Activo', key: s => (s.is_active ? 'Sí' : 'No') },
+    { header: 'Ingreso', key: s => (s.date_joined ? new Date(s.date_joined).toLocaleDateString('es-EC') : '') },
+  ];
   branches = signal<AdminBranch[]>([]);
   loading = signal(true);
   search = signal('');

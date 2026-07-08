@@ -1,4 +1,7 @@
 import { ChangeDetectionStrategy, Component, OnInit, computed, effect, inject, signal } from '@angular/core';
+import { firstValueFrom } from 'rxjs';
+import { DlxExportMenuComponent } from '@shared/ui/export-menu.component';
+import { ExportColumn } from '@shared/utils/export.util';
 import { DlxEmptyStateComponent } from '@shared/ui/empty-state.component';
 import { ImgFallbackDirective } from '@shared/ui/img-fallback.directive';
 import { AuthService } from '@core/services/auth.service';
@@ -24,7 +27,7 @@ import { DlxPaginationComponent } from '@shared/ui/pagination.component';
 @Component({
   selector: 'dlx-inventory-overview',
   standalone: true,
-  imports: [DlxEmptyStateComponent, ImgFallbackDirective, DlxStatCardComponent, DlxSearchInputComponent, CommonModule, FormsModule, RouterLink, StockAdjustModalComponent, TransferModalComponent, RowActionsComponent, DlxPaginationComponent],
+  imports: [DlxEmptyStateComponent, ImgFallbackDirective, DlxStatCardComponent, DlxSearchInputComponent, CommonModule, FormsModule, RouterLink, StockAdjustModalComponent, TransferModalComponent, RowActionsComponent, DlxPaginationComponent, DlxExportMenuComponent],
   changeDetection: ChangeDetectionStrategy.OnPush,
   templateUrl: './inventory-overview.component.html',
 })
@@ -83,6 +86,25 @@ export class InventoryOverviewComponent implements OnInit {
       error: () => this.loading.set(false),
     });
   }
+
+  exportColumns: ExportColumn<Stock>[] = [
+    { header: 'Producto', key: 'product_name' },
+    { header: 'SKU', key: 'variant_sku' },
+    { header: 'Código barras', key: s => s.barcode || '' },
+    { header: 'Marca', key: 'brand_name' },
+    { header: 'Talla', key: 'variant_size' },
+    { header: 'Color', key: 'variant_color' },
+    { header: 'Sucursal', key: 'branch_name' },
+    { header: 'Stock', key: 'quantity' },
+    { header: 'Precio', key: s => Number(s.price_override || s.base_price || 0).toFixed(2) },
+  ];
+  fetchAllForExport = async (): Promise<Stock[]> => {
+    const r = await firstValueFrom(this.svc.stocks({
+      search: this.search(), branch: this.branchFilter || undefined,
+      low_stock: this.lowOnly, out_of_stock: this.outOnly, page: 1, page_size: 5000,
+    }));
+    return (r.results || []).filter(s => s.quantity > 0);
+  };
 
   onSearch(v: string) { this.search.set(v); this.page.set(1); this.search$.next(); }
   onFilter() { this.page.set(1); this.reload(); }

@@ -11,6 +11,9 @@ import { FormsModule } from '@angular/forms';
 import { Router, RouterLink } from '@angular/router';
 import { debounceTime, Subject } from 'rxjs';
 
+import { firstValueFrom } from 'rxjs';
+import { DlxExportMenuComponent } from '@shared/ui/export-menu.component';
+import { ExportColumn } from '@shared/utils/export.util';
 import { Order, OrderService, OrderSummary } from '@features/superadmin/services/order.service';
 import { ConfirmService } from '@shared/components/confirm/confirm.service';
 import { NotifyService } from '@shared/services/notify.service';
@@ -21,7 +24,7 @@ import { DlxPaginationComponent } from '@shared/ui/pagination.component';
 @Component({
   selector: 'dlx-sales-list',
   standalone: true,
-  imports: [DlxEmptyStateComponent, OrderStatusLabelPipe, OrderStatusClassPipe, DlxStatCardComponent, DlxSearchInputComponent, CommonModule, FormsModule, RouterLink, RowActionsComponent, DlxPaginationComponent],
+  imports: [DlxEmptyStateComponent, OrderStatusLabelPipe, OrderStatusClassPipe, DlxStatCardComponent, DlxSearchInputComponent, CommonModule, FormsModule, RouterLink, RowActionsComponent, DlxPaginationComponent, DlxExportMenuComponent],
   changeDetection: ChangeDetectionStrategy.OnPush,
   template: `
     <div class="flex items-end justify-between gap-4 mb-6">
@@ -33,10 +36,14 @@ import { DlxPaginationComponent } from '@shared/ui/pagination.component';
         <h1 class="text-2xl md:text-3xl font-bold tracking-tight">Ventas</h1>
         <p class="text-slate-500 text-sm mt-1">Historial de órdenes y vouchers.</p>
       </div>
-      <a routerLink="/app/admin/pos"
-         class="px-4 py-2.5 rounded-lg bg-[#1e40af] text-white text-sm font-semibold hover:bg-[#1e3a8a] transition flex items-center gap-2">
-        <i class="fa-solid fa-cash-register"></i> Nueva venta POS
-      </a>
+      <div class="flex items-center gap-2">
+        <dlx-export-menu [columns]="exportColumns" [rows]="orders()" [loader]="fetchAllForExport"
+                         filename="ventas" title="Historial de ventas" orientation="l" />
+        <a routerLink="/app/admin/pos"
+           class="px-4 py-2.5 rounded-lg bg-[#1e40af] text-white text-sm font-semibold hover:bg-[#1e3a8a] transition flex items-center gap-2">
+          <i class="fa-solid fa-cash-register"></i> Nueva venta POS
+        </a>
+      </div>
     </div>
 
     @if (summary()) {
@@ -48,6 +55,19 @@ import { DlxPaginationComponent } from '@shared/ui/pagination.component';
       </div>
     }
 
+    <!-- Tabs de canal -->
+    <div class="flex gap-1 mb-4 border-b border-slate-200 dark:border-white/10">
+      @for (t of channelTabs; track t.value) {
+        <button type="button" (click)="setChannel(t.value)"
+                class="px-4 py-2.5 text-sm font-semibold border-b-2 -mb-px transition"
+                [ngClass]="channelFilter === t.value
+                  ? 'border-[var(--dash-primary)] text-[var(--dash-primary-d)] dark:text-blue-300'
+                  : 'border-transparent text-slate-500 hover:text-slate-700 dark:hover:text-white/80'">
+          <i class="fa-solid mr-1.5" [ngClass]="t.icon"></i> {{ t.label }}
+        </button>
+      }
+    </div>
+
     <div class="card p-4 mb-4 flex flex-wrap gap-3 items-center filter-bar">
       <dlx-search-input [fluid]="true" [value]="search()" (valueChange)="onSearch($event)" placeholder="Buscar por código, cliente..." class="flex-1 min-w-64" />
       <select [(ngModel)]="statusFilter" (change)="onFilter()"
@@ -57,12 +77,6 @@ import { DlxPaginationComponent } from '@shared/ui/pagination.component';
         <option value="PAID">Pagadas</option>
         <option value="CANCELLED">Canceladas</option>
         <option value="REFUNDED">Devueltas</option>
-      </select>
-      <select [(ngModel)]="channelFilter" (change)="onFilter()"
-              class="eg-input border-transparent">
-        <option value="">Todos los canales</option>
-        <option value="POS">POS</option>
-        <option value="WEB">Web</option>
       </select>
       <label class="flex items-center gap-2 px-3 h-11 rounded-lg cursor-pointer select-none transition text-sm font-semibold border"
              [ngClass]="onlyMine()
@@ -206,9 +220,42 @@ export class SalesListComponent implements OnInit {
     });
   }
 
+  channelTabs = [
+    { value: '', label: 'Todas', icon: 'fa-list' },
+    { value: 'WEB', label: 'Ventas web', icon: 'fa-globe' },
+    { value: 'POS', label: 'Ventas POS', icon: 'fa-cash-register' },
+  ];
+  setChannel(c: string) { this.channelFilter = c; this.page.set(1); this.reload(); }
   onSearch(v: string) { this.search.set(v); this.page.set(1); this.search$.next(); }
   onFilter() { this.page.set(1); this.reload(); }
   toggleMine() { this.onlyMine.update(v => !v); this.page.set(1); this.reload(); }
+
+  private statusEs(s: string): string {
+    return ({ PENDING: 'Pendiente', PAID: 'Pagado', PREPARING: 'Preparando', READY: 'Listo',
+      SHIPPED: 'Enviado', DELIVERED: 'Entregado', CANCELLED: 'Cancelado', REFUNDED: 'Devuelto' } as any)[s] || s;
+  }
+  exportColumns: ExportColumn<Order>[] = [
+    { header: 'Voucher', key: 'code' },
+    { header: 'Fecha', key: o => new Date(o.created_at).toLocaleString('es-EC') },
+    { header: 'Sucursal', key: 'branch_name' },
+    { header: 'Cliente', key: o => o.customer_name || 'Mostrador' },
+    { header: 'Vendedor', key: o => o.seller_name || 'Mostrador' },
+    { header: 'Canal', key: 'channel' },
+    { header: 'Items', key: 'items_count' },
+    { header: 'Total', key: o => Number(o.total || 0).toFixed(2) },
+    { header: 'Estado', key: o => this.statusEs(o.status) },
+  ];
+  fetchAllForExport = async (): Promise<Order[]> => {
+    const r = await firstValueFrom(this.svc.list({
+      search: this.search() || undefined,
+      branch: this.branchCtx.current() || undefined,
+      status: this.statusFilter || undefined,
+      channel: this.channelFilter || undefined,
+      mine: this.onlyMine() || undefined,
+      page: 1, page_size: 2000,
+    }));
+    return r.results || [];
+  };
   onPage(p: number) { this.page.set(p); this.reload(); }
   onSize(s: number) { this.pageSize.set(s); this.page.set(1); this.reload(); }
   waLink(phone: string) { return 'https://wa.me/' + (phone || '').replace(/[^0-9]/g, ''); }

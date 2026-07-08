@@ -71,10 +71,14 @@ export class ShippingService {
   publicTrack(code: string) {
     return this.http.get<PublicTracking>(`${this.base}/tracking/${code}/`);
   }
-  list(params: { status?: string; carrier?: string; search?: string } = {}) {
+  list(params: { status?: string; carrier?: string; search?: string; order?: number } = {}) {
     let p = new HttpParams();
     Object.entries(params).forEach(([k, v]) => { if (v) p = p.set(k, String(v)); });
     return this.http.get<{ count: number; results: Shipment[] }>(`${this.base}/admin/shipments/`, { params: p });
+  }
+  byOrder(orderId: number) {
+    return this.http.get<{ count: number; results: Shipment[] }>(
+      `${this.base}/admin/shipments/`, { params: new HttpParams().set('order', String(orderId)) });
   }
   create(payload: Partial<Shipment>) {
     return this.http.post<Shipment>(`${this.base}/admin/shipments/`, payload);

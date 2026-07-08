@@ -69,14 +69,24 @@ class AdminOrderViewSet(viewsets.ReadOnlyModelViewSet):
             return Response({'detail': 'No autorizado.'}, status=status.HTTP_403_FORBIDDEN)
         order = self.get_object()
         new_status = request.data.get('status')
+        reason = (request.data.get('notes') or '').strip()
         if new_status not in dict(OrderStatus.choices):
             return Response({'detail': 'Estado invalido.'}, status=400)
         if order.status in (OrderStatus.CANCELLED, OrderStatus.REFUNDED):
             return Response({'detail': 'No se puede cambiar un pedido cancelado o devuelto.'}, status=400)
+        # Para estados "fallidos" (cancelado/devuelto) la observación es obligatoria.
+        if new_status in (OrderStatus.CANCELLED, OrderStatus.REFUNDED) and not reason:
+            return Response(
+                {'detail': 'Indica el motivo (observaciones) al cancelar o devolver el pedido.'},
+                status=400)
         if new_status == order.status:
             return Response(OrderSerializer(order).data)
         order.status = new_status
-        order.save(update_fields=['status', 'updated_at'])
+        update_fields = ['status', 'updated_at']
+        if reason:
+            order.notes = reason
+            update_fields.append('notes')
+        order.save(update_fields=update_fields)
         return Response(OrderSerializer(order).data)
 
     @action(detail=False, methods=['get'])

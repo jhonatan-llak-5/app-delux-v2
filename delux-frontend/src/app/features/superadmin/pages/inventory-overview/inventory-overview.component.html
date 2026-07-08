@@ -10,6 +10,8 @@
         </p>
       </div>
       <div class="flex items-center gap-2 flex-wrap">
+        <dlx-export-menu [columns]="exportColumns" [rows]="stocks()" [loader]="fetchAllForExport"
+                         filename="inventario" title="Inventario" orientation="l" />
         <a routerLink="/app/admin/inventory/reception"
            class="px-4 py-2.5 rounded-lg bg-[var(--dash-primary)] text-white hover:bg-[var(--dash-primary-d)] text-sm font-semibold flex items-center gap-2">
           <i class="fa-solid fa-truck-ramp-box"></i> Ingresar mercadería

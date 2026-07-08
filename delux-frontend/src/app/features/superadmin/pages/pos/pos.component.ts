@@ -16,6 +16,8 @@ import { CouponService, CouponValidation } from '@features/superadmin/services/c
 import { generateVoucherPDF } from '@shared/utils/voucher-pdf.util';
 import { parseApiError } from '@shared/utils/api-error.util';
 import { imgOrPlaceholder, onImageError } from '@shared/utils/img-placeholder';
+import { ViewMode, readViewPref, writeViewPref } from '@shared/utils/view-pref.util';
+import { ConfirmService } from '@shared/components/confirm/confirm.service';
 
 interface CartItem {
   variant_id: number;
@@ -44,6 +46,7 @@ export class PosComponent implements OnInit, OnDestroy {
   private auth = inject(AuthService);
   branchCtx = inject(BranchContextService);
   private branding = inject(BrandingService);
+  private confirm = inject(ConfirmService);
 
   couponInput = '';
   appliedCoupon = signal<CouponValidation | null>(null);
@@ -56,6 +59,7 @@ export class PosComponent implements OnInit, OnDestroy {
   loading = signal(false);
   search = signal('');
   searched = signal(false);      // ¿ya se ejecutó una búsqueda?
+  view = signal<ViewMode>(readViewPref('dlx_pos_view', this.auth.user()?.id));
   scanCode = '';
   scanMsg = signal<{ ok: boolean; text: string } | null>(null);
   @ViewChild('camVideo') camVideo?: ElementRef<HTMLVideoElement>;
@@ -102,6 +106,11 @@ export class PosComponent implements OnInit, OnDestroy {
   canCheckout = computed(() => this.cart().length > 0 && !!this.branchId());
 
   constructor() {
+    // Restaura el carrito y los datos del cliente guardados (por cuenta).
+    this.cart.set(this.readCart());
+    this.customerData = this.readCustomer();
+    // Persiste el carrito ante cualquier cambio.
+    effect(() => this.saveCart(this.cart()));
     // Sigue el selector global de sucursal del header.
     effect(() => {
       const id = this.branchCtx.current();
@@ -109,6 +118,54 @@ export class PosComponent implements OnInit, OnDestroy {
       this.clearSearch();
       this.cameraOn() && this.stopCamera();
     }, { allowSignalWrites: true });
+  }
+
+  private cartKey() { return `dlx_pos_cart::${this.auth.user()?.id ?? 'anon'}`; }
+  private readCart(): CartItem[] {
+    try { const v = localStorage.getItem(this.cartKey()); return v ? JSON.parse(v) : []; }
+    catch { return []; }
+  }
+  private saveCart(c: CartItem[]) {
+    try {
+      if (c.length) localStorage.setItem(this.cartKey(), JSON.stringify(c));
+      else localStorage.removeItem(this.cartKey());
+    } catch { /* almacenamiento no disponible */ }
+  }
+
+  // --- Datos del cliente: también persisten por cuenta ---
+  private customerKey() { return `dlx_pos_customer::${this.auth.user()?.id ?? 'anon'}`; }
+  private readCustomer() {
+    const empty = { full_name: '', email: '', phone: '', document_id: '' };
+    try { const v = localStorage.getItem(this.customerKey()); return v ? { ...empty, ...JSON.parse(v) } : empty; }
+    catch { return empty; }
+  }
+  /** Guarda los datos del cliente en cada cambio (o los borra si están vacíos). */
+  persistCustomer() {
+    const c = this.customerData;
+    const hasData = !!(c.full_name || c.email || c.phone || c.document_id);
+    try {
+      if (hasData) localStorage.setItem(this.customerKey(), JSON.stringify(c));
+      else localStorage.removeItem(this.customerKey());
+    } catch { /* almacenamiento no disponible */ }
+  }
+
+  /** Vacía el carrito (con confirmación) y limpia los datos del cliente para una nueva venta. */
+  async clearCart() {
+    const n = this.cart().length;
+    const ok = await this.confirm.ask({
+      title: 'Vaciar carrito',
+      message: n > 0
+        ? `¿Quitar ${n} ${n === 1 ? 'producto' : 'productos'} y reiniciar los datos del cliente para una nueva venta?`
+        : '¿Reiniciar los datos del cliente para una nueva venta?',
+      variant: 'danger', confirmText: 'Vaciar carrito', cancelText: 'Cancelar',
+    });
+    if (!ok) return;
+    this.cart.set([]);
+    this.discount.set(0);
+    this.appliedCoupon.set(null);
+    this.couponError.set(null);
+    this.customerData = { full_name: '', email: '', phone: '', document_id: '' };
+    this.persistCustomer();
   }
 
   ngOnInit() {
@@ -141,6 +198,11 @@ export class PosComponent implements OnInit, OnDestroy {
   }
 
   clearSearch() { this.search.set(''); this.stocks.set([]); this.searched.set(false); }
+
+  setView(v: ViewMode) {
+    this.view.set(v);
+    writeViewPref('dlx_pos_view', this.auth.user()?.id, v);
+  }
 
   /** Escáner de código de barras: busca coincidencia exacta y la agrega al carrito. */
   onScan() {
@@ -339,6 +401,7 @@ export class PosComponent implements OnInit, OnDestroy {
     this.discount.set(0);
     this.completedOrder.set(null);
     this.customerData = { full_name: '', email: '', phone: '', document_id: '' };
+    this.persistCustomer();
     this.appliedCoupon.set(null);
     this.reload();
   }

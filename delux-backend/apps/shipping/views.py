@@ -141,6 +141,8 @@ class AdminShipmentViewSet(viewsets.ModelViewSet):
         if s: qs = qs.filter(status=s)
         carrier = self.request.query_params.get('carrier')
         if carrier: qs = qs.filter(carrier=carrier)
+        order_id = self.request.query_params.get('order')
+        if order_id: qs = qs.filter(order_id=order_id)
         user = self.request.user
         if getattr(user, 'role', None) == 'BRANCH_MANAGER' and user.branch_id:
             qs = qs.filter(order__branch_id=user.branch_id)
