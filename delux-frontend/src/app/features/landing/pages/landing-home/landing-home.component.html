@@ -252,16 +252,16 @@
               </div>
             </div>
 
-            <div class="mt-10 flex flex-col sm:flex-row items-start sm:items-center gap-4">
+            <div class="mt-10 flex flex-col sm:flex-row sm:items-center gap-4">
               <a [routerLink]="['/auth/register']" [queryParams]="{ type: 'affiliate' }"
                  class="group inline-flex items-center justify-center gap-2 px-8 h-14 rounded-full
-                        bg-[#0095f6] text-white font-bold text-[16px]
+                        bg-[#0095f6] text-white font-bold text-[16px] whitespace-nowrap shrink-0
                         shadow-[0_18px_40px_-12px_rgba(0,149,246,0.7)]
                         hover:bg-[#1877f2] hover:-translate-y-0.5 transition-all">
                 Quiero ser afiliado
                 <i class="fa-solid fa-arrow-right group-hover:translate-x-1 transition-transform"></i>
               </a>
-              <span class="text-white/45 text-[13px]">
+              <span class="text-white/45 text-[13px] leading-snug max-w-[220px]">
                 Registro gratis · activación por correo ·
                 <a routerLink="/afiliados/terminos" class="text-white/70 underline hover:text-white">Ver términos</a>
               </span>
@@ -272,32 +272,46 @@
           <div class="relative lg:pl-6">
             <div class="absolute -inset-1 rounded-[28px] bg-gradient-to-tr from-[#0095f6]/40 to-transparent blur-2xl opacity-60"></div>
             <div class="relative rounded-[26px] bg-gradient-to-b from-white/[0.08] to-white/[0.02]
-                        backdrop-blur border border-white/12 p-8 shadow-2xl">
-              <div class="flex items-center justify-between mb-7">
-                <span class="text-white/45 text-[11px] uppercase tracking-[0.22em] font-semibold">Tu comisión</span>
-                <span class="flex items-center gap-1.5 text-[11px] text-emerald-300">
+                        backdrop-blur border border-white/12 p-7 md:p-8 shadow-2xl overflow-hidden">
+              <!-- destello superior -->
+              <div class="pointer-events-none absolute -top-16 -right-10 w-48 h-48 rounded-full bg-[#0095f6]/25 blur-3xl"></div>
+
+              <div class="relative flex items-center justify-between mb-6">
+                <div class="flex items-center gap-3">
+                  <span class="grid place-items-center w-10 h-10 rounded-xl bg-[#0095f6]/15 text-[#4db5ff]">
+                    <i class="fa-solid fa-hand-holding-dollar"></i>
+                  </span>
+                  <span class="text-white/55 text-[11px] uppercase tracking-[0.22em] font-semibold">Tu comisión</span>
+                </div>
+                <span class="flex items-center gap-1.5 text-[11px] text-emerald-300 bg-emerald-400/10 px-2.5 py-1 rounded-full">
                   <span class="w-2 h-2 rounded-full bg-emerald-400 animate-pulse"></span> en vivo
                 </span>
               </div>
-              <div class="text-white flex items-end gap-1">
-                <span class="text-[76px] leading-none font-black tracking-tight
+
+              <div class="relative text-white flex items-end gap-1.5">
+                <span class="text-[80px] leading-none font-black tracking-tight
                              bg-gradient-to-br from-white to-[#4db5ff] bg-clip-text text-transparent">{{ branding.affiliateCommissionRate() }}</span>
-                <span class="text-[36px] font-black text-[#4db5ff] mb-2">%</span>
+                <span class="text-[40px] font-black text-[#4db5ff] mb-2.5">%</span>
               </div>
-              <p class="text-white/55 mt-1 text-[15px]">por cada venta atribuida a ti</p>
+              <p class="relative text-white/55 mt-1.5 text-[15px]">por cada venta atribuida a ti</p>
 
-              <div class="mt-8 space-y-3">
-                <div class="flex items-center justify-between rounded-xl bg-white/[0.06] border border-white/10 px-4 py-3">
-                  <span class="text-white/80 text-[14px] font-mono tracking-wider">VEND0001</span>
-                  <span class="text-[#4db5ff] text-[13px] font-semibold"><i class="fa-solid fa-copy"></i> tu código</span>
+              <!-- Ejemplo tipo "flujo" -->
+              <div class="relative mt-7 rounded-2xl bg-white/[0.05] border border-white/10 p-4 space-y-3">
+                <div class="flex items-center justify-between">
+                  <span class="text-white/45 text-[11px] uppercase tracking-widest">Tu código</span>
+                  <span class="inline-flex items-center gap-2 text-white font-mono text-[14px] tracking-wider
+                               bg-white/[0.06] border border-white/10 rounded-lg px-3 py-1.5">
+                    VEND0001 <i class="fa-solid fa-copy text-[#4db5ff] text-xs"></i>
+                  </span>
                 </div>
-                <div class="flex items-center justify-between rounded-xl bg-white/[0.06] border border-white/10 px-4 py-3">
-                  <span class="text-white/80 text-[14px]">Venta de $120.00</span>
-                  <span class="text-emerald-300 text-[15px] font-bold">+ {{ exampleCommission() }}</span>
+                <div class="h-px bg-white/10"></div>
+                <div class="flex items-center justify-between">
+                  <span class="text-white/70 text-[14px]"><i class="fa-solid fa-bag-shopping text-white/40 mr-1.5"></i> Venta de $120.00</span>
+                  <span class="text-emerald-300 text-[16px] font-bold">+ {{ exampleCommission() }}</span>
                 </div>
               </div>
 
-              <div class="mt-6 flex items-center gap-2 text-white/40 text-[12px]">
+              <div class="relative mt-5 flex items-center gap-2 text-white/40 text-[12px]">
                 <i class="fa-solid fa-shield-halved text-[#4db5ff]"></i>
                 Pagos registrados y con historial en tu panel.
               </div>

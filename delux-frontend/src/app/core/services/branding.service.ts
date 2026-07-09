@@ -27,7 +27,18 @@ interface BrandConfig {
   deuna_enabled?: boolean;
   deuna_qr_url?: string | null;
   deuna_instructions?: string;
+  // Contacto público + redes
+  contact_email?: string;
+  whatsapp_contact_number?: string;
+  social_facebook?: string;
+  social_instagram?: string;
+  social_youtube?: string;
+  social_x?: string;
+  social_tiktok?: string;
+  social_telegram?: string;
 }
+
+export interface SocialLink { key: string; label: string; icon: string; url: string; }
 
 export interface BankData {
   bank_name: string;
@@ -88,6 +99,29 @@ export class BrandingService {
   readonly deunaQrUrl = computed(() => this._cfg()?.deuna_qr_url || null);
   readonly deunaInstructions = computed(() => this._cfg()?.deuna_instructions || '');
   readonly recaptchaSiteKey = computed(() => this._cfg()?.recaptcha_site_key || '');
+
+  // ─── Contacto público ───
+  readonly contactEmail = computed(() => this._cfg()?.contact_email || '');
+  readonly whatsappNumber = computed(() => this._cfg()?.whatsapp_contact_number || '');
+  /** Enlace wa.me a partir del número (solo dígitos). Vacío si no hay número. */
+  readonly whatsappLink = computed(() => {
+    const n = (this._cfg()?.whatsapp_contact_number || '').replace(/[^0-9]/g, '');
+    return n ? `https://wa.me/${n}` : '';
+  });
+
+  /** Redes sociales configuradas (solo las que tienen URL). */
+  readonly socialLinks = computed<SocialLink[]>(() => {
+    const c = this._cfg();
+    const defs: SocialLink[] = [
+      { key: 'instagram', label: 'Instagram', icon: 'fa-brands fa-instagram', url: c?.social_instagram || '' },
+      { key: 'tiktok',    label: 'TikTok',    icon: 'fa-brands fa-tiktok',    url: c?.social_tiktok || '' },
+      { key: 'x',         label: 'X',         icon: 'fa-brands fa-x-twitter', url: c?.social_x || '' },
+      { key: 'facebook',  label: 'Facebook',  icon: 'fa-brands fa-facebook',  url: c?.social_facebook || '' },
+      { key: 'youtube',   label: 'YouTube',   icon: 'fa-brands fa-youtube',   url: c?.social_youtube || '' },
+      { key: 'telegram',  label: 'Telegram',  icon: 'fa-brands fa-telegram',  url: c?.social_telegram || '' },
+    ];
+    return defs.filter(s => !!s.url.trim());
+  });
   /** Tasa de IVA (%) configurada por el superadmin. Default 15. */
   readonly affiliateCommissionRate = computed(() => +(this._cfg()?.affiliate_commission_rate ?? 10) || 0);
   readonly affiliateMinPayout = computed(() => +(this._cfg()?.affiliate_min_payout ?? 0) || 0);

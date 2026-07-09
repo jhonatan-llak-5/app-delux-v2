@@ -140,6 +140,11 @@ class ForgotPasswordView(APIView):
     permission_classes = [permissions.AllowAny]
 
     def post(self, request):
+        from .recaptcha import verify_recaptcha
+        token = request.data.get('recaptcha_token') or request.data.get('recaptcha') or ''
+        if not verify_recaptcha(token, request.META.get('REMOTE_ADDR', '')):
+            return Response({'detail': 'Verificación reCAPTCHA fallida. Intenta de nuevo.'},
+                            status=status.HTTP_400_BAD_REQUEST)
         serializer = ForgotPasswordSerializer(data=request.data)
         serializer.is_valid(raise_exception=True)
         try:

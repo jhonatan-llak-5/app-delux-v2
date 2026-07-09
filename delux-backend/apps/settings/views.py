@@ -125,6 +125,16 @@ class PublicUploadConfigView(APIView):
             'tax_rate': float(c.tax_rate or 0),
             'affiliate_commission_rate': float(c.affiliate_commission_rate or 0),
             'affiliate_min_payout': float(c.affiliate_min_payout or 0),
+            # Contacto público
+            'contact_email': c.public_contact_email or c.support_email or '',
+            'whatsapp_contact_number': c.whatsapp_contact_number or '',
+            # Redes sociales (vacías = no mostrar)
+            'social_facebook': c.social_facebook or '',
+            'social_instagram': c.social_instagram or '',
+            'social_youtube': c.social_youtube or '',
+            'social_x': c.social_x or '',
+            'social_tiktok': c.social_tiktok or '',
+            'social_telegram': c.social_telegram or '',
         })
 
 

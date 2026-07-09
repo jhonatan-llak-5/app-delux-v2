@@ -203,6 +203,12 @@ export const SUPERADMIN_ROUTES: Routes = [
           import('./pages/newsletter-subscribers/newsletter-subscribers.component').then(m => m.NewsletterSubscribersComponent),
       },
       {
+        path: 'messages',
+        canActivate: [roleGuard(['SUPERADMIN', 'TENANT_ADMIN'])],
+        loadComponent: () =>
+          import('./pages/contact-messages/contact-messages.component').then(m => m.ContactMessagesComponent),
+      },
+      {
         path: 'payroll',
         canActivate: [roleGuard(['SUPERADMIN', 'TENANT_ADMIN', 'BRANCH_MANAGER'])],
         loadComponent: () =>

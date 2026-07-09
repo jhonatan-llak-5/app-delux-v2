@@ -196,6 +196,7 @@ export class DashboardLayoutComponent implements AfterViewInit, OnDestroy {
         { label: 'Usuarios',      icon: 'fa-users',          route: '/app/admin/users' },
         { label: 'Afiliados',     icon: 'fa-hand-holding-dollar', route: '/app/admin/affiliates' },
         { label: 'Nómina',        icon: 'fa-money-check-dollar', route: '/app/admin/payroll' },
+        { label: 'Mensajes',      icon: 'fa-inbox',          route: '/app/admin/messages', only: ['SUPERADMIN','TENANT_ADMIN'] },
         { label: 'Suscriptores',  icon: 'fa-envelope-open-text', route: '/app/admin/subscribers', only: ['SUPERADMIN','TENANT_ADMIN'] },
         { label: 'Tiendas',       icon: 'fa-store',          route: '/app/admin/tenants', only: ['SUPERADMIN'] },
         { label: 'Sucursales',    icon: 'fa-store',          route: '/app/admin/sucursales', only: ['SUPERADMIN'] },

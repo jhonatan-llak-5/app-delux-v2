@@ -5,9 +5,11 @@ from .views import (
     PlatformSettingsView, TestEmailView, TestPayPhoneView,
     PublicUploadConfigView, NewsletterSubscriberViewSet,
 )
+from .contact_admin import ContactMessageViewSet
 
 router = DefaultRouter()
 router.register('subscribers', NewsletterSubscriberViewSet, basename='newsletter-subscriber')
+router.register('messages', ContactMessageViewSet, basename='contact-message')
 
 urlpatterns = [
     path('',                PlatformSettingsView.as_view(), name='admin-settings'),

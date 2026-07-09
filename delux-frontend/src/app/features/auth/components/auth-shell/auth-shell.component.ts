@@ -19,8 +19,8 @@ import { BrandingService } from '@core/services/branding.service';
       <!-- ───── PANEL IZQUIERDO (hero visual) ───── -->
       <aside class="hidden lg:block relative w-[55%] overflow-hidden bg-[#0a0d14]">
 
-        <img src="https://images.unsplash.com/photo-1542291026-7eec264c27ff?w=1600&q=90&auto=format&fit=crop"
-             alt="Delux streetwear"
+        <img src="assets/images/catalog/deux_blue.png"
+             alt="DLUX Azul Marino"
              class="absolute inset-0 w-full h-full object-cover"
  />
 

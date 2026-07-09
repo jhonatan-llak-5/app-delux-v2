@@ -66,27 +66,27 @@ import { BrandingService } from '@core/services/branding.service';
             la cultura urbana, envío en 24h y retiro en sucursales.
           </p>
 
-          <!-- Social row -->
-          <div class="flex items-center gap-2 mt-6">
-            @for (s of socials; track s.icon) {
-              <a [href]="s.url" target="_blank" rel="noopener"
-                 [attr.aria-label]="s.label"
-                 class="w-10 h-10 grid place-items-center rounded-full
-                        bg-ink-50 dark:bg-white/[0.04]
-                        text-ink-700 dark:text-white/70
-                        hover:bg-[#0095f6] hover:text-white
-                        transition-colors">
-                <i class="fa-brands {{ s.icon }} text-[14px]"></i>
-              </a>
-            }
-          </div>
+          <!-- Social row (dinámico según config) -->
+          @if (branding.socialLinks().length) {
+            <div class="flex items-center gap-2 mt-6 flex-wrap">
+              @for (s of branding.socialLinks(); track s.key) {
+                <a [href]="s.url" target="_blank" rel="noopener"
+                   [attr.aria-label]="s.label"
+                   class="w-10 h-10 grid place-items-center rounded-full
+                          bg-ink-50 dark:bg-white/[0.04]
+                          text-ink-700 dark:text-white/70
+                          hover:bg-[#0095f6] hover:text-white
+                          transition-colors">
+                  <i class="{{ s.icon }} text-[14px]"></i>
+                </a>
+              }
+            </div>
+          }
 
-          <!-- Pago / envío badges -->
-          <div class="mt-7 flex items-center gap-4 text-ink-400 dark:text-white/30 text-[18px]">
-            <i class="fa-brands fa-cc-visa" title="Visa"></i>
-            <i class="fa-brands fa-cc-mastercard" title="Mastercard"></i>
-            <i class="fa-brands fa-cc-amex" title="Amex"></i>
-            <i class="fa-brands fa-cc-diners-club" title="Diners"></i>
+          <!-- Métodos de pago -->
+          <div class="mt-7 flex items-center gap-3 text-[12px] text-ink-500 dark:text-white/40">
+            <i class="fa-solid fa-building-columns text-[#0095f6]"></i>
+            <span>Pagos por transferencia bancaria y DE UNA</span>
           </div>
         </div>
 
@@ -118,21 +118,25 @@ import { BrandingService } from '@core/services/branding.service';
             Contacto
           </h4>
           <ul class="space-y-3 text-[14px] text-ink-600 dark:text-white/55">
-            <li class="flex items-start gap-2">
-              <i class="fa-solid fa-envelope text-[#0095f6] text-[12px] mt-1"></i>
-              <a href="mailto:hola@delux.com.ec" class="hover:text-[#0095f6] transition">
-                hola@delux.com.ec
-              </a>
-            </li>
-            <li class="flex items-start gap-2">
-              <i class="fa-brands fa-whatsapp text-[#0095f6] text-[13px] mt-0.5"></i>
-              <a href="https://wa.me/593991234567" class="hover:text-[#0095f6] transition">
-                +593 99 123 4567
-              </a>
-            </li>
+            @if (branding.contactEmail()) {
+              <li class="flex items-start gap-2">
+                <i class="fa-solid fa-envelope text-[#0095f6] text-[12px] mt-1"></i>
+                <a [href]="'mailto:' + branding.contactEmail()" class="hover:text-[#0095f6] transition break-all">
+                  {{ branding.contactEmail() }}
+                </a>
+              </li>
+            }
+            @if (branding.whatsappNumber()) {
+              <li class="flex items-start gap-2">
+                <i class="fa-brands fa-whatsapp text-[#0095f6] text-[13px] mt-0.5"></i>
+                <a [href]="branding.whatsappLink()" target="_blank" rel="noopener" class="hover:text-[#0095f6] transition">
+                  {{ branding.whatsappNumber() }}
+                </a>
+              </li>
+            }
             <li class="flex items-start gap-2">
               <i class="fa-solid fa-location-dot text-[#0095f6] text-[12px] mt-1"></i>
-              <span>Quito, Ecuador</span>
+              <span>Ecuador</span>
             </li>
           </ul>
         </div>
@@ -183,14 +187,6 @@ export class PublicFooterComponent {
     });
   }
 
-  readonly socials = [
-    { icon: 'fa-instagram', label: 'Instagram', url: 'https://instagram.com' },
-    { icon: 'fa-tiktok', label: 'TikTok', url: 'https://tiktok.com' },
-    { icon: 'fa-x-twitter', label: 'X', url: 'https://x.com' },
-    { icon: 'fa-facebook', label: 'Facebook', url: 'https://facebook.com' },
-    { icon: 'fa-youtube', label: 'YouTube', url: 'https://youtube.com' },
-  ];
-
   readonly columns = [
     { title: 'Comprar', items: [
       { label: 'Zapatillas',  route: '/shop', qp: { category: 'zapatillas' } },
@@ -200,11 +196,11 @@ export class PublicFooterComponent {
       { label: 'Todos los drops', route: '/shop' },
     ]},
     { title: 'Ayuda', items: [
-      { label: 'Envíos y tiempos',        route: '/tracking', qp: null },
-      { label: 'Cambios y devoluciones',  route: '/contact',  qp: null },
-      { label: 'Guía de tallas',          route: '/contact',  qp: null },
-      { label: 'FAQ',                     route: '/contact',  qp: null },
-      { label: 'Rastrear pedido',         route: '/tracking', qp: null },
+      { label: 'Cómo comprar',     route: '/contact',  qp: null },
+      { label: 'Guía de tallas',   route: '/contact',  qp: null },
+      { label: 'Preguntas frecuentes', route: '/contact',  qp: null },
+      { label: 'Rastrear pedido',  route: '/tracking', qp: null },
+      { label: 'Contacto',         route: '/contact',  qp: null },
     ]},
     { title: 'Empresa', items: [
       { label: 'Sobre nosotros',         route: '/about',    qp: null },

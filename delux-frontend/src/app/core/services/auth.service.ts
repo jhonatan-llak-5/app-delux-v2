@@ -85,9 +85,9 @@ export class AuthService {
     );
   }
 
-  forgotPassword(email: string) {
+  forgotPassword(email: string, recaptcha_token = '') {
     return this.http.post<{ detail: string }>(
-      `${this.base}/forgot-password/`, { email },
+      `${this.base}/forgot-password/`, { email, recaptcha_token },
     );
   }
 

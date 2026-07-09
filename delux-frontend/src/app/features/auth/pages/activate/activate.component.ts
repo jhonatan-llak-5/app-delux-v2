@@ -26,6 +26,12 @@ import { parseApiError } from '@shared/utils/api-error.util';
         <p class="text-ink-500 dark:text-white/55 text-[15px] leading-relaxed mt-3 max-w-[320px] mx-auto">
           Ingresa el código de 6 dígitos que enviamos a tu correo.
         </p>
+        <div class="mt-4 max-w-[340px] mx-auto flex items-start gap-2 px-3 py-2.5 rounded-xl
+                    bg-amber-50 dark:bg-amber-500/10 border border-amber-200 dark:border-amber-500/25
+                    text-amber-700 dark:text-amber-300 text-[13px] text-left">
+          <i class="fa-solid fa-triangle-exclamation mt-0.5"></i>
+          <span>¿No lo ves? Revisa tu carpeta de <b>spam</b> o correo no deseado; a veces el código llega ahí.</span>
+        </div>
       </div>
 
       <form (ngSubmit)="submit()" #f="ngForm" class="space-y-3">

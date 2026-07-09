@@ -54,7 +54,7 @@
                 <div class="animate-product-enter" [attr.data-key]="index()">
                   @if (currentProduct().image && !imgError()) {
                     <img [src]="currentProduct().image" [alt]="currentProduct().name"
-                         class="w-full h-auto object-contain max-h-[460px] md:max-h-[560px]"
+                         class="w-full h-auto object-contain max-h-[460px] md:max-h-[560px] rounded-3xl shadow-2xl"
                          loading="eager" (error)="imgError.set(true)" />
                   } @else {
                     <div class="grid place-items-center min-h-[300px] md:min-h-[420px] text-center">
@@ -87,12 +87,12 @@
               </p>
               <div class="flex items-end justify-between gap-6 pt-2">
                 <div>
-                  <p class="text-[10px] tracking-widest uppercase text-ink-500 dark:text-white/40 mb-1.5">Precio</p>
-                  <p class="font-display text-4xl font-bold tracking-tight">${{ currentProduct().price }}</p>
+                  <p class="text-[10px] tracking-widest uppercase text-ink-500 dark:text-white/40 mb-1.5">Marca</p>
+                  <p class="font-display text-3xl font-bold tracking-tight">DLUX</p>
                 </div>
-                <a [routerLink]="currentProduct().productId ? ['/shop', currentProduct().productId] : '/shop'"
+                <a routerLink="/shop"
                    class="btn-accent text-sm font-semibold px-7 py-3.5 group">
-                  Añadir a la bolsa
+                  Ver catálogo
                   <i class="fa-solid fa-arrow-right text-[10px] group-hover:translate-x-1 transition"></i>
                 </a>
               </div>
@@ -187,13 +187,6 @@
                            [class.text-ink-600]="i !== index()"
                            [class.dark:text-white/60]="i !== index()">
                           {{ p.name }}
-                        </p>
-                        <p class="text-[11px] font-bold mt-0.5 transition-colors duration-300"
-                           [class.text-accent-600]="i === index()"
-                           [class.dark:text-accent-400]="i === index()"
-                           [class.text-ink-400]="i !== index()"
-                           [class.dark:text-white/40]="i !== index()">
-                          ${{ p.price }}
                         </p>
                       </div>
                     </button>

@@ -8,7 +8,7 @@ export class PublicFormsService {
   private http = inject(HttpClient);
   private base = environment.apiUrl;
 
-  contact(payload: { name: string; email: string; subject?: string; message: string }): Observable<{ detail: string }> {
+  contact(payload: { name: string; email: string; phone: string; subject?: string; message: string; recaptcha_token?: string }): Observable<{ detail: string }> {
     return this.http.post<{ detail: string }>(`${this.base}/contact/`, payload);
   }
 

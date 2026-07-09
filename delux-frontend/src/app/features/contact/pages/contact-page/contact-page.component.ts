@@ -1,4 +1,4 @@
-import { ChangeDetectionStrategy, Component, signal } from '@angular/core';
+import { ChangeDetectionStrategy, Component, OnInit, computed, signal } from '@angular/core';
 import { DlxFieldErrorComponent } from '@shared/ui/field-error.component';
 import { parseApiError } from '@shared/utils/api-error.util';
 import { CommonModule } from '@angular/common';
@@ -6,6 +6,7 @@ import { FormsModule } from '@angular/forms';
 import { inject } from '@angular/core';
 import { PublicFormsService } from '@shared/services/public-forms.service';
 import { NotifyService } from '@shared/services/notify.service';
+import { BrandingService } from '@core/services/branding.service';
 
 @Component({
   selector: 'dlx-contact-page',
@@ -34,8 +35,8 @@ import { NotifyService } from '@shared/services/notify.service';
     <!-- CANALES DE CONTACTO -->
     <section class="bg-white dark:bg-slate-950 pb-20">
       <div class="max-w-[1100px] mx-auto px-6 md:px-10">
-        <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
-          @for (ch of channels; track ch.title) {
+        <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-2 gap-4 max-w-2xl mx-auto">
+          @for (ch of channels(); track ch.title) {
             <a [href]="ch.link" target="_blank" rel="noopener"
                class="group block p-7 rounded-3xl
                       bg-white dark:bg-slate-800
@@ -46,7 +47,7 @@ import { NotifyService } from '@shared/services/notify.service';
               <div class="w-12 h-12 rounded-full bg-[#0095f6]/10 dark:bg-[#0095f6]/15
                           grid place-items-center mb-5
                           group-hover:bg-[#0095f6] group-hover:text-white transition-colors">
-                <i class="fa-solid {{ ch.icon }} text-[#0095f6] group-hover:text-white text-[18px] transition-colors"></i>
+                <i class="{{ ch.icon }} text-[#0095f6] group-hover:text-white text-[18px] transition-colors"></i>
               </div>
               <h3 class="font-bold text-[16px] text-ink-950 dark:text-white mb-1">{{ ch.title }}</h3>
               <p class="text-[15px] font-semibold text-ink-950 dark:text-white">{{ ch.value }}</p>
@@ -94,26 +95,28 @@ import { NotifyService } from '@shared/services/notify.service';
                 <p class="text-ink-600 dark:text-white/55 text-[14px] mt-1">Av. Amazonas N24-03 y Colón<br/>Quito, Ecuador</p>
               </div>
             </div>
-            <div class="flex items-start gap-3">
-              <div class="w-10 h-10 rounded-full bg-[#0095f6]/10 grid place-items-center shrink-0">
-                <i class="fa-solid fa-share-nodes text-[#0095f6] text-[14px]"></i>
-              </div>
-              <div>
-                <h4 class="font-bold text-[14px] text-ink-950 dark:text-white">Síguenos</h4>
-                <div class="flex gap-2 mt-3">
-                  @for (s of socials; track s.icon) {
-                    <a [href]="s.url" target="_blank" rel="noopener"
-                       class="w-10 h-10 rounded-full bg-white dark:bg-white/[0.06]
-                              border border-ink-200 dark:border-white/[0.08]
-                              grid place-items-center
-                              hover:bg-[#0095f6] hover:border-[#0095f6] hover:text-white
-                              text-ink-700 dark:text-white/75 transition">
-                      <i class="fa-brands {{ s.icon }} text-[14px]"></i>
-                    </a>
-                  }
+            @if (socials().length) {
+              <div class="flex items-start gap-3">
+                <div class="w-10 h-10 rounded-full bg-[#0095f6]/10 grid place-items-center shrink-0">
+                  <i class="fa-solid fa-share-nodes text-[#0095f6] text-[14px]"></i>
+                </div>
+                <div>
+                  <h4 class="font-bold text-[14px] text-ink-950 dark:text-white">Síguenos</h4>
+                  <div class="flex gap-2 mt-3 flex-wrap">
+                    @for (s of socials(); track s.key) {
+                      <a [href]="s.url" target="_blank" rel="noopener" [title]="s.label"
+                         class="w-10 h-10 rounded-full bg-white dark:bg-white/[0.06]
+                                border border-ink-200 dark:border-white/[0.08]
+                                grid place-items-center
+                                hover:bg-[#0095f6] hover:border-[#0095f6] hover:text-white
+                                text-ink-700 dark:text-white/75 transition">
+                        <i class="{{ s.icon }} text-[14px]"></i>
+                      </a>
+                    }
+                  </div>
                 </div>
               </div>
-            </div>
+            }
           </div>
         </div>
 
@@ -134,19 +137,33 @@ import { NotifyService } from '@shared/services/notify.service';
               </div>
             </div>
 
-            <select [(ngModel)]="form.subject" name="subject" class="input-modern">
+            <div>
+              <input [(ngModel)]="form.phone" name="phone" required maxlength="30" placeholder="Teléfono de contacto *" class="input-modern" />
+              <dlx-field-error [error]="fe(\'phone\')" />
+            </div>
+
+            <select [(ngModel)]="form.subject" name="subject"
+                    class="input-modern text-ink-950 dark:text-white dark:bg-slate-800 [&>option]:text-ink-950 [&>option]:bg-white dark:[&>option]:text-white dark:[&>option]:bg-slate-800">
               <option value="">Selecciona un tema</option>
-              <option value="order">Consulta sobre pedido</option>
-              <option value="product">Información de producto</option>
-              <option value="return">Cambios y devoluciones</option>
-              <option value="partner">Colaboración / partnership</option>
-              <option value="other">Otro</option>
+              <option value="compra">Cómo comprar en línea</option>
+              <option value="pedido">Consulta sobre mi pedido</option>
+              <option value="producto">Información de producto o tallas</option>
+              <option value="pago">Pagos (transferencia / DE UNA)</option>
+              <option value="cuenta">Mi cuenta</option>
+              <option value="otro">Otro</option>
             </select>
 
             <textarea [(ngModel)]="form.message" name="message" rows="6" required
                       placeholder="Cuéntanos en qué podemos ayudarte... *"
                       class="input-modern resize-none"></textarea>
             <dlx-field-error [error]="fe(\'message\')" />
+
+            @if (branding.recaptchaSiteKey()) {
+              <div id="dlx-recaptcha" class="pt-1"></div>
+            }
+            @if (captchaError()) {
+              <p class="text-[13px] text-rose-600 dark:text-rose-400">{{ captchaError() }}</p>
+            }
 
             <div class="flex items-center justify-between flex-wrap gap-4 pt-2">
               <p class="text-[12px] text-ink-500 dark:text-white/45">
@@ -207,62 +224,107 @@ import { NotifyService } from '@shared/services/notify.service';
     </section>
   `,
 })
-export class ContactPageComponent {
+export class ContactPageComponent implements OnInit {
   private forms = inject(PublicFormsService);
   private notify = inject(NotifyService);
-  form = { name: '', email: '', subject: '', message: '' };
+  branding = inject(BrandingService);
+  form = { name: '', email: '', phone: '', subject: '', message: '' };
   sent = signal(false);
   saving = signal(false);
   fieldErrors = signal<Record<string, string>>({});
+  captchaError = signal<string | null>(null);
+  private widgetId: number | null = null;
   fe(k: string): string | undefined { return this.fieldErrors()[k]; }
 
-  readonly channels = [
-    { icon: 'fa-envelope', title: 'Email', value: 'hola@delux.com.ec', detail: 'Respuesta en < 24h', link: 'mailto:hola@delux.com.ec' },
-    { icon: 'fa-phone', title: 'Llámanos', value: '+593 2 000 0000', detail: 'Lun-Dom 8h-22h', link: 'tel:+59320000000' },
-    { icon: 'fa-comments', title: 'Chat en vivo', value: 'Abierto ahora', detail: 'Respuesta inmediata', link: '#' },
-    { icon: 'fa-brands fa-whatsapp', title: 'WhatsApp', value: '+593 99 123 4567', detail: 'Envío de fotos OK', link: 'https://wa.me/593991234567' },
-  ];
+  ngOnInit(): void {
+    if (this.branding.recaptchaSiteKey()) setTimeout(() => this.renderRecaptcha(), 300);
+  }
 
-  readonly socials = [
-    { icon: 'fa-instagram', url: 'https://instagram.com' },
-    { icon: 'fa-tiktok', url: 'https://tiktok.com' },
-    { icon: 'fa-x-twitter', url: 'https://x.com' },
-    { icon: 'fa-facebook', url: 'https://facebook.com' },
-  ];
+  private renderRecaptcha(retries = 20): void {
+    if (typeof document === 'undefined') return;
+    const g = (window as any).grecaptcha;
+    const el = document.getElementById('dlx-recaptcha');
+    if (!el) return;
+    if (!document.getElementById('recaptcha-script')) {
+      const sc = document.createElement('script');
+      sc.id = 'recaptcha-script';
+      sc.src = 'https://www.google.com/recaptcha/api.js?render=explicit';
+      sc.async = true; sc.defer = true;
+      document.head.appendChild(sc);
+    }
+    if (g && g.render && el.childElementCount === 0) {
+      try { this.widgetId = g.render(el, { sitekey: this.branding.recaptchaSiteKey() }); } catch {}
+      return;
+    }
+    if (retries > 0) setTimeout(() => this.renderRecaptcha(retries - 1), 250);
+  }
+
+  private resetCaptcha(): void {
+    const g = (window as any).grecaptcha;
+    if (g && this.widgetId !== null) { try { g.reset(this.widgetId); } catch {} }
+  }
+
+  /** Canales de contacto, tomados de la configuración del superadmin. */
+  readonly channels = computed(() => {
+    const email = this.branding.contactEmail();
+    const wa = this.branding.whatsappNumber();
+    const list: { icon: string; title: string; value: string; detail: string; link: string }[] = [];
+    if (email) list.push({ icon: 'fa-solid fa-envelope', title: 'Email', value: email, detail: 'Respuesta en < 24h', link: 'mailto:' + email });
+    if (wa) list.push({ icon: 'fa-brands fa-whatsapp', title: 'WhatsApp', value: wa, detail: 'Escríbenos por WhatsApp', link: this.branding.whatsappLink() });
+    return list;
+  });
+
+  /** Redes sociales configuradas (solo las que tienen enlace). */
+  readonly socials = computed(() => this.branding.socialLinks());
 
   readonly faqs = [
-    { q: '¿Cuáles son los tiempos de envío?',
-      a: 'Procesamos pedidos en menos de 24 horas. Quito y Guayaquil reciben en 24-48h, otras ciudades en 48-72h. Envío gratis sobre $50.' },
-    { q: '¿Puedo retirar en sucursal sin costo?',
-      a: 'Sí. Selecciona "Retiro en tienda" en el checkout y elige tu sucursal preferida. Estará listo en 2-4 horas hábiles.' },
-    { q: '¿Cómo funcionan los cambios y devoluciones?',
-      a: 'Tienes 14 días desde la entrega para solicitar cambio o devolución. El producto debe estar en perfecto estado y con etiquetas.' },
-    { q: '¿Aceptan tarjetas internacionales?',
-      a: 'Sí, aceptamos Visa, Mastercard, Diners y American Express. Procesamos pagos vía PayPhone con encriptación segura.' },
-    { q: '¿Cuándo llegan los drops nuevos?',
-      a: 'Los drops se anuncian con anticipación en nuestro newsletter e Instagram. Suscríbete para no perderte ningún lanzamiento.' },
-    { q: '¿Tienen guía de tallas?',
-      a: 'Cada producto tiene su guía específica en la página de detalle. Si tienes dudas, escríbenos por WhatsApp y te ayudamos.' },
+    { q: '¿Cómo hago una compra en línea?',
+      a: 'Elige tu producto, selecciona talla y color, agrégalo al carrito y ve al checkout. Completa tus datos, elige recibirlo a domicilio o retirarlo en la sucursal, y confirma el pago por transferencia o DE UNA.' },
+    { q: '¿Necesito crear una cuenta para comprar?',
+      a: 'Puedes crear tu cuenta gratis con tu correo: recibirás un código de activación para confirmarla. Con tu cuenta guardas tus datos, ves el estado de tus pedidos y tu historial de compras.' },
+    { q: '¿Qué formas de pago aceptan?',
+      a: 'Los pagos son por transferencia bancaria y por DE UNA. Al finalizar la compra verás los datos de la cuenta o el código QR, y deberás subir el comprobante para que validemos tu pedido.' },
+    { q: '¿Puedo recibir a domicilio o retirar en la tienda?',
+      a: 'Ambas opciones. En el checkout eliges "Envío a domicilio" (indicas tu dirección) o "Retiro en tienda" (eliges la sucursal y pasas a recogerlo).' },
+    { q: '¿Qué productos manejan y qué tallas hay?',
+      a: 'Manejamos calzado DLUX, ropa y accesorios urbanos. Cada producto muestra las tallas y colores disponibles en su página de detalle; solo puedes agregar al carrito las combinaciones con stock.' },
+    { q: '¿Cómo sé si mi compra fue confirmada?',
+      a: 'Al subir tu comprobante, tu pedido queda registrado y nuestro equipo lo valida. Podrás ver el estado en la sección "Mis compras" de tu cuenta.' },
   ];
 
   submit() {
     const errs: Record<string, string> = {};
+    const email = this.form.email?.trim() || '';
     if (!this.form.name?.trim()) errs['name'] = 'Este campo es obligatorio.';
-    if (!this.form.email?.trim()) errs['email'] = 'Este campo es obligatorio.';
+    if (!email) errs['email'] = 'Este campo es obligatorio.';
+    else if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) errs['email'] = 'Ingresa un correo válido.';
+    if (!this.form.phone?.trim()) errs['phone'] = 'Este campo es obligatorio.';
     if (!this.form.message?.trim()) errs['message'] = 'Este campo es obligatorio.';
     this.fieldErrors.set(errs);
     if (Object.keys(errs).length) return;
+
+    // reCAPTCHA solo si el superadmin lo configuró.
+    this.captchaError.set(null);
+    let token = '';
+    if (this.branding.recaptchaSiteKey()) {
+      const g = (window as any).grecaptcha;
+      token = (g && this.widgetId !== null ? g.getResponse(this.widgetId) : '') || '';
+      if (!token) { this.captchaError.set('Por favor completa el reCAPTCHA.'); return; }
+    }
+
     this.saving.set(true);
-    this.forms.contact(this.form).subscribe({
+    this.forms.contact({ ...this.form, recaptcha_token: token }).subscribe({
       next: r => {
         this.saving.set(false);
         this.sent.set(true);
         this.notify.success(r.detail || 'Mensaje enviado.');
         setTimeout(() => this.sent.set(false), 5000);
-        this.form = { name: '', email: '', subject: '', message: '' };
+        this.form = { name: '', email: '', phone: '', subject: '', message: '' };
+        this.resetCaptcha();
       },
       error: e => {
         this.saving.set(false);
+        this.resetCaptcha();
         const p = parseApiError(e);
         this.fieldErrors.set(p.fieldErrors);
         if (p.message && !Object.keys(p.fieldErrors).length) this.notify.error(p.message);

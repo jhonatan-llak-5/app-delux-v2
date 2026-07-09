@@ -70,7 +70,7 @@ interface Category { slug: string; name: string; caption: string; number: string
 export class CategoriesGridComponent {
   readonly categories: Category[] = [
     { slug: 'zapatillas', name: 'Zapatillas', caption: 'RUNNING · LIFESTYLE · SKATE', number: '01',
-      image: 'https://images.unsplash.com/photo-1595950653106-6c9ebd614d3a?w=800&q=85&auto=format&fit=crop',
+      image: 'assets/images/catalog/deux_black.png',
       tint: 'bg-gradient-to-br from-brand-magenta/30 to-brand-violet/30' },
     { slug: 'ropa', name: 'Ropa', caption: 'HOODIES · POLOS · PANTALONES', number: '02',
       image: 'https://images.unsplash.com/photo-1556821840-3a63f95609a7?w=800&q=85&auto=format&fit=crop',

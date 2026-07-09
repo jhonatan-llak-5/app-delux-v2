@@ -1,8 +1,9 @@
-import { ChangeDetectionStrategy, Component, inject, signal } from '@angular/core';
+import { ChangeDetectionStrategy, Component, OnInit, inject, signal } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { RouterLink } from '@angular/router';
 import { AuthService } from '@core/services/auth.service';
+import { BrandingService } from '@core/services/branding.service';
 import { AuthShellComponent } from '@features/auth/components/auth-shell/auth-shell.component';
 import { parseApiError } from '@shared/utils/api-error.util';
 
@@ -47,6 +48,10 @@ import { parseApiError } from '@shared/utils/api-error.util';
                  placeholder="tu@correo.com *"
                  class="input-modern" />
 
+          @if (branding.recaptchaSiteKey()) {
+            <div id="dlx-recaptcha" class="flex justify-center pt-1"></div>
+          }
+
           @if (error()) {
             <p class="text-rose-600 dark:text-rose-400 text-[14px] text-center pt-1">
               {{ error() }}
@@ -78,21 +83,54 @@ import { parseApiError } from '@shared/utils/api-error.util';
     </dlx-auth-shell>
   `,
 })
-export class ForgotPasswordComponent {
+export class ForgotPasswordComponent implements OnInit {
   private auth = inject(AuthService);
+  branding = inject(BrandingService);
+  private widgetId: number | null = null;
 
   email = '';
   loading = signal(false);
   sent = signal(false);
   error = signal<string | null>(null);
 
+  ngOnInit(): void {
+    if (this.branding.recaptchaSiteKey()) setTimeout(() => this.renderRecaptcha(), 300);
+  }
+
+  private renderRecaptcha(retries = 20): void {
+    if (typeof document === 'undefined') return;
+    const g = (window as any).grecaptcha;
+    const el = document.getElementById('dlx-recaptcha');
+    if (!el) return;
+    if (!document.getElementById('recaptcha-script')) {
+      const sc = document.createElement('script');
+      sc.id = 'recaptcha-script';
+      sc.src = 'https://www.google.com/recaptcha/api.js?render=explicit';
+      sc.async = true; sc.defer = true;
+      document.head.appendChild(sc);
+    }
+    if (g && g.render && el.childElementCount === 0) {
+      try { this.widgetId = g.render(el, { sitekey: this.branding.recaptchaSiteKey() }); } catch {}
+      return;
+    }
+    if (retries > 0) setTimeout(() => this.renderRecaptcha(retries - 1), 250);
+  }
+
   submit() {
+    let token = '';
+    if (this.branding.recaptchaSiteKey()) {
+      const g = (window as any).grecaptcha;
+      token = (g && this.widgetId !== null ? g.getResponse(this.widgetId) : '') || '';
+      if (!token) { this.error.set('Por favor completa el reCAPTCHA.'); return; }
+    }
     this.loading.set(true);
     this.error.set(null);
-    this.auth.forgotPassword(this.email).subscribe({
+    this.auth.forgotPassword(this.email, token).subscribe({
       next: () => { this.loading.set(false); this.sent.set(true); },
       error: e => {
         this.loading.set(false);
+        const g = (window as any).grecaptcha;
+        if (g && this.widgetId !== null) { try { g.reset(this.widgetId); } catch {} }
         this.error.set(parseApiError(e).message || 'No pudimos procesar la solicitud.');
       },
     });

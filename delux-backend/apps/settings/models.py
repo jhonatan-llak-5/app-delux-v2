@@ -54,6 +54,17 @@ class PlatformSettings(models.Model):
 
     # ─── Contacto público ───
     whatsapp_contact_number = models.CharField(max_length=30, blank=True, default='')
+    public_contact_email = models.EmailField(
+        blank=True, default='',
+        help_text='Email de contacto que se muestra en la web (si vacío usa support_email).')
+
+    # ─── Redes sociales (si están vacías, no se muestran en la web) ───
+    social_facebook = models.URLField(blank=True, default='')
+    social_instagram = models.URLField(blank=True, default='')
+    social_youtube = models.URLField(blank=True, default='')
+    social_x = models.URLField(blank=True, default='', help_text='X (antes Twitter).')
+    social_tiktok = models.URLField(blank=True, default='')
+    social_telegram = models.URLField(blank=True, default='')
 
     # Impuestos
     tax_rate = models.DecimalField(
@@ -158,6 +169,7 @@ class ContactMessage(models.Model):
     """Mensaje del formulario de contacto público."""
     name = models.CharField(max_length=120)
     email = models.EmailField()
+    phone = models.CharField(max_length=30, blank=True, default='')
     subject = models.CharField(max_length=160, blank=True)
     message = models.TextField()
     is_read = models.BooleanField(default=False)

@@ -22,7 +22,10 @@ class PlatformSettingsSerializer(serializers.ModelSerializer):
             # Marca
             'site_name', 'platform_name', 'platform_tagline',
             'site_logo', 'site_favicon',
-            'whatsapp_contact_number',
+            'whatsapp_contact_number', 'public_contact_email',
+            # Redes sociales
+            'social_facebook', 'social_instagram', 'social_youtube',
+            'social_x', 'social_tiktok', 'social_telegram',
             'tax_rate',
             'affiliate_commission_rate',
             'affiliate_min_payout',

@@ -1,4 +1,5 @@
 """Envío de emails transaccionales usando SMTP de PlatformSettings."""
+import os
 import smtplib
 from email.mime.multipart import MIMEMultipart
 from email.mime.text import MIMEText
@@ -39,11 +40,22 @@ def send_html_email(to_email: str, subject: str, template: str, ctx: dict, text_
         print(f'[email skipped] {subject} → {to_email}')
         return False
 
+    # Logo absoluto para el encabezado del correo (los correos no admiten rutas relativas).
+    logo_url = ''
+    try:
+        if getattr(s, 'site_logo', None):
+            base = (os.getenv('FRONTEND_URL') or '').rstrip('/')
+            if base:
+                logo_url = f'{base}{s.site_logo.url}'
+    except Exception:
+        logo_url = ''
+
     html = render_to_string(f'emails/{template}.html', {
         **ctx,
         'platform_name': s.platform_name,
         'platform_tagline': s.platform_tagline,
         'support_email': s.support_email,
+        'logo_url': logo_url,
     })
 
     msg = MIMEMultipart('alternative')

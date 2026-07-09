@@ -275,11 +275,39 @@
               <p class="text-sm text-slate-500 dark:text-slate-400">Canales visibles en footer y página de contacto.</p>
             </div>
             <div class="grid gap-4 md:grid-cols-2">
-              <label class="block"><span class="eg-label">WhatsApp soporte</span>
+              <label class="block"><span class="eg-label">WhatsApp de contacto</span>
                 <input class="eg-input" formControlName="whatsapp_contact_number" placeholder="+593 99 123 4567" />
               </label>
-              <label class="block"><span class="eg-label">Email soporte público</span>
+              <label class="block"><span class="eg-label">Email de contacto (web)</span>
+                <input class="eg-input" type="email" formControlName="public_contact_email" placeholder="hola@deluxstyle.com" />
+              </label>
+              <label class="block md:col-span-2"><span class="eg-label">Email soporte (recibe los mensajes del formulario)</span>
                 <input class="eg-input" type="email" formControlName="support_email" />
+              </label>
+            </div>
+
+            <div>
+              <h3 class="text-sm font-bold text-slate-900 dark:text-slate-50 mt-2">Redes sociales</h3>
+              <p class="text-xs text-slate-500 dark:text-slate-400">Pega el enlace completo. Las que dejes vacías no se muestran en la web.</p>
+            </div>
+            <div class="grid gap-4 md:grid-cols-2">
+              <label class="block"><span class="eg-label"><i class="fa-brands fa-instagram mr-1.5"></i>Instagram</span>
+                <input class="eg-input" formControlName="social_instagram" placeholder="https://instagram.com/tu_tienda" />
+              </label>
+              <label class="block"><span class="eg-label"><i class="fa-brands fa-tiktok mr-1.5"></i>TikTok</span>
+                <input class="eg-input" formControlName="social_tiktok" placeholder="https://tiktok.com/@tu_tienda" />
+              </label>
+              <label class="block"><span class="eg-label"><i class="fa-brands fa-facebook mr-1.5"></i>Facebook</span>
+                <input class="eg-input" formControlName="social_facebook" placeholder="https://facebook.com/tu_tienda" />
+              </label>
+              <label class="block"><span class="eg-label"><i class="fa-brands fa-x-twitter mr-1.5"></i>X (Twitter)</span>
+                <input class="eg-input" formControlName="social_x" placeholder="https://x.com/tu_tienda" />
+              </label>
+              <label class="block"><span class="eg-label"><i class="fa-brands fa-youtube mr-1.5"></i>YouTube</span>
+                <input class="eg-input" formControlName="social_youtube" placeholder="https://youtube.com/@tu_tienda" />
+              </label>
+              <label class="block"><span class="eg-label"><i class="fa-brands fa-telegram mr-1.5"></i>Telegram</span>
+                <input class="eg-input" formControlName="social_telegram" placeholder="https://t.me/tu_tienda" />
               </label>
             </div>
           </section>

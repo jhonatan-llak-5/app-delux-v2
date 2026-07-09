@@ -52,6 +52,14 @@ export class NotificationsService {
   };
 
   constructor() {
+    // Desbloquea el audio en el primer gesto del usuario (política de autoplay
+    // del navegador): a partir de ahí, las notificaciones ya pueden sonar.
+    if (typeof document !== 'undefined') {
+      const unlock = () => this.ensureAudio();
+      ['pointerdown', 'keydown', 'touchstart'].forEach(ev =>
+        document.addEventListener(ev, unlock, { once: true, passive: true }));
+    }
+
     // Conecta/hidrata al iniciar sesión; limpia al salir.
     effect(() => {
       const u = this.auth.user();
@@ -171,13 +179,27 @@ export class NotificationsService {
     setTimeout(() => this.bellPulse.set(false), 900);
   }
 
+  private audioCtx: AudioContext | null = null;
+
+  /** Crea/reanuda un único AudioContext. Los navegadores lo dejan "suspended"
+   *  hasta el primer gesto del usuario; por eso lo desbloqueamos en constructor. */
+  private ensureAudio(): AudioContext | null {
+    if (typeof window === 'undefined') return null;
+    const AC = (window.AudioContext || (window as any).webkitAudioContext);
+    if (!AC) return null;
+    if (!this.audioCtx) { try { this.audioCtx = new AC(); } catch { return null; } }
+    if (this.audioCtx.state === 'suspended') { this.audioCtx.resume().catch(() => {}); }
+    return this.audioCtx;
+  }
+
   /** Sonido segun prioridad: P1 doble tono fuerte, P2 tono suave, P3 sin sonido. */
   private playSound(priority: 'P1' | 'P2' | 'P3') {
     if (priority === 'P3') return;
     if (!this.prefs().sound_enabled) return;
     if (this.inDnd()) return;
     try {
-      const ctx = new (window.AudioContext || (window as any).webkitAudioContext)();
+      const ctx = this.ensureAudio();
+      if (!ctx || ctx.state !== 'running') return;
       const beep = (freq: number, start: number, dur: number, vol: number) => {
         const osc = ctx.createOscillator();
         const gain = ctx.createGain();

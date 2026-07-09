@@ -30,43 +30,42 @@ export class HeroSectionComponent implements OnInit, OnDestroy {
   }
 
   private readonly fallbackHero: HeroProduct[] = [
-    { id: '01', name: 'Air Force Stealth', collection: 'Performance',
-      tagline: 'Energía vibrante y confort premium. Diseñada para máximo rendimiento en cada pisada.',
-      price: 200,
-      image: 'https://images.unsplash.com/photo-1542291026-7eec264c27ff?w=1200&q=85&auto=format&fit=crop',
-      haloClass: 'bg-brand-magenta',
-      gradient:
-        'radial-gradient(60% 80% at 70% 30%, rgba(255,87,168,0.5) 0%, transparent 60%),' +
-        'radial-gradient(50% 70% at 30% 60%, rgba(255,120,73,0.4) 0%, transparent 65%),' +
-        'radial-gradient(70% 90% at 50% 100%, rgba(124,58,237,0.4) 0%, transparent 70%),' +
-        'radial-gradient(40% 60% at 80% 80%, rgba(34,211,238,0.4) 0%, transparent 70%)' },
-    { id: '02', name: 'Court Vintage', collection: 'Lifestyle',
-      tagline: 'Un calzado con personalidad que evoca la nostalgia urbana de los noventas reinventada.',
-      price: 180,
-      image: 'https://images.unsplash.com/photo-1606107557195-0e29a4b5b4aa?w=1200&q=85&auto=format&fit=crop',
+    { id: '01', name: 'DLUX Azul Marino', collection: 'DLUX',
+      tagline: 'Diseño urbano en gris y azul marino. Confort premium y estilo para el día a día.',
+      price: 0,
+      image: 'assets/images/catalog/deux_blue.png',
       haloClass: 'bg-brand-violet',
       gradient:
-        'radial-gradient(60% 80% at 30% 30%, rgba(124,58,237,0.5) 0%, transparent 60%),' +
-        'radial-gradient(50% 70% at 70% 60%, rgba(224,57,154,0.4) 0%, transparent 65%),' +
-        'radial-gradient(70% 90% at 50% 100%, rgba(20,184,166,0.3) 0%, transparent 70%)' },
-    { id: '03', name: 'Pulse Runner', collection: 'Innovation',
-      tagline: 'Simplifica tu carrera. Tecnología de respuesta dinámica para máximo retorno de energía.',
-      price: 220,
-      image: 'https://images.unsplash.com/photo-1595950653106-6c9ebd614d3a?w=1200&q=85&auto=format&fit=crop',
+        'radial-gradient(60% 80% at 30% 30%, rgba(37,99,235,0.5) 0%, transparent 60%),' +
+        'radial-gradient(50% 70% at 70% 60%, rgba(124,58,237,0.4) 0%, transparent 65%),' +
+        'radial-gradient(70% 90% at 50% 100%, rgba(34,211,238,0.35) 0%, transparent 70%)' },
+    { id: '02', name: 'DLUX Negro Total', collection: 'DLUX',
+      tagline: 'Total black con detalles en gris. Un modelo versátil que combina con todo.',
+      price: 0,
+      image: 'assets/images/catalog/deux_black.png',
+      haloClass: 'bg-brand-magenta',
+      gradient:
+        'radial-gradient(60% 80% at 70% 30%, rgba(120,120,140,0.45) 0%, transparent 60%),' +
+        'radial-gradient(50% 70% at 30% 60%, rgba(124,58,237,0.35) 0%, transparent 65%),' +
+        'radial-gradient(70% 90% at 50% 100%, rgba(224,57,154,0.3) 0%, transparent 70%)' },
+    { id: '03', name: 'DLUX Blanco Hueso', collection: 'DLUX',
+      tagline: 'Blanco y gris minimalista. Limpio, fresco y fácil de combinar en cualquier look.',
+      price: 0,
+      image: 'assets/images/catalog/deux_white.png',
       haloClass: 'bg-accent-500',
       gradient:
-        'radial-gradient(60% 80% at 70% 30%, rgba(20,184,166,0.5) 0%, transparent 60%),' +
+        'radial-gradient(60% 80% at 70% 30%, rgba(20,184,166,0.45) 0%, transparent 60%),' +
         'radial-gradient(50% 70% at 30% 60%, rgba(34,211,238,0.4) 0%, transparent 65%),' +
         'radial-gradient(70% 90% at 50% 100%, rgba(124,58,237,0.3) 0%, transparent 70%)' },
-    { id: '04', name: 'Heritage OG', collection: 'Heritage',
-      tagline: 'Nacido en el campo deportivo. Adoptado por la cultura urbana mundial.',
-      price: 160,
-      image: 'https://images.unsplash.com/photo-1600185365778-7c4e2bbd8a4f?w=1200&q=85&auto=format&fit=crop',
+    { id: '04', name: 'DLUX Verde Militar', collection: 'DLUX',
+      tagline: 'Verde militar con azul marino. Carácter y actitud urbana en cada paso.',
+      price: 0,
+      image: 'assets/images/catalog/delux_green.png',
       haloClass: 'bg-brand-orange',
       gradient:
-        'radial-gradient(60% 80% at 30% 30%, rgba(255,120,73,0.5) 0%, transparent 60%),' +
-        'radial-gradient(50% 70% at 70% 60%, rgba(224,57,154,0.4) 0%, transparent 65%),' +
-        'radial-gradient(70% 90% at 50% 100%, rgba(20,184,166,0.4) 0%, transparent 70%)' },
+        'radial-gradient(60% 80% at 30% 30%, rgba(34,120,80,0.45) 0%, transparent 60%),' +
+        'radial-gradient(50% 70% at 70% 60%, rgba(30,58,138,0.4) 0%, transparent 65%),' +
+        'radial-gradient(70% 90% at 50% 100%, rgba(20,184,166,0.3) 0%, transparent 70%)' },
   ];
 
   products = signal<HeroProduct[]>(this.fallbackHero);
@@ -89,7 +88,7 @@ export class HeroSectionComponent implements OnInit, OnDestroy {
   private userInteractedSinceShowcase = false;
 
   ngOnInit(): void {
-    this.loadFeatured();
+    // Banner informativo: siempre los 4 zapatos DLUX locales (no depende del catálogo/DB).
     this.startAutoRotation();
   }
 

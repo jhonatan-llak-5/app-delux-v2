@@ -115,8 +115,8 @@ export class LandingHomeComponent implements OnInit {
     {
       slug: 'zapatillas',
       title: 'Zapatillas',
-      description: 'Nike, Adidas, Jordan, New Balance y más. Drops semanales.',
-      image: 'https://images.unsplash.com/photo-1542291026-7eec264c27ff?w=800&q=85&auto=format&fit=crop',
+      description: 'Sneakers DLUX y más marcas. Nuevos modelos cada semana.',
+      image: 'assets/images/catalog/deux_black.png',
     },
     {
       slug: 'ropa',
