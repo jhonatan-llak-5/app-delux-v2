@@ -38,6 +38,8 @@ class PlatformSettings(models.Model):
     support_email = models.EmailField(blank=True, default='soporte@delux.local')
 
     # ─── reCAPTCHA ───
+    recaptcha_enabled = models.BooleanField(
+        default=False, help_text='Activa/desactiva el reCAPTCHA en todos los formularios públicos.')
     recaptcha_site_key = models.CharField(max_length=120, blank=True)
     recaptcha_secret_key = models.CharField(max_length=120, blank=True)
 

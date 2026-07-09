@@ -49,7 +49,7 @@ def _on_order_created(sender, instance, created, **kwargs):
             priority='P1',
             title='Nueva venta' if is_pos else 'Nuevo pedido',
             message=f'{code} - ${total}' + (f' - {branch_name}' if branch_name else ''),
-            link='/app/admin/sales',
+            link=f'/app/admin/sales/{order.pk}',
             meta={'order_id': order.pk, 'code': code},
             recipients=staff_recipients(tenant, branch),
             tenant=tenant, branch=branch,
@@ -179,7 +179,7 @@ def _on_order_paid(sender, instance, created, **kwargs):
         push_notification(
             type='order_paid', priority='P2', title='Pedido pagado',
             message=f'{code} confirmado' + (f' - {bname}' if bname else ''),
-            link='/app/admin/sales',
+            link=f'/app/admin/sales/{order.pk}',
             meta={'order_id': order.pk, 'code': code},
             recipients=staff_recipients(tenant, branch),
             tenant=tenant, branch=branch,

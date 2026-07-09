@@ -211,12 +211,20 @@ class AdminShipmentViewSet(viewsets.ModelViewSet):
         except Exception as e:
             print(f'[ws admin] {e}')
 
-        # Email al cliente en segundo plano (Celery): NO bloquea la respuesta.
+        # Notificaciones inteligentes: in-app al cliente en cada cambio de envío
+        # y email SOLO en hitos (entregado/devolución). El staff ya se notificó
+        # arriba (push_admin_notification), por eso notify_staff=False.
         try:
-            from apps.notifications.tasks import send_order_state_email
-            send_order_state_email.delay(s.order_id, new_status, s.tracking_code)
+            from apps.notifications.services import notify_order_status_change
+            if s.order_id:
+                notify_order_status_change(
+                    s.order, new_status,
+                    actor=request.user,
+                    tracking_code=s.tracking_code,
+                    notify_staff=False,
+                )
         except Exception as e:
-            print(f'[email state] {e}')
+            print(f'[notify shipment state] {e}')
 
         return Response(ShipmentSerializer(s).data)
 

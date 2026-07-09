@@ -16,7 +16,7 @@ class PlatformSettingsSerializer(serializers.ModelSerializer):
             'smtp_use_tls', 'smtp_use_ssl',
             'default_from_email', 'default_from_name', 'email_reply_to', 'support_email',
             # reCAPTCHA
-            'recaptcha_site_key', 'recaptcha_secret_key',
+            'recaptcha_enabled', 'recaptcha_site_key', 'recaptcha_secret_key',
             # Cuentas
             'activation_code_ttl_minutes', 'password_reset_ttl_minutes',
             # Marca

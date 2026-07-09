@@ -1,8 +1,10 @@
 import { Injectable, computed, effect, inject, signal } from '@angular/core';
 import { HttpClient } from '@angular/common/http';
+import { Router } from '@angular/router';
 import { environment } from '@env/environment';
 import { WebSocketService } from '@core/services/websocket.service';
 import { AuthService } from '@core/services/auth.service';
+import { BrandingService } from '@core/services/branding.service';
 
 export type NotifKind = 'sale' | 'user' | 'low_stock' | 'order' | 'review' | 'info';
 
@@ -36,7 +38,10 @@ export class NotificationsService {
   private http = inject(HttpClient);
   private ws = inject(WebSocketService);
   private auth = inject(AuthService);
+  private router = inject(Router);
+  private branding = inject(BrandingService);
   private base = `${environment.apiUrl}/notifications`;
+  private permAsked = false;
 
   list = signal<AppNotification[]>([]);
   unread = signal(0);
@@ -45,19 +50,30 @@ export class NotificationsService {
 
   private lastSeenWsId = 0;
   private readonly kindMap: Record<string, NotifKind> = {
-    sale: 'sale', order: 'order', order_paid: 'order', low_stock: 'low_stock',
+    sale: 'sale', order: 'order', order_paid: 'order', order_status: 'order',
+    shipment_updated: 'order', low_stock: 'low_stock',
     affiliate_commission: 'sale', affiliate_payout: 'sale', affiliate_new: 'user',
     'return': 'info', review: 'review', review_posted: 'review',
     user_registered: 'user', customer_new: 'user', newsletter_digest: 'info',
   };
 
+  /** Estado del permiso de notificaciones de escritorio (para la UI). */
+  desktopPermission = signal<'default' | 'granted' | 'denied' | 'unsupported'>(
+    typeof Notification === 'undefined' ? 'unsupported' : Notification.permission);
+
   constructor() {
-    // Desbloquea el audio en el primer gesto del usuario (política de autoplay
-    // del navegador): a partir de ahí, las notificaciones ya pueden sonar.
+    // En cada gesto del usuario: desbloquea el audio (autoplay) y, si ya inició
+    // sesión, pide una vez el permiso de notificaciones de escritorio.
     if (typeof document !== 'undefined') {
-      const unlock = () => this.ensureAudio();
+      const onGesture = () => {
+        this.primeSound();
+        if (!this.permAsked && this.auth.user()) {
+          this.permAsked = true;
+          this.requestDesktopPermission();
+        }
+      };
       ['pointerdown', 'keydown', 'touchstart'].forEach(ev =>
-        document.addEventListener(ev, unlock, { once: true, passive: true }));
+        document.addEventListener(ev, onGesture, { passive: true }));
     }
 
     // Conecta/hidrata al iniciar sesión; limpia al salir.
@@ -123,7 +139,7 @@ export class NotificationsService {
     return start < end ? (cur >= start && cur < end) : (cur >= start || cur < end);
   }
 
-  /** Inserta una notificación (viva) evitando duplicados; dispara sonido/pulse. */
+  /** Inserta una notificación (viva) evitando duplicados; dispara sonido/pulse/escritorio. */
   private ingest(s: ServerNotif, live: boolean) {
     const id = String(s.id);
     if (this.list().some(n => n.id === id)) return;
@@ -132,7 +148,39 @@ export class NotificationsService {
       this.unread.update(c => c + 1);
       this.playSound(s.priority);
       this.triggerPulse();
+      this.notifyDesktop(s);
     }
+  }
+
+  /** Pide (o re-consulta) el permiso de notificaciones de escritorio. Puede llamarse
+   *  desde un botón explícito (recomendado en Brave, que a veces bloquea el prompt). */
+  requestDesktopPermission(): void {
+    this.permAsked = true;
+    if (typeof Notification === 'undefined') { this.desktopPermission.set('unsupported'); return; }
+    if (Notification.permission === 'granted') { this.desktopPermission.set('granted'); return; }
+    try {
+      Notification.requestPermission().then(p => this.desktopPermission.set(p as any)).catch(() => {});
+    } catch {}
+  }
+
+  /** Muestra una notificación NATIVA del sistema (fuera del navegador). Solo si el
+   *  usuario dio permiso, no está en No Molestar, y el panel no está enfocado. */
+  private notifyDesktop(s: ServerNotif) {
+    if (typeof Notification === 'undefined' || Notification.permission !== 'granted') return;
+    if (this.inDnd()) return;
+    try {
+      const icon = this.branding.faviconUrl() || this.branding.logoUrl() || 'assets/images/favicon-256.png';
+      const note = new Notification(s.title || 'Notificación', {
+        body: s.message || '',
+        icon,
+        tag: 'dlx-notif-' + s.id,
+      });
+      note.onclick = () => {
+        try { window.focus(); } catch {}
+        if (s.link) this.router.navigateByUrl(s.link).catch(() => {});
+        note.close();
+      };
+    } catch { /* el navegador puede bloquearlo */ }
   }
 
   private toApp(s: ServerNotif): AppNotification {
@@ -179,46 +227,43 @@ export class NotificationsService {
     setTimeout(() => this.bellPulse.set(false), 900);
   }
 
-  private audioCtx: AudioContext | null = null;
+  private readonly soundUrl = 'assets/sounds/sound-notification.mp3';
+  private audioEl: HTMLAudioElement | null = null;
+  private soundPrimed = false;
 
-  /** Crea/reanuda un único AudioContext. Los navegadores lo dejan "suspended"
-   *  hasta el primer gesto del usuario; por eso lo desbloqueamos en constructor. */
-  private ensureAudio(): AudioContext | null {
-    if (typeof window === 'undefined') return null;
-    const AC = (window.AudioContext || (window as any).webkitAudioContext);
-    if (!AC) return null;
-    if (!this.audioCtx) { try { this.audioCtx = new AC(); } catch { return null; } }
-    if (this.audioCtx.state === 'suspended') { this.audioCtx.resume().catch(() => {}); }
-    return this.audioCtx;
+  private ensureSound(): HTMLAudioElement | null {
+    if (typeof Audio === 'undefined') return null;
+    if (!this.audioEl) {
+      this.audioEl = new Audio(this.soundUrl);
+      this.audioEl.preload = 'auto';
+    }
+    return this.audioEl;
   }
 
-  /** Sonido segun prioridad: P1 doble tono fuerte, P2 tono suave, P3 sin sonido. */
+  /** "Desbloquea" el audio en el primer gesto (reproduce mudo y pausa), para que
+   *  luego play() funcione aunque la notificación llegue sin interacción directa. */
+  private primeSound(): void {
+    if (this.soundPrimed) return;
+    const a = this.ensureSound();
+    if (!a) return;
+    this.soundPrimed = true;
+    const vol = a.volume;
+    a.volume = 0;
+    a.play().then(() => { a.pause(); a.currentTime = 0; a.volume = vol; })
+      .catch(() => { a.volume = vol; });
+  }
+
+  /** Sonido de notificación (archivo mp3). P3 no suena. */
   private playSound(priority: 'P1' | 'P2' | 'P3') {
     if (priority === 'P3') return;
     if (!this.prefs().sound_enabled) return;
     if (this.inDnd()) return;
+    const a = this.ensureSound();
+    if (!a) return;
     try {
-      const ctx = this.ensureAudio();
-      if (!ctx || ctx.state !== 'running') return;
-      const beep = (freq: number, start: number, dur: number, vol: number) => {
-        const osc = ctx.createOscillator();
-        const gain = ctx.createGain();
-        osc.connect(gain); gain.connect(ctx.destination);
-        osc.type = 'sine';
-        osc.frequency.setValueAtTime(freq, ctx.currentTime + start);
-        gain.gain.setValueAtTime(vol, ctx.currentTime + start);
-        gain.gain.exponentialRampToValueAtTime(0.001, ctx.currentTime + start + dur);
-        osc.start(ctx.currentTime + start);
-        osc.stop(ctx.currentTime + start + dur + 0.02);
-      };
-      if (priority === 'P1') {
-        // "cha-ching": dos tonos ascendentes, mas volumen
-        beep(880, 0, 0.12, 0.22);
-        beep(1320, 0.13, 0.20, 0.22);
-      } else {
-        // P2: un tono suave
-        beep(660, 0, 0.18, 0.12);
-      }
-    } catch { /* bloqueado por el navegador hasta el primer gesto */ }
+      a.currentTime = 0;
+      a.volume = priority === 'P1' ? 1.0 : 0.6;
+      a.play().catch(() => {});
+    } catch { /* bloqueado hasta el primer gesto */ }
   }
 }

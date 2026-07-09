@@ -51,6 +51,21 @@ import { NotificationsService, NotifKind } from '@shared/services/notifications.
             }
           </header>
 
+          <!-- Activar notificaciones de escritorio (si aún no se concedió) -->
+          @if (svc.desktopPermission() === 'default') {
+            <button (click)="svc.requestDesktopPermission()"
+                    class="flex items-center gap-2 w-full px-4 py-2.5 text-left text-xs font-semibold
+                           bg-[var(--dash-primary)]/10 text-[var(--dash-primary-d)] hover:bg-[var(--dash-primary)]/20 transition">
+              <i class="fa-solid fa-desktop"></i>
+              Activar notificaciones de escritorio
+            </button>
+          } @else if (svc.desktopPermission() === 'denied') {
+            <div class="flex items-start gap-2 px-4 py-2.5 text-[11px] text-amber-600 dark:text-amber-400 bg-amber-500/10">
+              <i class="fa-solid fa-triangle-exclamation mt-0.5"></i>
+              <span>Las notificaciones de escritorio están bloqueadas. Actívalas desde el candado del navegador → Notificaciones → Permitir.</span>
+            </div>
+          }
+
           <!-- Lista -->
           <div class="overflow-y-auto flex-1 scrollbar-thin">
             @if (svc.list().length === 0) {

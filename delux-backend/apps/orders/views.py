@@ -87,6 +87,15 @@ class AdminOrderViewSet(viewsets.ReadOnlyModelViewSet):
             order.notes = reason
             update_fields.append('notes')
         order.save(update_fields=update_fields)
+
+        # Sistema inteligente de notificaciones: avisa al cliente (in-app),
+        # al staff y al vendedor; email al cliente SOLO en hitos.
+        try:
+            from apps.notifications.services import notify_order_status_change
+            notify_order_status_change(order, new_status, actor=request.user)
+        except Exception as e:
+            print(f'[notify set_status] {e}')
+
         return Response(OrderSerializer(order).data)
 
     @action(detail=False, methods=['get'])

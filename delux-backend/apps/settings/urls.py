@@ -6,6 +6,7 @@ from .views import (
     PublicUploadConfigView, NewsletterSubscriberViewSet,
 )
 from .contact_admin import ContactMessageViewSet
+from .backup_views import DatabaseBackupView
 
 router = DefaultRouter()
 router.register('subscribers', NewsletterSubscriberViewSet, basename='newsletter-subscriber')
@@ -16,5 +17,6 @@ urlpatterns = [
     path('public-config/',  PublicUploadConfigView.as_view(), name='admin-settings-public-config'),
     path('test-email/',     TestEmailView.as_view(),        name='admin-settings-test-email'),
     path('test-payphone/',  TestPayPhoneView.as_view(),     name='admin-settings-test-payphone'),
+    path('backup/',         DatabaseBackupView.as_view(),   name='admin-settings-backup'),
     path('', include(router.urls)),
 ]

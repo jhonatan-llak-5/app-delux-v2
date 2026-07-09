@@ -211,4 +211,8 @@ CELERY_BEAT_SCHEDULE = {
         'task': 'apps.notifications.tasks.newsletter_daily_digest',
         'schedule': crontab(hour=8, minute=0),  # cada dia 08:00
     },
+    'cleanup-old-notifications': {
+        'task': 'apps.notifications.tasks.cleanup_old_notifications',
+        'schedule': crontab(day_of_month=1, hour=3, minute=0),  # 1er dia del mes 03:00
+    },
 }

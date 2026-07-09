@@ -215,6 +215,12 @@ export class AdminService {
   testEmail(to: string) {
     return this.http.post<{ detail: string }>(`${this.base}/settings/test-email/`, { to });
   }
+  /** Descarga el respaldo SQL de la base de datos (blob + headers). */
+  downloadBackup() {
+    return this.http.get(`${this.base}/settings/backup/`, {
+      responseType: 'blob', observe: 'response',
+    });
+  }
   testPayPhone() {
     return this.http.post<{ detail: string; sandbox: boolean; api_url: string; store_id: string }>(
       `${this.base}/settings/test-payphone/`, {}

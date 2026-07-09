@@ -8,7 +8,7 @@ import { FileValidatorService } from '@shared/services/file-validator.service';
 import { BrandingService } from '@core/services/branding.service';
 import { DlxToggleComponent } from '@shared/ui/toggle.component';
 
-type TabId = 'email' | 'recaptcha' | 'brand' | 'uploads' | 'payments';
+type TabId = 'email' | 'recaptcha' | 'brand' | 'uploads' | 'payments' | 'backup';
 type ExtControl = 'allowed_image_extensions' | 'allowed_file_extensions' | 'allowed_video_extensions';
 interface ExtensionOption { ext: string; label: string; }
 
@@ -63,8 +63,10 @@ export class PlatformSettingsComponent implements OnInit {
     { id: 'brand',     label: 'Marca',       icon: 'fa-palette' },
     { id: 'uploads',   label: 'Subidas',     icon: 'fa-upload' },
     { id: 'payments',  label: 'Pagos',       icon: 'fa-credit-card' },
+    { id: 'backup',    label: 'Respaldo',    icon: 'fa-database' },
   ];
   tab = signal<TabId>('email');
+  downloadingBackup = signal(false);
 
   settings = signal<PlatformSettings | null>(null);
   testEmailTo = '';
@@ -135,6 +137,46 @@ export class PlatformSettingsComponent implements OnInit {
 
   ngOnInit() { this.loadSettings(); }
   setTab(id: TabId) { this.tab.set(id); }
+
+  /** Descarga un respaldo SQL de la base de datos con la fecha/hora actual. */
+  downloadBackup() {
+    if (this.downloadingBackup()) return;
+    this.downloadingBackup.set(true);
+    this.admin.downloadBackup().subscribe({
+      next: (resp) => {
+        const blob = resp.body as Blob;
+        const server = resp.headers.get('X-Backup-Filename');
+        const name = server || `dlux_backup_${this.nowStamp()}.sql`;
+        const url = URL.createObjectURL(blob);
+        const a = document.createElement('a');
+        a.href = url; a.download = name;
+        document.body.appendChild(a); a.click();
+        document.body.removeChild(a);
+        URL.revokeObjectURL(url);
+        this.downloadingBackup.set(false);
+        this.notify.success('Respaldo descargado.');
+      },
+      error: async (e) => {
+        this.downloadingBackup.set(false);
+        let msg = 'No se pudo generar el respaldo.';
+        try {
+          if (e?.error instanceof Blob) {
+            const txt = await e.error.text();
+            msg = JSON.parse(txt)?.detail || msg;
+          } else {
+            msg = parseApiError(e).message || msg;
+          }
+        } catch {}
+        this.notify.error(msg);
+      },
+    });
+  }
+
+  private nowStamp(): string {
+    const d = new Date();
+    const p = (n: number) => String(n).padStart(2, '0');
+    return `${d.getFullYear()}${p(d.getMonth() + 1)}${p(d.getDate())}_${p(d.getHours())}${p(d.getMinutes())}${p(d.getSeconds())}`;
+  }
 
 
   // ── Extension pills helpers ──

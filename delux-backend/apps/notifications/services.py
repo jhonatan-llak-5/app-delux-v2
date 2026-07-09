@@ -113,11 +113,13 @@ def notify_order_shipped(order, tracking_code=''):
 
 
 # Mapping de estado → (asunto, template, emoji)
+# Correos al CLIENTE: SOLO en hitos importantes (no en cada cambio de estado).
+# Entregado, cancelado y devolución. El resto de estados solo notifican in-app.
 _STATE_EMAILS = {
-    'PREPARING':  ('Preparamos tu orden {code}', 'order_state', '📦'),
-    'SHIPPED':    ('Tu orden {code} está en camino', 'order_state', '🚚'),
-    'IN_TRANSIT': ('Tu orden {code} va en ruta', 'order_state', '🛣️'),
     'DELIVERED':  ('¡Tu orden {code} fue entregada!', 'order_state', '✅'),
+    'CANCELLED':  ('Tu orden {code} fue cancelada', 'order_state', '❌'),
+    'REFUNDED':   ('Procesamos la devolución de tu orden {code}', 'order_state', '↩️'),
+    'RETURNED':   ('Registramos la devolución de tu orden {code}', 'order_state', '↩️'),
 }
 
 
@@ -144,12 +146,92 @@ def notify_order_state_change(order, new_status: str, tracking_code: str = ''):
                     ('SHIPPED',   'Enviado'),
                     ('IN_TRANSIT','En tránsito'),
                     ('DELIVERED', 'Entregado'),
+                    ('CANCELLED', 'Cancelado'),
+                    ('REFUNDED',  'Devuelto'),
+                    ('RETURNED',  'Devuelto'),
+                    ('FAILED',    'Entrega fallida'),
                 ]
             ).get(new_status, new_status),
             'tracking_url': f'/tracking?code={tracking_code}' if tracking_code else '',
             'emoji': emoji,
         },
     )
+
+
+# Etiquetas legibles de estado (pedido y envío) para las notificaciones in-app.
+_STATUS_LABELS = {
+    'PENDING': 'Pendiente', 'PAID': 'Pagado', 'PREPARING': 'Preparando',
+    'READY': 'Listo para envío', 'SHIPPED': 'Enviado', 'IN_TRANSIT': 'En tránsito',
+    'DELIVERED': 'Entregado', 'CANCELLED': 'Cancelado', 'REFUNDED': 'Devuelto',
+    'RETURNED': 'Devuelto', 'FAILED': 'Entrega fallida', 'CREATED': 'Creado',
+}
+
+# Estados que SÍ ameritan un correo al cliente (hitos). El resto solo in-app.
+_CLIENT_EMAIL_STATUSES = {'DELIVERED', 'CANCELLED', 'REFUNDED', 'RETURNED'}
+
+
+def notify_order_status_change(order, new_status, actor=None,
+                              tracking_code='', notify_staff=True):
+    """Sistema inteligente de notificaciones al cambiar el estado de un pedido.
+
+    - IN-APP al CLIENTE (si tiene cuenta) en TODO cambio de estado.
+    - IN-APP al staff (superadmin + admin de tienda + gerente de la sucursal) y
+      al vendedor del pedido, salvo a quien realizó el cambio (actor).
+    - EMAIL al cliente SOLO en hitos: entregado, cancelado o devolución.
+    El afiliado NO se notifica aquí (solo en venta con su código y pago de comisión).
+    """
+    from .push import push_notification, staff_recipients
+
+    label = _STATUS_LABELS.get(new_status, new_status)
+    tenant = getattr(order, 'tenant', None)
+    branch = getattr(order, 'branch', None)
+    meta = {'order_id': order.pk, 'order_code': order.code, 'status': new_status}
+
+    # 1) Cliente (in-app en su perfil)
+    client_user = getattr(order.customer, 'user', None) if order.customer else None
+    if client_user:
+        try:
+            push_notification(
+                type='order_status',
+                title=f'Tu pedido {order.code}',
+                message=f'Tu pedido cambió a "{label}".',
+                priority='P2',
+                link='/account/orders',
+                recipients=[client_user],
+                tenant=tenant, branch=branch, meta=meta,
+            )
+        except Exception as e:
+            print(f'[notify client status] {e}')
+
+    # 2) Staff + vendedor (in-app), excluyendo al actor
+    if notify_staff:
+        try:
+            recips = list(staff_recipients(tenant, branch))
+            seller = getattr(order, 'seller', None)
+            if seller and all(seller.id != u.id for u in recips):
+                recips.append(seller)
+            if actor:
+                recips = [u for u in recips if u.id != actor.id]
+            if recips:
+                who = f'{actor.full_name} ' if actor else ''
+                push_notification(
+                    type='order',
+                    title=f'Pedido {order.code} → {label}',
+                    message=f'{who}actualizó el estado del pedido.',
+                    priority='P3',
+                    link=f'/app/admin/sales/{order.pk}',
+                    recipients=recips,
+                    tenant=tenant, branch=branch, meta=meta,
+                )
+        except Exception as e:
+            print(f'[notify staff status] {e}')
+
+    # 3) Email al cliente SOLO en hitos
+    if new_status in _CLIENT_EMAIL_STATUSES:
+        try:
+            notify_order_state_change(order, new_status, tracking_code=tracking_code)
+        except Exception as e:
+            print(f'[email milestone] {e}')
 
 
 def notify_password_reset(user, code):

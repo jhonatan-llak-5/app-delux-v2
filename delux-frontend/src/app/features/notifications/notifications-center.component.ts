@@ -5,6 +5,7 @@ import { HttpClient, HttpParams } from '@angular/common/http';
 import { Router } from '@angular/router';
 import { environment } from '@env/environment';
 import { NotificationsService } from '@shared/services/notifications.service';
+import { AuthService } from '@core/services/auth.service';
 
 interface Row {
   id: number; type: string; priority: 'P1' | 'P2' | 'P3';
@@ -13,6 +14,7 @@ interface Row {
 }
 
 const TYPES: { v: string; label: string }[] = [
+  { v: 'order_status', label: 'Estado de mis pedidos' },
   { v: 'sale', label: 'Ventas POS' },
   { v: 'order', label: 'Pedidos web' },
   { v: 'order_paid', label: 'Pedidos pagados' },
@@ -25,6 +27,17 @@ const TYPES: { v: string; label: string }[] = [
   { v: 'customer_new', label: 'Nuevos clientes' },
   { v: 'newsletter_digest', label: 'Suscriptores (resumen)' },
 ];
+
+// Tipos de notificación visibles según el rol. El cliente solo ve lo suyo
+// (estado de sus pedidos); el afiliado, sus comisiones/pagos; el staff, lo
+// operativo; y admins/superadmin, todo.
+const ROLE_TYPES: Record<string, string[]> = {
+  CUSTOMER: ['order_status'],
+  AFFILIATE: ['order_status', 'affiliate_commission', 'affiliate_payout'],
+  SALESPERSON: ['order_status', 'sale', 'order', 'order_paid', 'low_stock', 'return', 'review', 'customer_new'],
+  BRANCH_MANAGER: ['order_status', 'sale', 'order', 'order_paid', 'low_stock', 'return', 'review', 'customer_new'],
+};
+// TENANT_ADMIN y SUPERADMIN ven todos los tipos.
 
 @Component({
   selector: 'dlx-notifications-center',
@@ -80,7 +93,7 @@ const TYPES: { v: string; label: string }[] = [
           <div>
             <p class="text-sm font-medium mb-2" [style.color]="'var(--dash-text)'">Tipos que deseo recibir</p>
             <div class="grid grid-cols-2 md:grid-cols-3 gap-2">
-              @for (t of types; track t.v) {
+              @for (t of types(); track t.v) {
                 <label class="flex items-center gap-2 text-sm cursor-pointer" [style.color]="'var(--dash-text-muted)'">
                   <input type="checkbox" [checked]="!isDisabled(t.v)" (change)="toggleType(t.v)">
                   {{ t.label }}
@@ -98,7 +111,7 @@ const TYPES: { v: string; label: string }[] = [
         </label>
         <select class="eg-input text-sm" [(ngModel)]="fType" (ngModelChange)="reload()">
           <option value="">Todos los tipos</option>
-          @for (t of types; track t.v) { <option [value]="t.v">{{ t.label }}</option> }
+          @for (t of types(); track t.v) { <option [value]="t.v">{{ t.label }}</option> }
         </select>
         <select class="eg-input text-sm" [(ngModel)]="fPriority" (ngModelChange)="reload()">
           <option value="">Toda prioridad</option>
@@ -153,9 +166,15 @@ export class NotificationsCenterComponent implements OnInit {
   svc = inject(NotificationsService);
   private http = inject(HttpClient);
   private router = inject(Router);
+  private auth = inject(AuthService);
   private base = `${environment.apiUrl}/notifications`;
 
-  types = TYPES;
+  // Tipos visibles según el rol del usuario (los admins ven todos).
+  types = computed(() => {
+    const role = (this.auth.user()?.role || '').toUpperCase();
+    const allowed = ROLE_TYPES[role];
+    return allowed ? TYPES.filter(t => allowed.includes(t.v)) : TYPES;
+  });
   items = signal<Row[]>([]);
   count = signal(0);
   page = signal(1);

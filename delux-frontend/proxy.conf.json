@@ -10,5 +10,12 @@
     "secure": false,
     "changeOrigin": true,
     "logLevel": "warn"
+  },
+  "/ws": {
+    "target": "http://websocket:8001",
+    "secure": false,
+    "ws": true,
+    "changeOrigin": true,
+    "logLevel": "warn"
   }
 }

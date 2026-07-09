@@ -41,3 +41,14 @@ def deliver_email(from_email, to_email, raw_message):
     """Envía por SMTP un correo ya renderizado, en segundo plano."""
     from .services import _smtp_send_raw
     return _smtp_send_raw(from_email, to_email, raw_message)
+
+
+@shared_task
+def cleanup_old_notifications(days=60):
+    """Poda mensual: elimina notificaciones YA LEÍDAS con más de `days` días.
+    Evita que la tabla crezca sin límite. No toca las no leídas."""
+    from .models import Notification
+    cutoff = timezone.now() - timedelta(days=days)
+    deleted, _ = Notification.objects.filter(
+        is_read=True, created_at__lt=cutoff).delete()
+    return deleted
