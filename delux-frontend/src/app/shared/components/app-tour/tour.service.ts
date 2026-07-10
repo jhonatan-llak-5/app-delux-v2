@@ -165,6 +165,71 @@ export class TourService {
       body: 'Tus datos personales y el cambio de contraseña.',
     },
     {
+      target: '[data-tour="nav-affiliates"]', placement: 'right', icon: 'fa-hand-holding-dollar',
+      title: 'Afiliados',
+      body: 'Gestiona tu programa de afiliados: enlaces de referido, comisiones y pagos.',
+    },
+    {
+      target: '[data-tour="nav-payroll"]', placement: 'right', icon: 'fa-money-check-dollar',
+      title: 'Nómina',
+      body: 'Genera y controla los pagos de sueldos y comisiones de tu equipo por mes.',
+    },
+    {
+      target: '[data-tour="nav-messages"]', placement: 'right', icon: 'fa-inbox',
+      title: 'Mensajes',
+      body: 'Los mensajes que envían los clientes desde el formulario de contacto.',
+    },
+    {
+      target: '[data-tour="nav-subscribers"]', placement: 'right', icon: 'fa-envelope-open-text',
+      title: 'Suscriptores',
+      body: 'Personas suscritas a tu newsletter, con opción de exportar y dar de baja.',
+    },
+    {
+      target: '[data-tour="nav-wishlist"]', placement: 'right', icon: 'fa-heart',
+      title: 'Mis favoritos',
+      body: 'Los productos que guardaste como favoritos para revisarlos luego.',
+    },
+    {
+      target: '[data-tour="nav-orders"]', placement: 'right', icon: 'fa-receipt',
+      title: 'Mis compras',
+      body: 'El historial de tus pedidos: su estado, detalle y comprobantes.',
+    },
+    {
+      target: '[data-tour="nav-addresses"]', placement: 'right', icon: 'fa-location-dot',
+      title: 'Direcciones',
+      body: 'Tus direcciones de envío guardadas para comprar más rápido.',
+    },
+    {
+      target: '[data-tour="nav-store"]', placement: 'right', icon: 'fa-store',
+      title: 'Ir a la tienda',
+      body: 'Vuelve al catálogo público para seguir comprando cuando quieras.',
+    },
+    {
+      target: '[data-tour="nav-seller"]', placement: 'right', icon: 'fa-gauge-high',
+      title: 'Mi panel',
+      body: 'Tu resumen como vendedor: ventas del día, tu comisión y accesos rápidos.',
+    },
+    {
+      target: '[data-tour="nav-affiliate"]', placement: 'right', icon: 'fa-hand-holding-dollar',
+      title: 'Panel de afiliado',
+      body: 'Tu resumen: clics, ventas con tu código, comisiones generadas y saldo.',
+    },
+    {
+      target: '[data-tour="nav-comisiones"]', placement: 'right', icon: 'fa-hand-holding-dollar',
+      title: 'Mis comisiones',
+      body: 'El detalle de las comisiones que has ganado por cada venta con tu código.',
+    },
+    {
+      target: '[data-tour="nav-ventas"]', placement: 'right', icon: 'fa-box',
+      title: 'Mis ventas',
+      body: 'Las ventas realizadas con tu código de afiliado y su estado.',
+    },
+    {
+      target: '[data-tour="nav-pagos"]', placement: 'right', icon: 'fa-money-check-dollar',
+      title: 'Mis pagos',
+      body: 'El historial de pagos de comisiones que has recibido.',
+    },
+    {
       target: '[data-tour="search"]', placement: 'bottom', icon: 'fa-magnifying-glass',
       title: 'Búsqueda rápida',
       body: 'Encuentra productos, pedidos o clientes al instante desde cualquier pantalla.',
@@ -210,15 +275,26 @@ export class TourService {
     this.lockScroll(true);
   }
 
-  /** Ordena los pasos de navegación (nav-*) según el orden visual real del menú. */
+  /** Ordena los pasos de navegación (nav-*) según el ORDEN REAL del menú.
+   *  Usa el orden de aparición en el DOM (document order), que coincide con el
+   *  orden del arreglo de items del sidebar de cada rol. Es determinista: no
+   *  depende de la geometría ni de si el sidebar móvil está montado/oculto
+   *  (antes se ordenaba por getBoundingClientRect().top y a veces tomaba el
+   *  sidebar móvil oculto, descuadrando el orden). */
   private orderByMenu(steps: TourStep[]): TourStep[] {
     if (typeof document === 'undefined') return steps;
     const isNav = (s: TourStep) => !!s.target && s.target.includes('"nav-');
-    const top = (sel: string | null) => {
-      const el = sel ? resolveTourEl(sel) : null;
-      return el ? el.getBoundingClientRect().top : 0;
+    // Todos los items de navegación en orden de documento (escritorio primero).
+    const allNav = Array.from(
+      document.querySelectorAll<HTMLElement>('[data-tour^="nav-"]'));
+    const orderOf = (sel: string | null): number => {
+      if (!sel) return Number.MAX_SAFE_INTEGER;
+      const el = document.querySelector<HTMLElement>(sel);
+      const i = el ? allNav.indexOf(el) : -1;
+      return i === -1 ? Number.MAX_SAFE_INTEGER : i;
     };
-    const navSorted = steps.filter(isNav).sort((a, b) => top(a.target) - top(b.target));
+    const navSorted = steps.filter(isNav)
+      .sort((a, b) => orderOf(a.target) - orderOf(b.target));
     const result: TourStep[] = [];
     let inserted = false;
     for (const s of steps) {

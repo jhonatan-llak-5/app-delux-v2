@@ -109,7 +109,7 @@ export class DashboardLayoutComponent implements AfterViewInit, OnDestroy {
 
   /** Clave de tour derivada de la ruta: /app/admin/products -> nav-products. */
   tourKey(route: string): string {
-    const seg = route.split('/').filter(Boolean).pop() || 'item';
+    const seg = route.split('/').filter(Boolean).pop() || 'store';
     return 'nav-' + seg;
   }
 
