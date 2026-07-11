@@ -1,4 +1,4 @@
-import { ChangeDetectionStrategy, Component, ElementRef, OnDestroy, OnInit, ViewChild, computed, effect, inject, signal } from '@angular/core';
+import { ChangeDetectionStrategy, Component, ElementRef, OnDestroy, OnInit, ViewChild, computed, effect, inject, signal, untracked } from '@angular/core';
 import { DlxEmptyStateComponent } from '@shared/ui/empty-state.component';
 import { ImgFallbackDirective } from '@shared/ui/img-fallback.directive';
 import { DlxSearchInputComponent } from '@shared/ui/search-input.component';
@@ -116,7 +116,10 @@ export class PosComponent implements OnInit, OnDestroy {
       const id = this.branchCtx.current();
       this.branchId.set(id);
       this.clearSearch();
-      this.cameraOn() && this.stopCamera();
+      // Al cambiar de sucursal, apaga la cámara si estaba encendida. Leemos
+      // cameraOn() con untracked para NO volver dependiente el efecto de la
+      // cámara (si no, al encenderla el efecto se re-ejecutaba y la apagaba).
+      untracked(() => { if (this.cameraOn()) this.stopCamera(); });
     }, { allowSignalWrites: true });
   }
 
