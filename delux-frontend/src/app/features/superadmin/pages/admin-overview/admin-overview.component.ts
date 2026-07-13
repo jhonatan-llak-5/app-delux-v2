@@ -4,6 +4,7 @@ import { CommonModule } from '@angular/common';
 import { RouterLink } from '@angular/router';
 import { ChartConfiguration } from 'chart.js/auto';
 import { AuthService } from '@core/services/auth.service';
+import { ExpenseService, FinanceSummary } from '@features/superadmin/services/expense.service';
 import { ChartCanvasComponent } from '@shared/components/chart-canvas/chart-canvas.component';
 import {
   ReportsService, OverviewKPIs, TimelinePoint, ChannelRow, ProductRow, LowStockRow,
@@ -34,6 +35,24 @@ import {
                        [iconBg]="k.iconBg" [iconColor]="k.iconColor" [delta]="k.delta" [sub]="k.sub" />
       }
     </div>
+
+    @if (finance(); as f) {
+      <div class="grid grid-cols-1 sm:grid-cols-3 gap-4 mt-4">
+        <div class="card p-4 flex items-center gap-3">
+          <div class="w-10 h-10 rounded-xl bg-amber-50 dark:bg-amber-500/15 text-amber-600 grid place-items-center"><i class="fa-solid fa-truck-ramp-box"></i></div>
+          <div><p class="text-xs text-slate-400">Compras (30 días)</p><p class="font-bold">{{ money(f.compras) }}</p></div>
+        </div>
+        <div class="card p-4 flex items-center gap-3">
+          <div class="w-10 h-10 rounded-xl bg-rose-50 dark:bg-rose-500/15 text-rose-600 grid place-items-center"><i class="fa-solid fa-wallet"></i></div>
+          <div><p class="text-xs text-slate-400">Gastos (30 días)</p><p class="font-bold">{{ money(f.gastos) }}</p></div>
+        </div>
+        <a routerLink="/app/admin/finanzas" class="card p-4 flex items-center gap-3 hover:ring-2 hover:ring-emerald-200 transition">
+          <div class="w-10 h-10 rounded-xl grid place-items-center" [ngClass]="+f.ganancia >= 0 ? 'bg-emerald-50 dark:bg-emerald-500/15 text-emerald-600' : 'bg-rose-50 dark:bg-rose-500/15 text-rose-600'"><i class="fa-solid fa-chart-pie"></i></div>
+          <div class="flex-1"><p class="text-xs text-slate-400">Ganancia · ver finanzas</p><p class="font-bold" [ngClass]="+f.ganancia >= 0 ? 'text-emerald-600' : 'text-rose-600'">{{ money(f.ganancia) }}</p></div>
+          <i class="fa-solid fa-arrow-right text-slate-300"></i>
+        </a>
+      </div>
+    }
 
     @if (noAccess()) {
       <div class="card p-6 mt-4 text-center text-slate-500">
@@ -67,6 +86,19 @@ import {
             <dlx-chart-canvas [config]="cfg" [height]="220" />
           } @else {
             <div class="p-10 text-center text-slate-400 text-sm">Sin datos.</div>
+          }
+          @if (channels().length) {
+            <div class="mt-4 space-y-2">
+              @for (ch of channels(); track ch.channel; let i = $index) {
+                <div class="flex items-center justify-between text-sm">
+                  <span class="flex items-center gap-2 text-slate-600 dark:text-white/70">
+                    <span class="w-2.5 h-2.5 rounded-full" [style.background]="channelPalette[i % channelPalette.length]"></span>
+                    {{ channelLabel(ch.channel) }}
+                  </span>
+                  <span class="font-semibold text-slate-800 dark:text-white">{{ money(ch.revenue) }} <span class="text-slate-400 font-normal text-xs">· {{ ch.orders }} ped.</span></span>
+                </div>
+              }
+            </div>
           }
         </div>
       </div>
@@ -143,6 +175,7 @@ import {
 export class AdminOverviewComponent implements OnInit {
   private reports = inject(ReportsService);
   private auth = inject(AuthService);
+  private expenses = inject(ExpenseService);
 
   kpis = signal<OverviewKPIs | null>(null);
   timeline = signal<TimelinePoint[]>([]);
@@ -150,6 +183,7 @@ export class AdminOverviewComponent implements OnInit {
   topProducts = signal<ProductRow[]>([]);
   lowStock = signal<LowStockRow[]>([]);
   noAccess = signal(false);
+  finance = signal<FinanceSummary | null>(null);
 
   name = computed(() => {
     const u = this.auth.user();
@@ -259,7 +293,11 @@ export class AdminOverviewComponent implements OnInit {
     this.reports.byChannel(p).subscribe({ next: r => this.channels.set(r.results || []), error: () => {} });
     this.reports.topProducts(p).subscribe({ next: r => this.topProducts.set(r.results || []), error: () => {} });
     this.reports.lowStock().subscribe({ next: r => this.lowStock.set(r.results || []), error: () => {} });
+    this.expenses.financeSummary(p).subscribe({ next: f => this.finance.set(f), error: () => {} });
   }
+
+  readonly channelPalette = ['#3b82f6', '#8b5cf6', '#10b981', '#f59e0b'];
+  channelLabel(ch: string): string { return ch === 'WEB' ? 'Web' : ch === 'POS' ? 'Tienda' : ch; }
 
   money(v: number | string | null | undefined): string {
     const n = +(v ?? 0) || 0;

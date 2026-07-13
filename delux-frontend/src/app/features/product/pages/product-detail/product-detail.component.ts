@@ -19,18 +19,18 @@ interface ProductVM {
   variants: { id: number; size: string; color: string }[];
 }
 
-const EMPTY_PRODUCT: ProductVM = {
-  id: 0, name: '', subtitle: '', brand: '', category: '', slug: '',
-  price: 0, oldPrice: undefined, rating: 0, reviewsCount: 0, tag: '',
-  gallery: ['https://images.unsplash.com/photo-1542291026-7eec264c27ff?w=1200&q=85'],
-  colors: [], sizes: [], description: '', variants: [],
-};
-
 const IMG_PLACEHOLDER = 'data:image/svg+xml,' + encodeURIComponent(
   '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 120 120">'
   + '<g fill="none" stroke="#9aa0ab" stroke-width="4" stroke-linejoin="round" stroke-linecap="round">'
   + '<rect x="32" y="44" width="56" height="40" rx="6"/><circle cx="60" cy="64" r="11"/>'
   + '<path d="M44 44l5-9h22l5 9"/></g></svg>');
+
+const EMPTY_PRODUCT: ProductVM = {
+  id: 0, name: '', subtitle: '', brand: '', category: '', slug: '',
+  price: 0, oldPrice: undefined, rating: 0, reviewsCount: 0, tag: '',
+  gallery: [IMG_PLACEHOLDER],
+  colors: [], sizes: [], description: '', variants: [],
+};
 
 @Component({
   selector: 'dlx-product-detail',

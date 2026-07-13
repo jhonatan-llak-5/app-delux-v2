@@ -199,8 +199,8 @@ class PublicProductDetailView(APIView):
         images = [img.url for img in p.images.all().order_by('-is_main', 'sort_order')]
         if p.main_image_url and p.main_image_url not in images:
             images.insert(0, p.main_image_url)
-        if not images:
-            images = ['https://images.unsplash.com/photo-1542291026-7eec264c27ff?w=1200&q=85']
+        # Sin imagen por defecto: si el producto no tiene fotos, se devuelve
+        # la lista vacia y el frontend muestra su placeholder "sin imagen".
 
         variants = list(Variant.objects.filter(product=p, is_active=True)
                         .values('id', 'size', 'color'))

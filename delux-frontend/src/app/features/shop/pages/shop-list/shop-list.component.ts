@@ -82,7 +82,7 @@ products = signal<Product[]>([]);
     oldPrice: pp.compare_at_price ? Number(pp.compare_at_price) : undefined,
     colors: [],
     sizes: [],
-    image: pp.thumb_url || pp.main_image_url || 'https://images.unsplash.com/photo-1542291026-7eec264c27ff?w=600&q=85',
+    image: pp.thumb_url || pp.main_image_url || IMG_PLACEHOLDER,
     tag: this.mapTag(pp.tag),
     gender: this.mapGender(pp.gender),
     available: pp.available_in_city !== false,

@@ -70,6 +70,8 @@ export interface Supplier {
   is_active: boolean;
 }
 
+export interface SupplierProduct { product_id: number; product: string; qty: number; last_received: string | null; }
+
 export interface ScanResult {
   found: boolean;
   code?: string;
@@ -196,6 +198,9 @@ export class InventoryService {
 
   deleteSupplier(id: number): Observable<void> {
     return this.http.delete<void>(`${this.base}/suppliers/${id}/`);
+  }
+  supplierProducts(id: number): Observable<SupplierProduct[]> {
+    return this.http.get<SupplierProduct[]>(`${this.base}/suppliers/${id}/products/`);
   }
 
   createReception(payload: {
