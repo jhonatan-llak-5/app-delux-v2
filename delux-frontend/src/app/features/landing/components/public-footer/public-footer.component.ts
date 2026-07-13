@@ -14,18 +14,18 @@ import { BrandingService } from '@core/services/branding.service';
   imports: [CommonModule, FormsModule, RouterLink],
   changeDetection: ChangeDetectionStrategy.OnPush,
   template: `
-    <footer class="bg-white dark:bg-slate-950 border-t border-ink-100 dark:border-white/[0.06]">
+    <footer class="bg-slate-950 border-t border-white/10">
 
       <!-- ─────── Newsletter strip (premium) ─────── -->
-      <div class="border-b border-ink-100 dark:border-white/[0.06]">
+      <div class="border-b border-white/10">
         <div class="max-w-[1400px] mx-auto px-6 md:px-10 py-12
                     grid grid-cols-1 md:grid-cols-12 gap-6 items-center">
           <div class="md:col-span-7">
             <h3 class="font-bold text-[22px] md:text-[26px] tracking-[-0.015em] leading-tight
-                       text-ink-950 dark:text-white">
+                       text-white">
               Suscríbete y recibe los drops antes que nadie.
             </h3>
-            <p class="text-ink-600 dark:text-white/55 text-[14px] mt-2">
+            <p class="text-white/60 text-[14px] mt-2">
               Sin spam. Sólo lanzamientos y ofertas exclusivas para suscriptores.
             </p>
           </div>
@@ -51,19 +51,17 @@ import { BrandingService } from '@core/services/branding.service';
         <div class="col-span-2 md:col-span-4">
           <a routerLink="/" class="flex items-center gap-2.5 w-fit">
             @if (branding.logoUrl()) {
-              <img [src]="branding.logoUrl()" [alt]="branding.siteName()"
-                   class="h-10 w-auto max-w-[180px] object-contain rounded-xl block dark:hidden" />
               <img [src]="branding.logoUrlDark()" [alt]="branding.siteName()"
-                   class="h-10 w-auto max-w-[180px] object-contain rounded-xl hidden dark:block" />
+                   class="h-10 w-auto max-w-[180px] object-contain rounded-xl" />
             } @else {
-              <div class="w-10 h-10 rounded-xl bg-ink-950 dark:bg-white grid place-items-center
-                          font-bold text-white dark:text-ink-950 text-base">{{ branding.siteName().charAt(0) }}</div>
-              <span class="font-bold text-xl tracking-tight text-ink-950 dark:text-white">{{ branding.siteName() }}</span>
+              <div class="w-10 h-10 rounded-xl bg-white grid place-items-center
+                          font-bold text-ink-950 text-base">{{ branding.siteName().charAt(0) }}</div>
+              <span class="font-bold text-xl tracking-tight text-white">{{ branding.siteName() }}</span>
             }
           </a>
-          <p class="text-ink-600 dark:text-white/55 text-[14px] leading-relaxed mt-5 max-w-sm">
-            Streetwear premium en Ecuador. Drops exclusivos de las marcas que definen
-            la cultura urbana, envío en 24h y retiro en sucursales.
+          <p class="text-white/60 text-[14px] leading-relaxed mt-5 max-w-sm">
+            Calzado original en Ecuador. Estilo, calidad y compromiso social;
+            envíos a todo el país y retiro en nuestras sucursales.
           </p>
 
           <!-- Social row (dinámico según config) -->
@@ -73,8 +71,8 @@ import { BrandingService } from '@core/services/branding.service';
                 <a [href]="s.url" target="_blank" rel="noopener"
                    [attr.aria-label]="s.label"
                    class="w-10 h-10 grid place-items-center rounded-full
-                          bg-ink-50 dark:bg-white/[0.04]
-                          text-ink-700 dark:text-white/70
+                          bg-white/[0.06]
+                          text-white/70
                           hover:bg-[#0095f6] hover:text-white
                           transition-colors">
                   <i class="{{ s.icon }} text-[14px]"></i>
@@ -84,7 +82,7 @@ import { BrandingService } from '@core/services/branding.service';
           }
 
           <!-- Métodos de pago -->
-          <div class="mt-7 flex items-center gap-3 text-[12px] text-ink-500 dark:text-white/40">
+          <div class="mt-7 flex items-center gap-3 text-[12px] text-white/45">
             <i class="fa-solid fa-building-columns text-[#0095f6]"></i>
             <span>Pagos por transferencia bancaria y DE UNA</span>
           </div>
@@ -94,14 +92,14 @@ import { BrandingService } from '@core/services/branding.service';
         @for (col of columns; track col.title) {
           <div class="md:col-span-2">
             <h4 class="font-bold text-[12px] uppercase tracking-[0.2em]
-                       text-ink-950 dark:text-white mb-5">
+                       text-white mb-5">
               {{ col.title }}
             </h4>
             <ul class="space-y-3">
               @for (item of col.items; track item.label) {
                 <li>
                   <a [routerLink]="item.route" [queryParams]="item.qp || null"
-                     class="text-[14px] text-ink-600 dark:text-white/55
+                     class="text-[14px] text-white/60
                             hover:text-[#0095f6] dark:hover:text-[#0095f6] transition">
                     {{ item.label }}
                   </a>
@@ -114,10 +112,10 @@ import { BrandingService } from '@core/services/branding.service';
         <!-- Contacto -->
         <div class="md:col-span-2">
           <h4 class="font-bold text-[12px] uppercase tracking-[0.2em]
-                     text-ink-950 dark:text-white mb-5">
+                     text-white mb-5">
             Contacto
           </h4>
-          <ul class="space-y-3 text-[14px] text-ink-600 dark:text-white/55">
+          <ul class="space-y-3 text-[14px] text-white/60">
             @if (branding.contactEmail()) {
               <li class="flex items-start gap-2">
                 <i class="fa-solid fa-envelope text-[#0095f6] text-[12px] mt-1"></i>
@@ -143,21 +141,21 @@ import { BrandingService } from '@core/services/branding.service';
       </div>
 
       <!-- ─────── Bottom bar ─────── -->
-      <div class="border-t border-ink-100 dark:border-white/[0.06]">
+      <div class="border-t border-white/10">
         <div class="max-w-[1400px] mx-auto px-6 md:px-10 py-5
                     flex flex-col md:flex-row items-center justify-between gap-4">
-          <p class="text-[12px] text-ink-500 dark:text-white/45">
+          <p class="text-[12px] text-white/45">
             © {{ year }} {{ branding.siteName() }}. Todos los derechos reservados.
             <span class="ml-2 opacity-60">· v{{ appVersion }}</span>
           </p>
-          <div class="flex items-center gap-5 text-[12px] text-ink-500 dark:text-white/45">
-            <a routerLink="/terms" class="hover:text-ink-950 dark:hover:text-white transition">Términos</a>
-            <span class="w-px h-3 bg-ink-200 dark:bg-white/15"></span>
-            <a routerLink="/privacy" class="hover:text-ink-950 dark:hover:text-white transition">Privacidad</a>
-            <span class="w-px h-3 bg-ink-200 dark:bg-white/15"></span>
-            <a routerLink="/cookies" class="hover:text-ink-950 dark:hover:text-white transition">Cookies</a>
+          <div class="flex items-center gap-5 text-[12px] text-white/45">
+            <a routerLink="/terms" class="hover:text-white transition">Términos</a>
+            <span class="w-px h-3 bg-white/15"></span>
+            <a routerLink="/privacy" class="hover:text-white transition">Privacidad</a>
+            <span class="w-px h-3 bg-white/15"></span>
+            <a routerLink="/cookies" class="hover:text-white transition">Cookies</a>
           </div>
-          <div class="flex items-center gap-3 text-[11px] font-mono text-ink-400 dark:text-white/35 uppercase tracking-widest">
+          <div class="flex items-center gap-3 text-[11px] font-mono text-white/35 uppercase tracking-widest">
             <span>EC</span>
             <span class="w-1 h-1 rounded-full bg-current"></span>
             <span>USD</span>
@@ -203,10 +201,10 @@ export class PublicFooterComponent {
       { label: 'Contacto',         route: '/contact',  qp: null },
     ]},
     { title: 'Empresa', items: [
-      { label: 'Sobre nosotros',         route: '/about',    qp: null },
-      { label: 'Sucursales',             route: '/shop',     qp: null },
+      { label: 'Sobre nosotros',         route: '/nosotros', qp: null },
+      { label: 'Sucursales',             route: '/contact',  qp: null },
       { label: 'Trabaja con nosotros',   route: '/contact',  qp: null },
-      { label: 'Sé un partner',          route: '/contact',  qp: null },
+      { label: 'Ventas mayoristas',      route: '/ventas',   qp: null },
       { label: 'Newsletter',             route: '/contact',  qp: null },
     ]},
   ];

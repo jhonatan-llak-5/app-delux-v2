@@ -7,6 +7,8 @@ import { inject } from '@angular/core';
 import { PublicFormsService } from '@shared/services/public-forms.service';
 import { NotifyService } from '@shared/services/notify.service';
 import { BrandingService } from '@core/services/branding.service';
+import { DomSanitizer, SafeResourceUrl } from '@angular/platform-browser';
+import { PublicBranchesService } from '@shared/services/public-branches.service';
 
 @Component({
   selector: 'dlx-contact-page',
@@ -17,13 +19,14 @@ import { BrandingService } from '@core/services/branding.service';
     <!-- HEADER -->
     <section class="bg-white dark:bg-slate-950 pt-32 pb-16">
       <div class="max-w-[1100px] mx-auto px-6 md:px-10 text-center">
-        <p class="text-[12px] tracking-[0.25em] uppercase text-[#0095f6] font-semibold mb-4">
-          Contacto
-        </p>
-        <h1 class="font-bold text-[44px] md:text-[64px] tracking-[-0.03em] leading-[1.05]
+        <div class="flex items-center justify-center gap-3 mb-4">
+          <span class="h-px w-10 bg-[#0095f6]"></span>
+          <p class="text-[12px] tracking-[0.25em] uppercase text-[#0095f6] font-bold">Contacto</p>
+          <span class="h-px w-10 bg-[#0095f6]"></span>
+        </div>
+        <h1 class="font-black text-[44px] md:text-[64px] tracking-[-0.03em] leading-[1.05]
                    text-ink-950 dark:text-white">
-          Hablemos.<br/>
-          <span class="text-ink-500 dark:text-white/45">Estamos aquí.</span>
+          Hablemos, <span class="text-[#0095f6]">estamos aquí</span>.
         </h1>
         <p class="text-ink-600 dark:text-white/55 text-[16px] mt-6 leading-relaxed max-w-xl mx-auto">
           ¿Tienes una pregunta sobre tu pedido, una colaboración, o quieres saber más de un drop?
@@ -187,6 +190,32 @@ import { BrandingService } from '@core/services/branding.service';
       </div>
     </section>
 
+    <!-- MAPA -->
+    <section class="bg-white dark:bg-slate-950 pb-4">
+      <div class="max-w-[1100px] mx-auto px-6 md:px-10">
+        <div class="flex items-center gap-3 mb-8">
+          <span class="h-px w-10 bg-[#0095f6]"></span>
+          <p class="text-[12px] tracking-[0.25em] uppercase text-[#0095f6] font-bold">Dónde estamos</p>
+        </div>
+        <div class="grid md:grid-cols-3 gap-4 mb-8">
+          @for (b of branches(); track b.name) {
+            <div class="flex items-start gap-4 rounded-2xl p-5 border border-ink-200 dark:border-white/[0.08] bg-ink-50 dark:bg-slate-800 hover:border-[#0095f6] transition">
+              <div class="w-11 h-11 rounded-2xl bg-[#0095f6]/10 text-[#0095f6] grid place-items-center shrink-0"><i class="fa-solid fa-location-dot"></i></div>
+              <div>
+                <p class="font-bold text-ink-950 dark:text-white">{{ b.name }} <span class="text-[#0095f6] text-sm">· {{ b.city }}</span></p>
+                <p class="mt-1 text-[13px] text-ink-600 dark:text-white/55">{{ b.address }}</p>
+                <p class="mt-1 text-[12px] text-ink-500 dark:text-white/45"><i class="fa-regular fa-clock"></i> {{ b.hours }}</p>
+              </div>
+            </div>
+          }
+        </div>
+        <div class="rounded-[2rem] overflow-hidden shadow-xl border border-ink-200 dark:border-white/[0.08]">
+          <iframe [src]="mapUrl" class="w-full h-[380px] border-0" loading="lazy"
+                  referrerpolicy="no-referrer-when-downgrade" title="Ubicación DLUX"></iframe>
+        </div>
+      </div>
+    </section>
+
     <!-- FAQ -->
     <section class="bg-white dark:bg-slate-950 py-24 md:py-32">
       <div class="max-w-[900px] mx-auto px-6 md:px-10">
@@ -228,6 +257,21 @@ export class ContactPageComponent implements OnInit {
   private forms = inject(PublicFormsService);
   private notify = inject(NotifyService);
   branding = inject(BrandingService);
+  private san = inject(DomSanitizer);
+
+  // Coordenadas de la SUCURSAL PRINCIPAL (cámbialas por las reales).
+  readonly mapLat = -0.180653;
+  readonly mapLng = -78.467834;
+  readonly mapUrl: SafeResourceUrl = this.san.bypassSecurityTrustResourceUrl(
+    `https://www.google.com/maps?q=${this.mapLat},${this.mapLng}&z=16&hl=es&output=embed`);
+
+  private branchSvc = inject(PublicBranchesService);
+  branches = signal<{ name: string; city: string; address: string; hours: string }[]>([
+    { name: 'DLUX Quito',     city: 'Quito',     address: 'Av. Amazonas N24-03 y Colón', hours: 'Lun-Sáb · 10:00 a 20:00' },
+    { name: 'DLUX Guayaquil', city: 'Guayaquil', address: 'C.C. Mall del Sol, Local 128', hours: 'Lun-Dom · 10:00 a 22:00' },
+    { name: 'DLUX Cuenca',    city: 'Cuenca',    address: 'Av. Solano 5-23',              hours: 'Lun-Sáb · 10:00 a 19:00' },
+  ]);
+
   form = { name: '', email: '', phone: '', subject: '', message: '' };
   sent = signal(false);
   saving = signal(false);
@@ -238,6 +282,16 @@ export class ContactPageComponent implements OnInit {
 
   ngOnInit(): void {
     if (this.branding.recaptchaSiteKey()) setTimeout(() => this.renderRecaptcha(), 300);
+    this.branchSvc.list().subscribe({
+      next: r => {
+        const items = (r.results || []).map(b => ({
+          name: b.name, city: b.city, address: b.address,
+          hours: b.opening_hours || 'Lun-Sáb · 10:00 a 20:00',
+        }));
+        if (items.length) this.branches.set(items);
+      },
+      error: () => {},
+    });
   }
 
   private renderRecaptcha(retries = 20): void {

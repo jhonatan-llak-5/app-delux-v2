@@ -23,17 +23,16 @@
           }
         </a>
 
-        <div class="hidden md:block">
-          <div class="pill-nav">
-            <a routerLink="/" [routerLinkActiveOptions]="{ exact: true }"
-               routerLinkActive="!bg-white dark:!bg-ink-950 !text-ink-950 dark:!text-white font-semibold shadow-md">Inicio</a>
-            <a routerLink="/shop"
-               routerLinkActive="!bg-white dark:!bg-ink-950 !text-ink-950 dark:!text-white font-semibold shadow-md">Shop</a>
-            <a routerLink="/contact"
-               routerLinkActive="!bg-white dark:!bg-ink-950 !text-ink-950 dark:!text-white font-semibold shadow-md">Contacto</a>
-            <a routerLink="/tracking"
-               routerLinkActive="!bg-white dark:!bg-ink-950 !text-ink-950 dark:!text-white font-semibold shadow-md">Rastrear</a>
-          </div>
+        <div class="hidden lg:flex items-center gap-0.5">
+          <a routerLink="/" [routerLinkActiveOptions]="{ exact: true }"
+             routerLinkActive="!text-[#0095f6] dark:!text-[#5cb8ff] !bg-[#0095f6]/10" class="px-3.5 py-2 rounded-full text-sm font-medium text-ink-700 dark:text-white/75 hover:text-ink-950 dark:hover:text-white hover:bg-ink-100 dark:hover:bg-white/10 transition">Inicio</a>
+          <a routerLink="/nosotros" routerLinkActive="!text-[#0095f6] dark:!text-[#5cb8ff] !bg-[#0095f6]/10" class="px-3.5 py-2 rounded-full text-sm font-medium text-ink-700 dark:text-white/75 hover:text-ink-950 dark:hover:text-white hover:bg-ink-100 dark:hover:bg-white/10 transition">Quiénes somos</a>
+          <a routerLink="/ventas" routerLinkActive="!text-[#0095f6] dark:!text-[#5cb8ff] !bg-[#0095f6]/10" class="px-3.5 py-2 rounded-full text-sm font-medium text-ink-700 dark:text-white/75 hover:text-ink-950 dark:hover:text-white hover:bg-ink-100 dark:hover:bg-white/10 transition">Ventas</a>
+          <a routerLink="/contact" routerLinkActive="!text-[#0095f6] dark:!text-[#5cb8ff] !bg-[#0095f6]/10" class="px-3.5 py-2 rounded-full text-sm font-medium text-ink-700 dark:text-white/75 hover:text-ink-950 dark:hover:text-white hover:bg-ink-100 dark:hover:bg-white/10 transition">Contacto</a>
+          <a routerLink="/shop" routerLinkActive="!bg-red-700"
+             class="ml-1.5 inline-flex items-center gap-2 px-4 py-2 rounded-full bg-red-600 text-white text-sm font-semibold hover:bg-red-700 transition shadow-sm shadow-red-600/30">
+            <i class="fa-solid fa-bag-shopping text-xs"></i> Tienda
+          </a>
         </div>
 
         <div class="flex items-center gap-1">
@@ -143,7 +142,7 @@
               </span>
             }
           </a>
-          <button (click)="toggle()" class="md:hidden w-10 h-10 grid place-items-center rounded-full
+          <button (click)="toggle()" class="lg:hidden w-10 h-10 grid place-items-center rounded-full
                                               text-ink-600 dark:text-white/70 hover:bg-ink-100 dark:hover:bg-white/10" aria-label="Menú">
             <i class="fa-solid" [class.fa-bars]="!open()" [class.fa-xmark]="open()"></i>
           </button>
@@ -153,7 +152,7 @@
     </header>
 
       @if (open()) {
-        <div class="md:hidden fixed inset-0 z-[60]">
+        <div class="lg:hidden fixed inset-0 z-[60]">
           <div class="absolute inset-0 bg-ink-950/60 backdrop-blur-sm animate-fade-in" (click)="close()"></div>
           <aside class="absolute right-0 top-0 h-full w-72 max-w-[84vw] flex flex-col
                         bg-white dark:bg-[#0f172a] border-l border-ink-200 dark:border-white/10
@@ -184,7 +183,9 @@
               </button>
               <div class="my-2 h-px bg-ink-100 dark:bg-white/10"></div>
               <a routerLink="/" [routerLinkActiveOptions]="{ exact: true }" routerLinkActive="!bg-ink-950 dark:!bg-white !text-white dark:!text-ink-950 font-semibold" (click)="close()" class="px-4 py-3 rounded-lg hover:bg-ink-100 dark:hover:bg-white/10 text-sm text-ink-800 dark:text-white/85">Inicio</a>
-              <a routerLink="/shop" routerLinkActive="!bg-ink-950 dark:!bg-white !text-white dark:!text-ink-950 font-semibold" (click)="close()" class="px-4 py-3 rounded-lg hover:bg-ink-100 dark:hover:bg-white/10 text-sm text-ink-800 dark:text-white/85">Shop</a>
+              <a routerLink="/nosotros" routerLinkActive="!bg-ink-950 dark:!bg-white !text-white dark:!text-ink-950 font-semibold" (click)="close()" class="px-4 py-3 rounded-lg hover:bg-ink-100 dark:hover:bg-white/10 text-sm text-ink-800 dark:text-white/85">Quiénes somos</a>
+              <a routerLink="/ventas" routerLinkActive="!bg-ink-950 dark:!bg-white !text-white dark:!text-ink-950 font-semibold" (click)="close()" class="px-4 py-3 rounded-lg hover:bg-ink-100 dark:hover:bg-white/10 text-sm text-ink-800 dark:text-white/85">Ventas</a>
+              <a routerLink="/shop" routerLinkActive="!bg-ink-950 dark:!bg-white !text-white dark:!text-ink-950 font-semibold" (click)="close()" class="px-4 py-3 rounded-lg hover:bg-ink-100 dark:hover:bg-white/10 text-sm text-ink-800 dark:text-white/85">Tienda</a>
               <a routerLink="/contact" routerLinkActive="!bg-ink-950 dark:!bg-white !text-white dark:!text-ink-950 font-semibold" (click)="close()" class="px-4 py-3 rounded-lg hover:bg-ink-100 dark:hover:bg-white/10 text-sm text-ink-800 dark:text-white/85">Contacto</a>
               <a routerLink="/tracking" routerLinkActive="!bg-ink-950 dark:!bg-white !text-white dark:!text-ink-950 font-semibold" (click)="close()" class="px-4 py-3 rounded-lg hover:bg-ink-100 dark:hover:bg-white/10 text-sm text-ink-800 dark:text-white/85">Rastrear</a>
             </div>

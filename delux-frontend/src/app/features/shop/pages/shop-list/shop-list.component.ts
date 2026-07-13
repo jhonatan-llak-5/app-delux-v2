@@ -4,6 +4,7 @@ import { ImgFallbackDirective } from '@shared/ui/img-fallback.directive';
 import { IMG_PLACEHOLDER } from '@shared/utils/img-placeholder';
 import { CommonModule } from '@angular/common';
 import { RouterLink } from '@angular/router';
+import { HeroSectionComponent } from '@features/landing/components/hero-section/hero-section.component';
 import { PublicCatalogService } from '@shared/services/public-catalog.service';
 import { ZoneService } from '@shared/services/zone.service';
 
@@ -20,7 +21,7 @@ interface Filter { categories: string[]; brands: string[]; sizes: string[]; pric
 @Component({
   selector: 'dlx-shop-list',
   standalone: true,
-  imports: [DlxEmptyStateComponent, ImgFallbackDirective, CommonModule, RouterLink],
+  imports: [DlxEmptyStateComponent, ImgFallbackDirective, CommonModule, RouterLink, HeroSectionComponent],
   changeDetection: ChangeDetectionStrategy.OnPush,
   templateUrl: './shop-list.component.html',
 })

@@ -1,353 +1,422 @@
-    <!-- 1. HERO (banner principal, intacto) -->
-    <dlx-hero-section />
+<div class="bg-white dark:bg-slate-950 text-slate-900 dark:text-white">
 
-    <!-- 2. CATEGORÍAS -->
-    <section class="bg-white dark:bg-slate-950 py-24 md:py-32">
-      <div class="max-w-[1200px] mx-auto px-6 md:px-10">
-
-        <!-- Header centrado -->
-        <div class="text-center max-w-2xl mx-auto mb-16">
-          <p class="text-[12px] tracking-[0.25em] uppercase text-[#0095f6] font-semibold mb-4">
-            Catálogo
+  <!-- ══════════════════════ INICIO ══════════════════════ -->
+  @if (section() === 'inicio') {
+    <!-- HERO -->
+    <section class="relative overflow-hidden">
+      <div class="absolute inset-0 bg-gradient-to-b from-sky-50/70 to-white dark:from-slate-900 dark:to-slate-950"></div>
+      <div class="absolute -top-32 -right-20 w-[28rem] h-[28rem] rounded-full bg-[#0095f6]/15 blur-3xl"></div>
+      <div class="relative max-w-[1200px] mx-auto px-6 md:px-10 pt-36 md:pt-44 pb-20 md:pb-28 grid md:grid-cols-2 gap-14 items-center">
+        <div>
+          <span class="inline-flex items-center gap-2 px-4 py-1.5 rounded-full bg-[#0095f6]/10 text-[#0077cc] dark:text-[#5cb8ff] text-xs font-bold tracking-wide uppercase">
+            <i class="fa-solid fa-shoe-prints"></i> Calzado con propósito
+          </span>
+          <h1 class="mt-6 font-black text-5xl md:text-7xl leading-[1.02] tracking-tight">
+            Camina con<br/>
+            <span class="text-[#0095f6]">{{ branding.siteName() }}.</span>
+          </h1>
+          <p class="mt-6 text-lg md:text-xl text-slate-600 dark:text-slate-300 max-w-md leading-relaxed">
+            Una marca ecuatoriana de calzado original que combina estilo, calidad y
+            un compromiso real con su comunidad.
           </p>
-          <h2 class="font-bold text-[36px] md:text-[48px] tracking-[-0.025em] leading-[1.1]
-                     text-ink-950 dark:text-white">
-            Todo el streetwear,<br/>
-            <span class="text-ink-500 dark:text-white/45">en un solo lugar.</span>
-          </h2>
-          <p class="text-ink-600 dark:text-white/55 text-[16px] mt-5 leading-relaxed max-w-md mx-auto">
-            Calzado, ropa y accesorios curados de las marcas que definen la cultura urbana.
-          </p>
-        </div>
-
-        <!-- 3 cards de categorías -->
-        <div class="grid grid-cols-1 md:grid-cols-3 gap-5">
-          @for (cat of categories; track cat.slug) {
-            <a [routerLink]="['/shop']" [queryParams]="{ category: cat.slug }"
-               class="group block rounded-3xl overflow-hidden
-                      bg-white dark:bg-slate-800
-                      border border-ink-200 dark:border-white/[0.08]
-                      hover:border-[#0095f6] dark:hover:border-[#0095f6]
-                      hover:shadow-xl hover:-translate-y-1
-                      transition-all duration-300">
-              <div class="aspect-[4/3] overflow-hidden bg-ink-100 dark:bg-white/[0.04]">
-                <img [src]="cat.image" [alt]="cat.title"
-                     class="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500"
-                     loading="lazy" />
-              </div>
-              <div class="p-7">
-                <h3 class="font-bold text-[20px] tracking-tight text-ink-950 dark:text-white mb-2">
-                  {{ cat.title }}
-                </h3>
-                <p class="text-ink-600 dark:text-white/55 text-[14px] leading-relaxed mb-4">
-                  {{ cat.description }}
-                </p>
-                <span class="inline-flex items-center gap-2 text-[14px] font-semibold text-[#0095f6]
-                             group-hover:gap-3 transition-all">
-                  Explorar
-                  <i class="fa-solid fa-arrow-right text-xs"></i>
-                </span>
-              </div>
+          <div class="mt-9 flex flex-wrap gap-3">
+            <a routerLink="/shop"
+               class="inline-flex items-center gap-2 px-7 py-3.5 rounded-full bg-[#0095f6] hover:bg-[#0084dd] text-white font-semibold shadow-lg shadow-[#0095f6]/30 hover:-translate-y-0.5 transition">
+              <i class="fa-solid fa-bag-shopping"></i> Ver catálogo
             </a>
+            <a routerLink="/nosotros"
+               class="inline-flex items-center gap-2 px-7 py-3.5 rounded-full border border-slate-300 dark:border-white/20 hover:border-[#0095f6] hover:text-[#0095f6] font-semibold transition">
+              Conócenos <i class="fa-solid fa-arrow-right text-xs"></i>
+            </a>
+          </div>
+          <!-- Redes sociales (desde configuración) -->
+          @if (branding.socialLinks().length) {
+            <div class="mt-9 flex items-center gap-3">
+              <span class="text-xs uppercase tracking-wide text-slate-400 font-semibold">Síguenos</span>
+              <span class="h-px w-6 bg-slate-200 dark:bg-white/15"></span>
+              <div class="flex items-center gap-2">
+                @for (s of branding.socialLinks(); track s.url) {
+                  <a [href]="s.url" target="_blank" rel="noopener" [title]="s.label"
+                     class="w-10 h-10 rounded-full grid place-items-center bg-white dark:bg-white/5 border border-slate-200 dark:border-white/10 text-slate-500 hover:text-white hover:bg-[#0095f6] hover:border-[#0095f6] transition shadow-sm">
+                    <i class="fa-brands {{ s.icon }}"></i>
+                  </a>
+                }
+              </div>
+            </div>
           }
+        </div>
+        <div class="relative">
+          <div class="absolute inset-6 bg-gradient-to-tr from-[#0095f6]/20 to-sky-400/10 rounded-full blur-2xl"></div>
+          <img dlxImgFallback [src]="heroShoe()" alt="DLUX calzado"
+               class="relative w-full h-[400px] md:h-[500px] object-cover rounded-[2.5rem] shadow-2xl"/>
+          <div class="absolute -bottom-6 -left-6 bg-white dark:bg-slate-900 rounded-2xl shadow-xl px-6 py-4 border border-slate-100 dark:border-white/10">
+            <p class="text-3xl font-black text-[#0095f6]">+50k</p>
+            <p class="text-xs text-slate-500 dark:text-slate-400 font-medium">pares vendidos</p>
+          </div>
         </div>
       </div>
     </section>
 
-    <!-- 3. DROPS DESTACADOS -->
-    <section class="bg-ink-50 dark:bg-slate-900 py-24 md:py-32">
-      <div class="max-w-[1200px] mx-auto px-6 md:px-10">
-
-        <div class="flex items-end justify-between mb-12 flex-wrap gap-6">
-          <div>
-            <p class="text-[12px] tracking-[0.25em] uppercase text-[#0095f6] font-semibold mb-3">
-              Drops
-            </p>
-            <h2 class="font-bold text-[36px] md:text-[48px] tracking-[-0.025em] leading-[1.1]
-                       text-ink-950 dark:text-white">
-              Lo más codiciado.
-            </h2>
-          </div>
-          <a routerLink="/shop"
-             class="inline-flex items-center gap-2 text-[14px] font-semibold text-[#0095f6] hover:underline">
-            Ver todos los drops
-            <i class="fa-solid fa-arrow-right text-xs"></i>
-          </a>
+    <!-- FILA DE FEATURES (íconos circulares de color) -->
+    <section class="max-w-[1200px] mx-auto px-6 md:px-10 py-16 md:py-20">
+      <div class="reveal-stagger grid grid-cols-2 md:grid-cols-4 gap-x-6 gap-y-10 text-center" dlxReveal>
+        <div>
+          <div class="w-16 h-16 mx-auto rounded-2xl bg-[#0095f6] text-white grid place-items-center shadow-lg shadow-[#0095f6]/30"><i class="fa-solid fa-truck-fast text-xl"></i></div>
+          <h3 class="mt-4 font-bold">Envíos a todo Ecuador</h3>
+          <p class="mt-1 text-sm text-slate-500 dark:text-slate-400 max-w-[16rem] mx-auto">Recíbelo en casa, rápido y seguro.</p>
         </div>
-
-        <!-- Grid de 4 productos -->
-        @if (loadingDrops()) {
-          <div class="grid grid-cols-2 lg:grid-cols-4 gap-5">
-            @for (i of [1,2,3,4]; track i) {
-              <div class="aspect-[3/4] rounded-2xl bg-ink-100 dark:bg-white/[0.04] animate-pulse"></div>
-            }
-          </div>
-        } @else if (drops().length === 0) {
-          <div class="text-center py-12 text-ink-500 dark:text-white/55">
-            <i class="fa-solid fa-box-open text-3xl mb-3"></i>
-            <p>No hay productos disponibles aún.</p>
-          </div>
-        } @else {
-        <div class="grid grid-cols-2 lg:grid-cols-4 gap-5">
-          @for (d of drops(); track d.id) {
-            <a [routerLink]="['/shop', d.id]"
-               class="group block rounded-2xl overflow-hidden
-                      bg-white dark:bg-slate-800
-                      border border-ink-200 dark:border-white/[0.08]
-                      hover:shadow-xl hover:-translate-y-1
-                      transition-all duration-300">
-              <div class="relative aspect-square overflow-hidden bg-ink-100 dark:bg-white/[0.04]">
-                <span class="absolute top-3 left-3 z-10 px-2.5 py-1 rounded-full
-                             bg-[#0095f6] text-white text-[10px] font-bold uppercase tracking-wider">
-                  {{ d.tag }}
-                </span>
-                <img [src]="d.image" [alt]="d.name"
-                     class="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500"
-                     loading="lazy" dlxImgFallback />
-              </div>
-              <div class="p-5">
-                <p class="text-[11px] uppercase tracking-wider text-ink-500 dark:text-white/45 mb-1.5">
-                  {{ d.brand }}
-                </p>
-                <h3 class="font-semibold text-[15px] text-ink-950 dark:text-white truncate">
-                  {{ d.name }}
-                </h3>
-                <p class="font-bold text-[18px] text-ink-950 dark:text-white mt-2">
-                  ${{ d.price }}
-                </p>
-              </div>
-            </a>
-          }
+        <div>
+          <div class="w-16 h-16 mx-auto rounded-2xl bg-emerald-500 text-white grid place-items-center shadow-lg shadow-emerald-500/30"><i class="fa-solid fa-shield-halved text-xl"></i></div>
+          <h3 class="mt-4 font-bold">Original garantizado</h3>
+          <p class="mt-1 text-sm text-slate-500 dark:text-slate-400 max-w-[16rem] mx-auto">Producto 100% auténtico y verificado.</p>
         </div>
+        <div>
+          <div class="w-16 h-16 mx-auto rounded-2xl bg-amber-500 text-white grid place-items-center shadow-lg shadow-amber-500/30"><i class="fa-solid fa-credit-card text-xl"></i></div>
+          <h3 class="mt-4 font-bold">Pagos flexibles</h3>
+          <p class="mt-1 text-sm text-slate-500 dark:text-slate-400 max-w-[16rem] mx-auto">Transferencia, DE UNA y contra entrega.</p>
+        </div>
+        <div>
+          <div class="w-16 h-16 mx-auto rounded-2xl bg-sky-500 text-white grid place-items-center shadow-lg shadow-sky-500/30"><i class="fa-solid fa-rotate-left text-xl"></i></div>
+          <h3 class="mt-4 font-bold">Cambios sencillos</h3>
+          <p class="mt-1 text-sm text-slate-500 dark:text-slate-400 max-w-[16rem] mx-auto">Cambios y devoluciones sin líos.</p>
+        </div>
+      </div>
+    </section>
+
+    <!-- CIFRAS (banda editorial) -->
+    <section class="max-w-[1100px] mx-auto px-6 md:px-10 py-10">
+      <div class="reveal rounded-[2rem] bg-slate-900 dark:bg-white/5 text-white grid grid-cols-2 md:grid-cols-4 divide-x divide-white/10" dlxReveal>
+        @for (s of stats; track s.label) {
+          <div class="py-10 px-4 text-center">
+            <p class="text-4xl md:text-5xl font-black text-[#5cb8ff]">{{ s.num }}</p>
+            <p class="mt-2 text-xs md:text-sm text-white/60 font-medium">{{ s.label }}</p>
+          </div>
         }
       </div>
     </section>
 
-    <!-- 4. BENEFICIOS / TRUST STRIP -->
-    <section class="bg-white dark:bg-slate-950 py-20 md:py-24">
+    <!-- TESTIMONIOS (rediseñado) -->
+    <section class="bg-sky-50/50 dark:bg-white/[0.03] py-20 md:py-28">
       <div class="max-w-[1200px] mx-auto px-6 md:px-10">
-        <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
-          @for (b of benefits; track b.title) {
-            <div class="text-center md:text-left p-2">
-              <div class="w-12 h-12 rounded-full bg-[#0095f6]/10 dark:bg-[#0095f6]/15
-                          grid place-items-center mb-4 mx-auto md:mx-0">
-                <i class="fa-solid {{ b.icon }} text-[#0095f6] text-[18px]"></i>
-              </div>
-              <h3 class="font-bold text-[18px] text-ink-950 dark:text-white mb-2">
-                {{ b.title }}
-              </h3>
-              <p class="text-ink-600 dark:text-white/55 text-[14px] leading-relaxed">
-                {{ b.description }}
-              </p>
+        <div class="grid md:grid-cols-[1fr_auto] gap-8 items-end mb-14">
+          <div>
+            <div class="flex items-center gap-3 mb-4">
+              <span class="h-px w-10 bg-[#0095f6]"></span>
+              <p class="text-xs tracking-[0.25em] uppercase text-[#0095f6] font-bold">Reseñas</p>
             </div>
+            <h2 class="text-3xl md:text-5xl font-black tracking-tight">Lo que dice <span class="text-[#0095f6]">nuestra gente</span></h2>
+          </div>
+          <!-- Rating agregado -->
+          <div class="flex items-center gap-4 rounded-2xl bg-white dark:bg-white/5 border border-slate-100 dark:border-white/10 px-6 py-4 shadow-sm">
+            <p class="text-4xl font-black text-[#0095f6]">4.9</p>
+            <div>
+              <div class="flex gap-0.5 text-amber-400">
+                @for (n of [1,2,3,4,5]; track n) { <i class="fa-solid fa-star text-xs"></i> }
+              </div>
+              <p class="text-xs text-slate-500 dark:text-slate-400 mt-1">+1.200 reseñas</p>
+            </div>
+          </div>
+        </div>
+
+        <div class="reveal-stagger grid md:grid-cols-3 gap-6" dlxReveal>
+          @for (t of testimonios; track t.name) {
+            <figure class="group relative rounded-3xl bg-white dark:bg-white/5 border border-slate-100 dark:border-white/10 p-8 shadow-sm hover:shadow-xl hover:-translate-y-1 transition flex flex-col">
+              <span class="absolute top-6 right-7 text-6xl leading-none font-black text-[#0095f6]/10 select-none">”</span>
+              <div class="flex gap-1 text-amber-400 mb-4">
+                @for (n of [1,2,3,4,5]; track n) { <i class="fa-solid fa-star text-sm" [class.opacity-20]="n > t.stars"></i> }
+              </div>
+              <blockquote class="relative text-slate-600 dark:text-slate-300 leading-relaxed flex-1">{{ t.text }}</blockquote>
+              <figcaption class="mt-6 pt-5 border-t border-slate-100 dark:border-white/10 flex items-center gap-3">
+                <img dlxImgFallback [src]="t.avatar" [alt]="t.name" class="w-11 h-11 rounded-full object-cover ring-2 ring-[#0095f6]/20"/>
+                <div class="min-w-0">
+                  <p class="font-bold text-sm flex items-center gap-1.5">{{ t.name }}
+                    <i class="fa-solid fa-circle-check text-[#0095f6] text-xs" title="Compra verificada"></i>
+                  </p>
+                  <p class="text-xs text-slate-400 truncate">{{ t.role }}</p>
+                </div>
+              </figcaption>
+            </figure>
           }
         </div>
       </div>
     </section>
 
-    <!-- 5. SUCURSALES -->
-    <section class="bg-ink-50 dark:bg-slate-900 py-24 md:py-32">
-      <div class="max-w-[1200px] mx-auto px-6 md:px-10">
+    <!-- SELLOS DE GARANTÍA -->
+    <section class="max-w-[1200px] mx-auto px-6 md:px-10 py-14">
+      <div class="reveal grid grid-cols-2 md:grid-cols-4 gap-4" dlxReveal>
+        @for (x of sellos; track x.title) {
+          <div class="flex items-center gap-3 rounded-2xl border border-slate-100 dark:border-white/10 bg-white dark:bg-white/5 px-5 py-4 hover:shadow-md transition">
+            <div class="w-12 h-12 rounded-full bg-[#0095f6]/10 text-[#0095f6] grid place-items-center shrink-0"><i class="fa-solid {{ x.icon }} text-lg"></i></div>
+            <div>
+              <p class="font-bold text-sm flex items-center gap-1.5">{{ x.title }} <i class="fa-solid fa-circle-check text-emerald-500 text-xs"></i></p>
+              <p class="text-xs text-slate-400">{{ x.sub }}</p>
+            </div>
+          </div>
+        }
+      </div>
+    </section>
 
-        <div class="text-center max-w-2xl mx-auto mb-14">
-          <p class="text-[12px] tracking-[0.25em] uppercase text-[#0095f6] font-semibold mb-4">
-            Sucursales
+    <!-- CTA -->
+    <section class="max-w-[1200px] mx-auto px-6 md:px-10 py-20">
+      <div class="reveal rounded-[2.5rem] bg-gradient-to-r from-[#0095f6] to-[#0066cc] text-white px-8 md:px-16 py-14 md:py-20 text-center shadow-2xl shadow-[#0095f6]/20" dlxReveal>
+        <h2 class="text-3xl md:text-4xl font-black">¿Listo para dar el paso con {{ branding.siteName() }}?</h2>
+        <p class="mt-4 text-white/90 max-w-xl mx-auto">Explora nuestra colección o conversemos sobre alianzas y ventas al por mayor.</p>
+        <div class="mt-8 flex flex-wrap gap-3 justify-center">
+          <a routerLink="/shop" class="px-7 py-3.5 rounded-full bg-white text-[#0077cc] font-bold hover:bg-white/90 hover:-translate-y-0.5 transition">Ir a la tienda</a>
+          <a routerLink="/contact" class="px-7 py-3.5 rounded-full border border-white/60 font-semibold hover:bg-white/10 transition">Contáctanos</a>
+        </div>
+      </div>
+    </section>
+  }
+
+  <!-- ══════════════════════ QUIÉNES SOMOS ══════════════════════ -->
+  @if (section() === 'nosotros') {
+    <!-- Encabezado con imagen de fondo -->
+    <section class="relative overflow-hidden">
+      <div class="absolute inset-0 bg-gradient-to-b from-sky-50/70 to-white dark:from-slate-900 dark:to-slate-950"></div>
+      <div class="relative max-w-[1200px] mx-auto px-6 md:px-10 pt-36 md:pt-44 pb-12 text-center">
+        <div class="flex items-center justify-center gap-3 mb-4">
+          <span class="h-px w-10 bg-[#0095f6]"></span>
+          <p class="text-xs tracking-[0.25em] uppercase text-[#0095f6] font-bold">Quiénes somos</p>
+          <span class="h-px w-10 bg-[#0095f6]"></span>
+        </div>
+        <h2 class="text-4xl md:text-6xl font-black tracking-tight">Más que una marca,<br/><span class="text-[#0095f6]">una familia que camina contigo</span></h2>
+        <p class="mt-6 text-lg text-slate-600 dark:text-slate-300 max-w-2xl mx-auto leading-relaxed">Conoce la historia, los valores y el propósito que mueven a {{ branding.siteName() }} cada día.</p>
+      </div>
+    </section>
+
+    <section class="max-w-[1200px] mx-auto px-6 md:px-10 pb-20">
+      <!-- Historia (split con badge) -->
+      <div class="reveal grid md:grid-cols-2 gap-14 items-center mt-8" dlxReveal>
+        <div class="relative">
+          <img dlxImgFallback [src]="img.about" alt="Nuestra historia"
+               class="w-full h-[440px] object-cover rounded-[2rem] shadow-xl"/>
+          <div class="absolute -bottom-6 -right-6 bg-[#0095f6] text-white rounded-2xl shadow-xl px-6 py-4 text-center">
+            <p class="text-3xl font-black">+10</p>
+            <p class="text-xs text-white/80 font-medium">años de trayectoria</p>
+          </div>
+        </div>
+        <div>
+          <h3 class="text-2xl md:text-3xl font-black">Nacimos para vestir tus pasos</h3>
+          <p class="mt-5 text-lg text-slate-600 dark:text-slate-300 leading-relaxed">
+            {{ branding.siteName() }} nació con una idea simple: ofrecer calzado original,
+            de calidad y con identidad propia al mercado ecuatoriano. Hoy crecemos junto a
+            nuestra gente, con presencia en las principales ciudades del país.
           </p>
-          <h2 class="font-bold text-[36px] md:text-[48px] tracking-[-0.025em] leading-[1.1]
-                     text-ink-950 dark:text-white">
-            Encuéntranos cerca.
-          </h2>
-          <p class="text-ink-600 dark:text-white/55 text-[16px] mt-5 leading-relaxed">
-            Retira tu pedido sin costo o compra en persona en cualquiera de nuestras tiendas.
+          <p class="mt-5 text-slate-600 dark:text-slate-300 leading-relaxed">
+            Un buen par de zapatos no solo se ve bien: acompaña tu día, tu trabajo y tus metas.
+            Por eso cuidamos cada detalle, desde el producto hasta la atención.
           </p>
         </div>
+      </div>
 
-        <div class="grid grid-cols-1 md:grid-cols-3 gap-5">
-          @for (br of branches(); track br.code) {
-            <div class="bg-white dark:bg-slate-800
-                        border border-ink-200 dark:border-white/[0.08]
-                        rounded-2xl p-7
-                        hover:shadow-lg hover:-translate-y-1
-                        transition-all duration-300">
-              <div class="flex items-center justify-between mb-4">
-                <span class="font-mono text-[11px] tracking-widest uppercase text-[#0095f6] font-bold">
-                  {{ br.code }}
-                </span>
-                <span class="w-2 h-2 rounded-full bg-emerald-500 animate-pulse"></span>
-              </div>
-              <h3 class="font-bold text-[20px] tracking-tight text-ink-950 dark:text-white mb-1">
-                {{ br.name }}
-              </h3>
-              <div class="flex items-start gap-2 mb-5">
-                <i class="fa-solid fa-location-dot text-[#0095f6] text-[12px] mt-1.5"></i>
-                <p class="text-ink-600 dark:text-white/55 text-[14px] leading-relaxed flex-1">
-                  {{ br.address }}<br/>
-                  <span class="text-ink-400 dark:text-white/40">{{ br.city }}</span>
-                </p>
-              </div>
-              <div class="grid grid-cols-2 gap-2 pt-4 border-t border-ink-100 dark:border-white/[0.06] text-[12px]">
-                <div class="flex items-center gap-2 text-ink-600 dark:text-white/55">
-                  <i class="fa-regular fa-clock text-[#0095f6] text-[11px]"></i>
-                  <span class="truncate">{{ br.hours }}</span>
-                </div>
-                <div class="flex items-center gap-2 text-ink-600 dark:text-white/55 justify-end">
-                  <i class="fa-solid fa-bag-shopping text-[#0095f6] text-[11px]"></i>
-                  <span>{{ br.products > 0 ? br.products + ' productos' : 'Retiro gratis' }}</span>
-                </div>
-              </div>
-              <button type="button" (click)="openMap(br)"
-                      class="w-full mt-5 inline-flex items-center justify-center gap-2 h-10 rounded-full
-                             bg-ink-50 dark:bg-white/[0.06]
-                             hover:bg-[#0095f6] hover:text-white
-                             dark:hover:bg-[#0095f6] dark:hover:text-white
-                             text-ink-950 dark:text-white text-[13px] font-semibold
-                             transition-colors">
-                Cómo llegar
-                <i class="fa-solid fa-arrow-up-right-from-square text-[10px]"></i>
-              </button>
+      <!-- Misión / Visión / Propósito (3 columnas con ícono) -->
+      <div class="reveal-stagger grid md:grid-cols-3 gap-6 mt-24" dlxReveal>
+        <div class="rounded-[2rem] p-8 bg-slate-50 dark:bg-white/5 border border-slate-100 dark:border-white/10">
+          <div class="w-14 h-14 rounded-2xl bg-[#0095f6] text-white grid place-items-center shadow-lg shadow-[#0095f6]/30 mb-5"><i class="fa-solid fa-bullseye text-xl"></i></div>
+          <h3 class="text-xl font-black">Misión</h3>
+          <p class="mt-3 text-slate-600 dark:text-slate-300 leading-relaxed">Brindar calzado original y de calidad, con una experiencia cercana y accesible, que aporte valor a nuestros clientes y a la comunidad.</p>
+        </div>
+        <div class="rounded-[2rem] p-8 bg-slate-50 dark:bg-white/5 border border-slate-100 dark:border-white/10">
+          <div class="w-14 h-14 rounded-2xl bg-emerald-500 text-white grid place-items-center shadow-lg shadow-emerald-500/30 mb-5"><i class="fa-solid fa-eye text-xl"></i></div>
+          <h3 class="text-xl font-black">Visión</h3>
+          <p class="mt-3 text-slate-600 dark:text-slate-300 leading-relaxed">Ser la marca de calzado ecuatoriana de referencia, reconocida por su calidad, su cercanía y su compromiso social.</p>
+        </div>
+        <div class="rounded-[2rem] p-8 bg-slate-50 dark:bg-white/5 border border-slate-100 dark:border-white/10">
+          <div class="w-14 h-14 rounded-2xl bg-amber-500 text-white grid place-items-center shadow-lg shadow-amber-500/30 mb-5"><i class="fa-solid fa-compass text-xl"></i></div>
+          <h3 class="text-xl font-black">Propósito</h3>
+          <p class="mt-3 text-slate-600 dark:text-slate-300 leading-relaxed">Que cada paso que des con DLUX te haga sentir seguro, auténtico y parte de algo que también ayuda a otros.</p>
+        </div>
+      </div>
+
+      <!-- TRAYECTORIA -->
+      <div class="mt-24">
+        <h3 class="text-2xl md:text-3xl font-black mb-14 text-center">Nuestra trayectoria</h3>
+        <div class="relative reveal-stagger grid md:grid-cols-4 gap-10 md:gap-6" dlxReveal>
+          <div class="hidden md:block absolute top-2 left-0 right-0 h-px bg-slate-200 dark:bg-white/10"></div>
+          @for (h of hitos; track h.year) {
+            <div class="relative text-center md:text-left">
+              <span class="inline-block md:block w-4 h-4 rounded-full bg-[#0095f6] ring-4 ring-[#0095f6]/20 relative z-10 mx-auto md:mx-0"></span>
+              <p class="mt-5 text-2xl font-black text-[#0095f6]">{{ h.year }}</p>
+              <h4 class="mt-1 font-bold">{{ h.title }}</h4>
+              <p class="mt-2 text-sm text-slate-500 dark:text-slate-400 leading-relaxed">{{ h.desc }}</p>
             </div>
           }
         </div>
       </div>
-    </section>
 
-    <!-- 5.5 PROGRAMA DE AFILIADOS -->
-    <section class="relative overflow-hidden py-24 md:py-32 bg-[#070b12]">
-      <!-- glow de marca -->
-      <div class="pointer-events-none absolute -top-32 right-0 w-[520px] h-[520px] rounded-full bg-[#0095f6]/25 blur-[120px]"></div>
-      <div class="pointer-events-none absolute -bottom-40 -left-24 w-[460px] h-[460px] rounded-full bg-[#1877f2]/15 blur-[120px]"></div>
-      <div class="pointer-events-none absolute top-1/2 left-1/3 w-2 h-2 rounded-full bg-[#e11d2a]/70 blur-[2px]"></div>
+      <!-- VALORES -->
+      <div class="mt-24">
+        <h3 class="text-2xl md:text-3xl font-black mb-14 text-center">Nuestros valores</h3>
+        <div class="reveal-stagger grid sm:grid-cols-2 lg:grid-cols-4 gap-x-6 gap-y-12" dlxReveal>
+          @for (v of valores; track v.title; let i = $index) {
+            <div class="text-center">
+              <div class="w-16 h-16 mx-auto rounded-2xl grid place-items-center text-white shadow-lg"
+                   [ngClass]="['bg-[#0095f6] shadow-[#0095f6]/30','bg-indigo-500 shadow-indigo-500/30','bg-fuchsia-500 shadow-fuchsia-500/30','bg-sky-500 shadow-sky-500/30'][i]">
+                <i class="fa-solid {{ v.icon }} text-xl"></i>
+              </div>
+              <h4 class="mt-5 font-bold text-lg">{{ v.title }}</h4>
+              <p class="mt-2 text-sm text-slate-500 dark:text-slate-400 leading-relaxed">{{ v.desc }}</p>
+            </div>
+          }
+        </div>
+      </div>
 
-      <div class="relative max-w-[1150px] mx-auto px-6 md:px-10">
-        <div class="grid lg:grid-cols-2 gap-14 items-center">
+      <!-- NUESTRO EQUIPO -->
+      <div class="mt-24">
+        <h3 class="text-2xl md:text-3xl font-black mb-3 text-center">Las personas detrás de {{ branding.siteName() }}</h3>
+        <p class="text-center text-slate-500 dark:text-slate-400 mb-14 max-w-xl mx-auto">Un equipo apasionado por el calzado y por servir bien a cada cliente.</p>
+        <div class="reveal-stagger grid grid-cols-2 lg:grid-cols-4 gap-6" dlxReveal>
+          @for (m of equipo; track m.name) {
+            <div class="group text-center">
+              <div class="relative mx-auto w-full aspect-square max-w-[220px] rounded-[1.5rem] overflow-hidden shadow-lg">
+                <img dlxImgFallback [src]="m.photo" [alt]="m.name" class="w-full h-full object-cover group-hover:scale-105 transition duration-500"/>
+                <div class="absolute inset-x-0 bottom-0 h-1/3 bg-gradient-to-t from-black/50 to-transparent"></div>
+              </div>
+              <h4 class="mt-4 font-bold">{{ m.name }}</h4>
+              <p class="text-sm text-[#0095f6] font-medium">{{ m.role }}</p>
+            </div>
+          }
+        </div>
+      </div>
 
-          <!-- Copy -->
-          <div class="text-white">
-            <span class="inline-flex items-center gap-2 rounded-full border border-[#0095f6]/30 bg-[#0095f6]/10
-                         px-4 py-1.5 text-[12px] font-semibold tracking-[0.18em] uppercase text-[#4db5ff] mb-6">
-              <i class="fa-solid fa-hand-holding-dollar"></i> Gana dinero con Delux
+      <!-- LO QUE OFRECEMOS (servicios) -->
+      <div class="mt-24">
+        <h3 class="text-2xl md:text-3xl font-black mb-14 text-center">Lo que te ofrecemos</h3>
+        <div class="reveal-stagger grid grid-cols-2 md:grid-cols-4 gap-x-6 gap-y-10 text-center" dlxReveal>
+          @for (s of servicios; track s.title; let i = $index) {
+            <div>
+              <div class="w-16 h-16 mx-auto rounded-2xl grid place-items-center text-white shadow-lg"
+                   [ngClass]="['bg-[#0095f6] shadow-[#0095f6]/30','bg-emerald-500 shadow-emerald-500/30','bg-amber-500 shadow-amber-500/30','bg-sky-500 shadow-sky-500/30'][i]">
+                <i class="fa-solid {{ s.icon }} text-xl"></i>
+              </div>
+              <h3 class="mt-4 font-bold">{{ s.title }}</h3>
+              <p class="mt-1 text-sm text-slate-500 dark:text-slate-400 max-w-[16rem] mx-auto leading-relaxed">{{ s.desc }}</p>
+            </div>
+          }
+        </div>
+      </div>
+
+      <!-- AYUDA SOCIAL (texto + galería) -->
+      <div class="reveal mt-24 rounded-[2.5rem] bg-gradient-to-br from-[#0095f6] to-[#0066cc] text-white overflow-hidden" dlxReveal>
+        <div class="grid lg:grid-cols-2 gap-0 items-center">
+          <div class="p-9 md:p-14">
+            <span class="inline-flex items-center gap-2 px-4 py-1.5 rounded-full bg-white/15 text-white text-xs font-bold uppercase tracking-wide">
+              <i class="fa-solid fa-hand-holding-heart"></i> DLUX con causa
             </span>
-            <h2 class="font-bold text-[38px] md:text-[54px] tracking-[-0.03em] leading-[1.03]">
-              Conviértete en<br/>
-              <span class="text-[#0095f6]">Vendedor Afiliado</span>.
-            </h2>
-            <p class="text-white/65 text-[17px] mt-6 leading-relaxed max-w-md">
-              Comparte tus enlaces de productos y gana una comisión del
-              <strong class="text-white">{{ branding.affiliateCommissionRate() }}%</strong>
-              por cada venta. Sin inventario, sin inversión, desde tu celular.
+            <h3 class="mt-6 text-3xl md:text-4xl font-black">Devolvemos a la comunidad</h3>
+            <p class="mt-5 text-lg text-white/90 leading-relaxed">
+              Creemos en el impacto positivo. Parte de cada venta se destina a apoyar a familias
+              y fundaciones: donamos calzado, colaboramos con causas locales y acompañamos a
+              quienes más lo necesitan.
             </p>
-
-            <div class="mt-9 grid sm:grid-cols-3 gap-3">
-              <div class="rounded-2xl border border-white/10 bg-white/[0.04] p-4">
-                <span class="grid place-items-center w-10 h-10 rounded-xl bg-[#0095f6]/15 text-[#4db5ff] mb-3"><i class="fa-solid fa-link"></i></span>
-                <p class="text-[13px] text-white/75 leading-snug">Enlace único para compartir</p>
-              </div>
-              <div class="rounded-2xl border border-white/10 bg-white/[0.04] p-4">
-                <span class="grid place-items-center w-10 h-10 rounded-xl bg-[#0095f6]/15 text-[#4db5ff] mb-3"><i class="fa-solid fa-bolt"></i></span>
-                <p class="text-[13px] text-white/75 leading-snug">Comisiones automáticas</p>
-              </div>
-              <div class="rounded-2xl border border-white/10 bg-white/[0.04] p-4">
-                <span class="grid place-items-center w-10 h-10 rounded-xl bg-[#0095f6]/15 text-[#4db5ff] mb-3"><i class="fa-solid fa-wallet"></i></span>
-                <p class="text-[13px] text-white/75 leading-snug">Cobra en efectivo o transferencia</p>
-              </div>
-            </div>
-
-            <div class="mt-10 flex flex-col sm:flex-row sm:items-center gap-4">
-              <a [routerLink]="['/auth/register']" [queryParams]="{ type: 'affiliate' }"
-                 class="group inline-flex items-center justify-center gap-2 px-8 h-14 rounded-full
-                        bg-[#0095f6] text-white font-bold text-[16px] whitespace-nowrap shrink-0
-                        shadow-[0_18px_40px_-12px_rgba(0,149,246,0.7)]
-                        hover:bg-[#1877f2] hover:-translate-y-0.5 transition-all">
-                Quiero ser afiliado
-                <i class="fa-solid fa-arrow-right group-hover:translate-x-1 transition-transform"></i>
-              </a>
-              <span class="text-white/45 text-[13px] leading-snug max-w-[220px]">
-                Registro gratis · activación por correo ·
-                <a routerLink="/afiliados/terminos" class="text-white/70 underline hover:text-white">Ver términos</a>
-              </span>
+            <div class="mt-8 flex flex-wrap gap-10">
+              <div><p class="text-3xl font-black">+1.2k</p><p class="text-xs text-white/70">pares donados</p></div>
+              <div><p class="text-3xl font-black">+8</p><p class="text-xs text-white/70">fundaciones apoyadas</p></div>
+              <div><p class="text-3xl font-black">100%</p><p class="text-xs text-white/70">compromiso local</p></div>
             </div>
           </div>
-
-          <!-- Tarjeta ilustrativa -->
-          <div class="relative lg:pl-6">
-            <div class="absolute -inset-1 rounded-[28px] bg-gradient-to-tr from-[#0095f6]/40 to-transparent blur-2xl opacity-60"></div>
-            <div class="relative rounded-[26px] bg-gradient-to-b from-white/[0.08] to-white/[0.02]
-                        backdrop-blur border border-white/12 p-7 md:p-8 shadow-2xl overflow-hidden">
-              <!-- destello superior -->
-              <div class="pointer-events-none absolute -top-16 -right-10 w-48 h-48 rounded-full bg-[#0095f6]/25 blur-3xl"></div>
-
-              <div class="relative flex items-center justify-between mb-6">
-                <div class="flex items-center gap-3">
-                  <span class="grid place-items-center w-10 h-10 rounded-xl bg-[#0095f6]/15 text-[#4db5ff]">
-                    <i class="fa-solid fa-hand-holding-dollar"></i>
-                  </span>
-                  <span class="text-white/55 text-[11px] uppercase tracking-[0.22em] font-semibold">Tu comisión</span>
-                </div>
-                <span class="flex items-center gap-1.5 text-[11px] text-emerald-300 bg-emerald-400/10 px-2.5 py-1 rounded-full">
-                  <span class="w-2 h-2 rounded-full bg-emerald-400 animate-pulse"></span> en vivo
-                </span>
-              </div>
-
-              <div class="relative text-white flex items-end gap-1.5">
-                <span class="text-[80px] leading-none font-black tracking-tight
-                             bg-gradient-to-br from-white to-[#4db5ff] bg-clip-text text-transparent">{{ branding.affiliateCommissionRate() }}</span>
-                <span class="text-[40px] font-black text-[#4db5ff] mb-2.5">%</span>
-              </div>
-              <p class="relative text-white/55 mt-1.5 text-[15px]">por cada venta atribuida a ti</p>
-
-              <!-- Ejemplo tipo "flujo" -->
-              <div class="relative mt-7 rounded-2xl bg-white/[0.05] border border-white/10 p-4 space-y-3">
-                <div class="flex items-center justify-between">
-                  <span class="text-white/45 text-[11px] uppercase tracking-widest">Tu código</span>
-                  <span class="inline-flex items-center gap-2 text-white font-mono text-[14px] tracking-wider
-                               bg-white/[0.06] border border-white/10 rounded-lg px-3 py-1.5">
-                    VEND0001 <i class="fa-solid fa-copy text-[#4db5ff] text-xs"></i>
-                  </span>
-                </div>
-                <div class="h-px bg-white/10"></div>
-                <div class="flex items-center justify-between">
-                  <span class="text-white/70 text-[14px]"><i class="fa-solid fa-bag-shopping text-white/40 mr-1.5"></i> Venta de $120.00</span>
-                  <span class="text-emerald-300 text-[16px] font-bold">+ {{ exampleCommission() }}</span>
-                </div>
-              </div>
-
-              <div class="relative mt-5 flex items-center gap-2 text-white/40 text-[12px]">
-                <i class="fa-solid fa-shield-halved text-[#4db5ff]"></i>
-                Pagos registrados y con historial en tu panel.
-              </div>
-            </div>
+          <div class="grid grid-cols-2 gap-2 p-4 md:p-6">
+            @for (g of socialGallery; track g; let i = $index) {
+              <img dlxImgFallback [src]="g" alt="Impacto social DLUX"
+                   class="w-full h-40 md:h-48 object-cover rounded-2xl"
+                   [class.mt-6]="i === 1 || i === 3"/>
+            }
           </div>
-
         </div>
       </div>
     </section>
+  }
 
-    <!-- 6. CTA FINAL -->
-    <section class="bg-white dark:bg-slate-950 py-28 md:py-40">
-      <div class="max-w-[700px] mx-auto px-6 md:px-10 text-center">
-        <h2 class="font-bold text-[40px] md:text-[56px] tracking-[-0.03em] leading-[1.05]
-                   text-ink-950 dark:text-white">
-          Únete a Delux.
-        </h2>
-        <p class="text-ink-600 dark:text-white/55 text-[17px] mt-6 leading-relaxed max-w-md mx-auto">
-          Crea tu cuenta gratis y accede a drops exclusivos antes que nadie.
+  <!-- ══════════════════════ VENTAS ══════════════════════ -->
+  @if (section() === 'ventas') {
+    <section class="max-w-[1200px] mx-auto px-6 md:px-10 pt-36 md:pt-44 pb-20">
+      <div class="flex items-center gap-3 mb-4">
+        <span class="h-px w-10 bg-[#0095f6]"></span>
+        <p class="text-xs tracking-[0.25em] uppercase text-[#0095f6] font-bold">Ventas</p>
+      </div>
+      <h2 class="text-3xl md:text-5xl font-black tracking-tight">¿A quién <span class="text-[#0095f6]">vendemos?</span></h2>
+      <p class="mt-5 text-lg text-slate-600 dark:text-slate-300 max-w-2xl leading-relaxed">
+        DLUX llega a personas y organizaciones de todo el Ecuador. Desde el cliente que busca su par
+        perfecto hasta empresas que necesitan abastecerse por volumen: contamos con la infraestructura,
+        el stock y el equipo para responder a cada canal con calidad y rapidez.
+      </p>
+
+      <!-- GALERÍA: NUESTROS ESPACIOS -->
+      <div class="mt-16">
+        <div class="flex items-center gap-3 mb-3">
+          <span class="h-px w-10 bg-[#0095f6]"></span>
+          <p class="text-xs tracking-[0.25em] uppercase text-[#0095f6] font-bold">Nuestros espacios</p>
+        </div>
+        <h3 class="text-2xl md:text-3xl font-black">Así trabajamos, así te atendemos</h3>
+        <p class="mt-4 text-slate-600 dark:text-slate-300 max-w-2xl leading-relaxed">
+          Conoce por dentro a {{ branding.siteName() }}: nuestra tienda, la zona de ropa, la sala de
+          calzado y la bodega desde donde despachamos cada pedido. Espacios pensados para ofrecerte
+          una experiencia de compra ordenada, segura y profesional.
         </p>
-        <div class="mt-10 flex flex-col sm:flex-row gap-3 justify-center">
-          <a routerLink="/auth/register"
-             class="inline-flex items-center justify-center gap-2 px-8 h-12 rounded-full
-                    bg-[#0095f6] text-white font-semibold text-[15px]
-                    hover:bg-[#1877f2] transition">
-            Crear cuenta
-          </a>
-          <a routerLink="/shop"
-             class="inline-flex items-center justify-center gap-2 px-8 h-12 rounded-full
-                    bg-transparent text-ink-950 dark:text-white
-                    border border-ink-300 dark:border-white/20
-                    font-semibold text-[15px]
-                    hover:border-ink-950 dark:hover:border-white transition">
-            Ver catálogo
-          </a>
+        <div class="reveal-stagger grid grid-cols-2 md:grid-cols-4 auto-rows-[160px] md:auto-rows-[200px] gap-4 mt-8" dlxReveal>
+          @for (e of espacios; track e.title; let i = $index) {
+            <div class="group relative overflow-hidden rounded-3xl shadow-md"
+                 [class.col-span-2]="i === 0"
+                 [class.row-span-2]="i === 0">
+              <img dlxImgFallback [src]="e.img" [alt]="e.title"
+                   class="w-full h-full object-cover group-hover:scale-105 transition duration-500"/>
+              <div class="absolute inset-0 bg-gradient-to-t from-black/60 via-black/0 to-transparent"></div>
+              <div class="absolute bottom-0 left-0 p-5">
+                <p class="text-white font-bold text-sm md:text-base">{{ e.title }}</p>
+              </div>
+            </div>
+          }
+        </div>
+      </div>
+
+      <div class="reveal-stagger grid md:grid-cols-2 gap-x-12 gap-y-10 mt-14" dlxReveal>
+        @for (s of segmentos; track s.title; let i = $index) {
+          <div class="flex items-start gap-5">
+            <span class="text-4xl font-black text-[#0095f6]/30 leading-none w-12 shrink-0">0{{ i + 1 }}</span>
+            <div>
+              <div class="flex items-center gap-2">
+                <i class="fa-solid {{ s.icon }} text-[#0095f6]"></i>
+                <h3 class="font-bold text-lg">{{ s.title }}</h3>
+              </div>
+              <p class="mt-2 text-slate-500 dark:text-slate-400 leading-relaxed">{{ s.desc }}</p>
+            </div>
+          </div>
+        }
+      </div>
+
+      <div class="reveal grid md:grid-cols-2 gap-14 items-center mt-24" dlxReveal>
+        <img dlxImgFallback [src]="img.sales" alt="Por qué DLUX"
+             class="w-full h-[400px] object-cover rounded-[2rem] shadow-xl order-2 md:order-1"/>
+        <div class="order-1 md:order-2">
+          <h3 class="text-2xl md:text-3xl font-black">Por qué elegir <span class="text-[#0095f6]">{{ branding.siteName() }}</span></h3>
+          <div class="mt-8 space-y-6">
+            @for (r of razones; track r.title) {
+              <div class="flex items-start gap-4">
+                <div class="w-11 h-11 rounded-2xl bg-[#0095f6]/10 text-[#0095f6] grid place-items-center shrink-0"><i class="fa-solid {{ r.icon }}"></i></div>
+                <div>
+                  <h4 class="font-bold">{{ r.title }}</h4>
+                  <p class="text-sm text-slate-500 dark:text-slate-400 leading-relaxed">{{ r.desc }}</p>
+                </div>
+              </div>
+            }
+          </div>
+        </div>
+      </div>
+
+      <div class="reveal grid md:grid-cols-2 gap-6 mt-24" dlxReveal>
+        <div class="rounded-[2rem] p-9 bg-slate-900 dark:bg-white/5 text-white border border-white/10">
+          <h3 class="text-xl font-bold">¿Eres cliente?</h3>
+          <p class="mt-3 text-white/70 leading-relaxed">Explora el catálogo y compra online con envío a todo el país.</p>
+          <a routerLink="/shop" class="mt-6 inline-flex items-center gap-2 px-6 py-3 rounded-full bg-[#0095f6] hover:bg-[#0084dd] font-semibold transition"><i class="fa-solid fa-bag-shopping"></i> Ver catálogo</a>
+        </div>
+        <div class="rounded-[2rem] p-9 bg-gradient-to-br from-[#0095f6] to-[#0066cc] text-white">
+          <h3 class="text-xl font-bold">¿Empresa o mayorista?</h3>
+          <p class="mt-3 text-white/90 leading-relaxed">Escríbenos para precios por volumen y pedidos corporativos.</p>
+          <a routerLink="/contact" class="mt-6 inline-flex items-center gap-2 px-6 py-3 rounded-full bg-white text-[#0077cc] font-bold hover:bg-white/90 transition"><i class="fa-solid fa-handshake"></i> Hablar con ventas</a>
         </div>
       </div>
     </section>
-  
+  }
+
+</div>

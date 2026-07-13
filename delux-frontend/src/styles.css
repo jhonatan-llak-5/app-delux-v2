@@ -616,3 +616,10 @@ select:-webkit-autofill,
   border-color: var(--dash-input-bord) !important;
   transition: background-color 9999s ease-in-out 0s;
 }
+
+/* Zapato flotante del hero (landing) */
+@keyframes dlx-float {
+  0%, 100% { transform: translateY(0) rotate(-8deg); }
+  50%      { transform: translateY(-22px) rotate(-8deg); }
+}
+.animate-dlx-float { animation: dlx-float 4.5s ease-in-out infinite; will-change: transform; }
