@@ -14,7 +14,7 @@ import { BrandingService } from '@core/services/branding.service';
   imports: [CommonModule, FormsModule, RouterLink],
   changeDetection: ChangeDetectionStrategy.OnPush,
   template: `
-    <footer class="bg-slate-950 border-t border-white/10">
+    <footer class="bg-gradient-to-b from-[#0a1730] to-[#070f22] border-t border-white/10">
 
       <!-- ─────── Newsletter strip (premium) ─────── -->
       <div class="border-b border-white/10">
@@ -73,7 +73,7 @@ import { BrandingService } from '@core/services/branding.service';
                    class="w-10 h-10 grid place-items-center rounded-full
                           bg-white/[0.06]
                           text-white/70
-                          hover:bg-[#0095f6] hover:text-white
+                          hover:bg-[#e4002b] hover:text-white
                           transition-colors">
                   <i class="{{ s.icon }} text-[14px]"></i>
                 </a>
@@ -83,7 +83,7 @@ import { BrandingService } from '@core/services/branding.service';
 
           <!-- Métodos de pago -->
           <div class="mt-7 flex items-center gap-3 text-[12px] text-white/45">
-            <i class="fa-solid fa-building-columns text-[#0095f6]"></i>
+            <i class="fa-solid fa-building-columns text-[#e4002b]"></i>
             <span>Pagos por transferencia bancaria y DE UNA</span>
           </div>
         </div>
@@ -100,7 +100,7 @@ import { BrandingService } from '@core/services/branding.service';
                 <li>
                   <a [routerLink]="item.route" [queryParams]="item.qp || null"
                      class="text-[14px] text-white/60
-                            hover:text-[#0095f6] dark:hover:text-[#0095f6] transition">
+                            hover:text-[#e4002b] dark:hover:text-[#e4002b] transition">
                     {{ item.label }}
                   </a>
                 </li>
@@ -118,22 +118,22 @@ import { BrandingService } from '@core/services/branding.service';
           <ul class="space-y-3 text-[14px] text-white/60">
             @if (branding.contactEmail()) {
               <li class="flex items-start gap-2">
-                <i class="fa-solid fa-envelope text-[#0095f6] text-[12px] mt-1"></i>
-                <a [href]="'mailto:' + branding.contactEmail()" class="hover:text-[#0095f6] transition break-all">
+                <i class="fa-solid fa-envelope text-[#e4002b] text-[12px] mt-1"></i>
+                <a [href]="'mailto:' + branding.contactEmail()" class="hover:text-[#e4002b] transition break-all">
                   {{ branding.contactEmail() }}
                 </a>
               </li>
             }
             @if (branding.whatsappNumber()) {
               <li class="flex items-start gap-2">
-                <i class="fa-brands fa-whatsapp text-[#0095f6] text-[13px] mt-0.5"></i>
-                <a [href]="branding.whatsappLink()" target="_blank" rel="noopener" class="hover:text-[#0095f6] transition">
+                <i class="fa-brands fa-whatsapp text-[#e4002b] text-[13px] mt-0.5"></i>
+                <a [href]="branding.whatsappLink()" target="_blank" rel="noopener" class="hover:text-[#e4002b] transition">
                   {{ branding.whatsappNumber() }}
                 </a>
               </li>
             }
             <li class="flex items-start gap-2">
-              <i class="fa-solid fa-location-dot text-[#0095f6] text-[12px] mt-1"></i>
+              <i class="fa-solid fa-location-dot text-[#e4002b] text-[12px] mt-1"></i>
               <span>Ecuador</span>
             </li>
           </ul>

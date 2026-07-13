@@ -1,5 +1,6 @@
 import { ChangeDetectionStrategy, Component, OnInit, inject } from '@angular/core';
-import { RouterOutlet } from '@angular/router';
+import { NavigationEnd, Router, RouterOutlet } from '@angular/router';
+import { filter } from 'rxjs/operators';
 import { NgxSonnerToaster } from 'ngx-sonner';
 import { ConfirmHostComponent } from '@shared/components/confirm/confirm-host.component';
 import { TenantService } from '@core/services/tenant.service';
@@ -31,11 +32,23 @@ export class AppComponent implements OnInit {
   private branding = inject(BrandingService);
   theme = inject(ThemeService);
   private ref = inject(RefService);
+  private router = inject(Router);
 
   ngOnInit() {
     this.tenant.load().subscribe({ error: () => {} });
     this.fileValidator.loadConfig();
     this.branding.load();
     this.ref.capture();  // Atribución de afiliado (?ref=)
+
+    // Tema por contexto: el dashboard (/app) y el kiosko respetan la preferencia
+    // del usuario; el resto (landing, tienda, login/registro) siempre en claro.
+    const applyContextTheme = (url: string) => {
+      const usesUserTheme = url.startsWith('/app') || url.startsWith('/kiosko');
+      this.theme.force(usesUserTheme ? null : 'light');
+    };
+    applyContextTheme(this.router.url);
+    this.router.events
+      .pipe(filter((e): e is NavigationEnd => e instanceof NavigationEnd))
+      .subscribe(e => applyContextTheme(e.urlAfterRedirects));
   }
 }

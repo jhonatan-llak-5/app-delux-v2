@@ -16,59 +16,52 @@ import { PublicBranchesService } from '@shared/services/public-branches.service'
   imports: [DlxFieldErrorComponent, CommonModule, FormsModule],
   changeDetection: ChangeDetectionStrategy.OnPush,
   template: `
-    <!-- HEADER -->
-    <section class="bg-white dark:bg-slate-950 pt-32 pb-16">
-      <div class="max-w-[1100px] mx-auto px-6 md:px-10 text-center">
-        <div class="flex items-center justify-center gap-3 mb-4">
-          <span class="h-px w-10 bg-[#0095f6]"></span>
-          <p class="text-[12px] tracking-[0.25em] uppercase text-[#0095f6] font-bold">Contacto</p>
-          <span class="h-px w-10 bg-[#0095f6]"></span>
+    <!-- HERO (navy) -->
+    <section class="relative overflow-hidden bg-gradient-to-br from-[#0b1c40] via-[#0a1530] to-[#070f22]">
+      <span class="pointer-events-none absolute -top-16 right-[12%] w-72 h-72 rounded-full bg-[#e4002b]/15 blur-[110px]"></span>
+      <span class="pointer-events-none absolute -bottom-20 left-[8%] w-72 h-72 rounded-full bg-[#1d4ed8]/15 blur-[120px]"></span>
+      <div class="relative z-10 max-w-[1100px] mx-auto px-6 md:px-10 pt-40 md:pt-48 pb-24 text-center">
+        <div class="flex items-center justify-center gap-3 mb-5">
+          <span class="h-0.5 w-10 bg-[#e4002b]"></span>
+          <p class="text-[12px] tracking-[0.3em] uppercase text-white/50 font-semibold">Contacto</p>
+          <span class="h-0.5 w-10 bg-[#e4002b]"></span>
         </div>
-        <h1 class="font-black text-[44px] md:text-[64px] tracking-[-0.03em] leading-[1.05]
-                   text-ink-950 dark:text-white">
-          Hablemos, <span class="text-[#0095f6]">estamos aquí</span>.
+        <h1 class="font-bold text-[44px] md:text-[64px] tracking-[-0.03em] leading-[1.05] text-white">
+          Hablemos, <span class="text-[#e4002b]">estamos aquí</span>.
         </h1>
-        <p class="text-ink-600 dark:text-white/55 text-[16px] mt-6 leading-relaxed max-w-xl mx-auto">
-          ¿Tienes una pregunta sobre tu pedido, una colaboración, o quieres saber más de un drop?
+        <p class="text-white/60 text-[16px] mt-6 leading-relaxed max-w-xl mx-auto">
+          ¿Tienes una pregunta sobre tu pedido, una colaboración o una compra al por mayor?
           Nuestro equipo responde en menos de 24 horas.
         </p>
-      </div>
-    </section>
-
-    <!-- CANALES DE CONTACTO -->
-    <section class="bg-white dark:bg-slate-950 pb-20">
-      <div class="max-w-[1100px] mx-auto px-6 md:px-10">
-        <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-2 gap-4 max-w-2xl mx-auto">
-          @for (ch of channels(); track ch.title) {
-            <a [href]="ch.link" target="_blank" rel="noopener"
-               class="group block p-7 rounded-3xl
-                      bg-white dark:bg-slate-800
-                      border border-ink-200 dark:border-white/[0.08]
-                      hover:border-[#0095f6] dark:hover:border-[#0095f6]
-                      hover:shadow-lg hover:-translate-y-1
-                      transition-all duration-300">
-              <div class="w-12 h-12 rounded-full bg-[#0095f6]/10 dark:bg-[#0095f6]/15
-                          grid place-items-center mb-5
-                          group-hover:bg-[#0095f6] group-hover:text-white transition-colors">
-                <i class="{{ ch.icon }} text-[#0095f6] group-hover:text-white text-[18px] transition-colors"></i>
-              </div>
-              <h3 class="font-bold text-[16px] text-ink-950 dark:text-white mb-1">{{ ch.title }}</h3>
-              <p class="text-[15px] font-semibold text-ink-950 dark:text-white">{{ ch.value }}</p>
-              <p class="text-[12px] text-ink-500 dark:text-white/45 mt-2">{{ ch.detail }}</p>
+        <div class="mt-9 flex flex-wrap gap-3 justify-center">
+          @if (branding.whatsappNumber()) {
+            <a [href]="branding.whatsappLink()" target="_blank" rel="noopener"
+               class="inline-flex items-center gap-2 px-5 py-2.5 rounded-full bg-white/10 border border-white/15 text-white text-sm font-semibold hover:bg-[#e4002b] hover:border-[#e4002b] transition">
+              <i class="fa-brands fa-whatsapp"></i> WhatsApp
             </a>
           }
+          @if (branding.contactEmail()) {
+            <a [href]="'mailto:' + branding.contactEmail()"
+               class="inline-flex items-center gap-2 px-5 py-2.5 rounded-full bg-white/10 border border-white/15 text-white text-sm font-semibold hover:bg-[#e4002b] hover:border-[#e4002b] transition">
+              <i class="fa-solid fa-envelope"></i> Correo
+            </a>
+          }
+          <a href="#contacto-form"
+             class="inline-flex items-center gap-2 px-5 py-2.5 rounded-full bg-[#e4002b] text-white text-sm font-semibold hover:bg-[#c00020] transition">
+            <i class="fa-solid fa-paper-plane"></i> Escríbenos
+          </a>
         </div>
       </div>
     </section>
 
     <!-- FORM + INFO -->
-    <section class="bg-ink-50 dark:bg-slate-900 py-24 md:py-32">
+    <section id="contacto-form" class="bg-ink-50 dark:bg-slate-900 py-24 md:py-32 scroll-mt-24">
       <div class="max-w-[1100px] mx-auto px-6 md:px-10
                   grid grid-cols-1 lg:grid-cols-12 gap-12">
 
         <!-- Info izquierda -->
         <div class="lg:col-span-5">
-          <p class="text-[12px] tracking-[0.25em] uppercase text-[#0095f6] font-semibold mb-3">
+          <p class="text-[12px] tracking-[0.25em] uppercase text-[#e4002b] font-semibold mb-3">
             Envíanos un mensaje
           </p>
           <h2 class="font-bold text-[36px] md:text-[44px] tracking-[-0.025em] leading-[1.1]
@@ -81,8 +74,8 @@ import { PublicBranchesService } from '@shared/services/public-branches.service'
 
           <div class="mt-10 space-y-6">
             <div class="flex items-start gap-3">
-              <div class="w-10 h-10 rounded-full bg-[#0095f6]/10 grid place-items-center shrink-0">
-                <i class="fa-solid fa-clock text-[#0095f6] text-[14px]"></i>
+              <div class="w-10 h-10 rounded-full bg-[#e4002b]/10 grid place-items-center shrink-0">
+                <i class="fa-solid fa-clock text-[#e4002b] text-[14px]"></i>
               </div>
               <div>
                 <h4 class="font-bold text-[14px] text-ink-950 dark:text-white">Soporte 24/7</h4>
@@ -90,8 +83,8 @@ import { PublicBranchesService } from '@shared/services/public-branches.service'
               </div>
             </div>
             <div class="flex items-start gap-3">
-              <div class="w-10 h-10 rounded-full bg-[#0095f6]/10 grid place-items-center shrink-0">
-                <i class="fa-solid fa-location-dot text-[#0095f6] text-[14px]"></i>
+              <div class="w-10 h-10 rounded-full bg-[#e4002b]/10 grid place-items-center shrink-0">
+                <i class="fa-solid fa-location-dot text-[#e4002b] text-[14px]"></i>
               </div>
               <div>
                 <h4 class="font-bold text-[14px] text-ink-950 dark:text-white">Oficina central</h4>
@@ -100,8 +93,8 @@ import { PublicBranchesService } from '@shared/services/public-branches.service'
             </div>
             @if (socials().length) {
               <div class="flex items-start gap-3">
-                <div class="w-10 h-10 rounded-full bg-[#0095f6]/10 grid place-items-center shrink-0">
-                  <i class="fa-solid fa-share-nodes text-[#0095f6] text-[14px]"></i>
+                <div class="w-10 h-10 rounded-full bg-[#e4002b]/10 grid place-items-center shrink-0">
+                  <i class="fa-solid fa-share-nodes text-[#e4002b] text-[14px]"></i>
                 </div>
                 <div>
                   <h4 class="font-bold text-[14px] text-ink-950 dark:text-white">Síguenos</h4>
@@ -111,7 +104,7 @@ import { PublicBranchesService } from '@shared/services/public-branches.service'
                          class="w-10 h-10 rounded-full bg-white dark:bg-white/[0.06]
                                 border border-ink-200 dark:border-white/[0.08]
                                 grid place-items-center
-                                hover:bg-[#0095f6] hover:border-[#0095f6] hover:text-white
+                                hover:bg-[#e4002b] hover:border-[#e4002b] hover:text-white
                                 text-ink-700 dark:text-white/75 transition">
                         <i class="{{ s.icon }} text-[14px]"></i>
                       </a>
@@ -191,18 +184,18 @@ import { PublicBranchesService } from '@shared/services/public-branches.service'
     </section>
 
     <!-- MAPA -->
-    <section class="bg-white dark:bg-slate-950 pb-4">
+    <section class="bg-white dark:bg-slate-950 pt-20 md:pt-24 pb-4">
       <div class="max-w-[1100px] mx-auto px-6 md:px-10">
         <div class="flex items-center gap-3 mb-8">
-          <span class="h-px w-10 bg-[#0095f6]"></span>
-          <p class="text-[12px] tracking-[0.25em] uppercase text-[#0095f6] font-bold">Dónde estamos</p>
+          <span class="h-px w-10 bg-[#e4002b]"></span>
+          <p class="text-[12px] tracking-[0.25em] uppercase text-[#e4002b] font-bold">Dónde estamos</p>
         </div>
         <div class="grid md:grid-cols-3 gap-4 mb-8">
           @for (b of branches(); track b.name) {
-            <div class="flex items-start gap-4 rounded-2xl p-5 border border-ink-200 dark:border-white/[0.08] bg-ink-50 dark:bg-slate-800 hover:border-[#0095f6] transition">
-              <div class="w-11 h-11 rounded-2xl bg-[#0095f6]/10 text-[#0095f6] grid place-items-center shrink-0"><i class="fa-solid fa-location-dot"></i></div>
+            <div class="flex items-start gap-4 rounded-2xl p-5 border border-ink-200 dark:border-white/[0.08] bg-ink-50 dark:bg-slate-800 hover:border-[#e4002b] transition">
+              <div class="w-11 h-11 rounded-2xl bg-[#e4002b]/10 text-[#e4002b] grid place-items-center shrink-0"><i class="fa-solid fa-location-dot"></i></div>
               <div>
-                <p class="font-bold text-ink-950 dark:text-white">{{ b.name }} <span class="text-[#0095f6] text-sm">· {{ b.city }}</span></p>
+                <p class="font-bold text-ink-950 dark:text-white">{{ b.name }} <span class="text-[#e4002b] text-sm">· {{ b.city }}</span></p>
                 <p class="mt-1 text-[13px] text-ink-600 dark:text-white/55">{{ b.address }}</p>
                 <p class="mt-1 text-[12px] text-ink-500 dark:text-white/45"><i class="fa-regular fa-clock"></i> {{ b.hours }}</p>
               </div>
@@ -220,7 +213,7 @@ import { PublicBranchesService } from '@shared/services/public-branches.service'
     <section class="bg-white dark:bg-slate-950 py-24 md:py-32">
       <div class="max-w-[900px] mx-auto px-6 md:px-10">
         <div class="text-center mb-14">
-          <p class="text-[12px] tracking-[0.25em] uppercase text-[#0095f6] font-semibold mb-3">
+          <p class="text-[12px] tracking-[0.25em] uppercase text-[#e4002b] font-semibold mb-3">
             FAQ
           </p>
           <h2 class="font-bold text-[36px] md:text-[48px] tracking-[-0.025em] leading-[1.1]
@@ -233,12 +226,12 @@ import { PublicBranchesService } from '@shared/services/public-branches.service'
           @for (item of faqs; track item.q) {
             <details class="group rounded-2xl bg-ink-50 dark:bg-slate-800
                             border border-ink-200 dark:border-white/[0.08]
-                            hover:border-[#0095f6] dark:hover:border-[#0095f6] transition">
+                            hover:border-[#e4002b] dark:hover:border-[#e4002b] transition">
               <summary class="flex items-center justify-between cursor-pointer list-none p-6">
                 <span class="font-semibold text-[15px] text-ink-950 dark:text-white pr-4">{{ item.q }}</span>
                 <div class="w-8 h-8 rounded-full bg-white dark:bg-white/[0.06]
                             grid place-items-center shrink-0
-                            group-open:bg-[#0095f6] group-open:text-white transition-colors">
+                            group-open:bg-[#e4002b] group-open:text-white transition-colors">
                   <i class="fa-solid fa-chevron-down text-[11px] text-ink-500 dark:text-white/55
                             group-open:text-white group-open:rotate-180 transition-transform"></i>
                 </div>

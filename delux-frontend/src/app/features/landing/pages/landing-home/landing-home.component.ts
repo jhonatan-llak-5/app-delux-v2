@@ -4,8 +4,9 @@ import { ActivatedRoute, RouterLink } from '@angular/router';
 import { DomSanitizer, SafeResourceUrl } from '@angular/platform-browser';
 import { ImgFallbackDirective } from '@shared/ui/img-fallback.directive';
 import { RevealOnScrollDirective } from '@shared/directives/reveal-on-scroll.directive';
+import { CountUpDirective } from '@shared/directives/count-up.directive';
 import { PublicBranchesService } from '@shared/services/public-branches.service';
-import { PublicCatalogService } from '@shared/services/public-catalog.service';
+import { PublicCatalogService, PublicProduct } from '@shared/services/public-catalog.service';
 import { BrandingService } from '@core/services/branding.service';
 
 type Section = 'inicio' | 'nosotros' | 'ventas';
@@ -27,7 +28,7 @@ const FALLBACK_BRANCHES: BranchCard[] = [
 @Component({
   selector: 'dlx-landing-home',
   standalone: true,
-  imports: [CommonModule, RouterLink, ImgFallbackDirective, RevealOnScrollDirective],
+  imports: [CommonModule, RouterLink, ImgFallbackDirective, RevealOnScrollDirective, CountUpDirective],
   changeDetection: ChangeDetectionStrategy.OnPush,
   templateUrl: './landing-home.component.html',
 })
@@ -50,6 +51,7 @@ export class LandingHomeComponent implements OnInit {
   // Zapato flotante del hero: usa un producto real de la tienda; si no hay,
   // cae a una imagen DLUX (PNG transparente, ideal para flotar).
   heroShoe = signal<string>('assets/images/catalog/deux_blue.png');
+  featured = signal<PublicProduct[]>([]);
 
   // ── Mapa: coordenadas de la SUCURSAL PRINCIPAL (cámbialas por las reales) ──
   readonly mapLat = -0.180653;   // <-- reemplazar latitud
@@ -85,10 +87,10 @@ export class LandingHomeComponent implements OnInit {
 
   // ── Quiénes somos: valores ──
   readonly valores = [
-    { icon: 'fa-gem',                title: 'Calidad premium',    desc: 'Materiales seleccionados y control en cada par que entregamos.' },
-    { icon: 'fa-certificate',        title: 'Autenticidad',       desc: 'Producto 100% original. Nada de réplicas, solo lo real.' },
-    { icon: 'fa-heart',              title: 'Cercanía',           desc: 'Atención personalizada antes, durante y después de tu compra.' },
-    { icon: 'fa-hand-holding-heart', title: 'Compromiso social',  desc: 'Parte de cada venta se destina a apoyar a nuestra comunidad.' },
+    { icon: 'fa-gem',                title: 'Calidad premium',    desc: 'Materiales premium en cada par.' },
+    { icon: 'fa-certificate',        title: 'Autenticidad',       desc: '100% original, sin réplicas.' },
+    { icon: 'fa-heart',              title: 'Cercanía',           desc: 'Atención cercana y personalizada.' },
+    { icon: 'fa-hand-holding-heart', title: 'Compromiso social',  desc: 'Apoyamos a nuestra comunidad.' },
   ];
 
   // ── Ventas: galería de espacios de la empresa (reemplazar por fotos reales) ──
@@ -175,10 +177,11 @@ export class LandingHomeComponent implements OnInit {
   }
 
   private loadHeroShoe(): void {
-    this.catalog.listProducts({ sort: 'featured' }).subscribe({
+    this.catalog.listProducts({ sort: 'featured', page_size: 8 }).subscribe({
       next: r => {
-        const p = (r.results || [])[0];
-        const url = p?.thumb_url || p?.main_image_url;
+        const list = r.results || [];
+        this.featured.set(list.slice(0, 5));
+        const url = list[0]?.thumb_url || list[0]?.main_image_url;
         if (url) this.heroShoe.set(url);
       },
       error: () => {},

@@ -1,43 +1,46 @@
-<div class="bg-white dark:bg-slate-950 text-slate-900 dark:text-white">
+<div class="bg-white dark:bg-[#0a1428] text-slate-900 dark:text-white overflow-hidden">
 
   <!-- ══════════════════════ INICIO ══════════════════════ -->
   @if (section() === 'inicio') {
-    <!-- HERO -->
-    <section class="relative overflow-hidden">
-      <div class="absolute inset-0 bg-gradient-to-b from-sky-50/70 to-white dark:from-slate-900 dark:to-slate-950"></div>
-      <div class="absolute -top-32 -right-20 w-[28rem] h-[28rem] rounded-full bg-[#0095f6]/15 blur-3xl"></div>
-      <div class="relative max-w-[1200px] mx-auto px-6 md:px-10 pt-36 md:pt-44 pb-20 md:pb-28 grid md:grid-cols-2 gap-14 items-center">
+    <!-- HERO (banner premium navy) -->
+    <section class="relative overflow-hidden bg-gradient-to-br from-[#0b1c40] via-[#0a1530] to-[#070f22]">
+      <!-- atmósfera (combina con la imagen) -->
+      <div class="pointer-events-none absolute inset-0">
+        <div class="absolute top-1/4 right-[12%] w-[40rem] h-[40rem] rounded-full bg-[#1d4ed8]/15 blur-[140px]"></div>
+        <div class="absolute -bottom-24 left-1/4 w-[30rem] h-[30rem] rounded-full bg-[#0ea5e9]/10 blur-[120px]"></div>
+      </div>
+
+      <div class="relative z-10 max-w-[1320px] mx-auto px-6 md:px-10 pt-40 md:pt-48 pb-24 md:pb-32 grid md:grid-cols-[1fr_1.25fr] gap-8 lg:gap-12 items-center">
         <div>
-          <span class="inline-flex items-center gap-2 px-4 py-1.5 rounded-full bg-[#0095f6]/10 text-[#0077cc] dark:text-[#5cb8ff] text-xs font-bold tracking-wide uppercase">
-            <i class="fa-solid fa-shoe-prints"></i> Calzado con propósito
-          </span>
-          <h1 class="mt-6 font-black text-5xl md:text-7xl leading-[1.02] tracking-tight">
-            Camina con<br/>
-            <span class="text-[#0095f6]">{{ branding.siteName() }}.</span>
+          <div class="flex items-center gap-3 mb-6">
+            <span class="h-0.5 w-10 bg-[#e4002b]"></span>
+            <p class="text-xs tracking-[0.3em] uppercase text-white/50 font-semibold">Calzado con propósito</p>
+          </div>
+          <h1 class="font-bold text-5xl md:text-7xl leading-[0.98] tracking-tight uppercase text-white">
+            Camina con<br/><span class="text-[#e4002b]">{{ branding.siteName() }}.</span>
           </h1>
-          <p class="mt-6 text-lg md:text-xl text-slate-600 dark:text-slate-300 max-w-md leading-relaxed">
-            Una marca ecuatoriana de calzado original que combina estilo, calidad y
-            un compromiso real con su comunidad.
+          <p class="mt-7 text-lg text-white/60 max-w-md leading-relaxed">
+            Estilo, calidad y un compromiso real con su comunidad — en cada paso que das.
           </p>
           <div class="mt-9 flex flex-wrap gap-3">
             <a routerLink="/shop"
-               class="inline-flex items-center gap-2 px-7 py-3.5 rounded-full bg-[#0095f6] hover:bg-[#0084dd] text-white font-semibold shadow-lg shadow-[#0095f6]/30 hover:-translate-y-0.5 transition">
-              <i class="fa-solid fa-bag-shopping"></i> Ver catálogo
+               class="group inline-flex items-center gap-2 pl-6 pr-5 py-3.5 rounded-full bg-[#e4002b] hover:bg-[#c00020] text-white font-semibold shadow-lg shadow-[#e4002b]/30 hover:-translate-y-0.5 transition">
+              Ver catálogo
+              <span class="w-6 h-6 rounded-full bg-white/20 grid place-items-center group-hover:translate-x-0.5 transition"><i class="fa-solid fa-arrow-right text-[11px]"></i></span>
             </a>
             <a routerLink="/nosotros"
-               class="inline-flex items-center gap-2 px-7 py-3.5 rounded-full border border-slate-300 dark:border-white/20 hover:border-[#0095f6] hover:text-[#0095f6] font-semibold transition">
-              Conócenos <i class="fa-solid fa-arrow-right text-xs"></i>
+               class="inline-flex items-center gap-2 px-6 py-3.5 rounded-full border border-white/25 text-white hover:bg-white/10 font-semibold transition">
+              Conócenos
             </a>
           </div>
-          <!-- Redes sociales (desde configuración) -->
           @if (branding.socialLinks().length) {
-            <div class="mt-9 flex items-center gap-3">
-              <span class="text-xs uppercase tracking-wide text-slate-400 font-semibold">Síguenos</span>
-              <span class="h-px w-6 bg-slate-200 dark:bg-white/15"></span>
+            <div class="mt-10 flex items-center gap-3">
+              <span class="text-xs uppercase tracking-wide text-white/40 font-semibold">Síguenos</span>
+              <span class="h-px w-6 bg-white/15"></span>
               <div class="flex items-center gap-2">
                 @for (s of branding.socialLinks(); track s.url) {
                   <a [href]="s.url" target="_blank" rel="noopener" [title]="s.label"
-                     class="w-10 h-10 rounded-full grid place-items-center bg-white dark:bg-white/5 border border-slate-200 dark:border-white/10 text-slate-500 hover:text-white hover:bg-[#0095f6] hover:border-[#0095f6] transition shadow-sm">
+                     class="w-10 h-10 rounded-full grid place-items-center bg-white/5 border border-white/15 text-white/70 hover:text-white hover:bg-[#e4002b] hover:border-[#e4002b] transition">
                     <i class="fa-brands {{ s.icon }}"></i>
                   </a>
                 }
@@ -45,93 +48,132 @@
             </div>
           }
         </div>
+
         <div class="relative">
-          <div class="absolute inset-6 bg-gradient-to-tr from-[#0095f6]/20 to-sky-400/10 rounded-full blur-2xl"></div>
-          <img dlxImgFallback [src]="heroShoe()" alt="DLUX calzado"
-               class="relative w-full h-[400px] md:h-[500px] object-cover rounded-[2.5rem] shadow-2xl"/>
-          <div class="absolute -bottom-6 -left-6 bg-white dark:bg-slate-900 rounded-2xl shadow-xl px-6 py-4 border border-slate-100 dark:border-white/10">
-            <p class="text-3xl font-black text-[#0095f6]">+50k</p>
-            <p class="text-xs text-slate-500 dark:text-slate-400 font-medium">pares vendidos</p>
+          <img src="assets/images/banner-primary.png" alt="Zapatos DLUX"
+               class="banner-fade w-full h-auto object-contain md:scale-105 lg:scale-115 origin-center"/>
+          <div class="absolute bottom-6 -left-2 md:left-2 bg-white/10 backdrop-blur-md rounded-2xl px-6 py-4 border border-white/15">
+            <p class="text-3xl font-bold text-white">+50k</p>
+            <p class="text-xs text-white/60 font-medium">pares vendidos</p>
+          </div>
+          <div class="absolute top-6 -right-2 md:right-2 bg-white/10 backdrop-blur-md rounded-2xl px-5 py-3 border border-white/15">
+            <p class="text-2xl font-bold text-white">+15k</p>
+            <p class="text-[11px] text-white/60 font-medium">clientes felices</p>
           </div>
         </div>
       </div>
     </section>
 
-    <!-- FILA DE FEATURES (íconos circulares de color) -->
+    <!-- BENEFICIOS -->
     <section class="max-w-[1200px] mx-auto px-6 md:px-10 py-16 md:py-20">
-      <div class="reveal-stagger grid grid-cols-2 md:grid-cols-4 gap-x-6 gap-y-10 text-center" dlxReveal>
-        <div>
-          <div class="w-16 h-16 mx-auto rounded-2xl bg-[#0095f6] text-white grid place-items-center shadow-lg shadow-[#0095f6]/30"><i class="fa-solid fa-truck-fast text-xl"></i></div>
-          <h3 class="mt-4 font-bold">Envíos a todo Ecuador</h3>
-          <p class="mt-1 text-sm text-slate-500 dark:text-slate-400 max-w-[16rem] mx-auto">Recíbelo en casa, rápido y seguro.</p>
+      <div class="text-center max-w-xl mx-auto mb-12">
+        <div class="inline-flex items-center gap-3 mb-3">
+          <span class="h-0.5 w-8 bg-[#e4002b]"></span>
+          <p class="text-xs tracking-[0.25em] uppercase text-slate-400 font-semibold">Por qué DLUX</p>
+          <span class="h-0.5 w-8 bg-[#e4002b]"></span>
         </div>
-        <div>
-          <div class="w-16 h-16 mx-auto rounded-2xl bg-emerald-500 text-white grid place-items-center shadow-lg shadow-emerald-500/30"><i class="fa-solid fa-shield-halved text-xl"></i></div>
-          <h3 class="mt-4 font-bold">Original garantizado</h3>
-          <p class="mt-1 text-sm text-slate-500 dark:text-slate-400 max-w-[16rem] mx-auto">Producto 100% auténtico y verificado.</p>
-        </div>
-        <div>
-          <div class="w-16 h-16 mx-auto rounded-2xl bg-amber-500 text-white grid place-items-center shadow-lg shadow-amber-500/30"><i class="fa-solid fa-credit-card text-xl"></i></div>
-          <h3 class="mt-4 font-bold">Pagos flexibles</h3>
-          <p class="mt-1 text-sm text-slate-500 dark:text-slate-400 max-w-[16rem] mx-auto">Transferencia, DE UNA y contra entrega.</p>
-        </div>
-        <div>
-          <div class="w-16 h-16 mx-auto rounded-2xl bg-sky-500 text-white grid place-items-center shadow-lg shadow-sky-500/30"><i class="fa-solid fa-rotate-left text-xl"></i></div>
-          <h3 class="mt-4 font-bold">Cambios sencillos</h3>
-          <p class="mt-1 text-sm text-slate-500 dark:text-slate-400 max-w-[16rem] mx-auto">Cambios y devoluciones sin líos.</p>
-        </div>
+        <h2 class="text-2xl md:text-3xl font-bold text-slate-900 dark:text-white">Comprar en DLUX es fácil y seguro</h2>
       </div>
-    </section>
-
-    <!-- CIFRAS (banda editorial) -->
-    <section class="max-w-[1100px] mx-auto px-6 md:px-10 py-10">
-      <div class="reveal rounded-[2rem] bg-slate-900 dark:bg-white/5 text-white grid grid-cols-2 md:grid-cols-4 divide-x divide-white/10" dlxReveal>
-        @for (s of stats; track s.label) {
-          <div class="py-10 px-4 text-center">
-            <p class="text-4xl md:text-5xl font-black text-[#5cb8ff]">{{ s.num }}</p>
-            <p class="mt-2 text-xs md:text-sm text-white/60 font-medium">{{ s.label }}</p>
+      <div class="reveal-stagger grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-5" dlxReveal>
+        @for (r of razones; track r.title; let i = $index) {
+          <div class="group relative overflow-hidden rounded-3xl border border-slate-100 dark:border-white/10 bg-white dark:bg-white/5 p-6 hover:shadow-2xl hover:shadow-[#e4002b]/10 hover:-translate-y-2 transition duration-300">
+            <span class="absolute inset-x-0 top-0 h-1 bg-[#e4002b] origin-left scale-x-0 group-hover:scale-x-100 transition-transform duration-500"></span>
+            <div class="flex items-center justify-between mb-6">
+              <div class="w-14 h-14 rounded-2xl bg-[#e4002b]/10 text-[#e4002b] grid place-items-center group-hover:bg-[#e4002b] group-hover:text-white group-hover:scale-110 group-hover:rotate-3 transition duration-300">
+                <i class="fa-solid {{ r.icon }} text-lg"></i>
+              </div>
+              <span class="text-4xl font-bold text-slate-100 dark:text-white/5 group-hover:text-[#e4002b]/15 transition">0{{ i + 1 }}</span>
+            </div>
+            <h3 class="font-bold text-lg text-slate-900 dark:text-white">{{ r.title }}</h3>
+            <p class="mt-2 text-sm text-slate-500 dark:text-white/55 leading-relaxed">{{ r.desc }}</p>
+            <span class="mt-5 flex items-center gap-1.5 text-xs font-semibold text-[#e4002b] opacity-0 group-hover:opacity-100 -translate-x-1 group-hover:translate-x-0 transition">
+              Saber más <i class="fa-solid fa-arrow-right text-[10px]"></i>
+            </span>
           </div>
         }
       </div>
     </section>
 
-    <!-- TESTIMONIOS (rediseñado) -->
-    <section class="bg-sky-50/50 dark:bg-white/[0.03] py-20 md:py-28">
+    <!-- CIFRAS -->
+    <section class="max-w-[1200px] mx-auto px-6 md:px-10 pb-6">
+      <div class="reveal relative overflow-hidden rounded-[2rem] bg-gradient-to-br from-[#0d2452] via-[#0b1c40] to-[#0a1530] text-white grid grid-cols-2 md:grid-cols-4 divide-y md:divide-y-0 md:divide-x divide-white/[0.06]" dlxReveal>
+        <span class="pointer-events-none absolute -top-16 -right-10 w-56 h-56 rounded-full bg-[#e4002b]/25 blur-[90px]"></span>
+        <span class="pointer-events-none absolute -bottom-16 -left-10 w-56 h-56 rounded-full bg-[#e4002b]/15 blur-[90px]"></span>
+        @for (s of stats; track s.label; let i = $index) {
+          <div class="relative py-11 px-6 text-center group">
+            <div class="w-12 h-12 mx-auto rounded-2xl bg-white/5 border border-white/10 grid place-items-center text-[#ff5a72] mb-4 group-hover:scale-110 group-hover:border-[#e4002b]/40 transition">
+              <i class="fa-solid {{ ['fa-award','fa-shoe-prints','fa-store','fa-face-smile'][i] }}"></i>
+            </div>
+            <p class="text-4xl md:text-5xl font-bold tracking-tight" [dlxCountUp]="s.num"></p>
+            <div class="mx-auto mt-3 h-0.5 w-8 rounded-full bg-[#e4002b]"></div>
+            <p class="mt-3 text-xs md:text-sm text-white/50 font-medium">{{ s.label }}</p>
+          </div>
+        }
+      </div>
+    </section>
+
+    <!-- PRODUCTOS DESTACADOS -->
+    @if (featured().length) {
+      <section class="max-w-[1200px] mx-auto px-6 md:px-10 py-16 md:py-20">
+        <div class="text-center mb-12">
+          <h2 class="text-3xl md:text-4xl font-bold text-slate-900 dark:text-white">Productos destacados</h2>
+          <div class="mx-auto mt-3 h-1 w-14 rounded-full bg-[#e4002b]"></div>
+        </div>
+        <div class="reveal-stagger grid grid-cols-2 md:grid-cols-3 lg:grid-cols-5 gap-5" dlxReveal>
+          @for (p of featured(); track p.id) {
+            <a [routerLink]="['/shop', p.id]"
+               class="group rounded-3xl border border-slate-100 dark:border-white/10 bg-white dark:bg-white/5 p-4 hover:shadow-xl hover:-translate-y-1 transition flex flex-col">
+              <div class="rounded-2xl bg-slate-50 dark:bg-white/5 aspect-square grid place-items-center overflow-hidden mb-4">
+                <img dlxImgFallback [src]="p.thumb_url || p.main_image_url" [alt]="p.name"
+                     class="w-full h-full object-contain group-hover:scale-105 transition duration-500"/>
+              </div>
+              <h3 class="font-bold text-slate-900 dark:text-white text-sm truncate">{{ p.name }}</h3>
+              <p class="text-xs text-slate-400 mb-3 truncate">{{ p.category_name || p.brand_name }}</p>
+              <div class="mt-auto flex items-center justify-between">
+                <p class="text-lg font-bold text-[#e4002b]">${{ p.base_price }}</p>
+                <span class="w-9 h-9 rounded-full border border-[#e4002b] text-[#e4002b] grid place-items-center group-hover:bg-[#e4002b] group-hover:text-white transition">
+                  <i class="fa-solid fa-cart-shopping text-xs"></i>
+                </span>
+              </div>
+            </a>
+          }
+        </div>
+        <div class="text-center mt-10">
+          <a routerLink="/shop" fragment="catalogo" class="inline-flex items-center gap-2 px-6 py-3 rounded-full bg-[#e4002b] hover:bg-[#c00020] text-white font-semibold transition">
+            Ver todos los productos <i class="fa-solid fa-arrow-right text-xs"></i>
+          </a>
+        </div>
+      </section>
+    }
+
+    <!-- TESTIMONIOS -->
+    <section class="relative bg-rose-50/40 dark:bg-white/[0.03] py-20 md:py-28">
       <div class="max-w-[1200px] mx-auto px-6 md:px-10">
         <div class="grid md:grid-cols-[1fr_auto] gap-8 items-end mb-14">
           <div>
             <div class="flex items-center gap-3 mb-4">
-              <span class="h-px w-10 bg-[#0095f6]"></span>
-              <p class="text-xs tracking-[0.25em] uppercase text-[#0095f6] font-bold">Reseñas</p>
+              <span class="h-0.5 w-8 bg-[#e4002b]"></span>
+              <p class="text-xs tracking-[0.25em] uppercase text-slate-400 font-semibold">Reseñas</p>
             </div>
-            <h2 class="text-3xl md:text-5xl font-black tracking-tight">Lo que dice <span class="text-[#0095f6]">nuestra gente</span></h2>
+            <h2 class="text-3xl md:text-5xl font-bold tracking-tight text-slate-900 dark:text-white">Lo que dice nuestra gente</h2>
           </div>
-          <!-- Rating agregado -->
           <div class="flex items-center gap-4 rounded-2xl bg-white dark:bg-white/5 border border-slate-100 dark:border-white/10 px-6 py-4 shadow-sm">
-            <p class="text-4xl font-black text-[#0095f6]">4.9</p>
+            <p class="text-4xl font-bold text-slate-900 dark:text-white">4.9</p>
             <div>
-              <div class="flex gap-0.5 text-amber-400">
-                @for (n of [1,2,3,4,5]; track n) { <i class="fa-solid fa-star text-xs"></i> }
-              </div>
-              <p class="text-xs text-slate-500 dark:text-slate-400 mt-1">+1.200 reseñas</p>
+              <div class="flex gap-0.5 text-[#e4002b]">@for (n of [1,2,3,4,5]; track n) { <i class="fa-solid fa-star text-xs"></i> }</div>
+              <p class="text-xs text-slate-400 mt-1">+1.200 reseñas</p>
             </div>
           </div>
         </div>
-
         <div class="reveal-stagger grid md:grid-cols-3 gap-6" dlxReveal>
           @for (t of testimonios; track t.name) {
-            <figure class="group relative rounded-3xl bg-white dark:bg-white/5 border border-slate-100 dark:border-white/10 p-8 shadow-sm hover:shadow-xl hover:-translate-y-1 transition flex flex-col">
-              <span class="absolute top-6 right-7 text-6xl leading-none font-black text-[#0095f6]/10 select-none">”</span>
-              <div class="flex gap-1 text-amber-400 mb-4">
-                @for (n of [1,2,3,4,5]; track n) { <i class="fa-solid fa-star text-sm" [class.opacity-20]="n > t.stars"></i> }
-              </div>
-              <blockquote class="relative text-slate-600 dark:text-slate-300 leading-relaxed flex-1">{{ t.text }}</blockquote>
+            <figure class="rounded-3xl bg-white dark:bg-white/5 border border-slate-100 dark:border-white/10 p-8 shadow-sm hover:shadow-xl hover:-translate-y-1 transition flex flex-col">
+              <div class="flex gap-1 text-[#e4002b] mb-4">@for (n of [1,2,3,4,5]; track n) { <i class="fa-solid fa-star text-sm" [class.opacity-20]="n > t.stars"></i> }</div>
+              <blockquote class="text-slate-600 dark:text-white/65 leading-relaxed flex-1">{{ t.text }}</blockquote>
               <figcaption class="mt-6 pt-5 border-t border-slate-100 dark:border-white/10 flex items-center gap-3">
-                <img dlxImgFallback [src]="t.avatar" [alt]="t.name" class="w-11 h-11 rounded-full object-cover ring-2 ring-[#0095f6]/20"/>
+                <img dlxImgFallback [src]="t.avatar" [alt]="t.name" class="w-11 h-11 rounded-full object-cover"/>
                 <div class="min-w-0">
-                  <p class="font-bold text-sm flex items-center gap-1.5">{{ t.name }}
-                    <i class="fa-solid fa-circle-check text-[#0095f6] text-xs" title="Compra verificada"></i>
-                  </p>
+                  <p class="font-bold text-sm text-slate-900 dark:text-white">{{ t.name }}</p>
                   <p class="text-xs text-slate-400 truncate">{{ t.role }}</p>
                 </div>
               </figcaption>
@@ -141,28 +183,13 @@
       </div>
     </section>
 
-    <!-- SELLOS DE GARANTÍA -->
-    <section class="max-w-[1200px] mx-auto px-6 md:px-10 py-14">
-      <div class="reveal grid grid-cols-2 md:grid-cols-4 gap-4" dlxReveal>
-        @for (x of sellos; track x.title) {
-          <div class="flex items-center gap-3 rounded-2xl border border-slate-100 dark:border-white/10 bg-white dark:bg-white/5 px-5 py-4 hover:shadow-md transition">
-            <div class="w-12 h-12 rounded-full bg-[#0095f6]/10 text-[#0095f6] grid place-items-center shrink-0"><i class="fa-solid {{ x.icon }} text-lg"></i></div>
-            <div>
-              <p class="font-bold text-sm flex items-center gap-1.5">{{ x.title }} <i class="fa-solid fa-circle-check text-emerald-500 text-xs"></i></p>
-              <p class="text-xs text-slate-400">{{ x.sub }}</p>
-            </div>
-          </div>
-        }
-      </div>
-    </section>
-
     <!-- CTA -->
     <section class="max-w-[1200px] mx-auto px-6 md:px-10 py-20">
-      <div class="reveal rounded-[2.5rem] bg-gradient-to-r from-[#0095f6] to-[#0066cc] text-white px-8 md:px-16 py-14 md:py-20 text-center shadow-2xl shadow-[#0095f6]/20" dlxReveal>
-        <h2 class="text-3xl md:text-4xl font-black">¿Listo para dar el paso con {{ branding.siteName() }}?</h2>
-        <p class="mt-4 text-white/90 max-w-xl mx-auto">Explora nuestra colección o conversemos sobre alianzas y ventas al por mayor.</p>
-        <div class="mt-8 flex flex-wrap gap-3 justify-center">
-          <a routerLink="/shop" class="px-7 py-3.5 rounded-full bg-white text-[#0077cc] font-bold hover:bg-white/90 hover:-translate-y-0.5 transition">Ir a la tienda</a>
+      <div class="reveal relative overflow-hidden rounded-[2.5rem] bg-gradient-to-br from-[#e4002b] via-[#c00722] to-[#8f0018] text-white px-8 md:px-16 py-16 md:py-20 text-center shadow-2xl shadow-[#e4002b]/25" dlxReveal>
+        <h2 class="relative text-3xl md:text-4xl font-bold">¿Listo para dar el paso?</h2>
+        <p class="relative mt-4 text-white/90 max-w-xl mx-auto">Explora nuestra colección o conversemos sobre alianzas y ventas al por mayor.</p>
+        <div class="relative mt-8 flex flex-wrap gap-3 justify-center">
+          <a routerLink="/shop" class="px-7 py-3.5 rounded-full bg-white text-[#e4002b] font-bold hover:-translate-y-0.5 transition">Ir a la tienda</a>
           <a routerLink="/contact" class="px-7 py-3.5 rounded-full border border-white/60 font-semibold hover:bg-white/10 transition">Contáctanos</a>
         </div>
       </div>
@@ -171,156 +198,143 @@
 
   <!-- ══════════════════════ QUIÉNES SOMOS ══════════════════════ -->
   @if (section() === 'nosotros') {
-    <!-- Encabezado con imagen de fondo -->
-    <section class="relative overflow-hidden">
-      <div class="absolute inset-0 bg-gradient-to-b from-sky-50/70 to-white dark:from-slate-900 dark:to-slate-950"></div>
-      <div class="relative max-w-[1200px] mx-auto px-6 md:px-10 pt-36 md:pt-44 pb-12 text-center">
-        <div class="flex items-center justify-center gap-3 mb-4">
-          <span class="h-px w-10 bg-[#0095f6]"></span>
-          <p class="text-xs tracking-[0.25em] uppercase text-[#0095f6] font-bold">Quiénes somos</p>
-          <span class="h-px w-10 bg-[#0095f6]"></span>
+    <section class="relative">
+      <div class="absolute inset-0 bg-gradient-to-b from-rose-50/50 to-white dark:from-[#0b1c40] dark:to-[#0a1428]"></div>
+      <div class="relative z-10 max-w-[1200px] mx-auto px-6 md:px-10 pt-36 md:pt-44 pb-16 grid md:grid-cols-2 gap-12 items-center">
+        <div>
+          <div class="flex items-center gap-3 mb-5">
+            <span class="h-0.5 w-8 bg-[#e4002b]"></span>
+            <p class="text-xs tracking-[0.25em] uppercase text-slate-400 font-semibold">Quiénes somos</p>
+          </div>
+          <h2 class="text-4xl md:text-5xl font-bold tracking-tight leading-[1.05] text-slate-900 dark:text-white">
+            Más que una marca,<br/><span class="text-[#e4002b]">una familia</span> que camina contigo.
+          </h2>
+          <p class="mt-6 text-lg text-slate-500 dark:text-white/60 max-w-md leading-relaxed">
+            Nacimos con una idea simple: calzado original, de calidad y con identidad propia.
+            Hoy crecemos junto a nuestra gente en todo el país.
+          </p>
+          <div class="mt-8 flex flex-wrap gap-4">
+            <div class="flex items-center gap-3 rounded-2xl border border-slate-100 dark:border-white/10 bg-white dark:bg-white/5 px-5 py-3 shadow-sm">
+              <div class="w-10 h-10 rounded-xl bg-[#e4002b]/10 text-[#e4002b] grid place-items-center"><i class="fa-solid fa-award"></i></div>
+              <div><p class="text-lg font-bold text-slate-900 dark:text-white leading-none">+10</p><p class="text-xs text-slate-400 mt-1">años de trayectoria</p></div>
+            </div>
+            <div class="flex items-center gap-3 rounded-2xl border border-slate-100 dark:border-white/10 bg-white dark:bg-white/5 px-5 py-3 shadow-sm">
+              <div class="w-10 h-10 rounded-xl bg-[#e4002b]/10 text-[#e4002b] grid place-items-center"><i class="fa-solid fa-shoe-prints"></i></div>
+              <div><p class="text-lg font-bold text-slate-900 dark:text-white leading-none">+50k</p><p class="text-xs text-slate-400 mt-1">pares vendidos</p></div>
+            </div>
+          </div>
         </div>
-        <h2 class="text-4xl md:text-6xl font-black tracking-tight">Más que una marca,<br/><span class="text-[#0095f6]">una familia que camina contigo</span></h2>
-        <p class="mt-6 text-lg text-slate-600 dark:text-slate-300 max-w-2xl mx-auto leading-relaxed">Conoce la historia, los valores y el propósito que mueven a {{ branding.siteName() }} cada día.</p>
+        <div class="relative">
+          <img dlxImgFallback [src]="img.about" alt="Comunidad DLUX" class="w-full h-[380px] md:h-[460px] object-cover rounded-[2rem] shadow-xl"/>
+          <a routerLink="/shop" title="Ver catálogo"
+             class="absolute -bottom-5 -right-5 w-16 h-16 rounded-full bg-[#e4002b] text-white grid place-items-center shadow-xl shadow-[#e4002b]/30 hover:scale-110 transition">
+            <i class="fa-solid fa-arrow-right text-lg"></i>
+          </a>
+        </div>
       </div>
     </section>
 
     <section class="max-w-[1200px] mx-auto px-6 md:px-10 pb-20">
-      <!-- Historia (split con badge) -->
-      <div class="reveal grid md:grid-cols-2 gap-14 items-center mt-8" dlxReveal>
-        <div class="relative">
-          <img dlxImgFallback [src]="img.about" alt="Nuestra historia"
-               class="w-full h-[440px] object-cover rounded-[2rem] shadow-xl"/>
-          <div class="absolute -bottom-6 -right-6 bg-[#0095f6] text-white rounded-2xl shadow-xl px-6 py-4 text-center">
-            <p class="text-3xl font-black">+10</p>
-            <p class="text-xs text-white/80 font-medium">años de trayectoria</p>
+      <div class="reveal-stagger grid md:grid-cols-3 gap-6 mt-4" dlxReveal>
+        <div class="group rounded-[2rem] p-8 bg-white dark:bg-white/5 border border-slate-100 dark:border-white/10 hover:shadow-2xl hover:shadow-[#e4002b]/10 hover:-translate-y-1.5 transition duration-300">
+          <div class="w-14 h-14 rounded-2xl bg-[#e4002b]/10 text-[#e4002b] grid place-items-center mb-5 group-hover:bg-[#e4002b] group-hover:text-white group-hover:scale-110 transition duration-300"><i class="fa-solid fa-bullseye text-xl"></i></div>
+          <h3 class="text-xl font-bold text-slate-900 dark:text-white">Misión</h3>
+          <p class="mt-3 text-slate-500 dark:text-white/60 leading-relaxed">Calzado original y de calidad, con una experiencia cercana y accesible.</p>
+        </div>
+        <div class="group rounded-[2rem] p-8 bg-white dark:bg-white/5 border border-slate-100 dark:border-white/10 hover:shadow-2xl hover:shadow-[#e4002b]/10 hover:-translate-y-1.5 transition duration-300">
+          <div class="w-14 h-14 rounded-2xl bg-[#e4002b]/10 text-[#e4002b] grid place-items-center mb-5 group-hover:bg-[#e4002b] group-hover:text-white group-hover:scale-110 transition duration-300"><i class="fa-solid fa-eye text-xl"></i></div>
+          <h3 class="text-xl font-bold text-slate-900 dark:text-white">Visión</h3>
+          <p class="mt-3 text-slate-500 dark:text-white/60 leading-relaxed">Ser la marca de calzado de referencia en el Ecuador.</p>
+        </div>
+        <div class="group rounded-[2rem] p-8 bg-white dark:bg-white/5 border border-slate-100 dark:border-white/10 hover:shadow-2xl hover:shadow-[#e4002b]/10 hover:-translate-y-1.5 transition duration-300">
+          <div class="w-14 h-14 rounded-2xl bg-[#e4002b]/10 text-[#e4002b] grid place-items-center mb-5 group-hover:bg-[#e4002b] group-hover:text-white group-hover:scale-110 transition duration-300"><i class="fa-solid fa-compass text-xl"></i></div>
+          <h3 class="text-xl font-bold text-slate-900 dark:text-white">Propósito</h3>
+          <p class="mt-3 text-slate-500 dark:text-white/60 leading-relaxed">Que cada paso te haga sentir seguro, auténtico y parte de algo mayor.</p>
+        </div>
+      </div>
+
+      <div class="mt-24 relative overflow-hidden rounded-[2.5rem] bg-gradient-to-br from-[#0d2452] via-[#0b1c40] to-[#0a1530] text-white px-6 md:px-14 py-16">
+        <span class="pointer-events-none absolute -top-16 -right-10 w-56 h-56 rounded-full bg-[#e4002b]/20 blur-[90px]"></span>
+        <span class="pointer-events-none absolute -bottom-16 -left-10 w-56 h-56 rounded-full bg-[#e4002b]/12 blur-[90px]"></span>
+        <div class="relative text-center mb-14">
+          <div class="inline-flex items-center gap-3 mb-3">
+            <span class="h-0.5 w-8 bg-[#e4002b]"></span>
+            <p class="text-xs tracking-[0.25em] uppercase text-white/50 font-semibold">Historia</p>
+            <span class="h-0.5 w-8 bg-[#e4002b]"></span>
           </div>
+          <h3 class="text-2xl md:text-3xl font-bold text-white">Nuestra trayectoria</h3>
         </div>
-        <div>
-          <h3 class="text-2xl md:text-3xl font-black">Nacimos para vestir tus pasos</h3>
-          <p class="mt-5 text-lg text-slate-600 dark:text-slate-300 leading-relaxed">
-            {{ branding.siteName() }} nació con una idea simple: ofrecer calzado original,
-            de calidad y con identidad propia al mercado ecuatoriano. Hoy crecemos junto a
-            nuestra gente, con presencia en las principales ciudades del país.
-          </p>
-          <p class="mt-5 text-slate-600 dark:text-slate-300 leading-relaxed">
-            Un buen par de zapatos no solo se ve bien: acompaña tu día, tu trabajo y tus metas.
-            Por eso cuidamos cada detalle, desde el producto hasta la atención.
-          </p>
-        </div>
-      </div>
-
-      <!-- Misión / Visión / Propósito (3 columnas con ícono) -->
-      <div class="reveal-stagger grid md:grid-cols-3 gap-6 mt-24" dlxReveal>
-        <div class="rounded-[2rem] p-8 bg-slate-50 dark:bg-white/5 border border-slate-100 dark:border-white/10">
-          <div class="w-14 h-14 rounded-2xl bg-[#0095f6] text-white grid place-items-center shadow-lg shadow-[#0095f6]/30 mb-5"><i class="fa-solid fa-bullseye text-xl"></i></div>
-          <h3 class="text-xl font-black">Misión</h3>
-          <p class="mt-3 text-slate-600 dark:text-slate-300 leading-relaxed">Brindar calzado original y de calidad, con una experiencia cercana y accesible, que aporte valor a nuestros clientes y a la comunidad.</p>
-        </div>
-        <div class="rounded-[2rem] p-8 bg-slate-50 dark:bg-white/5 border border-slate-100 dark:border-white/10">
-          <div class="w-14 h-14 rounded-2xl bg-emerald-500 text-white grid place-items-center shadow-lg shadow-emerald-500/30 mb-5"><i class="fa-solid fa-eye text-xl"></i></div>
-          <h3 class="text-xl font-black">Visión</h3>
-          <p class="mt-3 text-slate-600 dark:text-slate-300 leading-relaxed">Ser la marca de calzado ecuatoriana de referencia, reconocida por su calidad, su cercanía y su compromiso social.</p>
-        </div>
-        <div class="rounded-[2rem] p-8 bg-slate-50 dark:bg-white/5 border border-slate-100 dark:border-white/10">
-          <div class="w-14 h-14 rounded-2xl bg-amber-500 text-white grid place-items-center shadow-lg shadow-amber-500/30 mb-5"><i class="fa-solid fa-compass text-xl"></i></div>
-          <h3 class="text-xl font-black">Propósito</h3>
-          <p class="mt-3 text-slate-600 dark:text-slate-300 leading-relaxed">Que cada paso que des con DLUX te haga sentir seguro, auténtico y parte de algo que también ayuda a otros.</p>
-        </div>
-      </div>
-
-      <!-- TRAYECTORIA -->
-      <div class="mt-24">
-        <h3 class="text-2xl md:text-3xl font-black mb-14 text-center">Nuestra trayectoria</h3>
         <div class="relative reveal-stagger grid md:grid-cols-4 gap-10 md:gap-6" dlxReveal>
-          <div class="hidden md:block absolute top-2 left-0 right-0 h-px bg-slate-200 dark:bg-white/10"></div>
+          <div class="hidden md:block absolute top-2 left-0 right-0 h-px bg-white/15"></div>
           @for (h of hitos; track h.year) {
             <div class="relative text-center md:text-left">
-              <span class="inline-block md:block w-4 h-4 rounded-full bg-[#0095f6] ring-4 ring-[#0095f6]/20 relative z-10 mx-auto md:mx-0"></span>
-              <p class="mt-5 text-2xl font-black text-[#0095f6]">{{ h.year }}</p>
-              <h4 class="mt-1 font-bold">{{ h.title }}</h4>
-              <p class="mt-2 text-sm text-slate-500 dark:text-slate-400 leading-relaxed">{{ h.desc }}</p>
+              <span class="inline-block md:block w-4 h-4 rounded-full bg-[#e4002b] ring-4 ring-[#e4002b]/25 relative z-10 mx-auto md:mx-0"></span>
+              <p class="mt-5 text-2xl font-bold text-white">{{ h.year }}</p>
+              <h4 class="mt-1 font-bold text-white">{{ h.title }}</h4>
+              <p class="mt-2 text-sm text-white/55 leading-relaxed">{{ h.desc }}</p>
             </div>
           }
         </div>
       </div>
 
-      <!-- VALORES -->
-      <div class="mt-24">
-        <h3 class="text-2xl md:text-3xl font-black mb-14 text-center">Nuestros valores</h3>
+      <div class="mt-24 rounded-[2.5rem] bg-rose-50/50 dark:bg-white/[0.02] py-14 px-6 md:px-10">
+        <div class="text-center mb-14">
+          <div class="inline-flex items-center gap-3 mb-3">
+            <span class="h-0.5 w-8 bg-[#e4002b]"></span>
+            <p class="text-xs tracking-[0.25em] uppercase text-slate-400 font-semibold">Lo que nos define</p>
+            <span class="h-0.5 w-8 bg-[#e4002b]"></span>
+          </div>
+          <h3 class="text-2xl md:text-3xl font-bold text-slate-900 dark:text-white">Nuestros valores</h3>
+        </div>
         <div class="reveal-stagger grid sm:grid-cols-2 lg:grid-cols-4 gap-x-6 gap-y-12" dlxReveal>
-          @for (v of valores; track v.title; let i = $index) {
-            <div class="text-center">
-              <div class="w-16 h-16 mx-auto rounded-2xl grid place-items-center text-white shadow-lg"
-                   [ngClass]="['bg-[#0095f6] shadow-[#0095f6]/30','bg-indigo-500 shadow-indigo-500/30','bg-fuchsia-500 shadow-fuchsia-500/30','bg-sky-500 shadow-sky-500/30'][i]">
+          @for (v of valores; track v.title) {
+            <div class="group text-center rounded-3xl bg-white dark:bg-white/5 border border-slate-100 dark:border-white/10 p-7 hover:shadow-xl hover:-translate-y-1.5 hover:border-[#e4002b]/30 transition duration-300">
+              <div class="w-16 h-16 mx-auto rounded-full bg-[#e4002b]/10 text-[#e4002b] grid place-items-center ring-8 ring-[#e4002b]/5 group-hover:bg-[#e4002b] group-hover:text-white group-hover:ring-[#e4002b]/10 transition duration-300">
                 <i class="fa-solid {{ v.icon }} text-xl"></i>
               </div>
-              <h4 class="mt-5 font-bold text-lg">{{ v.title }}</h4>
-              <p class="mt-2 text-sm text-slate-500 dark:text-slate-400 leading-relaxed">{{ v.desc }}</p>
+              <h4 class="mt-6 font-bold text-slate-900 dark:text-white">{{ v.title }}</h4>
+              <p class="mt-2 text-sm text-slate-500 dark:text-white/55 leading-relaxed">{{ v.desc }}</p>
             </div>
           }
         </div>
       </div>
 
-      <!-- NUESTRO EQUIPO -->
       <div class="mt-24">
-        <h3 class="text-2xl md:text-3xl font-black mb-3 text-center">Las personas detrás de {{ branding.siteName() }}</h3>
-        <p class="text-center text-slate-500 dark:text-slate-400 mb-14 max-w-xl mx-auto">Un equipo apasionado por el calzado y por servir bien a cada cliente.</p>
+        <div class="flex items-center justify-center gap-3 mb-3">
+          <span class="h-0.5 w-8 bg-[#e4002b]"></span>
+          <p class="text-xs tracking-[0.25em] uppercase text-slate-400 font-semibold">Equipo</p>
+          <span class="h-0.5 w-8 bg-[#e4002b]"></span>
+        </div>
+        <h3 class="text-2xl md:text-3xl font-bold text-center mb-3 text-slate-900 dark:text-white">Las personas detrás de {{ branding.siteName() }}</h3>
+        <p class="text-center text-slate-500 dark:text-white/55 mb-14 max-w-xl mx-auto">Un equipo apasionado por el calzado y por servir bien a cada cliente.</p>
         <div class="reveal-stagger grid grid-cols-2 lg:grid-cols-4 gap-6" dlxReveal>
           @for (m of equipo; track m.name) {
             <div class="group text-center">
               <div class="relative mx-auto w-full aspect-square max-w-[220px] rounded-[1.5rem] overflow-hidden shadow-lg">
                 <img dlxImgFallback [src]="m.photo" [alt]="m.name" class="w-full h-full object-cover group-hover:scale-105 transition duration-500"/>
-                <div class="absolute inset-x-0 bottom-0 h-1/3 bg-gradient-to-t from-black/50 to-transparent"></div>
               </div>
-              <h4 class="mt-4 font-bold">{{ m.name }}</h4>
-              <p class="text-sm text-[#0095f6] font-medium">{{ m.role }}</p>
+              <h4 class="mt-4 font-bold text-slate-900 dark:text-white">{{ m.name }}</h4>
+              <p class="text-sm text-slate-400 font-medium">{{ m.role }}</p>
             </div>
           }
         </div>
       </div>
 
-      <!-- LO QUE OFRECEMOS (servicios) -->
-      <div class="mt-24">
-        <h3 class="text-2xl md:text-3xl font-black mb-14 text-center">Lo que te ofrecemos</h3>
-        <div class="reveal-stagger grid grid-cols-2 md:grid-cols-4 gap-x-6 gap-y-10 text-center" dlxReveal>
-          @for (s of servicios; track s.title; let i = $index) {
-            <div>
-              <div class="w-16 h-16 mx-auto rounded-2xl grid place-items-center text-white shadow-lg"
-                   [ngClass]="['bg-[#0095f6] shadow-[#0095f6]/30','bg-emerald-500 shadow-emerald-500/30','bg-amber-500 shadow-amber-500/30','bg-sky-500 shadow-sky-500/30'][i]">
-                <i class="fa-solid {{ s.icon }} text-xl"></i>
-              </div>
-              <h3 class="mt-4 font-bold">{{ s.title }}</h3>
-              <p class="mt-1 text-sm text-slate-500 dark:text-slate-400 max-w-[16rem] mx-auto leading-relaxed">{{ s.desc }}</p>
-            </div>
-          }
-        </div>
-      </div>
-
-      <!-- AYUDA SOCIAL (texto + galería) -->
-      <div class="reveal mt-24 rounded-[2.5rem] bg-gradient-to-br from-[#0095f6] to-[#0066cc] text-white overflow-hidden" dlxReveal>
-        <div class="grid lg:grid-cols-2 gap-0 items-center">
+      <div class="reveal mt-24 rounded-[2.5rem] bg-gradient-to-br from-[#e4002b] via-[#c00722] to-[#8f0018] text-white overflow-hidden" dlxReveal>
+        <div class="grid lg:grid-cols-2 items-center">
           <div class="p-9 md:p-14">
-            <span class="inline-flex items-center gap-2 px-4 py-1.5 rounded-full bg-white/15 text-white text-xs font-bold uppercase tracking-wide">
-              <i class="fa-solid fa-hand-holding-heart"></i> DLUX con causa
-            </span>
-            <h3 class="mt-6 text-3xl md:text-4xl font-black">Devolvemos a la comunidad</h3>
-            <p class="mt-5 text-lg text-white/90 leading-relaxed">
-              Creemos en el impacto positivo. Parte de cada venta se destina a apoyar a familias
-              y fundaciones: donamos calzado, colaboramos con causas locales y acompañamos a
-              quienes más lo necesitan.
-            </p>
+            <span class="inline-flex items-center gap-2 px-4 py-1.5 rounded-full bg-white/15 text-white text-xs font-bold uppercase tracking-wide"><i class="fa-solid fa-hand-holding-heart"></i> DLUX con causa</span>
+            <h3 class="mt-6 text-3xl md:text-4xl font-bold">Devolvemos a la comunidad</h3>
+            <p class="mt-5 text-lg text-white/90 leading-relaxed">Parte de cada venta apoya a familias y fundaciones: donamos calzado, colaboramos con causas locales y acompañamos a quienes más lo necesitan.</p>
             <div class="mt-8 flex flex-wrap gap-10">
-              <div><p class="text-3xl font-black">+1.2k</p><p class="text-xs text-white/70">pares donados</p></div>
-              <div><p class="text-3xl font-black">+8</p><p class="text-xs text-white/70">fundaciones apoyadas</p></div>
-              <div><p class="text-3xl font-black">100%</p><p class="text-xs text-white/70">compromiso local</p></div>
+              <div><p class="text-3xl font-bold">+1.2k</p><p class="text-xs text-white/70">pares donados</p></div>
+              <div><p class="text-3xl font-bold">+8</p><p class="text-xs text-white/70">fundaciones</p></div>
+              <div><p class="text-3xl font-bold">100%</p><p class="text-xs text-white/70">compromiso local</p></div>
             </div>
           </div>
           <div class="grid grid-cols-2 gap-2 p-4 md:p-6">
             @for (g of socialGallery; track g; let i = $index) {
-              <img dlxImgFallback [src]="g" alt="Impacto social DLUX"
-                   class="w-full h-40 md:h-48 object-cover rounded-2xl"
-                   [class.mt-6]="i === 1 || i === 3"/>
+              <img dlxImgFallback [src]="g" alt="Impacto social DLUX" class="w-full h-40 md:h-48 object-cover rounded-2xl" [class.mt-6]="i === 1 || i === 3"/>
             }
           </div>
         </div>
@@ -330,73 +344,69 @@
 
   <!-- ══════════════════════ VENTAS ══════════════════════ -->
   @if (section() === 'ventas') {
-    <section class="max-w-[1200px] mx-auto px-6 md:px-10 pt-36 md:pt-44 pb-20">
-      <div class="flex items-center gap-3 mb-4">
-        <span class="h-px w-10 bg-[#0095f6]"></span>
-        <p class="text-xs tracking-[0.25em] uppercase text-[#0095f6] font-bold">Ventas</p>
-      </div>
-      <h2 class="text-3xl md:text-5xl font-black tracking-tight">¿A quién <span class="text-[#0095f6]">vendemos?</span></h2>
-      <p class="mt-5 text-lg text-slate-600 dark:text-slate-300 max-w-2xl leading-relaxed">
-        DLUX llega a personas y organizaciones de todo el Ecuador. Desde el cliente que busca su par
-        perfecto hasta empresas que necesitan abastecerse por volumen: contamos con la infraestructura,
-        el stock y el equipo para responder a cada canal con calidad y rapidez.
-      </p>
-
-      <!-- GALERÍA: NUESTROS ESPACIOS -->
-      <div class="mt-16">
-        <div class="flex items-center gap-3 mb-3">
-          <span class="h-px w-10 bg-[#0095f6]"></span>
-          <p class="text-xs tracking-[0.25em] uppercase text-[#0095f6] font-bold">Nuestros espacios</p>
+    <section class="relative">
+      <div class="absolute inset-0 bg-gradient-to-b from-rose-50/50 to-white dark:from-[#0b1c40] dark:to-[#0a1428]"></div>
+      <div class="relative z-10 max-w-[1200px] mx-auto px-6 md:px-10 pt-36 md:pt-44 pb-4">
+        <div class="flex items-center gap-3 mb-4">
+          <span class="h-0.5 w-8 bg-[#e4002b]"></span>
+          <p class="text-xs tracking-[0.25em] uppercase text-slate-400 font-semibold">Ventas</p>
         </div>
-        <h3 class="text-2xl md:text-3xl font-black">Así trabajamos, así te atendemos</h3>
-        <p class="mt-4 text-slate-600 dark:text-slate-300 max-w-2xl leading-relaxed">
+        <h2 class="text-3xl md:text-5xl font-bold tracking-tight text-slate-900 dark:text-white">¿A quién vendemos?</h2>
+        <p class="mt-5 text-lg text-slate-500 dark:text-white/60 max-w-2xl leading-relaxed">
+          DLUX llega a personas y organizaciones de todo el Ecuador. Contamos con la infraestructura,
+          el stock y el equipo para responder a cada canal con calidad y rapidez.
+        </p>
+      </div>
+    </section>
+
+    <section class="max-w-[1200px] mx-auto px-6 md:px-10 pb-20">
+      <div class="mt-8">
+        <div class="flex items-center gap-3 mb-3">
+          <span class="h-0.5 w-8 bg-[#e4002b]"></span>
+          <p class="text-xs tracking-[0.25em] uppercase text-slate-400 font-semibold">Nuestros espacios</p>
+        </div>
+        <h3 class="text-2xl md:text-3xl font-bold text-slate-900 dark:text-white">Así trabajamos, así te atendemos</h3>
+        <p class="mt-4 text-slate-500 dark:text-white/60 max-w-2xl leading-relaxed">
           Conoce por dentro a {{ branding.siteName() }}: nuestra tienda, la zona de ropa, la sala de
-          calzado y la bodega desde donde despachamos cada pedido. Espacios pensados para ofrecerte
-          una experiencia de compra ordenada, segura y profesional.
+          calzado y la bodega desde donde despachamos cada pedido.
         </p>
         <div class="reveal-stagger grid grid-cols-2 md:grid-cols-4 auto-rows-[160px] md:auto-rows-[200px] gap-4 mt-8" dlxReveal>
           @for (e of espacios; track e.title; let i = $index) {
-            <div class="group relative overflow-hidden rounded-3xl shadow-md"
-                 [class.col-span-2]="i === 0"
-                 [class.row-span-2]="i === 0">
-              <img dlxImgFallback [src]="e.img" [alt]="e.title"
-                   class="w-full h-full object-cover group-hover:scale-105 transition duration-500"/>
-              <div class="absolute inset-0 bg-gradient-to-t from-black/60 via-black/0 to-transparent"></div>
-              <div class="absolute bottom-0 left-0 p-5">
-                <p class="text-white font-bold text-sm md:text-base">{{ e.title }}</p>
-              </div>
+            <div class="group relative overflow-hidden rounded-3xl shadow-md" [class.col-span-2]="i === 0" [class.row-span-2]="i === 0">
+              <img dlxImgFallback [src]="e.img" [alt]="e.title" class="w-full h-full object-cover group-hover:scale-105 transition duration-500"/>
+              <div class="absolute inset-0 bg-gradient-to-t from-black/60 to-transparent"></div>
+              <div class="absolute bottom-0 left-0 p-5"><p class="text-white font-bold text-sm md:text-base">{{ e.title }}</p></div>
             </div>
           }
         </div>
       </div>
 
-      <div class="reveal-stagger grid md:grid-cols-2 gap-x-12 gap-y-10 mt-14" dlxReveal>
+      <div class="reveal-stagger grid md:grid-cols-2 gap-x-12 gap-y-10 mt-24" dlxReveal>
         @for (s of segmentos; track s.title; let i = $index) {
           <div class="flex items-start gap-5">
-            <span class="text-4xl font-black text-[#0095f6]/30 leading-none w-12 shrink-0">0{{ i + 1 }}</span>
+            <span class="text-4xl font-bold text-slate-200 dark:text-white/10 leading-none w-12 shrink-0">0{{ i + 1 }}</span>
             <div>
               <div class="flex items-center gap-2">
-                <i class="fa-solid {{ s.icon }} text-[#0095f6]"></i>
-                <h3 class="font-bold text-lg">{{ s.title }}</h3>
+                <i class="fa-solid {{ s.icon }} text-[#e4002b]"></i>
+                <h3 class="font-bold text-lg text-slate-900 dark:text-white">{{ s.title }}</h3>
               </div>
-              <p class="mt-2 text-slate-500 dark:text-slate-400 leading-relaxed">{{ s.desc }}</p>
+              <p class="mt-2 text-slate-500 dark:text-white/55 leading-relaxed">{{ s.desc }}</p>
             </div>
           </div>
         }
       </div>
 
       <div class="reveal grid md:grid-cols-2 gap-14 items-center mt-24" dlxReveal>
-        <img dlxImgFallback [src]="img.sales" alt="Por qué DLUX"
-             class="w-full h-[400px] object-cover rounded-[2rem] shadow-xl order-2 md:order-1"/>
+        <img dlxImgFallback [src]="img.sales" alt="Por qué DLUX" class="w-full h-[400px] object-cover rounded-[2rem] shadow-xl order-2 md:order-1"/>
         <div class="order-1 md:order-2">
-          <h3 class="text-2xl md:text-3xl font-black">Por qué elegir <span class="text-[#0095f6]">{{ branding.siteName() }}</span></h3>
+          <h3 class="text-2xl md:text-3xl font-bold text-slate-900 dark:text-white">Por qué elegir {{ branding.siteName() }}</h3>
           <div class="mt-8 space-y-6">
             @for (r of razones; track r.title) {
               <div class="flex items-start gap-4">
-                <div class="w-11 h-11 rounded-2xl bg-[#0095f6]/10 text-[#0095f6] grid place-items-center shrink-0"><i class="fa-solid {{ r.icon }}"></i></div>
+                <div class="w-11 h-11 rounded-2xl bg-[#e4002b]/10 text-[#e4002b] grid place-items-center shrink-0"><i class="fa-solid {{ r.icon }}"></i></div>
                 <div>
-                  <h4 class="font-bold">{{ r.title }}</h4>
-                  <p class="text-sm text-slate-500 dark:text-slate-400 leading-relaxed">{{ r.desc }}</p>
+                  <h4 class="font-bold text-slate-900 dark:text-white">{{ r.title }}</h4>
+                  <p class="text-sm text-slate-500 dark:text-white/55 leading-relaxed">{{ r.desc }}</p>
                 </div>
               </div>
             }
@@ -408,12 +418,12 @@
         <div class="rounded-[2rem] p-9 bg-slate-900 dark:bg-white/5 text-white border border-white/10">
           <h3 class="text-xl font-bold">¿Eres cliente?</h3>
           <p class="mt-3 text-white/70 leading-relaxed">Explora el catálogo y compra online con envío a todo el país.</p>
-          <a routerLink="/shop" class="mt-6 inline-flex items-center gap-2 px-6 py-3 rounded-full bg-[#0095f6] hover:bg-[#0084dd] font-semibold transition"><i class="fa-solid fa-bag-shopping"></i> Ver catálogo</a>
+          <a routerLink="/shop" class="mt-6 inline-flex items-center gap-2 px-6 py-3 rounded-full bg-[#e4002b] hover:bg-[#c00020] font-semibold transition"><i class="fa-solid fa-bag-shopping"></i> Ver catálogo</a>
         </div>
-        <div class="rounded-[2rem] p-9 bg-gradient-to-br from-[#0095f6] to-[#0066cc] text-white">
+        <div class="rounded-[2rem] p-9 bg-gradient-to-br from-[#e4002b] via-[#c00722] to-[#8f0018] text-white">
           <h3 class="text-xl font-bold">¿Empresa o mayorista?</h3>
           <p class="mt-3 text-white/90 leading-relaxed">Escríbenos para precios por volumen y pedidos corporativos.</p>
-          <a routerLink="/contact" class="mt-6 inline-flex items-center gap-2 px-6 py-3 rounded-full bg-white text-[#0077cc] font-bold hover:bg-white/90 transition"><i class="fa-solid fa-handshake"></i> Hablar con ventas</a>
+          <a routerLink="/contact" class="mt-6 inline-flex items-center gap-2 px-6 py-3 rounded-full bg-white text-[#e4002b] font-bold hover:bg-white/90 transition"><i class="fa-solid fa-handshake"></i> Hablar con ventas</a>
         </div>
       </div>
     </section>

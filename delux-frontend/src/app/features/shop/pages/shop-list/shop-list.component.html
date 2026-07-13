@@ -2,9 +2,9 @@
     <dlx-hero-section />
 
     <!-- HEADER del shop — limpio centrado -->
-    <section class="bg-white dark:bg-slate-950 pt-12 pb-12 border-b border-ink-100 dark:border-white/[0.06]">
+    <section id="catalogo" class="scroll-mt-24 bg-white dark:bg-slate-950 pt-12 pb-12 border-b border-ink-100 dark:border-white/[0.06]">
       <div class="max-w-[1400px] mx-auto px-6 md:px-10">
-        <p class="text-[12px] tracking-[0.25em] uppercase text-[#0095f6] font-semibold mb-3">
+        <p class="text-[12px] tracking-[0.25em] uppercase text-[#e4002b] font-semibold mb-3">
           Catálogo
         </p>
         <div class="flex items-end justify-between flex-wrap gap-6">
@@ -12,10 +12,6 @@
                      text-ink-950 dark:text-white">
             Shop la colección
           </h1>
-          <p class="text-ink-600 dark:text-white/55 text-[15px] max-w-md leading-relaxed">
-            {{ filtered().length }} productos curados de Nike, Adidas, Jordan y más.
-            Stock en vivo por sucursal.
-          </p>
         </div>
       </div>
     </section>
@@ -51,11 +47,11 @@
                   class="inline-flex items-center gap-2 px-5 h-10 rounded-full
                          border border-ink-200 dark:border-white/[0.15]
                          text-[13px] font-semibold text-ink-950 dark:text-white
-                         hover:border-[#0095f6] hover:text-[#0095f6] transition">
+                         hover:border-[#e4002b] hover:text-[#e4002b] transition">
             <i class="fa-solid fa-sliders text-[12px]"></i>
             Filtros
             @if (activeFiltersCount() > 0) {
-              <span class="w-5 h-5 rounded-full bg-[#0095f6] text-white text-[10px] font-bold grid place-items-center">
+              <span class="w-5 h-5 rounded-full bg-[#e4002b] text-white text-[10px] font-bold grid place-items-center">
                 {{ activeFiltersCount() }}
               </span>
             }
@@ -67,7 +63,7 @@
                     class="appearance-none pl-5 pr-10 h-10 rounded-full
                            border border-ink-200 dark:border-white/[0.15]
                            bg-transparent text-[13px] font-semibold text-ink-950 dark:text-white
-                           hover:border-[#0095f6] transition cursor-pointer">
+                           hover:border-[#e4002b] transition cursor-pointer">
               <option value="relevance">Relevancia</option>
               <option value="new">Más nuevos</option>
               <option value="price-asc">Precio: menor</option>
@@ -102,7 +98,7 @@
                                   hover:bg-ink-50 dark:hover:bg-white/[0.04] transition">
                       <input type="checkbox" [checked]="filter().categories.includes(c.slug)"
                              (change)="toggleCategory(c.slug)"
-                             class="w-4 h-4 rounded accent-[#0095f6]" />
+                             class="w-4 h-4 rounded accent-[#e4002b]" />
                       <span class="text-[14px] text-ink-700 dark:text-white/75 flex-1">{{ c.label }}</span>
                       <span class="text-[12px] text-ink-400 dark:text-white/35">{{ c.count }}</span>
                     </label>
@@ -124,7 +120,7 @@
                                   hover:bg-ink-50 dark:hover:bg-white/[0.04] transition">
                       <input type="checkbox" [checked]="filter().brands.includes(b)"
                              (change)="toggleBrand(b)"
-                             class="w-4 h-4 rounded accent-[#0095f6]" />
+                             class="w-4 h-4 rounded accent-[#e4002b]" />
                       <span class="text-[14px] text-ink-700 dark:text-white/75">{{ b }}</span>
                     </label>
                   </li>
@@ -142,7 +138,7 @@
                 @for (s of sizes; track s) {
                   <button (click)="toggleSize(s)"
                           class="h-10 rounded-lg text-[12px] font-semibold transition"
-                          [class.bg-[#0095f6]]="filter().sizes.includes(s)"
+                          [class.bg-[#e4002b]]="filter().sizes.includes(s)"
                           [class.text-white]="filter().sizes.includes(s)"
                           [class.border-transparent]="filter().sizes.includes(s)"
                           [class.border]="!filter().sizes.includes(s)"
@@ -150,7 +146,7 @@
                           [class.dark:border-white/15]="!filter().sizes.includes(s)"
                           [class.text-ink-700]="!filter().sizes.includes(s)"
                           [class.dark:text-white/75]="!filter().sizes.includes(s)"
-                          [class.hover:border-[#0095f6]]="!filter().sizes.includes(s)">
+                          [class.hover:border-[#e4002b]]="!filter().sizes.includes(s)">
                     {{ s }}
                   </button>
                 }
@@ -168,19 +164,19 @@
                        placeholder="Mín"
                        class="h-10 px-3 rounded-lg border border-ink-200 dark:border-white/15
                               bg-transparent text-[14px] text-ink-950 dark:text-white
-                              focus:outline-none focus:border-[#0095f6]" />
+                              focus:outline-none focus:border-[#e4002b]" />
                 <input type="number" [value]="filter().priceMax" (input)="setPriceMax($any($event.target).value)"
                        placeholder="Máx"
                        class="h-10 px-3 rounded-lg border border-ink-200 dark:border-white/15
                               bg-transparent text-[14px] text-ink-950 dark:text-white
-                              focus:outline-none focus:border-[#0095f6]" />
+                              focus:outline-none focus:border-[#e4002b]" />
               </div>
             </div>
 
             @if (activeFiltersCount() > 0) {
               <button (click)="resetFilters()"
                       class="w-full h-10 rounded-full text-[13px] font-semibold
-                             text-[#0095f6] hover:bg-[#0095f6]/8 transition">
+                             text-[#e4002b] hover:bg-[#e4002b]/8 transition">
                 Limpiar filtros
               </button>
             }
@@ -194,7 +190,7 @@
                              description="Prueba con otros filtros o limpia la selección actual.">
               <button (click)="resetFilters()"
                       class="inline-flex items-center gap-2 px-6 h-11 rounded-full
-                             bg-[#0095f6] text-white text-[14px] font-semibold
+                             bg-[#e4002b] text-white text-[14px] font-semibold
                              hover:bg-[#1877f2] transition">
                 Limpiar filtros
               </button>
@@ -202,7 +198,7 @@
           } @else {
             @if (zone.city()) {
               <div class="flex items-center gap-2 mb-5 text-[13px]">
-                <i class="fa-solid fa-location-dot text-[#0095f6]"></i>
+                <i class="fa-solid fa-location-dot text-[#e4002b]"></i>
                 <span class="font-semibold text-emerald-600">{{ availableCount() }} disponibles en {{ zone.city() }}</span>
                 @if (unavailableCount() > 0) {
                   <span class="text-ink-500 dark:text-white/45">· {{ unavailableCount() }} solo por envío</span>
@@ -223,7 +219,7 @@
                    class="group block rounded-2xl overflow-hidden
                           bg-white dark:bg-slate-800
                           border border-ink-100 dark:border-white/[0.06]
-                          hover:border-[#0095f6] dark:hover:border-[#0095f6]
+                          hover:border-[#e4002b] dark:hover:border-[#e4002b]
                           hover:shadow-lg hover:-translate-y-1
                           transition-all duration-300">
 
@@ -238,7 +234,7 @@
                     @if (p.tag) {
                       <span class="absolute top-3 left-3 z-10 px-2.5 py-1 rounded-full
                                    text-[10px] font-bold uppercase tracking-wider"
-                            [class.bg-[#0095f6]]="p.tag === 'Drop' || p.tag === 'Nuevo'"
+                            [class.bg-[#e4002b]]="p.tag === 'Drop' || p.tag === 'Nuevo'"
                             [class.text-white]="p.tag === 'Drop' || p.tag === 'Nuevo' || p.tag === 'Exclusivo'"
                             [class.bg-rose-500]="p.tag === 'Oferta'"
                             [class.bg-ink-950]="p.tag === 'Exclusivo'">
