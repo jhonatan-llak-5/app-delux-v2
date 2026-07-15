@@ -4,8 +4,7 @@ Devuelven datos compactos de catalogo/stock y registran leads.
 Auth por header:  X-Bot-Key: <BOT_API_KEY del entorno>
 """
 import os
-from decimal import Decimal
-
+import unicodedata
 from django.conf import settings
 from django.db.models import Q, Sum
 from rest_framework.permissions import BasePermission
@@ -15,6 +14,49 @@ from rest_framework.response import Response
 from apps.products.models import Product, ProductStatus
 from apps.variants.models import Variant
 from apps.inventory.models import Stock
+
+
+# --- Sinonimos para entender lenguaje del cliente ---------------------------
+KIND_SYN = {
+    'CALZADO':   ['zapato', 'zapatos', 'zapatilla', 'zapatillas', 'calzado',
+                  'tenis', 'sneaker', 'sneakers', 'deportivo', 'deportivos',
+                  'botin', 'botines', 'bota', 'botas', 'sandalia', 'sandalias',
+                  'zapatos deportivos'],
+    'ROPA':      ['ropa', 'camiseta', 'camisetas', 'camisa', 'pantalon', 'pantalones',
+                  'buzo', 'chompa', 'short', 'sudadera', 'hoodie', 'polo'],
+    'GORRA':     ['gorra', 'gorras', 'cap', 'sombrero'],
+    'MOCHILA':   ['mochila', 'mochilas', 'bolso', 'morral', 'maleta', 'maletin'],
+    'BISUTERIA': ['bisuteria', 'collar', 'pulsera', 'anillo', 'aretes'],
+    'ACCESORIO': ['accesorio', 'accesorios', 'media', 'medias', 'calcetin',
+                  'calcetines', 'correa', 'cinturon'],
+}
+GENDER_SYN = {
+    'MEN':   ['hombre', 'hombres', 'caballero', 'varon', 'masculino'],
+    'WOMEN': ['mujer', 'mujeres', 'dama', 'damas', 'femenino'],
+    'KIDS':  ['nino', 'ninos', 'nina', 'ninas', 'infantil', 'kids'],
+}
+STOP = {
+    'para', 'con', 'los', 'las', 'una', 'uno', 'del', 'que', 'por', 'mas',
+    'muy', 'dia', 'diario', 'todo', 'algo', 'tienes', 'tiene', 'busco',
+    'quiero', 'necesito', 'ayuda', 'recomiende', 'recomiendas', 'color',
+    'talla', 'tallas', 'hola', 'buenas', 'sugerencia', 'alguno', 'algun',
+}
+
+
+def _norm(s):
+    """Minusculas + sin tildes, para comparar sinonimos."""
+    s = unicodedata.normalize('NFKD', (s or '').lower())
+    return ''.join(c for c in s if not unicodedata.combining(c))
+
+
+def _is_syn(word):
+    for syns in KIND_SYN.values():
+        if word in syns:
+            return True
+    for syns in GENDER_SYN.values():
+        if word in syns:
+            return True
+    return False
 
 
 class HasBotKey(BasePermission):
@@ -32,7 +74,8 @@ def _active_tenant():
 
 class BotProductsView(APIView):
     """GET /api/v1/bot/products?q=<texto>&city=<ciudad>&limit=5
-    Busca productos publicados y devuelve precio, imagen y tallas con stock."""
+    Busca por nombre, marca, categoria, tipo (kind), genero, color y TALLA.
+    Si no hay coincidencia, sugiere destacados (sugerencia=true)."""
     permission_classes = [HasBotKey]
 
     def get(self, request):
@@ -43,12 +86,57 @@ class BotProductsView(APIView):
         except (TypeError, ValueError):
             limit = 5
 
-        products = Product.objects.filter(status=ProductStatus.PUBLISHED).select_related('brand', 'category')
+        base = Product.objects.filter(status=ProductStatus.PUBLISHED).select_related('brand', 'category')
+
+        # --- Interpretar la consulta ---
+        words = _norm(q).split()
+        kinds, gender = set(), None
+        for w in words:
+            for k, syns in KIND_SYN.items():
+                if w in syns:
+                    kinds.add(k)
+            for g, syns in GENDER_SYN.items():
+                if w in syns:
+                    gender = g
+        text_tokens = [w for w in words if len(w) >= 3 and w not in STOP and not _is_syn(w)]
+        size_tokens = [w for w in words if w.isdigit()]
+
+        def with_filters(qs):
+            if kinds:
+                qs = qs.filter(kind__in=list(kinds))
+            if gender:
+                qs = qs.filter(Q(gender=gender) | Q(gender='UNISEX'))
+            return qs
+
+        text_cond = Q()
+        for t in text_tokens:
+            text_cond |= (Q(name__icontains=t) | Q(short_description__icontains=t) |
+                          Q(description__icontains=t) | Q(brand__name__icontains=t) |
+                          Q(category__name__icontains=t) | Q(variants__color__icontains=t))
+        for t in size_tokens:
+            text_cond |= Q(variants__size__iexact=t)
+        has_text = bool(text_tokens or size_tokens)
+
+        # Niveles de coincidencia (del mas preciso al mas amplio)
+        sugerencia = False
+        products = []
         if q:
-            products = products.filter(
-                Q(name__icontains=q) | Q(brand__name__icontains=q) | Q(category__name__icontains=q)
-            )
-        products = list(products.order_by('-is_featured', 'name')[:limit])
+            # 1) tipo/genero + texto/talla
+            c1 = with_filters(base)
+            if has_text:
+                c1 = c1.filter(text_cond)
+            products = list(c1.distinct().order_by('-is_featured', 'name')[:limit])
+            # 2) solo tipo/genero
+            if not products and (kinds or gender):
+                products = list(with_filters(base).distinct().order_by('-is_featured', 'name')[:limit])
+            # 3) solo texto/talla
+            if not products and has_text:
+                products = list(base.filter(text_cond).distinct().order_by('-is_featured', 'name')[:limit])
+
+        if not products:
+            # 4) sin nada relevante: recomendamos destacados
+            sugerencia = True
+            products = list(base.order_by('-is_featured', 'name')[:limit])
 
         site = (os.getenv('PUBLIC_SITE_URL', '') or '').rstrip('/')
         out = []
@@ -62,7 +150,6 @@ class BotProductsView(APIView):
                 r['variant_id']: (r['total'] or 0)
                 for r in sq.values('variant_id').annotate(total=Sum('quantity'))
             }
-            # Agrupar por talla (una talla puede tener varios colores)
             size_map = {}
             for v in variants:
                 st = stock_by_variant.get(v.id, 0)
@@ -77,6 +164,7 @@ class BotProductsView(APIView):
                 'nombre': p.name,
                 'marca': p.brand.name if p.brand_id else '',
                 'categoria': p.category.name if p.category_id else '',
+                'tipo': p.get_kind_display() if hasattr(p, 'get_kind_display') else '',
                 'precio': float(p.base_price or 0),
                 'moneda': 'USD',
                 'imagen': p.main_image_url or '',
@@ -84,9 +172,8 @@ class BotProductsView(APIView):
                 'tallas': tallas,
                 'url': (site + f'/product/{p.id}') if site else '',
             })
-        # Devolvemos un OBJETO (no un array pelado) para que n8n lo trate
-        # siempre como 1 item, aunque no haya resultados (evita 0 items).
-        return Response({'ciudad': city or None, 'count': len(out), 'productos': out})
+        return Response({'ciudad': city or None, 'count': len(out),
+                         'sugerencia': sugerencia, 'productos': out})
 
 
 class BotLeadView(APIView):
@@ -107,15 +194,14 @@ class BotLeadView(APIView):
             return Response({'detail': 'Falta telefono o nombre.'}, status=400)
 
         tenant = _active_tenant()
-        # Aviso a administradores (campana + tiempo real)
         try:
             from apps.notifications.push import push_notification, admin_recipients
-            partes = [p for p in [
+            partes = [x for x in [
                 f'Producto #{producto_id}' if producto_id else '',
                 f'Talla {talla}' if talla else '',
                 f'Ciudad {ciudad}' if ciudad else '',
                 mensaje,
-            ] if p]
+            ] if x]
             push_notification(
                 type='bot_lead',
                 title=f'Interés por WhatsApp: {nombre or telefono}',
@@ -128,4 +214,6 @@ class BotLeadView(APIView):
                 tenant=tenant,
             )
         except Exception:
-            pass  # el aviso no debe
+            pass  # el aviso no debe romper la respuesta al bot
+
+        return Response({'ok': True}, status=201)
