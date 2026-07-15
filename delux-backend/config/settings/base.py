@@ -9,6 +9,9 @@ import os
 BASE_DIR = Path(__file__).resolve().parent.parent.parent
 
 SECRET_KEY = os.getenv('SECRET_KEY', 'change-me-in-prod')
+
+# Llave del bot de WhatsApp (n8n) para el endpoint /api/v1/bot/*
+BOT_API_KEY = os.getenv('BOT_API_KEY', '')
 DEBUG = False
 ALLOWED_HOSTS: list[str] = os.getenv('ALLOWED_HOSTS', 'localhost,127.0.0.1').split(',')
 
