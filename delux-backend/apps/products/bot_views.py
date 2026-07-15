@@ -84,7 +84,9 @@ class BotProductsView(APIView):
                 'tallas': tallas,
                 'url': (site + f'/product/{p.id}') if site else '',
             })
-        return Response(out)
+        # Devolvemos un OBJETO (no un array pelado) para que n8n lo trate
+        # siempre como 1 item, aunque no haya resultados (evita 0 items).
+        return Response({'ciudad': city or None, 'count': len(out), 'productos': out})
 
 
 class BotLeadView(APIView):
@@ -126,6 +128,4 @@ class BotLeadView(APIView):
                 tenant=tenant,
             )
         except Exception:
-            pass  # el aviso no debe romper la respuesta al bot
-
-        return Response({'ok': True}, status=201)
+            pass  # el aviso no debe
