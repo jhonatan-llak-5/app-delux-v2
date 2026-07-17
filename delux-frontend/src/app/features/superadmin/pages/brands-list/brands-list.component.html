@@ -16,10 +16,8 @@
   <dlx-card>
     <div class="flex flex-wrap gap-3 items-end">
       <div class="flex-1 min-w-[260px]">
-        <dlx-input
-          iconLeft="fa-magnifying-glass"
-          placeholder="Buscar marca por nombre o país…"
-          [ngModel]="search()" (ngModelChange)="onSearch($event)" />
+        <dlx-search-input [fluid]="true" [value]="search()" (valueChange)="onSearch($event)"
+          placeholder="Buscar marca por nombre o país…" />
       </div>
       <dlx-select
         [options]="statusOptions"

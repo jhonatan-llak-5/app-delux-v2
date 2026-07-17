@@ -63,6 +63,16 @@ export class ManualProductModalComponent implements OnInit {
     const q = this.nf.category.trim().toLowerCase();
     return (q ? this.categories.filter(c => c.toLowerCase().includes(q)) : this.categories).slice(0, 50);
   }
+  // Verdadero cuando lo escrito no coincide con ninguna marca/categoria existente:
+  // el backend la creara automaticamente al guardar.
+  brandIsNew(): boolean {
+    const v = this.nf.brand.trim().toLowerCase();
+    return !!v && !this.brands.some(b => b.toLowerCase() === v);
+  }
+  catIsNew(): boolean {
+    const v = this.nf.category.trim().toLowerCase();
+    return !!v && !this.categories.some(c => c.toLowerCase() === v);
+  }
   pickBrand(b: string): void { this.nf.brand = b; this.brandOpen.set(false); }
   pickCat(c: string): void { this.nf.category = c; this.catOpen.set(false); }
   closeSoon(which: 'brand' | 'cat'): void {

@@ -48,6 +48,18 @@ export class GastosListComponent {
     { header: 'Monto (USD)', key: (r) => Number(r.amount).toFixed(2) },
   ];
 
+  // Filas para exportar: los gastos + una fila final con el TOTAL.
+  exportRows = computed(() => {
+    const rows = this.items();
+    if (!rows.length) return rows as Expense[];
+    const total = rows.reduce((a, r) => a + Number(r.amount || 0), 0);
+    const totalRow = {
+      date: '', category_label: '', description: 'TOTAL GASTOS',
+      branch_name: '', amount: total,
+    } as unknown as Expense;
+    return [...rows, totalRow];
+  });
+
   form = { date: this.today(), amount: null as number | null, category: 'OTROS', description: '', branch: null as number | null };
 
   canPickBranch = computed(() => this.ctx.canSwitch());

@@ -162,7 +162,7 @@ export class FinanzasResumenComponent {
     return {
       type: 'line',
       data: { labels: this.tickLabels(), datasets: [{ label, data: values, borderColor: color, backgroundColor: color + '22', fill: true, tension: 0.35, pointRadius: 2, borderWidth: 2 }] },
-      options: { responsive: true, maintainAspectRatio: false, plugins: { legend: { display: false } }, scales: { y: { beginAtZero: true, ticks: { callback: (v) => '$' + v } } } },
+      options: { responsive: true, maintainAspectRatio: false, interaction: { mode: 'index', intersect: false }, plugins: { legend: { display: false }, tooltip: { callbacks: { label: (ctx: any) => `$${(+ctx.parsed.y).toFixed(2)}` } } }, scales: { y: { beginAtZero: true, ticks: { callback: (v) => '$' + v } } } },
     };
   }
   webConfig = computed<ChartConfiguration | null>(() => { const t = this.timeline(); return t ? this.lineCfg('Ventas Web', t.web, this.primary()) : null; });

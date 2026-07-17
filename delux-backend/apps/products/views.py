@@ -1,4 +1,4 @@
-from django.db.models import Count, Sum, Q
+from django.db.models import Count, Sum, Q, Exists, OuterRef
 from rest_framework import filters, permissions, status, viewsets
 from rest_framework.decorators import action
 from rest_framework.response import Response
@@ -14,8 +14,7 @@ from .serializers import (
 
 class AdminProductViewSet(viewsets.ModelViewSet):
     permission_classes = [permissions.IsAuthenticated, IsStaffReadOrManager]
-    filter_backends = [filters.SearchFilter, filters.OrderingFilter]
-    search_fields = ['name', 'slug', 'short_description']
+    filter_backends = [filters.OrderingFilter]
     ordering_fields = ['name', 'base_price', 'created_at']
     ordering = ['-created_at']
 
@@ -38,6 +37,17 @@ class AdminProductViewSet(viewsets.ModelViewSet):
         if params.get('gender'):   qs = qs.filter(gender=params['gender'])
         if params.get('is_featured') in ('true', 'false'):
             qs = qs.filter(is_featured=params['is_featured'] == 'true')
+
+        # Busqueda: nombre/descripcion + codigo interno (SKU) y codigo de barras de variante.
+        search = (params.get('search') or '').strip()
+        if search:
+            from apps.variants.models import Variant
+            has_variant = Variant.objects.filter(product=OuterRef('pk')).filter(
+                Q(sku__icontains=search) | Q(barcode__icontains=search))
+            qs = qs.filter(
+                Q(name__icontains=search) | Q(slug__icontains=search) |
+                Q(short_description__icontains=search) | Exists(has_variant)
+            )
 
         # Filtro por tienda/sucursal: productos con stock en esa sucursal.
         if params.get('branch'):

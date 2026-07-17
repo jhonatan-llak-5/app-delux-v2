@@ -138,7 +138,8 @@ class BotProductsView(APIView):
             sugerencia = True
             products = list(base.order_by('-is_featured', 'name')[:limit])
 
-        site = (os.getenv('PUBLIC_SITE_URL', '') or '').rstrip('/')
+        # Dominio público (con respaldo) para armar enlaces reales al catálogo/producto.
+        site = (os.getenv('PUBLIC_SITE_URL', '') or 'https://deluxstyle.com').rstrip('/')
         out = []
         for p in products:
             variants = list(Variant.objects.filter(product=p, is_active=True))
@@ -172,8 +173,9 @@ class BotProductsView(APIView):
                 'tallas': tallas,
                 'url': (site + f'/product/{p.id}') if site else '',
             })
+        catalogo = site + '/shop'
         return Response({'ciudad': city or None, 'count': len(out),
-                         'sugerencia': sugerencia, 'productos': out})
+                         'sugerencia': sugerencia, 'catalogo': catalogo, 'productos': out})
 
 
 class BotLeadView(APIView):

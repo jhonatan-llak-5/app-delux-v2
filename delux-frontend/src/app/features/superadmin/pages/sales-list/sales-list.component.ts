@@ -9,7 +9,6 @@ import { CommonModule } from '@angular/common';
 import { RowActionsComponent, RowAction } from '@shared/ui/row-actions.component';
 import { FormsModule } from '@angular/forms';
 import { Router, RouterLink } from '@angular/router';
-import { debounceTime, Subject } from 'rxjs';
 
 import { firstValueFrom } from 'rxjs';
 import { DlxExportMenuComponent } from '@shared/ui/export-menu.component';
@@ -180,7 +179,15 @@ export class SalesListComponent implements OnInit {
   private branchCtx = inject(BranchContextService);
   private ready = false;
   constructor() {
-    effect(() => { this.branchCtx.current(); if (this.ready) this.reload(); }, { allowSignalWrites: true });
+    // El efecto se agenda y corre por primera vez DESPUES de ngOnInit; saltamos
+    // esa primera ejecucion para no duplicar el reload inicial. Solo recarga
+    // cuando el usuario cambia de sucursal en el selector global.
+    let branchFirst = true;
+    effect(() => {
+      this.branchCtx.current();
+      if (branchFirst) { branchFirst = false; return; }
+      this.reload();
+    }, { allowSignalWrites: true });
   }
 
   orders = signal<Order[]>([]);
@@ -196,10 +203,8 @@ export class SalesListComponent implements OnInit {
   statusFilter = '';
   channelFilter = '';
   onlyMine = signal(false);
-  private search$ = new Subject<void>();
 
   ngOnInit() {
-    this.search$.pipe(debounceTime(300)).subscribe(() => this.reload());
     this.svc.summary().subscribe(s => this.summary.set(s));
     this.reload();
     this.ready = true;
@@ -226,7 +231,7 @@ export class SalesListComponent implements OnInit {
     { value: 'POS', label: 'Ventas POS', icon: 'fa-cash-register' },
   ];
   setChannel(c: string) { this.channelFilter = c; this.page.set(1); this.reload(); }
-  onSearch(v: string) { this.search.set(v); this.page.set(1); this.search$.next(); }
+  onSearch(v: string) { this.search.set(v); this.page.set(1); this.reload(); }
   onFilter() { this.page.set(1); this.reload(); }
   toggleMine() { this.onlyMine.update(v => !v); this.page.set(1); this.reload(); }
 

@@ -1,7 +1,6 @@
 import { ChangeDetectionStrategy, Component, ViewChild, OnInit, inject, signal } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
-import { Subject, debounceTime } from 'rxjs';
 
 import { CdkDropList, CdkDrag, CdkDragHandle, CdkDragDrop, moveItemInArray } from '@angular/cdk/drag-drop';
 import { Brand, BrandPayload, BrandService } from '@features/superadmin/services/brand.service';
@@ -19,6 +18,7 @@ import {
   DlxActionBtnComponent,
   DlxConfirmDialogComponent,
 } from '@shared/ui';
+import { DlxSearchInputComponent } from '@shared/ui/search-input.component';
 
 @Component({
   selector: 'dlx-brands-list',
@@ -27,7 +27,7 @@ import {
     CommonModule, FormsModule,
     BrandFormModalComponent,
     DlxPageHeaderComponent, DlxButtonComponent, DlxCardComponent,
-    DlxInputComponent, DlxSelectComponent, DlxEmptyStateComponent,
+    DlxInputComponent, DlxSelectComponent, DlxEmptyStateComponent, DlxSearchInputComponent,
     DlxActionBtnComponent, DlxConfirmDialogComponent,
     CdkDropList, CdkDrag, CdkDragHandle,
   ],
@@ -64,10 +64,8 @@ export class BrandsListComponent implements OnInit {
     { value: '-created_at',     label: '+ Recientes' },
   ];
 
-  private search$ = new Subject<void>();
 
   ngOnInit(): void {
-    this.search$.pipe(debounceTime(300)).subscribe(() => this.reload());
     this.reload();
   }
 
@@ -95,7 +93,7 @@ export class BrandsListComponent implements OnInit {
     });
   }
 
-  onSearch(v: string) { this.search.set(v); this.search$.next(); }
+  onSearch(v: string) { this.search.set(v); this.reload(); }
   onStatus(v: string) { this.statusFilter.set(v ?? ''); this.reload(); }
   onOrder(v: string)  { this.ordering.set(v); this.reload(); }
 
