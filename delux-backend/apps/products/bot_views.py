@@ -269,3 +269,38 @@ class BotResumeView(APIView):
         phone = d.get('telefono') or d.get('phone') or ''
         resume_bot(phone)
         return Response({'ok': True, 'paused': is_paused(phone)})
+
+
+class BotPagoView(APIView):
+    """GET /api/v1/bot/pago -> datos reales de pago (transferencia + DE UNA + contra entrega).
+    Para que el bot NUNCA invente cuentas: usa exactamente estos valores."""
+    permission_classes = [HasBotKey]
+
+    def get(self, request):
+        from apps.settings.models import PlatformSettings
+        s = PlatformSettings.load()
+        qr = ''
+        if s.deuna_enabled and s.deuna_qr:
+            try:
+                qr = request.build_absolute_uri(s.deuna_qr.url)
+            except Exception:
+                qr = ''
+        return Response({
+            'transferencia': {
+                'habilitado': s.transfer_enabled,
+                'banco': s.bank_name,
+                'tipo_cuenta': s.bank_account_type,
+                'titular': s.bank_account_holder,
+                'numero': s.bank_account_number,
+                'documento': s.bank_account_document,
+                'email': s.bank_contact_email,
+                'whatsapp': s.bank_contact_whatsapp,
+                'instrucciones': s.transfer_instructions,
+            },
+            'deuna': {
+                'habilitado': s.deuna_enabled,
+                'qr': qr,
+                'instrucciones': s.deuna_instructions,
+            },
+            'contra_entrega': {'habilitado': True},
+        })
