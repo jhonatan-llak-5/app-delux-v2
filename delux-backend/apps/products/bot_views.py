@@ -10,6 +10,7 @@ from django.db.models import Q, Sum
 from rest_framework.permissions import BasePermission
 from rest_framework.views import APIView
 from rest_framework.response import Response
+from django.core.cache import cache
 
 from apps.products.models import Product, ProductStatus
 from apps.variants.models import Variant
@@ -70,6 +71,32 @@ class HasBotKey(BasePermission):
 def _active_tenant():
     from apps.tenants.models import Tenant
     return Tenant.objects.filter(is_active=True).first()
+
+
+# --- Handoff: pausar el bot por numero (atencion humana) ---
+BOT_PAUSE_TTL = int(os.getenv('BOT_PAUSE_TTL', '7200'))  # 2 horas por defecto
+
+
+def _norm_phone(p):
+    return ''.join(ch for ch in str(p or '') if ch.isdigit())
+
+
+def _pause_key(phone):
+    return f'bot_pause:{_norm_phone(phone)}'
+
+
+def pause_bot(phone):
+    if _norm_phone(phone):
+        cache.set(_pause_key(phone), 1, BOT_PAUSE_TTL)
+
+
+def resume_bot(phone):
+    if _norm_phone(phone):
+        cache.delete(_pause_key(phone))
+
+
+def is_paused(phone):
+    return bool(_norm_phone(phone)) and cache.get(_pause_key(phone)) is not None
 
 
 class BotProductsView(APIView):
@@ -218,4 +245,27 @@ class BotLeadView(APIView):
         except Exception:
             pass  # el aviso no debe romper la respuesta al bot
 
-        return Response({'ok': True}, status=201)
+        # Pausa el bot para este numero: ahora atiende un humano.
+        pause_bot(telefono)
+        return Response({'ok': True, 'paused': True}, status=201)
+
+
+class BotPausedView(APIView):
+    """GET /api/v1/bot/paused?phone=...  -> {"paused": bool}
+    n8n lo consulta antes de responder; si esta en pausa, atiende un humano."""
+    permission_classes = [HasBotKey]
+
+    def get(self, request):
+        phone = request.query_params.get('phone') or request.query_params.get('telefono') or ''
+        return Response({'phone': _norm_phone(phone), 'paused': is_paused(phone)})
+
+
+class BotResumeView(APIView):
+    """POST /api/v1/bot/resume {telefono}  -> reactiva el bot para ese numero."""
+    permission_classes = [HasBotKey]
+
+    def post(self, request):
+        d = request.data or {}
+        phone = d.get('telefono') or d.get('phone') or ''
+        resume_bot(phone)
+        return Response({'ok': True, 'paused': is_paused(phone)})
