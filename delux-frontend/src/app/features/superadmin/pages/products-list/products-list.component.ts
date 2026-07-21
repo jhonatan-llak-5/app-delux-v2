@@ -6,7 +6,7 @@ import { DlxSearchInputComponent } from '@shared/ui/search-input.component';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { Router, RouterLink, ActivatedRoute } from '@angular/router';
-import { debounceTime, Subject } from 'rxjs';
+import { skip } from 'rxjs';
 
 import { Product, ProductService, ProductSummary } from '@features/superadmin/services/product.service';
 import { BrandService, Brand } from '@features/superadmin/services/brand.service';
@@ -44,7 +44,15 @@ export class ProductsListComponent implements OnInit, OnDestroy {
   private ready = false;
   constructor() {
     // Reacciona al selector GLOBAL de sucursal del header.
-    effect(() => { this.branchCtx.current(); if (this.ready) this.reload(); }, { allowSignalWrites: true });
+    // El efecto se agenda y corre por primera vez DESPUES de ngOnInit; saltamos
+    // esa primera ejecucion para no duplicar el reload inicial. Solo recarga
+    // cuando el usuario cambia de sucursal en el selector global.
+    let branchFirst = true;
+    effect(() => {
+      this.branchCtx.current();
+      if (branchFirst) { branchFirst = false; return; }
+      this.reload();
+    }, { allowSignalWrites: true });
   }
 
   @ViewChild('camVideo') camVideo?: ElementRef<HTMLVideoElement>;
@@ -146,13 +154,15 @@ export class ProductsListComponent implements OnInit, OnDestroy {
     if (u.role === 'SUPERADMIN' || u.role === 'TENANT_ADMIN') return true;
     return !u.branch_id;
   });
-  private search$ = new Subject<void>();
 
   ngOnInit(): void {
-    this.search$.pipe(debounceTime(300)).subscribe(() => this.reload());
-    this.route.queryParamMap.subscribe(pm => {
-      const q = pm.get('search');
-      if (q !== null && q !== this.search()) { this.search.set(q); this.reload(); }
+    // Valor inicial de búsqueda desde la URL (una sola vez, sin recargar dos veces).
+    const q0 = this.route.snapshot.queryParamMap.get('search');
+    if (q0) this.search.set(q0);
+    // Cambios posteriores de la URL (no el inicial).
+    this.route.queryParamMap.pipe(skip(1)).subscribe(pm => {
+      const q = pm.get('search') || '';
+      if (q !== this.search()) { this.search.set(q); this.reload(); }
     });
     this.brandSvc.list({ search: '' }).subscribe(r => this.brands.set(r.results || []));
     this.catSvc.list().subscribe(r => this.categories.set(r.results || []));
@@ -195,7 +205,7 @@ export class ProductsListComponent implements OnInit, OnDestroy {
   }
 
 
-  onSearch(v: string) { this.search.set(v); this.search$.next(); }
+  onSearch(v: string) { this.search.set(v); this.reload(); }
 
   // ---- Vista tarjetas / tabla (preferencia persistida por cuenta) ----
   view = signal<ViewMode>(readViewPref('dlx_products_view', this.auth.user()?.id));

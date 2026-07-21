@@ -209,6 +209,18 @@ export const SUPERADMIN_ROUTES: Routes = [
           import('./pages/contact-messages/contact-messages.component').then(m => m.ContactMessagesComponent),
       },
       {
+        path: 'finanzas',
+        canActivate: [roleGuard(['SUPERADMIN', 'TENANT_ADMIN', 'BRANCH_MANAGER'])],
+        loadComponent: () =>
+          import('./pages/finanzas-resumen/finanzas-resumen.component').then(m => m.FinanzasResumenComponent),
+      },
+      {
+        path: 'gastos',
+        canActivate: [roleGuard(['SUPERADMIN', 'TENANT_ADMIN', 'BRANCH_MANAGER', 'SALESPERSON'])],
+        loadComponent: () =>
+          import('./pages/gastos-list/gastos-list.component').then(m => m.GastosListComponent),
+      },
+      {
         path: 'payroll',
         canActivate: [roleGuard(['SUPERADMIN', 'TENANT_ADMIN', 'BRANCH_MANAGER'])],
         loadComponent: () =>

@@ -23,12 +23,18 @@
             <label class="eg-label">Marca *</label>
             <input [(ngModel)]="nf.brand" (focus)="brandOpen.set(true)" (ngModelChange)="brandOpen.set(true)" (blur)="closeSoon('brand')"
                    class="eg-input w-full" [class.!border-rose-400]="fe('brand')" placeholder="Marca" autocomplete="off" />
-            @if (brandOpen() && filteredBrands().length) {
+            @if (brandOpen() && (filteredBrands().length || brandIsNew())) {
               <div class="absolute left-0 right-0 top-full mt-1 z-30 max-h-52 overflow-y-auto rounded-xl py-1
                           bg-white dark:bg-[#161a26] border border-slate-200 dark:border-white/10 shadow-xl">
                 @for (b of filteredBrands(); track b) {
                   <button type="button" (click)="pickBrand(b)"
                           class="w-full text-left px-3 py-2 text-sm hover:bg-slate-100 dark:hover:bg-white/5 transition">{{ b }}</button>
+                }
+                @if (brandIsNew()) {
+                  <button type="button" (click)="pickBrand(nf.brand.trim())"
+                          class="w-full text-left px-3 py-2 text-sm text-emerald-600 dark:text-emerald-400 font-medium hover:bg-emerald-50 dark:hover:bg-emerald-500/10 transition border-t border-slate-100 dark:border-white/10">
+                    <i class="fa-solid fa-plus"></i> Crear marca «{{ nf.brand.trim() }}»
+                  </button>
                 }
               </div>
             }
@@ -38,13 +44,19 @@
             <label class="eg-label">Categoría *</label>
             <input [(ngModel)]="nf.category" (focus)="catOpen.set(true)" (ngModelChange)="catOpen.set(true)" (blur)="closeSoon('cat')"
                    class="eg-input w-full" [class.!border-rose-400]="fe('category')" placeholder="Categoría" autocomplete="off" />
-            @if (catOpen() && filteredCats().length) {
+            @if (catOpen() && (filteredCats().length || catIsNew())) {
               <div class="absolute left-0 right-0 top-full mt-1 z-30 max-h-52 overflow-y-auto rounded-xl py-1
                           bg-white dark:bg-[#161a26] border border-slate-200 dark:border-white/10 shadow-xl">
                 @for (c of filteredCats(); track c) {
                   <button type="button" (click)="pickCat(c)"
                           class="w-full text-left px-3 py-2 text-sm hover:bg-slate-100 dark:hover:bg-white/5 transition">
                     {{ c }}@if (parentOf(c)) { <span class="text-slate-400 text-xs"> · {{ parentOf(c) }}</span> }
+                  </button>
+                }
+                @if (catIsNew()) {
+                  <button type="button" (click)="pickCat(nf.category.trim())"
+                          class="w-full text-left px-3 py-2 text-sm text-emerald-600 dark:text-emerald-400 font-medium hover:bg-emerald-50 dark:hover:bg-emerald-500/10 transition border-t border-slate-100 dark:border-white/10">
+                    <i class="fa-solid fa-plus"></i> Crear categoría «{{ nf.category.trim() }}»
                   </button>
                 }
               </div>

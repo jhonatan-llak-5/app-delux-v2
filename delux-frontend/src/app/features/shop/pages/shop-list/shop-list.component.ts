@@ -4,6 +4,7 @@ import { ImgFallbackDirective } from '@shared/ui/img-fallback.directive';
 import { IMG_PLACEHOLDER } from '@shared/utils/img-placeholder';
 import { CommonModule } from '@angular/common';
 import { RouterLink } from '@angular/router';
+import { HeroSectionComponent } from '@features/landing/components/hero-section/hero-section.component';
 import { PublicCatalogService } from '@shared/services/public-catalog.service';
 import { ZoneService } from '@shared/services/zone.service';
 
@@ -20,7 +21,7 @@ interface Filter { categories: string[]; brands: string[]; sizes: string[]; pric
 @Component({
   selector: 'dlx-shop-list',
   standalone: true,
-  imports: [DlxEmptyStateComponent, ImgFallbackDirective, CommonModule, RouterLink],
+  imports: [DlxEmptyStateComponent, ImgFallbackDirective, CommonModule, RouterLink, HeroSectionComponent],
   changeDetection: ChangeDetectionStrategy.OnPush,
   templateUrl: './shop-list.component.html',
 })
@@ -81,7 +82,7 @@ products = signal<Product[]>([]);
     oldPrice: pp.compare_at_price ? Number(pp.compare_at_price) : undefined,
     colors: [],
     sizes: [],
-    image: pp.thumb_url || pp.main_image_url || 'https://images.unsplash.com/photo-1542291026-7eec264c27ff?w=600&q=85',
+    image: pp.thumb_url || pp.main_image_url || IMG_PLACEHOLDER,
     tag: this.mapTag(pp.tag),
     gender: this.mapGender(pp.gender),
     available: pp.available_in_city !== false,

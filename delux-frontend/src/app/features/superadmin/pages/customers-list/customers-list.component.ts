@@ -5,7 +5,6 @@ import { DlxSearchInputComponent } from '@shared/ui/search-input.component';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { RouterLink } from '@angular/router';
-import { debounceTime, Subject } from 'rxjs';
 
 import { Customer, CustomerService } from '@features/superadmin/services/customer.service';
 import { ConfirmService } from '@shared/components/confirm/confirm.service';
@@ -151,12 +150,10 @@ export class CustomersListComponent implements OnInit {
   summary = signal<{ total_customers: number; with_purchases: number; marketing_subscribers: number } | null>(null);
   loading = signal(true);
   search = signal('');
-  private search$ = new Subject<void>();
   showModal = signal(false);
   editing = signal<Customer | null>(null);
 
   ngOnInit() {
-    this.search$.pipe(debounceTime(300)).subscribe(() => this.reload());
     this.svc.summary().subscribe(s => this.summary.set(s));
     this.reload();
   }
@@ -172,7 +169,7 @@ export class CustomersListComponent implements OnInit {
     });
   }
 
-  onSearch(v: string) { this.search.set(v); this.page.set(1); this.search$.next(); }
+  onSearch(v: string) { this.search.set(v); this.page.set(1); this.reload(); }
   onPage(p: number) { this.page.set(p); this.reload(); }
   onSize(s: number) { this.pageSize.set(s); this.page.set(1); this.reload(); }
 

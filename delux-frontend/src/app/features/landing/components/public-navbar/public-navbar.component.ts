@@ -1,6 +1,6 @@
 import { ChangeDetectionStrategy, Component, ElementRef, HostListener, computed, inject, signal } from '@angular/core';
 import { CommonModule } from '@angular/common';
-import { Router, RouterLink, RouterLinkActive } from '@angular/router';
+import { NavigationEnd, Router, RouterLink, RouterLinkActive } from '@angular/router';
 import { ThemeService } from '@core/services/theme.service';
 import { BrandingService } from '@core/services/branding.service';
 import { AuthService } from '@core/services/auth.service';
@@ -30,6 +30,20 @@ export class PublicNavbarComponent {
   open = signal(false);
   accountOpen = signal(false);
   scrolled = signal(false);
+  isHome = signal(false);
+  /** El hero de Inicio es navy: el navbar va transparente + texto blanco arriba. */
+  overHero = computed(() => this.isHome() && !this.scrolled());
+
+  constructor() {
+    this.isHome.set(this.isHomeUrl(this.router.url));
+    this.router.events.subscribe(e => {
+      if (e instanceof NavigationEnd) this.isHome.set(this.isHomeUrl(e.urlAfterRedirects));
+    });
+  }
+  private isHomeUrl(u: string): boolean {
+    const path = (u || '/').split('?')[0].split('#')[0];
+    return path === '/' || path === '';
+  }
 
   userName  = computed(() => this.auth.user()?.full_name ?? 'Usuario');
   userEmail = computed(() => this.auth.user()?.email ?? '');

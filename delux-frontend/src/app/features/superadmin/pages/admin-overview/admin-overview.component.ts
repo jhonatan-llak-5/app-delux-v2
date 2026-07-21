@@ -4,6 +4,7 @@ import { CommonModule } from '@angular/common';
 import { RouterLink } from '@angular/router';
 import { ChartConfiguration } from 'chart.js/auto';
 import { AuthService } from '@core/services/auth.service';
+import { ExpenseService, FinanceSummary, FinanceTimeline } from '@features/superadmin/services/expense.service';
 import { ChartCanvasComponent } from '@shared/components/chart-canvas/chart-canvas.component';
 import {
   ReportsService, OverviewKPIs, TimelinePoint, ChannelRow, ProductRow, LowStockRow,
@@ -28,12 +29,30 @@ import {
     </div>
 
     <!-- KPIs -->
-    <div class="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-4 gap-4">
+    <div class="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-3 2xl:grid-cols-5 gap-4">
       @for (k of kpiCards(); track k.label) {
         <dlx-stat-card [label]="k.label" [value]="k.value" [icon]="k.icon"
                        [iconBg]="k.iconBg" [iconColor]="k.iconColor" [delta]="k.delta" [sub]="k.sub" />
       }
     </div>
+
+    @if (finance(); as f) {
+      <div class="grid grid-cols-1 sm:grid-cols-3 gap-4 mt-4">
+        <div class="card p-4 flex items-center gap-3">
+          <div class="w-10 h-10 rounded-xl bg-amber-50 dark:bg-amber-500/15 text-amber-600 grid place-items-center"><i class="fa-solid fa-truck-ramp-box"></i></div>
+          <div><p class="text-xs text-slate-400">Compras (30 días)</p><p class="font-bold">{{ money(f.compras) }}</p></div>
+        </div>
+        <div class="card p-4 flex items-center gap-3">
+          <div class="w-10 h-10 rounded-xl bg-rose-50 dark:bg-rose-500/15 text-rose-600 grid place-items-center"><i class="fa-solid fa-wallet"></i></div>
+          <div><p class="text-xs text-slate-400">Gastos (30 días)</p><p class="font-bold">{{ money(f.gastos) }}</p></div>
+        </div>
+        <a routerLink="/app/admin/finanzas" class="card p-4 flex items-center gap-3 hover:ring-2 hover:ring-violet-200 transition">
+          <div class="w-10 h-10 rounded-xl bg-violet-50 dark:bg-violet-500/15 text-violet-600 grid place-items-center"><i class="fa-solid fa-chart-pie"></i></div>
+          <div class="flex-1"><p class="text-xs text-slate-400">Finanzas</p><p class="font-bold text-sm">Compras, ventas y ganancia</p></div>
+          <i class="fa-solid fa-arrow-right text-slate-300"></i>
+        </a>
+      </div>
+    }
 
     @if (noAccess()) {
       <div class="card p-6 mt-4 text-center text-slate-500">
@@ -47,7 +66,7 @@ import {
           <div class="flex items-center justify-between mb-4">
             <div>
               <h2 class="font-bold tracking-tight">Ventas</h2>
-              <p class="text-xs text-slate-400">Ingresos por día</p>
+              <p class="text-xs text-slate-400">Tienda vs Web por día</p>
             </div>
             <span class="text-xs font-semibold text-blue-600 bg-blue-50 dark:bg-blue-500/15 dark:text-blue-300 rounded-full px-3 py-1">
               Total: {{ money(kpis()?.total_revenue) }}
@@ -67,6 +86,19 @@ import {
             <dlx-chart-canvas [config]="cfg" [height]="220" />
           } @else {
             <div class="p-10 text-center text-slate-400 text-sm">Sin datos.</div>
+          }
+          @if (channels().length) {
+            <div class="mt-4 space-y-2">
+              @for (ch of channels(); track ch.channel; let i = $index) {
+                <div class="flex items-center justify-between text-sm">
+                  <span class="flex items-center gap-2 text-slate-600 dark:text-white/70">
+                    <span class="w-2.5 h-2.5 rounded-full" [style.background]="channelPalette[i % channelPalette.length]"></span>
+                    {{ channelLabel(ch.channel) }}
+                  </span>
+                  <span class="font-semibold text-slate-800 dark:text-white">{{ money(ch.revenue) }} <span class="text-slate-400 font-normal text-xs">· {{ ch.orders }} ped.</span></span>
+                </div>
+              }
+            </div>
           }
         </div>
       </div>
@@ -106,13 +138,16 @@ import {
           } @else {
             <ul>
               @for (s of lowStock().slice(0, 5); track s.variant_sku) {
-                <li class="flex items-center gap-3 px-5 py-3 border-t border-slate-50 dark:border-white/5 first:border-t-0">
-                  <span class="grid place-items-center w-8 h-8 rounded-lg bg-amber-50 dark:bg-amber-500/15 text-amber-600 shrink-0"><i class="fa-solid fa-box"></i></span>
-                  <div class="min-w-0 flex-1">
-                    <p class="font-semibold text-sm truncate">{{ s.product_name }}</p>
-                    <p class="text-xs text-slate-400 truncate">{{ s.branch_name }} · {{ s.variant_sku }}</p>
-                  </div>
-                  <span class="text-sm font-bold" [ngClass]="s.quantity === 0 ? 'text-rose-600' : 'text-amber-600'">{{ s.quantity }}</span>
+                <li class="border-t border-slate-50 dark:border-white/5 first:border-t-0">
+                  <a [routerLink]="['/app/admin/products', s.product_id]"
+                     class="group flex items-center gap-3 px-5 py-3 hover:bg-slate-50 dark:hover:bg-white/5 transition">
+                    <span class="grid place-items-center w-8 h-8 rounded-lg bg-amber-50 dark:bg-amber-500/15 text-amber-600 shrink-0"><i class="fa-solid fa-box"></i></span>
+                    <div class="min-w-0 flex-1">
+                      <p class="font-semibold text-sm truncate group-hover:text-blue-600">{{ s.product_name }} <i class="fa-solid fa-arrow-up-right-from-square text-[9px] opacity-50"></i></p>
+                      <p class="text-xs text-slate-400 truncate">{{ s.branch_name }} · {{ s.variant_sku }}</p>
+                    </div>
+                    <span class="text-sm font-bold" [ngClass]="s.quantity === 0 ? 'text-rose-600' : 'text-amber-600'">{{ s.quantity }}</span>
+                  </a>
                 </li>
               }
             </ul>
@@ -143,6 +178,7 @@ import {
 export class AdminOverviewComponent implements OnInit {
   private reports = inject(ReportsService);
   private auth = inject(AuthService);
+  private expenses = inject(ExpenseService);
 
   kpis = signal<OverviewKPIs | null>(null);
   timeline = signal<TimelinePoint[]>([]);
@@ -150,6 +186,8 @@ export class AdminOverviewComponent implements OnInit {
   topProducts = signal<ProductRow[]>([]);
   lowStock = signal<LowStockRow[]>([]);
   noAccess = signal(false);
+  finance = signal<FinanceSummary | null>(null);
+  finTimeline = signal<FinanceTimeline | null>(null);
 
   name = computed(() => {
     const u = this.auth.user();
@@ -173,14 +211,19 @@ export class AdminOverviewComponent implements OnInit {
 
   kpiCards = computed(() => {
     const k = this.kpis();
+    const f = this.finance();
     return [
       { label: 'Ingresos', value: this.money(k?.total_revenue), icon: 'fa-sack-dollar',
         iconBg: 'bg-blue-50 dark:bg-blue-500/15', iconColor: 'text-blue-600 dark:text-blue-400',
         delta: k?.revenue_delta_pct ?? null, sub: '' },
+      { label: 'Ganancia', value: this.money(f?.ganancia), icon: 'fa-hand-holding-dollar',
+        iconBg: (+(f?.ganancia ?? 0) >= 0 ? 'bg-emerald-50 dark:bg-emerald-500/15' : 'bg-rose-50 dark:bg-rose-500/15'),
+        iconColor: (+(f?.ganancia ?? 0) >= 0 ? 'text-emerald-600 dark:text-emerald-400' : 'text-rose-600 dark:text-rose-400'),
+        delta: f?.deltas?.ganancia ?? null, sub: 'Ventas menos costo y gastos' },
       { label: 'Pedidos', value: (k?.total_orders ?? 0).toLocaleString('es-EC'), icon: 'fa-receipt',
         iconBg: 'bg-violet-50 dark:bg-violet-500/15', iconColor: 'text-violet-600 dark:text-violet-400',
         delta: k?.orders_delta_pct ?? null, sub: '' },
-      { label: 'Ticket promedio', value: this.money(k?.avg_order_value), icon: 'fa-tags',
+      { label: 'Venta promedio', value: this.money(k?.avg_order_value), icon: 'fa-tags',
         iconBg: 'bg-emerald-50 dark:bg-emerald-500/15', iconColor: 'text-emerald-600 dark:text-emerald-400',
         delta: null, sub: 'Valor medio por pedido' },
       { label: 'Clientes', value: (k?.unique_customers ?? 0).toLocaleString('es-EC'), icon: 'fa-user-group',
@@ -190,24 +233,23 @@ export class AdminOverviewComponent implements OnInit {
   });
 
   revenueConfig = computed<ChartConfiguration | null>(() => {
-    const t = this.timeline();
-    if (!t.length) return null;
+    const t = this.finTimeline();
+    if (!t || !t.labels.length) return null;
     return {
       type: 'line',
       data: {
-        labels: t.map(p => this.fmt(p.day)),
-        datasets: [{
-          label: 'Ingresos',
-          data: t.map(p => +p.revenue),
-          borderColor: '#3b82f6',
-          backgroundColor: 'rgba(59,130,246,0.12)',
-          fill: true, tension: 0.35, borderWidth: 2,
-          pointRadius: 0, pointHoverRadius: 4,
-        }],
+        labels: t.labels.map(l => this.fmt(l)),
+        datasets: [
+          { label: 'Tienda', data: t.pos, borderColor: '#3b82f6', backgroundColor: 'rgba(59,130,246,0.10)',
+            fill: true, tension: 0.35, borderWidth: 2, pointRadius: 0, pointHoverRadius: 4 },
+          { label: 'Web', data: t.web, borderColor: '#8b5cf6', backgroundColor: 'rgba(139,92,246,0.10)',
+            fill: true, tension: 0.35, borderWidth: 2, pointRadius: 0, pointHoverRadius: 4 },
+        ],
       },
       options: {
         responsive: true, maintainAspectRatio: false,
-        plugins: { legend: { display: false } },
+        interaction: { mode: 'index', intersect: false },
+        plugins: { legend: { display: true, position: 'bottom', labels: { boxWidth: 12, padding: 14 } }, tooltip: { callbacks: { label: (ctx: any) => `${ctx.dataset.label}: $${(+ctx.parsed.y).toFixed(2)}` } } },
         scales: {
           y: { beginAtZero: true, ticks: { callback: (v) => '$' + v }, grid: { color: 'rgba(148,163,184,0.15)' } },
           x: { grid: { display: false }, ticks: { maxTicksLimit: 8 } },
@@ -259,7 +301,12 @@ export class AdminOverviewComponent implements OnInit {
     this.reports.byChannel(p).subscribe({ next: r => this.channels.set(r.results || []), error: () => {} });
     this.reports.topProducts(p).subscribe({ next: r => this.topProducts.set(r.results || []), error: () => {} });
     this.reports.lowStock().subscribe({ next: r => this.lowStock.set(r.results || []), error: () => {} });
+    this.expenses.financeSummary(p).subscribe({ next: f => this.finance.set(f), error: () => {} });
+    this.expenses.financeTimeline(p).subscribe({ next: t => this.finTimeline.set(t), error: () => {} });
   }
+
+  readonly channelPalette = ['#3b82f6', '#8b5cf6', '#10b981', '#f59e0b'];
+  channelLabel(ch: string): string { return ch === 'WEB' ? 'Web' : ch === 'POS' ? 'Tienda' : ch; }
 
   money(v: number | string | null | undefined): string {
     const n = +(v ?? 0) || 0;

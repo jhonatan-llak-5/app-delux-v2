@@ -19,7 +19,7 @@ import { BrandingService } from '@core/services/branding.service';
       <!-- ───── PANEL IZQUIERDO (hero visual) ───── -->
       <aside class="hidden lg:block relative w-[55%] overflow-hidden bg-[#0a0d14]">
 
-        <img src="assets/images/catalog/deux_blue.png"
+        <img src="assets/images/catalog/deux_blue_2.png"
              alt="DLUX Azul Marino"
              class="absolute inset-0 w-full h-full object-cover"
  />
@@ -45,7 +45,7 @@ import { BrandingService } from '@core/services/branding.service';
               <span class="ig-gradient-text">marcas favoritas.</span>
             </h2>
             <p class="text-white/70 text-[15px] mt-5 leading-relaxed max-w-md">
-              Drops curados de Nike, Adidas, Jordan y más. Envío 24h en Ecuador.
+              Calidad premium, diseño que marca la diferencia y envíos rápidos a todo el Ecuador. Tu próximo par te está esperando.
             </p>
           </div>
 

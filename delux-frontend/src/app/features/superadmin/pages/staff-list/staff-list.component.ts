@@ -8,7 +8,6 @@ import { DlxSearchInputComponent } from '@shared/ui/search-input.component';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { RouterLink } from '@angular/router';
-import { debounceTime, Subject } from 'rxjs';
 
 import { StaffService, StaffUser } from '@features/superadmin/services/staff.service';
 import { ConfirmService } from '@shared/components/confirm/confirm.service';
@@ -166,10 +165,8 @@ export class StaffListComponent implements OnInit {
   search = signal('');
   branchFilter: number | null = null;
   roleFilter = '';
-  private search$ = new Subject<void>();
 
   ngOnInit() {
-    this.search$.pipe(debounceTime(300)).subscribe(() => this.reload());
     this.adminSvc.listBranches().subscribe(r => this.branches.set(r.results || []));
     this.reload();
   }
@@ -186,7 +183,7 @@ export class StaffListComponent implements OnInit {
     });
   }
 
-  onSearch(v: string) { this.search.set(v); this.search$.next(); }
+  onSearch(v: string) { this.search.set(v); this.reload(); }
 
   countByRole(r: string) { return this.staff().filter(s => s.role === r).length; }
   activeCount() { return this.staff().filter(s => s.is_active).length; }

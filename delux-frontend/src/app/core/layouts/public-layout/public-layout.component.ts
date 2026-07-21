@@ -5,11 +5,12 @@ import { PublicFooterComponent } from '@features/landing/components/public-foote
 import { SplashIntroComponent } from '@shared/components/splash-intro/splash-intro.component';
 import { ZonePickerComponent } from '@shared/components/zone-picker/zone-picker.component';
 import { ZoneService } from '@shared/services/zone.service';
+import { WhatsappFabComponent } from '@shared/ui/whatsapp-fab.component';
 
 @Component({
   selector: 'dlx-public-layout',
   standalone: true,
-  imports: [RouterOutlet, PublicNavbarComponent, PublicFooterComponent, SplashIntroComponent, ZonePickerComponent],
+  imports: [RouterOutlet, PublicNavbarComponent, PublicFooterComponent, SplashIntroComponent, ZonePickerComponent, WhatsappFabComponent],
   changeDetection: ChangeDetectionStrategy.OnPush,
   template: `
     <dlx-splash-intro />
@@ -22,6 +23,7 @@ import { ZoneService } from '@shared/services/zone.service';
       <dlx-public-footer />
     </div>
     <dlx-zone-picker />
+    <dlx-whatsapp-fab />
   `,
 })
 export class PublicLayoutComponent implements OnInit {

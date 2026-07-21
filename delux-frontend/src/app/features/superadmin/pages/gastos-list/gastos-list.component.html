@@ -1,0 +1,157 @@
+<div class="max-w-[1200px] mx-auto px-4 md:px-6 py-6 space-y-6">
+
+  <!-- Header -->
+  <div class="flex flex-wrap items-end justify-between gap-4">
+    <div>
+      <h1 class="text-2xl md:text-3xl font-bold text-ink-950 dark:text-white">Gastos</h1>
+      <p class="text-sm text-ink-500 dark:text-white/60 mt-1">
+        Registra y controla lo que gasta el negocio · <span class="font-semibold text-ink-700 dark:text-white/80">{{ ctx.currentName() }}</span>
+      </p>
+    </div>
+    <!-- Periodo + exportar -->
+    <div class="flex items-center gap-3">
+    <div class="inline-flex rounded-xl bg-ink-100 dark:bg-white/10 p-1">
+      @for (p of periods; track p.key) {
+        <button (click)="setPeriod(p.key)"
+                class="px-3 py-1.5 rounded-lg text-sm font-semibold transition"
+                [ngClass]="period() === p.key ? 'bg-white dark:bg-white/15 text-ink-950 dark:text-white shadow-sm' : 'text-ink-500 dark:text-white/60 hover:text-ink-800 dark:hover:text-white'">
+          {{ p.label }}
+        </button>
+      }
+    </div>
+    <dlx-export-menu [columns]="exportColumns" [rows]="exportRows()" filename="gastos"
+                     title="Gastos" [subtitle]="ctx.currentName()" />
+    </div>
+  </div>
+
+  <!-- Resumen -->
+  <div class="grid grid-cols-1 sm:grid-cols-3 gap-4">
+    <div class="rounded-2xl border border-ink-100 dark:border-white/10 bg-white dark:bg-slate-900 p-5">
+      <p class="text-xs uppercase tracking-wide text-ink-400 dark:text-white/50">Total del periodo</p>
+      <p class="mt-1 text-3xl font-bold text-[var(--dash-primary)]">${{ money(summary()?.total || 0) }}</p>
+    </div>
+    <div class="rounded-2xl border border-ink-100 dark:border-white/10 bg-white dark:bg-slate-900 p-5">
+      <p class="text-xs uppercase tracking-wide text-ink-400 dark:text-white/50">Gastado hoy</p>
+      <p class="mt-1 text-3xl font-bold text-ink-950 dark:text-white">${{ money(summary()?.today_total || 0) }}</p>
+    </div>
+    <div class="rounded-2xl border border-ink-100 dark:border-white/10 bg-white dark:bg-slate-900 p-5">
+      <p class="text-xs uppercase tracking-wide text-ink-400 dark:text-white/50">Registros</p>
+      <p class="mt-1 text-3xl font-bold text-ink-950 dark:text-white">{{ summary()?.count || 0 }}</p>
+    </div>
+  </div>
+
+  <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
+
+    <!-- Registrar gasto -->
+    <div class="lg:col-span-1">
+      <div class="rounded-2xl border border-ink-100 dark:border-white/10 bg-white dark:bg-slate-900 p-5 space-y-4">
+        <h2 class="font-bold text-ink-950 dark:text-white flex items-center gap-2">
+          <i class="fa-solid fa-plus text-[var(--dash-primary)]"></i> Registrar gasto
+        </h2>
+
+        <div>
+          <label class="block text-xs font-semibold text-ink-500 dark:text-white/60 mb-1">Monto</label>
+          <dlx-price-input [(ngModel)]="form.amount" [nullable]="true" extraClass="w-full" />
+        </div>
+
+        <div>
+          <label class="block text-xs font-semibold text-ink-500 dark:text-white/60 mb-1">Categoría</label>
+          <select [(ngModel)]="form.category" class="input-modern w-full">
+            @for (c of categories(); track c.value) {
+              <option [value]="c.value">{{ c.label }}</option>
+            }
+          </select>
+        </div>
+
+        <div>
+          <label class="block text-xs font-semibold text-ink-500 dark:text-white/60 mb-1">Descripción</label>
+          <input [(ngModel)]="form.description" maxlength="200" placeholder="Ej: botellón de agua, almuerzo…" class="input-modern w-full" />
+        </div>
+
+        <div>
+          <label class="block text-xs font-semibold text-ink-500 dark:text-white/60 mb-1">Fecha</label>
+          <input type="date" [(ngModel)]="form.date" class="input-modern w-full" />
+        </div>
+
+        @if (canPickBranch() && ctx.current() == null) {
+          <div>
+            <label class="block text-xs font-semibold text-ink-500 dark:text-white/60 mb-1">Sucursal (opcional)</label>
+            <select [(ngModel)]="form.branch" class="input-modern w-full">
+              <option [ngValue]="null">General (sin sucursal)</option>
+              @for (b of ctx.branches(); track b.id) {
+                <option [ngValue]="b.id">{{ b.name }}</option>
+              }
+            </select>
+          </div>
+        }
+
+        <button (click)="save()" [disabled]="saving()"
+                class="w-full inline-flex items-center justify-center gap-2 px-4 py-2.5 rounded-xl bg-[var(--dash-primary)] hover:bg-[var(--dash-primary-d)] text-white font-semibold disabled:opacity-60 transition">
+          <i class="fa-solid fa-floppy-disk"></i> {{ saving() ? 'Guardando…' : 'Registrar gasto' }}
+        </button>
+      </div>
+
+      <!-- Por categoría -->
+      @if (summary()?.by_category?.length) {
+        <div class="mt-6 rounded-2xl border border-ink-100 dark:border-white/10 bg-white dark:bg-slate-900 p-5">
+          <h2 class="font-bold text-ink-950 dark:text-white mb-3">Por categoría</h2>
+          <div class="space-y-3">
+            @for (c of summary()!.by_category; track c.category) {
+              <div>
+                <div class="flex items-center justify-between text-sm">
+                  <span class="text-ink-700 dark:text-white/80"><i class="fa-solid {{ catIcon(c.category) }} w-4 text-center text-ink-400 dark:text-white/50"></i> {{ c.label }}</span>
+                  <span class="font-semibold text-ink-950 dark:text-white">${{ money(c.total) }}</span>
+                </div>
+                <div class="mt-1 h-1.5 rounded-full bg-ink-100 dark:bg-white/10 overflow-hidden">
+                  <div class="h-full bg-[var(--dash-primary)] rounded-full" [style.width.%]="pct(c.total, summary()!.total)"></div>
+                </div>
+              </div>
+            }
+          </div>
+        </div>
+      }
+    </div>
+
+    <!-- Historial -->
+    <div class="lg:col-span-2">
+      <div class="rounded-2xl border border-ink-100 dark:border-white/10 bg-white dark:bg-slate-900 overflow-hidden">
+        <div class="px-5 py-4 border-b border-ink-100 dark:border-white/10 flex items-center justify-between">
+          <h2 class="font-bold text-ink-950 dark:text-white">Historial</h2>
+          <span class="text-xs text-ink-400 dark:text-white/50">{{ items().length }} gasto(s)</span>
+        </div>
+
+        @if (loading()) {
+          <div class="p-10 text-center text-ink-400 dark:text-white/50"><i class="fa-solid fa-spinner fa-spin"></i> Cargando…</div>
+        } @else if (!items().length) {
+          <div class="p-10 text-center text-ink-400 dark:text-white/50">
+            <i class="fa-regular fa-folder-open text-3xl mb-2 block"></i>
+            No hay gastos en este periodo.
+          </div>
+        } @else {
+          <div class="divide-y divide-ink-100 dark:divide-white/10">
+            @for (x of items(); track x.id) {
+              <div class="flex items-center gap-3 px-5 py-3 hover:bg-ink-50 dark:hover:bg-white/[0.03]">
+                <div class="w-9 h-9 rounded-xl bg-[var(--dash-primary-l)] text-[var(--dash-primary)] grid place-items-center shrink-0">
+                  <i class="fa-solid {{ catIcon(x.category) }} text-sm"></i>
+                </div>
+                <div class="min-w-0 flex-1">
+                  <p class="text-sm font-semibold text-ink-950 dark:text-white truncate">
+                    {{ x.description || x.category_label }}
+                  </p>
+                  <p class="text-xs text-ink-400 dark:text-white/50">
+                    {{ x.category_label }} · {{ x.date }}<span *ngIf="x.branch_name"> · {{ x.branch_name }}</span>
+                  </p>
+                </div>
+                <span class="font-bold text-ink-950 dark:text-white whitespace-nowrap">${{ money(x.amount) }}</span>
+                <button (click)="remove(x)" title="Eliminar"
+                        class="w-8 h-8 grid place-items-center rounded-lg text-ink-400 hover:text-rose-600 hover:bg-rose-50 dark:hover:bg-rose-500/10 transition">
+                  <i class="fa-solid fa-trash-can text-sm"></i>
+                </button>
+              </div>
+            }
+          </div>
+        }
+      </div>
+    </div>
+  </div>
+</div>

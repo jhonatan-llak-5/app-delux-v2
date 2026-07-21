@@ -97,7 +97,12 @@ export function exportPdf<T>(rows: T[], columns: ExportColumn<T>[], filename: st
   doc.setTextColor(100);
   const meta = `Generado: ${new Date().toLocaleString('es-EC')}  ·  ${rows.length} registro(s)`;
   const sub = opts.subtitle ? `${opts.subtitle}  —  ${meta}` : meta;
-  doc.text(opts.brandName ? `${opts.brandName}  ·  ${sub}` : sub, textX, 22);
+  const fullSub = opts.brandName ? `${opts.brandName}  ·  ${sub}` : sub;
+  // Ajustar el subtitulo al ancho de pagina para que no se salga del reporte.
+  const maxW = doc.internal.pageSize.getWidth() - textX - 14;
+  const subLines = doc.splitTextToSize(fullSub, maxW) as string[];
+  doc.text(subLines, textX, 22);
+  startY = Math.max(startY, 22 + (subLines.length - 1) * 4 + 6);
 
   autoTable(doc, {
     startY,

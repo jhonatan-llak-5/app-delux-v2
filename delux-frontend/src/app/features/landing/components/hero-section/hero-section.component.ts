@@ -33,7 +33,8 @@ export class HeroSectionComponent implements OnInit, OnDestroy {
     { id: '01', name: 'DLUX Azul Marino', collection: 'DLUX',
       tagline: 'Diseño urbano en gris y azul marino. Confort premium y estilo para el día a día.',
       price: 0,
-      image: 'assets/images/catalog/deux_blue.png',
+      image: 'assets/images/catalog/deux_blue_2.png',
+      thumb: 'assets/images/catalog/deux_blue.png',
       haloClass: 'bg-brand-violet',
       gradient:
         'radial-gradient(60% 80% at 30% 30%, rgba(37,99,235,0.5) 0%, transparent 60%),' +
@@ -42,7 +43,8 @@ export class HeroSectionComponent implements OnInit, OnDestroy {
     { id: '02', name: 'DLUX Negro Total', collection: 'DLUX',
       tagline: 'Total black con detalles en gris. Un modelo versátil que combina con todo.',
       price: 0,
-      image: 'assets/images/catalog/deux_black.png',
+      image: 'assets/images/catalog/deux_black_v2.png',
+      thumb: 'assets/images/catalog/deux_black.png',
       haloClass: 'bg-brand-magenta',
       gradient:
         'radial-gradient(60% 80% at 70% 30%, rgba(120,120,140,0.45) 0%, transparent 60%),' +
@@ -51,7 +53,8 @@ export class HeroSectionComponent implements OnInit, OnDestroy {
     { id: '03', name: 'DLUX Blanco Hueso', collection: 'DLUX',
       tagline: 'Blanco y gris minimalista. Limpio, fresco y fácil de combinar en cualquier look.',
       price: 0,
-      image: 'assets/images/catalog/deux_white.png',
+      image: 'assets/images/catalog/deux_white_v2.png',
+      thumb: 'assets/images/catalog/deux_white.png',
       haloClass: 'bg-accent-500',
       gradient:
         'radial-gradient(60% 80% at 70% 30%, rgba(20,184,166,0.45) 0%, transparent 60%),' +
@@ -60,7 +63,8 @@ export class HeroSectionComponent implements OnInit, OnDestroy {
     { id: '04', name: 'DLUX Verde Militar', collection: 'DLUX',
       tagline: 'Verde militar con azul marino. Carácter y actitud urbana en cada paso.',
       price: 0,
-      image: 'assets/images/catalog/delux_green.png',
+      image: 'assets/images/catalog/delux_green_v2.png',
+      thumb: 'assets/images/catalog/delux_green.png',
       haloClass: 'bg-brand-orange',
       gradient:
         'radial-gradient(60% 80% at 30% 30%, rgba(34,120,80,0.45) 0%, transparent 60%),' +
@@ -79,6 +83,8 @@ export class HeroSectionComponent implements OnInit, OnDestroy {
   phase = signal<HeroPhase>('showcase');
   index = signal(0);
   currentProduct = computed(() => this.products()[this.index()]);
+  titleLead = computed(() => { const w = this.currentProduct().name.trim().split(' '); return w.slice(0, -1).join(' ') || this.currentProduct().name; });
+  titleTail = computed(() => { const w = this.currentProduct().name.trim().split(' '); return w.length > 1 ? w[w.length - 1] : ''; });
   currentGradient = computed(() => this.currentProduct().gradient);
   paddedIndex = computed(() => String(this.index() + 1).padStart(2, '0'));
   paddedTotal = computed(() => String(this.products().length).padStart(2, '0'));

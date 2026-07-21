@@ -8,7 +8,7 @@ import { DlxFieldErrorComponent } from '@shared/ui/field-error.component';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { Subject, debounceTime } from 'rxjs';
-import { InventoryService, Supplier } from '@features/superadmin/services/inventory.service';
+import { InventoryService, Supplier, SupplierProduct } from '@features/superadmin/services/inventory.service';
 import { NotifyService } from '@shared/services/notify.service';
 import { parseApiError } from '@shared/utils/api-error.util';
 import { DlxConfirmDialogComponent } from '@shared/ui/confirm-dialog.component';
@@ -76,6 +76,16 @@ interface SupplierForm {
                     @else { <span class="eg-badge eg-badge-neutral">Inactivo</span> }
                   </td>
                   <td class="px-4 py-2.5 text-right whitespace-nowrap">
+                    <button class="text-slate-400 hover:text-sky-600 mr-3" (click)="openProducts(s)" title="Productos que surte">
+                      <i class="fa-solid fa-box text-xs"></i>
+                    </button>
+                    @if (s.phone) {
+                      <a [href]="waLink(s.phone)" target="_blank" rel="noopener" class="text-slate-400 hover:text-[#25D366] mr-3" title="WhatsApp"><i class="fa-brands fa-whatsapp text-sm"></i></a>
+                      <a [href]="'tel:' + s.phone" class="text-slate-400 hover:text-emerald-600 mr-3" title="Llamar"><i class="fa-solid fa-phone text-xs"></i></a>
+                    }
+                    @if (s.email) {
+                      <a [href]="'mailto:' + s.email" class="text-slate-400 hover:text-amber-600 mr-3" title="Email"><i class="fa-solid fa-envelope text-xs"></i></a>
+                    }
                     <button class="text-slate-400 hover:text-[var(--dash-primary)] mr-3" (click)="openEdit(s)" title="Editar">
                       <i class="fa-solid fa-pen text-xs"></i>
                     </button>
@@ -101,6 +111,8 @@ interface SupplierForm {
                 @if (s.tax_id) { <p class="text-xs font-mono text-slate-400">{{ s.tax_id }}</p> }
               </div>
               <div class="flex items-center gap-3 shrink-0">
+                <button (click)="openProducts(s)" class="text-slate-400"><i class="fa-solid fa-box text-xs"></i></button>
+                @if (s.phone) { <a [href]="waLink(s.phone)" target="_blank" rel="noopener" class="text-[#25D366]"><i class="fa-brands fa-whatsapp text-sm"></i></a> }
                 <button (click)="openEdit(s)" class="text-slate-400"><i class="fa-solid fa-pen text-xs"></i></button>
                 <button (click)="askDelete(s)" class="text-rose-500"><i class="fa-solid fa-trash text-xs"></i></button>
               </div>
@@ -167,6 +179,49 @@ interface SupplierForm {
       </div>
     }
 
+    @if (productsModal(); as sp) {
+      <div class="fixed inset-0 z-50 grid place-items-center p-4 bg-black/40 backdrop-blur-sm" (click)="productsModal.set(null)">
+        <div class="w-full max-w-lg rounded-2xl bg-white dark:bg-[#121826] border border-slate-200 dark:border-white/10 shadow-2xl" (click)="$event.stopPropagation()">
+          <div class="flex items-center justify-between px-5 py-4 border-b border-slate-100 dark:border-white/10">
+            <div>
+              <h2 class="font-bold text-lg">{{ sp.name }}</h2>
+              <p class="text-xs text-slate-400">Productos que te surte</p>
+            </div>
+            <button class="text-slate-400 hover:text-slate-600" (click)="productsModal.set(null)"><i class="fa-solid fa-xmark text-lg"></i></button>
+          </div>
+          <div class="px-5 py-3 flex flex-wrap gap-2 border-b border-slate-100 dark:border-white/10">
+            @if (sp.phone) {
+              <a [href]="waLink(sp.phone)" target="_blank" rel="noopener" class="inline-flex items-center gap-2 px-3 py-1.5 rounded-lg bg-[#25D366]/10 text-[#128C4B] text-sm font-semibold"><i class="fa-brands fa-whatsapp"></i> WhatsApp</a>
+              <a [href]="'tel:' + sp.phone" class="inline-flex items-center gap-2 px-3 py-1.5 rounded-lg bg-emerald-50 text-emerald-700 text-sm font-semibold"><i class="fa-solid fa-phone"></i> {{ sp.phone }}</a>
+            }
+            @if (sp.email) {
+              <a [href]="'mailto:' + sp.email" class="inline-flex items-center gap-2 px-3 py-1.5 rounded-lg bg-amber-50 text-amber-700 text-sm font-semibold"><i class="fa-solid fa-envelope"></i> Email</a>
+            }
+            @if (!sp.phone && !sp.email) { <span class="text-xs text-slate-400">Sin datos de contacto registrados.</span> }
+          </div>
+          <div class="p-5 max-h-[60vh] overflow-y-auto">
+            @if (loadingProducts()) {
+              <div class="py-8 text-center text-slate-400"><i class="fa-solid fa-spinner fa-spin"></i></div>
+            } @else if (!supplierProducts().length) {
+              <p class="text-sm text-slate-400 text-center py-6">Aún no hay productos recibidos de este proveedor.</p>
+            } @else {
+              <div class="divide-y divide-slate-100 dark:divide-white/10">
+                @for (pr of supplierProducts(); track pr.product_id) {
+                  <div class="flex items-center justify-between py-2.5">
+                    <div class="min-w-0">
+                      <p class="text-sm font-medium truncate">{{ pr.product }}</p>
+                      @if (pr.last_received) { <p class="text-xs text-slate-400">Última recepción: {{ pr.last_received }}</p> }
+                    </div>
+                    <span class="text-sm font-semibold text-slate-600 dark:text-slate-300 whitespace-nowrap">{{ pr.qty }} u.</span>
+                  </div>
+                }
+              </div>
+            }
+          </div>
+        </div>
+      </div>
+    }
+
     <dlx-confirm-dialog
       [open]="!!deleting()"
       title="¿Eliminar proveedor?"
@@ -202,6 +257,25 @@ export class SuppliersListComponent implements OnInit {
 
   deleting = signal<Supplier | null>(null);
   deletingLoading = signal(false);
+
+  productsModal = signal<Supplier | null>(null);
+  supplierProducts = signal<SupplierProduct[]>([]);
+  loadingProducts = signal(false);
+
+  openProducts(s: Supplier): void {
+    this.productsModal.set(s);
+    this.supplierProducts.set([]);
+    this.loadingProducts.set(true);
+    this.inv.supplierProducts(s.id).subscribe({
+      next: r => { this.supplierProducts.set(r); this.loadingProducts.set(false); },
+      error: () => this.loadingProducts.set(false),
+    });
+  }
+  waLink(phone: string): string {
+    const digits = (phone || '').replace(/[^0-9]/g, '');
+    const full = digits.startsWith('0') ? '593' + digits.slice(1) : digits;
+    return 'https://wa.me/' + full;
+  }
 
   ngOnInit(): void {
     this.search$.pipe(debounceTime(300)).subscribe(() => this.reload());

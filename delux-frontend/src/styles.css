@@ -616,3 +616,73 @@ select:-webkit-autofill,
   border-color: var(--dash-input-bord) !important;
   transition: background-color 9999s ease-in-out 0s;
 }
+
+/* Zapato flotante del hero (landing) */
+@keyframes dlx-float {
+  0%, 100% { transform: translateY(0) rotate(-8deg); }
+  50%      { transform: translateY(-22px) rotate(-8deg); }
+}
+.animate-dlx-float { animation: dlx-float 4.5s ease-in-out infinite; will-change: transform; }
+
+/* ─── Burbujas flotantes de la landing (estilo moderno) ─── */
+@keyframes dlx-bubble   { 0%,100% { transform: translateY(0) } 50% { transform: translateY(-26px) } }
+@keyframes dlx-bubble-2 { 0%,100% { transform: translate(0,0) } 50% { transform: translate(16px,-20px) } }
+@keyframes dlx-bubble-3 { 0%,100% { transform: translate(0,0) scale(1) } 50% { transform: translate(-14px,-14px) scale(1.06) } }
+.animate-bubble   { animation: dlx-bubble   6s   ease-in-out infinite; }
+.animate-bubble-2 { animation: dlx-bubble-2 7.5s ease-in-out infinite; }
+.animate-bubble-3 { animation: dlx-bubble-3 9s   ease-in-out infinite; }
+
+/* ─── Navbar sobre el hero navy de Inicio ─── */
+header.nav-hero { background: transparent; border-color: transparent; box-shadow: none; }
+header.nav-navy {
+  background: rgba(10, 22, 54, 0.92);
+  -webkit-backdrop-filter: blur(14px);
+          backdrop-filter: blur(14px);
+  border-bottom: 1px solid rgba(255, 255, 255, 0.08);
+  box-shadow: 0 6px 24px rgba(0, 0, 0, 0.35);
+}
+header.nav-hero a, header.nav-hero button,
+header.nav-navy a, header.nav-navy button { color: #fff; }
+header.nav-hero .nav-chip,
+header.nav-navy .nav-chip { background: rgba(255, 255, 255, 0.12); }
+
+/* Efecto flotante suave para la imagen del hero de la tienda */
+@keyframes dlxHeroFloat {
+  0%, 100% { transform: translateY(0); }
+  50% { transform: translateY(-16px); }
+}
+.hero-float { animation: dlxHeroFloat 4.5s ease-in-out infinite; will-change: transform; }
+@media (prefers-reduced-motion: reduce) { .hero-float { animation: none; } }
+
+/* El dropdown de cuenta es una tarjeta blanca aunque el navbar sea navy:
+   su texto no debe forzarse a blanco. Los íconos conservan su color propio. */
+header.nav-hero .nav-menu a, header.nav-hero .nav-menu button,
+header.nav-navy .nav-menu a, header.nav-navy .nav-menu button { color: #0b1220 !important; }
+header.nav-hero .nav-menu i, header.nav-navy .nav-menu i { color: inherit; }
+header.nav-hero .nav-menu i.text-\[\#e4002b\], header.nav-navy .nav-menu i.text-\[\#e4002b\] { color: #e4002b !important; }
+header.nav-hero .nav-menu i.text-rose-600, header.nav-navy .nav-menu i.text-rose-600 { color: #e11d48 !important; }
+
+/* ─── Difuminar bordes de la imagen del banner para fundir con el fondo ─── */
+.banner-fade {
+  -webkit-mask-image:
+     linear-gradient(to right, transparent 0%, #000 9%, #000 91%, transparent 100%),
+     linear-gradient(to bottom, transparent 0%, #000 8%, #000 92%, transparent 100%);
+  -webkit-mask-composite: source-in;
+          mask-composite: intersect;
+  mask-image:
+     linear-gradient(to right, transparent 0%, #000 9%, #000 91%, transparent 100%),
+     linear-gradient(to bottom, transparent 0%, #000 8%, #000 92%, transparent 100%);
+}
+
+/* Botón "Iniciar sesión" con alto contraste sobre el hero/navy (pill blanco) */
+header.nav-hero .nav-login,
+header.nav-navy .nav-login {
+  background: #ffffff !important;
+  border: 1px solid transparent;
+}
+header.nav-hero .nav-login,
+header.nav-navy .nav-login,
+header.nav-hero .nav-login *,
+header.nav-navy .nav-login * { color: #0b1c40 !important; }
+header.nav-hero .nav-login:hover,
+header.nav-navy .nav-login:hover { background: #eef1f6 !important; }

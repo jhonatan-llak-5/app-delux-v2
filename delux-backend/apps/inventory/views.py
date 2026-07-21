@@ -1,5 +1,5 @@
 from django.db import transaction
-from django.db.models import Sum, Count, F, Q
+from django.db.models import Count, F, Max, Q, Sum
 from rest_framework import filters, permissions, status, viewsets
 from rest_framework.decorators import action
 from rest_framework.response import Response
@@ -298,6 +298,25 @@ class AdminSupplierViewSet(viewsets.ModelViewSet):
 
     def perform_create(self, serializer):
         serializer.save(tenant=resolve_tenant(self.request.user))
+
+    @action(detail=True, methods=['get'])
+    def products(self, request, pk=None):
+        """Productos que este proveedor ha surtido (via recepciones), con
+        cantidad total y fecha de la ultima recepcion. Sirve para saber a
+        que productos hace referencia y contactarlo rapido."""
+        supplier = self.get_object()
+        rows = (ReceptionItem.objects
+                .filter(reception__supplier=supplier)
+                .values('variant__product__id', 'variant__product__name')
+                .annotate(qty=Sum('quantity'), last=Max('reception__committed_at'))
+                .order_by('-qty'))
+        out = [{
+            'product_id': r['variant__product__id'],
+            'product': r['variant__product__name'],
+            'qty': r['qty'] or 0,
+            'last_received': r['last'].date().isoformat() if r['last'] else None,
+        } for r in rows]
+        return Response(out)
 
 
 class AdminReceptionViewSet(viewsets.ModelViewSet):
