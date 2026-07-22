@@ -9,6 +9,19 @@
       {{ isEdit() ? payload.name : 'Nuevo producto' }}
     </h1>
 
+    <div class="flex gap-2 mb-6 border-b border-slate-200 dark:border-white/10">
+      <button type="button" (click)="setVariantMode('basic')"
+              class="px-4 py-2 text-sm font-semibold border-b-2 -mb-px transition"
+              [ngClass]="mode()==='basic' ? 'border-[var(--dash-primary)] text-[var(--dash-primary)]' : 'border-transparent text-slate-500'">
+        Producto básico
+      </button>
+      <button type="button" (click)="setVariantMode('variants')"
+              class="px-4 py-2 text-sm font-semibold border-b-2 -mb-px transition"
+              [ngClass]="mode()==='variants' ? 'border-[var(--dash-primary)] text-[var(--dash-primary)]' : 'border-transparent text-slate-500'">
+        Producto con variantes
+      </button>
+    </div>
+
     <form (ngSubmit)="save()" #f="ngForm" class="grid grid-cols-1 lg:grid-cols-3 gap-6">
       <!-- COL principal -->
       <div class="lg:col-span-2 space-y-4">
@@ -126,6 +139,7 @@
           </p>
         </div>
 
+        @if (mode() === 'variants') {
         <!-- Variantes (tallas y colores) -->
         <div class="card p-6">
           <h2 class="font-bold tracking-tight mb-1">Variantes</h2>
@@ -223,6 +237,7 @@
             }
           </div>
         </div>
+        }
 
         <!-- Disponibilidad inicial por sucursal -->
         @if (!isEdit()) {
@@ -326,11 +341,21 @@
         <div class="card p-6 space-y-4">
           <h2 class="font-bold tracking-tight">Precio</h2>
           <div>
-            <label class="eg-label">Precio base (sin IVA) *</label>
+            <label class="eg-label">Precio de venta (IVA incluido) *</label>
             <dlx-price-input [(ngModel)]="payload.base_price" name="base_price" />
             <dlx-field-error [error]="fe('base_price')" />
+            <div class="mt-2">
+              <label class="eg-label !text-[11px]">IVA de este producto</label>
+              <select [(ngModel)]="payload.tax_rate" name="tax_rate" class="eg-input !h-9 text-sm">
+                <option [ngValue]="null">Global ({{ globalIva() }}%)</option>
+                <option [ngValue]="0">0% (exento)</option>
+                <option [ngValue]="5">5%</option>
+                <option [ngValue]="12">12%</option>
+                <option [ngValue]="15">15%</option>
+              </select>
+            </div>
             @if ((+payload.base_price || 0) > 0) {
-              <p class="text-[11px] text-slate-400 mt-1">Con IVA ({{ ivaRate() }}%): <b class="text-[var(--dash-primary)] dark:text-[var(--dash-primary)]">$ {{ priceWithIva() | number:'1.2-2' }}</b></p>
+              <p class="text-[11px] text-slate-400 mt-1">Incluye IVA ({{ ivaRate() }}%): <b class="text-[var(--dash-primary)]">$ {{ ivaAmount() | number:'1.2-2' }}</b> · Base sin IVA: <b>$ {{ netPrice() | number:'1.2-2' }}</b></p>
             }
           </div>
         </div>

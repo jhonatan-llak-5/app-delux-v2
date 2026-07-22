@@ -20,6 +20,7 @@ export interface Stock {
   branch_code: string;
   base_price: string;
   price_override: string | null;
+  cost?: string | null;
   quantity: number;
   reserved: number;
   min_threshold: number;
@@ -32,11 +33,14 @@ export interface StockMovement {
   id: number;
   stock_id: number;
   variant_sku: string;
+  product_id: number;
   product_name: string;
   branch_name: string;
   type: string;
   type_label: string;
   quantity: number;
+  qty_before: number | null;
+  qty_after: number | null;
   note: string;
   actor: number | null;
   actor_name: string | null;
@@ -150,10 +154,17 @@ export class InventoryService {
     return this.http.get<InventorySummary>(`${this.base}/stocks/summary/`, { params: p });
   }
 
-  adjust(stockId: number, delta: number, note = '', type: 'IN' | 'OUT' | 'ADJ' = 'ADJ') {
+  adjust(stockId: number, delta: number, note = '', type: 'IN' | 'OUT' | 'ADJ' = 'ADJ',
+         reason = '', unit_cost?: number) {
     return this.http.post<{ detail: string; quantity: number }>(
       `${this.base}/stocks/${stockId}/adjust/`,
-      { delta, note, type }
+      { delta, note, type, reason, unit_cost }
+    );
+  }
+
+  setPricing(stockId: number, body: { base_price?: number; cost?: number }) {
+    return this.http.post<{ detail: string }>(
+      `${this.base}/stocks/${stockId}/set-pricing/`, body
     );
   }
 

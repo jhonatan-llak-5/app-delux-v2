@@ -136,8 +136,7 @@ class POSCheckoutSerializer(serializers.Serializer):
             )
 
             subtotal = Decimal('0')
-            from apps.settings.models import PlatformSettings
-            tax_rate = Decimal(str(PlatformSettings.load().tax_rate or 0))
+            tax_amount = Decimal('0')
             for it in items_input:
                 variant = Variant.objects.select_related('product').filter(
                     pk=it['variant_id']
@@ -154,6 +153,7 @@ class POSCheckoutSerializer(serializers.Serializer):
                     raise serializers.ValidationError(
                         {'items': f'Stock insuficiente para {variant.sku}.'}
                     )
+                pos_before = stock.quantity
                 stock.quantity -= it['quantity']
                 stock.save(update_fields=['quantity', 'updated_at'])
 
@@ -163,26 +163,27 @@ class POSCheckoutSerializer(serializers.Serializer):
                     quantity=-it['quantity'],
                     note=f'Venta POS {code}',
                     actor=user if user.is_authenticated else None,
+                    qty_before=pos_before, qty_after=stock.quantity,
                 )
 
-                net_price = variant.price_override or variant.product.base_price
-                # Precio unitario con IVA incluido (la tienda no factura
-                # electrónicamente: el IVA es solo para mostrar/cobrar).
-                unit_price = (net_price * (Decimal('1') + tax_rate / Decimal('100'))
-                              ).quantize(Decimal('0.01'))
+                prod = variant.product
+                # base_price / price_override YA es el precio final (IVA incluido).
+                unit_price = (variant.price_override or prod.base_price).quantize(Decimal('0.01'))
                 item_subtotal = unit_price * it['quantity']
                 OrderItem.objects.create(
                     tenant=tenant, order=order, variant=variant,
-                    product_name=variant.product.name,
+                    product_name=prod.name,
                     sku=variant.sku, size=variant.size, color=variant.color,
                     quantity=it['quantity'], unit_price=unit_price,
                     subtotal=item_subtotal,
                 )
                 subtotal += item_subtotal
+                # IVA contenido segun el IVA propio del producto.
+                ptax = prod.effective_tax_rate()
+                if ptax:
+                    tax_amount += (item_subtotal - item_subtotal / (Decimal('1') + ptax / Decimal('100'))).quantize(Decimal('0.01'))
 
-            # subtotal ya viene con IVA incluido; desglosamos el IVA contenido.
-            tax_amount = (subtotal - subtotal / (Decimal('1') + tax_rate / Decimal('100'))
-                          ).quantize(Decimal('0.01')) if tax_rate else Decimal('0')
+            # tax_amount ya se acumulo por item (IVA por producto).
             order.subtotal = subtotal
             order.tax = tax_amount
             order.total = subtotal - Decimal(str(validated_data.get('discount', 0)))

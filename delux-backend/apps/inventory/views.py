@@ -102,17 +102,53 @@ class AdminStockViewSet(viewsets.ReadOnlyModelViewSet):
         delta = serializer.validated_data['delta']
         mtype = serializer.validated_data.get('type', 'ADJ')
         note = serializer.validated_data.get('note', '')
+        reason = serializer.validated_data.get('reason') or ''
+        unit_cost = serializer.validated_data.get('unit_cost')
 
         with transaction.atomic():
+            before = stock.quantity
             new_qty = max(0, stock.quantity + delta)
             stock.quantity = new_qty
             stock.save(update_fields=['quantity', 'updated_at'])
             StockMovement.objects.create(
                 tenant=stock.tenant, stock=stock,
-                type=mtype, quantity=delta, note=note,
+                type=mtype, quantity=delta, note=note or reason,
                 actor=request.user if request.user.is_authenticated else None,
+                qty_before=before, qty_after=new_qty,
             )
+            # Entrada de mercaderia nueva con costo = COMPRA -> se registra para Finanzas.
+            # Merma/perdida/conteo NO son compra (solo mueven stock).
+            if delta > 0 and reason == 'COMPRA' and unit_cost:
+                from django.utils import timezone
+                from .models import Reception, ReceptionItem
+                rec = Reception.objects.create(
+                    tenant=stock.tenant, branch_id=stock.branch_id,
+                    note='Reposicion desde inventario',
+                    created_by=request.user if request.user.is_authenticated else None,
+                    status=Reception.STATUS_COMMITTED, committed_at=timezone.now(),
+                )
+                rec.code = f"REC-{timezone.now():%Y%m%d}-{rec.pk:04d}"
+                rec.save(update_fields=['code'])
+                ReceptionItem.objects.create(
+                    tenant=stock.tenant, reception=rec, variant=stock.variant,
+                    branch_id=stock.branch_id, quantity=delta, unit_cost=unit_cost,
+                )
         return Response({'detail': 'Stock ajustado.', 'quantity': stock.quantity})
+
+    @action(detail=True, methods=['post'], url_path='set-pricing')
+    def set_pricing(self, request, pk=None):
+        """Actualiza precio de venta (producto) y/o costo (variante) desde inventario.
+        El precio NO cambia el stock, por eso no requiere motivo."""
+        stock = self.get_object()
+        variant = stock.variant
+        data = request.data or {}
+        if data.get('base_price') not in (None, ''):
+            variant.product.base_price = data['base_price']
+            variant.product.save(update_fields=['base_price'])
+        if data.get('cost') not in (None, ''):
+            variant.cost = data['cost']
+            variant.save(update_fields=['cost'])
+        return Response({'detail': 'Precio/costo actualizado.'})
 
     @action(detail=False, methods=['get'])
     def summary(self, request):
@@ -238,6 +274,8 @@ class AdminStockViewSet(viewsets.ReadOnlyModelViewSet):
                 defaults={'quantity': 0, 'min_threshold': 2},
             )
 
+            from_before = from_stock.quantity
+            to_before = to_stock.quantity
             from_stock.quantity -= data['quantity']
             to_stock.quantity += data['quantity']
             from_stock.save(update_fields=['quantity', 'updated_at'])
@@ -249,12 +287,14 @@ class AdminStockViewSet(viewsets.ReadOnlyModelViewSet):
                 type=StockMovement.TYPE_TRANSFER_OUT,
                 quantity=-data['quantity'], note=note,
                 actor=request.user if request.user.is_authenticated else None,
+                qty_before=from_before, qty_after=from_stock.quantity,
             )
             StockMovement.objects.create(
                 tenant=variant.tenant, stock=to_stock,
                 type=StockMovement.TYPE_TRANSFER_IN,
                 quantity=data['quantity'], note=note,
                 actor=request.user if request.user.is_authenticated else None,
+                qty_before=to_before, qty_after=to_stock.quantity,
             )
         return Response({
             'detail': 'Transferencia realizada.',
@@ -443,11 +483,13 @@ class AdminReceptionViewSet(viewsets.ModelViewSet):
                     tenant=tenant, variant=variant, branch_id=item_branch_id,
                     defaults={'quantity': 0},
                 )
+                rec_before = stock.quantity
                 stock.quantity += qty
                 stock.save(update_fields=['quantity', 'updated_at'])
                 StockMovement.objects.create(
                     tenant=tenant, stock=stock, type=StockMovement.TYPE_IN,
                     quantity=qty, note=f'Recepcion {reception.code}', actor=actor,
+                    qty_before=rec_before, qty_after=stock.quantity,
                 )
                 ReceptionItem.objects.create(
                     tenant=tenant, reception=reception, variant=variant,

@@ -92,17 +92,17 @@ export class PosComponent implements OnInit, OnDestroy {
   private search$ = new Subject<void>();
 
   taxRate = computed(() => +this.branding.taxRate() || 0);
-  /** Suma neta (sin IVA). */
-  netSubtotal = computed(() =>
+  /** Suma total (los precios YA incluyen IVA). */
+  subtotal = computed(() =>
     this.cart().reduce((sum, i) => sum + i.unit_price * i.quantity, 0)
   );
-  /** Monto de IVA incluido. */
-  taxAmount = computed(() => this.netSubtotal() * this.taxRate() / 100);
-  /** Subtotal con IVA incluido. */
-  subtotal = computed(() => this.netSubtotal() + this.taxAmount());
+  /** Base sin IVA (desglose informativo). */
+  netSubtotal = computed(() => { const r = this.taxRate(); return r ? this.subtotal() / (1 + r / 100) : this.subtotal(); });
+  /** IVA contenido en el subtotal. */
+  taxAmount = computed(() => this.subtotal() - this.netSubtotal());
   total = computed(() => Math.max(0, this.subtotal() - this.discount()));
-  /** Precio unitario con IVA para mostrar. */
-  unitWithTax(i: CartItem): number { return i.unit_price * (1 + this.taxRate() / 100); }
+  /** Precio unitario (ya incluye IVA). */
+  unitWithTax(i: CartItem): number { return i.unit_price; }
   canCheckout = computed(() => this.cart().length > 0 && !!this.branchId());
 
   constructor() {
@@ -238,7 +238,7 @@ export class PosComponent implements OnInit, OnDestroy {
   private priceOf(s: Stock): number {
     return +(s.price_override || s.base_price || '0');
   }
-  priceWithTax(s: Stock): number { return this.priceOf(s) * (1 + this.taxRate() / 100); }
+  priceWithTax(s: Stock): number { return this.priceOf(s); }
 
   addToCart(s: Stock) {
     const existing = this.cart().find(c => c.variant_id === s.variant);

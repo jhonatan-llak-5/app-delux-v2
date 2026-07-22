@@ -15,6 +15,7 @@ class StockSerializer(serializers.ModelSerializer):
     branch_name = serializers.CharField(source='branch.name', read_only=True)
     branch_code = serializers.CharField(source='branch.code', read_only=True)
     base_price = serializers.DecimalField(source='variant.product.base_price', read_only=True, max_digits=10, decimal_places=2)
+    cost = serializers.DecimalField(source='variant.cost', read_only=True, max_digits=10, decimal_places=2, default=None)
     price_override = serializers.DecimalField(source='variant.price_override', read_only=True, max_digits=10, decimal_places=2, default=None)
     available = serializers.IntegerField(read_only=True)
     is_low = serializers.SerializerMethodField()
@@ -26,7 +27,7 @@ class StockSerializer(serializers.ModelSerializer):
             'product_id', 'product_name', 'product_main_image',
             'brand_name', 'category_name',
             'branch', 'branch_name', 'branch_code',
-            'base_price', 'price_override',
+            'base_price', 'price_override', 'cost',
             'quantity', 'reserved', 'min_threshold',
             'available', 'is_low',
             'created_at', 'updated_at',
@@ -44,6 +45,14 @@ class StockAdjustSerializer(serializers.Serializer):
         choices=[('IN', 'Entrada'), ('OUT', 'Salida'), ('ADJ', 'Ajuste')],
         default='ADJ',
     )
+    # Motivo del ajuste. COMPRA (con costo) se registra como compra en Finanzas.
+    reason = serializers.ChoiceField(
+        choices=[('COMPRA', 'Compra/Reposicion'), ('MERMA', 'Merma o dano'),
+                 ('PERDIDA', 'Perdida'), ('CONTEO', 'Error de conteo'), ('OTRO', 'Otro')],
+        required=False, allow_blank=True, default='',
+    )
+    unit_cost = serializers.DecimalField(
+        max_digits=10, decimal_places=2, required=False, allow_null=True)
 
     def validate_delta(self, v):
         if v == 0:
@@ -54,6 +63,7 @@ class StockAdjustSerializer(serializers.Serializer):
 class StockMovementSerializer(serializers.ModelSerializer):
     stock_id = serializers.IntegerField(source='stock.id', read_only=True)
     variant_sku = serializers.CharField(source='stock.variant.sku', read_only=True)
+    product_id = serializers.IntegerField(source='stock.variant.product.id', read_only=True)
     product_name = serializers.CharField(source='stock.variant.product.name', read_only=True)
     branch_name = serializers.CharField(source='stock.branch.name', read_only=True)
     actor_name = serializers.CharField(source='actor.full_name', read_only=True, default=None)
@@ -62,9 +72,9 @@ class StockMovementSerializer(serializers.ModelSerializer):
     class Meta:
         model = StockMovement
         fields = (
-            'id', 'stock_id', 'variant_sku', 'product_name', 'branch_name',
-            'type', 'type_label', 'quantity', 'note', 'actor', 'actor_name',
-            'created_at',
+            'id', 'stock_id', 'variant_sku', 'product_id', 'product_name', 'branch_name',
+            'type', 'type_label', 'quantity', 'qty_before', 'qty_after',
+            'note', 'actor', 'actor_name', 'created_at',
         )
         read_only_fields = fields
 

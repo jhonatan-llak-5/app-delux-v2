@@ -216,6 +216,7 @@ class AdminPaymentViewSet(viewsets.ReadOnlyModelViewSet):
                     variant=item.variant, branch_id=item_branch
                 ).first()
                 if stock:
+                    web_before = stock.quantity
                     stock.reserved = max(0, stock.reserved - item.quantity)
                     stock.quantity = max(0, stock.quantity - item.quantity)
                     stock.save(update_fields=['reserved', 'quantity', 'updated_at'])
@@ -223,6 +224,7 @@ class AdminPaymentViewSet(viewsets.ReadOnlyModelViewSet):
                         tenant=payment.tenant, stock=stock,
                         type=StockMovement.TYPE_OUT, quantity=-item.quantity,
                         note=f'Venta WEB {order.code} (comprobante validado)',
+                        qty_before=web_before, qty_after=stock.quantity,
                     )
         return Response(self.get_serializer(payment).data)
 
@@ -296,6 +298,7 @@ class CheckoutCODView(APIView):
                     variant=item.variant, branch_id=item_branch
                 ).first()
                 if stock:
+                    web_before = stock.quantity
                     stock.reserved = max(0, stock.reserved - item.quantity)
                     stock.quantity = max(0, stock.quantity - item.quantity)
                     stock.save(update_fields=['reserved', 'quantity', 'updated_at'])
@@ -304,6 +307,7 @@ class CheckoutCODView(APIView):
                         type=StockMovement.TYPE_OUT,
                         quantity=-item.quantity,
                         note=f'Venta WEB contra entrega {order.code}',
+                        qty_before=web_before, qty_after=stock.quantity,
                     )
 
             order.status = OrderStatus.PREPARING
@@ -420,6 +424,7 @@ class PayPhoneConfirmView(APIView):
                         variant=item.variant, branch_id=item_branch
                     ).first()
                     if stock:
+                        web_before = stock.quantity
                         stock.reserved = max(0, stock.reserved - item.quantity)
                         stock.quantity = max(0, stock.quantity - item.quantity)
                         stock.save(update_fields=['reserved', 'quantity', 'updated_at'])
@@ -428,6 +433,7 @@ class PayPhoneConfirmView(APIView):
                             type=StockMovement.TYPE_OUT,
                             quantity=-item.quantity,
                             note=f'Venta WEB {payment.order.code}',
+                            qty_before=web_before, qty_after=stock.quantity,
                         )
                 _maybe_create_shipment(payment.order)
                 _email_receipt(payment.order)

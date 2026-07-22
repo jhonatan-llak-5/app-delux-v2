@@ -33,8 +33,11 @@ export class ProductFormComponent implements OnInit {
   private adminSvc = inject(AdminService);
   private fileValidator = inject(FileValidatorService);
   private branding = inject(BrandingService);
-  ivaRate(): number { return this.branding.taxRate(); }
-  priceWithIva(): number { const b = +this.payload.base_price || 0; return b + b * this.ivaRate() / 100; }
+  ivaRate(): number { const r = this.payload.tax_rate; return r == null || r === '' ? this.branding.taxRate() : +r; }
+  globalIva(): number { return this.branding.taxRate(); }
+  // base_price ES el precio final (IVA incluido); derivamos el neto y el IVA contenido.
+  netPrice(): number { const b = +this.payload.base_price || 0; const r = this.ivaRate(); return r ? b / (1 + r / 100) : b; }
+  ivaAmount(): number { return (+this.payload.base_price || 0) - this.netPrice(); }
   private auth = inject(AuthService);
   branches = signal<AdminBranch[]>([]);
   branchStock: Record<number, number> = {};
@@ -72,6 +75,11 @@ export class ProductFormComponent implements OnInit {
 
   sizes = signal<string[]>([]);
   colors = signal<string[]>([]);
+  mode = signal<'basic' | 'variants'>('basic');
+  setVariantMode(m: 'basic' | 'variants'): void {
+    this.mode.set(m);
+    if (m === 'basic') { this.sizes.set([]); this.colors.set([]); }
+  }
   barcode = '';
   variantsDetail = signal<{ sku?: string; size: string; color: string; barcode?: string }[]>([]);
   newSize = '';
@@ -82,7 +90,7 @@ export class ProductFormComponent implements OnInit {
   payload: ProductPayload = {
     name: '', slug: '', short_description: '', description: '',
     brand: null as any, category: null as any,
-    base_price: 0, compare_at_price: null,
+    base_price: 0, compare_at_price: null, tax_rate: null,
     gender: 'UNISEX', status: 'DRAFT', tag: '',
     is_featured: false,
     main_image_url: '', meta_title: '', meta_description: '',
@@ -104,7 +112,7 @@ export class ProductFormComponent implements OnInit {
           name: p.name, slug: p.slug,
           short_description: p.short_description, description: p.description,
           brand: p.brand, category: p.category,
-          base_price: p.base_price, compare_at_price: p.compare_at_price,
+          base_price: p.base_price, compare_at_price: p.compare_at_price, tax_rate: p.tax_rate ?? null,
           gender: p.gender, status: p.status, tag: p.tag,
           is_featured: p.is_featured,
           main_image_url: p.main_image_url,
@@ -115,6 +123,7 @@ export class ProductFormComponent implements OnInit {
         this.variantsDetail.set(vs);
         this.sizes.set([...new Set(vs.map(v => v.size).filter(Boolean))]);
         this.colors.set([...new Set(vs.map(v => v.color).filter(Boolean))]);
+        if (this.sizes().length || this.colors().length) this.mode.set('variants');
         // Si el producto tiene una sola variante, precarga su código de barras.
         this.barcode = (vs.length === 1 ? (vs[0].barcode || '') : '');
       });

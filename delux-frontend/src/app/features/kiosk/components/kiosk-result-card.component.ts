@@ -52,7 +52,7 @@ export class KioskResultCardComponent {
 
   priceWithIva(): number {
     const n = +(this.item?.base_price ?? 0) || 0;
-    return n * (1 + (+this.branding.taxRate() || 0) / 100);
+    return n;  // el precio ya incluye IVA
   }
   money(v: number): string {
     return '$' + (Math.round((v || 0) * 100) / 100).toFixed(2);

@@ -226,7 +226,7 @@ export class KioskComponent implements OnInit, OnDestroy {
   /** Precio final con IVA para mostrar al público. */
   withIva(v: string | number | undefined): number {
     const n = typeof v === 'string' ? parseFloat(v) : (v ?? 0);
-    return (+n || 0) * (1 + (this.branding.taxRate() || 0) / 100);
+    return +n || 0;  // el precio ya incluye IVA
   }
   taxRate(): number { return +this.branding.taxRate() || 0; }
 

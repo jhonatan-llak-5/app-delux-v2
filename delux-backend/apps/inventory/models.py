@@ -46,6 +46,8 @@ class StockMovement(TenantOwnedModel):
     type = models.CharField(max_length=10, choices=TYPES)
     quantity = models.IntegerField()
     note = models.CharField(max_length=240, blank=True)
+    qty_before = models.IntegerField(null=True, blank=True)
+    qty_after = models.IntegerField(null=True, blank=True)
     actor = models.ForeignKey(
         'accounts.User', on_delete=models.SET_NULL, null=True, blank=True
     )

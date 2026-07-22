@@ -46,8 +46,9 @@ export class ManualProductModalComponent implements OnInit {
   fe(k: string): string | undefined { return this.fieldErrors()[k]; }
   private branding = inject(BrandingService);
   ivaRate(): number { return this.branding.taxRate(); }
-  ivaAmount(): number { return (+this.nf.price || 0) * this.ivaRate() / 100; }
-  finalPrice(): number { return (+this.nf.price || 0) + this.ivaAmount(); }
+  netPrice(): number { const b = +this.nf.price || 0; const r = this.ivaRate(); return r ? b / (1 + r / 100) : b; }
+  ivaAmount(): number { return (+this.nf.price || 0) - this.netPrice(); }
+  finalPrice(): number { return +this.nf.price || 0; }
   margin(): number { return (+this.nf.price || 0) - (+this.nf.cost || 0); }
   marginPct(): number { const c = +this.nf.cost || 0; return c > 0 ? (this.margin() / c) * 100 : 0; }
   money(v: number): string { return '$' + (Math.round((v || 0) * 100) / 100).toFixed(2); }

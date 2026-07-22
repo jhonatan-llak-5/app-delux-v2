@@ -24,6 +24,7 @@ export interface Product {
   category_name: string;
   base_price: string;
   compare_at_price: string | null;
+  tax_rate?: string | null;
   gender: 'UNISEX' | 'MEN' | 'WOMEN' | 'KIDS';
   status: 'DRAFT' | 'PUBLISHED' | 'PAUSED' | 'ARCHIVED';
   tag: '' | 'NEW' | 'DROP' | 'SALE' | 'EXCLUSIVE';
@@ -49,6 +50,7 @@ export interface ProductPayload {
   category: number;
   base_price: number | string;
   compare_at_price?: number | string | null;
+  tax_rate?: number | string | null;
   gender?: string;
   status?: string;
   tag?: string;

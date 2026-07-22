@@ -187,7 +187,7 @@ export class ReceptionsListComponent implements OnInit {
     let html = '';
     for (const it of r.items) {
       const copies = Math.max(1, it.quantity);
-      const finalP = (+it.price || 0) * (1 + (this.branding.taxRate() || 0) / 100);
+      const finalP = (+it.price || 0);  // el precio ya incluye IVA
       const price = '$' + (Math.round(finalP * 100) / 100).toFixed(2);
       const bc = code128BSvg(it.variant_sku, { height: 50, moduleWidth: 1.5, margin: 4 });
       const sizeTxt = it.size ? ('Talla ' + it.size) : '';

@@ -26,7 +26,7 @@ class ProductSerializer(serializers.ModelSerializer):
         fields = (
             'id', 'name', 'slug', 'short_description', 'description',
             'brand', 'brand_name', 'category', 'category_name',
-            'base_price', 'compare_at_price',
+            'base_price', 'compare_at_price', 'tax_rate',
             'gender', 'status', 'tag', 'is_featured',
             'main_image_url',
             'meta_title', 'meta_description',
@@ -56,7 +56,7 @@ class ProductCreateUpdateSerializer(serializers.ModelSerializer):
         model = Product
         fields = (
             'name', 'slug', 'short_description', 'description',
-            'brand', 'category', 'base_price', 'compare_at_price',
+            'brand', 'category', 'base_price', 'compare_at_price', 'tax_rate',
             'gender', 'status', 'tag', 'is_featured',
             'main_image_url', 'meta_title', 'meta_description',
             'images', 'variants', 'initial_stock',

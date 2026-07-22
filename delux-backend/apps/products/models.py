@@ -43,6 +43,9 @@ class Product(TenantOwnedModel):
     compare_at_price = models.DecimalField(
         max_digits=10, decimal_places=2, null=True, blank=True
     )
+    tax_rate = models.DecimalField(
+        max_digits=5, decimal_places=2, null=True, blank=True,
+        help_text='IVA %% de este producto. Vacio = usa el IVA global de Configuracion.')
 
     gender = models.CharField(
         max_length=10,
@@ -65,6 +68,14 @@ class Product(TenantOwnedModel):
     meta_description = models.CharField(max_length=240, blank=True)
 
     is_featured = models.BooleanField(default=False)
+
+    def effective_tax_rate(self):
+        """IVA % de este producto: el propio, o el global si esta vacio."""
+        from decimal import Decimal
+        if self.tax_rate is not None:
+            return Decimal(str(self.tax_rate))
+        from apps.settings.models import PlatformSettings
+        return Decimal(str(PlatformSettings.load().tax_rate or 0))
 
     class Meta:
         unique_together = [('tenant', 'slug')]

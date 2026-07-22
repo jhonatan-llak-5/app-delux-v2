@@ -22,7 +22,7 @@ export function printProductLabels(
   let html = '';
   for (const it of items) {
     const copies = Math.max(1, it.quantity || 1);
-    const finalP = (+it.price || 0) * (1 + (opts.taxRate || 0) / 100);
+    const finalP = (+it.price || 0);  // el precio ya incluye IVA
     const price = '$' + (Math.round(finalP * 100) / 100).toFixed(2);
     const bc = code128BSvg(it.sku, { height: 50, moduleWidth: 1.5, margin: 4 });
     const sizeTxt = it.size ? ('Talla ' + it.size) : '';
