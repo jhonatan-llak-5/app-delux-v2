@@ -60,6 +60,7 @@
 
               <!-- Tipo de entrega -->
               <div class="grid grid-cols-2 gap-3 mb-4">
+                @if (branding.deliveryEnabled()) {
                 <button type="button" (click)="fulfillment = 'SHIPPING'; onShippingSelected()"
                         class="p-3 rounded-xl border-2 text-left transition flex items-center gap-3"
                         [class.border-accent-500]="fulfillment === 'SHIPPING'"
@@ -73,6 +74,8 @@
                     <span class="block text-xs text-ink-600 dark:text-white/55">Costo coordinado contigo</span>
                   </span>
                 </button>
+                }
+                @if (branding.pickupEnabled()) {
                 <button type="button" (click)="fulfillment = 'PICKUP'"
                         class="p-3 rounded-xl border-2 text-left transition flex items-center gap-3"
                         [class.border-accent-500]="fulfillment === 'PICKUP'"
@@ -86,6 +89,7 @@
                     <span class="block text-xs text-ink-600 dark:text-white/55">Sin costo de envío</span>
                   </span>
                 </button>
+                }
               </div>
 
               <div class="grid grid-cols-1 md:grid-cols-3 gap-3">

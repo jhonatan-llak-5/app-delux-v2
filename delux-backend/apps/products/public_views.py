@@ -69,10 +69,17 @@ class PublicProductsView(APIView):
         from django.db.models import Sum
         from apps.inventory.models import Stock
 
+        from apps.settings.models import PlatformSettings
+        oos = PlatformSettings.load().out_of_stock_display or 'SHOW'
+
         qs = filter_products(request)
         params = request.query_params
         branch_id = params.get('branch')
         city = params.get('city')
+
+        # "Ocultar del catálogo": excluye productos sin stock (total en todas las sucursales).
+        if oos == 'HIDE':
+            qs = qs.annotate(_total_stock=Sum('variants__stocks__quantity')).filter(_total_stock__gt=0)
 
         try:
             page = max(1, int(params.get('page', 1)))
@@ -93,6 +100,11 @@ class PublicProductsView(APIView):
                       .filter(product_id__in=pids, is_main=True)
                       .values('product_id', 'thumb_url', 'url'))
         thumb_map = {r['product_id']: (r['thumb_url'] or r['url']) for r in thumb_rows}
+
+        # Stock total del producto (todas las sucursales) -> para "Agotado".
+        tot_rows = (Stock.objects.filter(variant__product_id__in=pids)
+                    .values('variant__product_id').annotate(total=Sum('quantity')))
+        total_stock_map = {r['variant__product_id']: r['total'] or 0 for r in tot_rows}
 
         # Mapa de stock por ciudad o sucursal (para disponibilidad).
         stock_map = {}
@@ -122,6 +134,8 @@ class PublicProductsView(APIView):
                 'is_featured': p.is_featured,
                 'branch_stock': stock if zone_active else None,
                 'available_in_city': (stock > 0) if zone_active else True,
+                'in_stock': total_stock_map.get(p.id, 0) > 0,
+                'out_of_stock_display': oos,
             }
 
         results = [serialize(p) for p in products]
@@ -238,6 +252,14 @@ class PublicProductDetailView(APIView):
         agg = (Review.objects.filter(product=p, status=ReviewStatus.APPROVED)
                .aggregate(avg=Avg('rating'), n=_Count('id')))
 
+        from django.db.models import Sum as _Sum
+        from apps.inventory.models import Stock as _Stock
+        from apps.settings.models import PlatformSettings as _PS
+        _tot = (_Stock.objects.filter(variant__product_id=p.id)
+                .aggregate(t=_Sum('quantity'))['t'] or 0)
+        _in_stock = _tot > 0
+        _oos = _PS.load().out_of_stock_display or 'SHOW'
+
         return Response({
             'id': p.id, 'name': p.name, 'slug': p.slug,
             'brand_name': p.brand.name, 'category_name': p.category.name,
@@ -257,4 +279,6 @@ class PublicProductDetailView(APIView):
             ],
             'rating': round(agg['avg'], 1) if agg['avg'] else 0,
             'reviews_count': agg['n'] or 0,
+            'in_stock': _in_stock,
+            'out_of_stock_display': _oos,
         })

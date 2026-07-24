@@ -7,6 +7,7 @@ import { BranchContextService } from '@core/services/branch-context.service';
 import { BrandingService } from '@core/services/branding.service';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
+import { RouterLink } from '@angular/router';
 import { debounceTime, Subject } from 'rxjs';
 
 import { InventoryService, Stock } from '@features/superadmin/services/inventory.service';
@@ -34,7 +35,7 @@ interface CartItem {
 @Component({
   selector: 'dlx-pos',
   standalone: true,
-  imports: [DlxEmptyStateComponent, ImgFallbackDirective, DlxSearchInputComponent, CommonModule, FormsModule],
+  imports: [DlxEmptyStateComponent, ImgFallbackDirective, DlxSearchInputComponent, CommonModule, FormsModule, RouterLink],
   changeDetection: ChangeDetectionStrategy.OnPush,
   templateUrl: './pos.component.html',
 })

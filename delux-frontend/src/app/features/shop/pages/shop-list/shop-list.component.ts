@@ -7,6 +7,7 @@ import { RouterLink } from '@angular/router';
 import { HeroSectionComponent } from '@features/landing/components/hero-section/hero-section.component';
 import { PublicCatalogService } from '@shared/services/public-catalog.service';
 import { ZoneService } from '@shared/services/zone.service';
+import { BrandingService } from '@core/services/branding.service';
 
 
 interface Product {
@@ -14,7 +15,7 @@ interface Product {
   category: 'zapatillas' | 'ropa' | 'mochilas' | 'accesorios';
   price: number; oldPrice?: number; colors: string[]; sizes: string[];
   image: string; tag?: 'Nuevo' | 'Drop' | 'Oferta' | 'Exclusivo';
-  gender: 'men' | 'women' | 'unisex'; available: boolean;
+  gender: 'men' | 'women' | 'unisex'; available: boolean; soldOut?: boolean;
 }
 interface Filter { categories: string[]; brands: string[]; sizes: string[]; priceMin: number; priceMax: number; }
 
@@ -28,6 +29,7 @@ interface Filter { categories: string[]; brands: string[]; sizes: string[]; pric
 export class ShopListComponent {
   private catalog = inject(PublicCatalogService);
   zone = inject(ZoneService);
+  branding = inject(BrandingService);
   showFilters = signal(false);
   isDesktop = typeof window !== 'undefined' && window.innerWidth >= 1024;
   gender = signal<'all' | 'men' | 'women' | 'unisex'>('all');
@@ -86,6 +88,7 @@ products = signal<Product[]>([]);
     tag: this.mapTag(pp.tag),
     gender: this.mapGender(pp.gender),
     available: pp.available_in_city !== false,
+    soldOut: pp.in_stock === false,
   });
 
   private loadProducts(city: string | null): void {

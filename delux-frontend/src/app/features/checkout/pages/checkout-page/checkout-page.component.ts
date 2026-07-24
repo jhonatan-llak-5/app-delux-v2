@@ -287,6 +287,12 @@ export class CheckoutPageComponent implements OnInit, AfterViewInit, OnDestroy {
   ngOnInit() {
     // Método por defecto: contra entrega (PayPhone está oculto por ahora).
     this.paymentMethod.set('COD');
+    // Respeta los métodos de entrega habilitados por la tienda.
+    if (!this.branding.deliveryEnabled() && this.branding.pickupEnabled()) {
+      this.fulfillment = 'PICKUP';
+    } else if (!this.branding.pickupEnabled() && this.branding.deliveryEnabled()) {
+      this.fulfillment = 'SHIPPING';
+    }
     // Carga las ciudades/sucursales de la zona; el effect cargará el paso 2.
     this.zone.load(false);
     // Autocompletar los datos de contacto con el perfil del usuario logueado

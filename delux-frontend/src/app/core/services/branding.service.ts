@@ -27,6 +27,10 @@ interface BrandConfig {
   deuna_enabled?: boolean;
   deuna_qr_url?: string | null;
   deuna_instructions?: string;
+  // Tienda en línea
+  pickup_enabled?: boolean;
+  delivery_enabled?: boolean;
+  out_of_stock_display?: 'SHOW' | 'HIDE' | 'SOLD_OUT';
   // Contacto público + redes
   contact_email?: string;
   whatsapp_contact_number?: string;
@@ -98,6 +102,11 @@ export class BrandingService {
     this._cfg()?.deuna_enabled === true && !!this._cfg()?.deuna_qr_url);
   readonly deunaQrUrl = computed(() => this._cfg()?.deuna_qr_url || null);
   readonly deunaInstructions = computed(() => this._cfg()?.deuna_instructions || '');
+  /** Métodos de entrega habilitados (por defecto true si no viene). */
+  readonly pickupEnabled = computed(() => this._cfg()?.pickup_enabled !== false);
+  readonly deliveryEnabled = computed(() => this._cfg()?.delivery_enabled !== false);
+  /** Cómo mostrar productos sin stock: SHOW | HIDE | SOLD_OUT. */
+  readonly outOfStockDisplay = computed(() => this._cfg()?.out_of_stock_display || 'SHOW');
   readonly recaptchaSiteKey = computed(() => this._cfg()?.recaptcha_site_key || '');
 
   // ─── Contacto público ───

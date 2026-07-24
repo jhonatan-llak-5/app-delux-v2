@@ -316,20 +316,20 @@
           <h2 class="font-bold tracking-tight">Organización</h2>
 
           <div>
-            <label class="eg-label">Marca *</label>
-            <select [(ngModel)]="payload.brand" name="brand" required
+            <label class="eg-label">Marca <span class="text-slate-400 font-normal">(opcional)</span></label>
+            <select [(ngModel)]="payload.brand" name="brand"
                     class="eg-input" [class.!border-rose-400]="fe('brand')">
-              <option [ngValue]="null">— Seleccionar —</option>
+              <option [ngValue]="null">— Sin marca —</option>
               @for (b of brands(); track b.id) { <option [ngValue]="b.id">{{ b.name }}</option> }
             </select>
             <dlx-field-error [error]="fe('brand')" />
           </div>
 
           <div>
-            <label class="eg-label">Categoría *</label>
-            <select [(ngModel)]="payload.category" name="category" required
+            <label class="eg-label">Categoría <span class="text-slate-400 font-normal">(opcional)</span></label>
+            <select [(ngModel)]="payload.category" name="category"
                     class="eg-input" [class.!border-rose-400]="fe('category')">
-              <option [ngValue]="null">— Seleccionar —</option>
+              <option [ngValue]="null">— Sin categoría —</option>
               @for (c of categories(); track c.id) {
                 <option [ngValue]="c.id">{{ c.parent_name ? c.parent_name + ' → ' : '' }}{{ c.name }}</option>
               }

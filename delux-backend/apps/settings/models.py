@@ -135,6 +135,24 @@ class PlatformSettings(models.Model):
         blank=True, default='',
         help_text='Instrucciones que ve el cliente al pagar con DE UNA.')
 
+    # ─── Tienda en línea (catálogo / checkout) ───
+    pickup_enabled = models.BooleanField(
+        default=True, help_text='Permite "Retiro en tienda" en el checkout.')
+    delivery_enabled = models.BooleanField(
+        default=True, help_text='Permite "Envío a domicilio" en el checkout.')
+
+    OOS_SHOW = 'SHOW'
+    OOS_HIDE = 'HIDE'
+    OOS_SOLD_OUT = 'SOLD_OUT'
+    OUT_OF_STOCK_CHOICES = [
+        (OOS_SHOW, 'Mostrar como están'),
+        (OOS_HIDE, 'Ocultar del catálogo'),
+        (OOS_SOLD_OUT, 'Mostrar como agotado'),
+    ]
+    out_of_stock_display = models.CharField(
+        max_length=10, choices=OUT_OF_STOCK_CHOICES, default=OOS_SHOW,
+        help_text='Cómo se muestran en el catálogo los productos sin stock.')
+
     updated_at = models.DateTimeField(auto_now=True)
 
     class Meta:

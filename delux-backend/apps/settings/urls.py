@@ -2,7 +2,8 @@ from django.urls import path, include
 from rest_framework.routers import DefaultRouter
 
 from .views import (
-    PlatformSettingsView, TestEmailView, TestPayPhoneView,
+    PlatformSettingsView, StoreTaxSettingsView, StorePaymentSettingsView, StoreOptionsView,
+    TestEmailView, TestPayPhoneView,
     PublicUploadConfigView, NewsletterSubscriberViewSet,
 )
 from .contact_admin import ContactMessageViewSet
@@ -15,6 +16,9 @@ router.register('messages', ContactMessageViewSet, basename='contact-message')
 urlpatterns = [
     path('',                PlatformSettingsView.as_view(), name='admin-settings'),
     path('public-config/',  PublicUploadConfigView.as_view(), name='admin-settings-public-config'),
+    path('tax/',            StoreTaxSettingsView.as_view(),   name='admin-settings-tax'),
+    path('payments/',       StorePaymentSettingsView.as_view(), name='admin-settings-payments'),
+    path('store/',          StoreOptionsView.as_view(),       name='admin-settings-store'),
     path('test-email/',     TestEmailView.as_view(),        name='admin-settings-test-email'),
     path('test-payphone/',  TestPayPhoneView.as_view(),     name='admin-settings-test-payphone'),
     path('backup/',         DatabaseBackupView.as_view(),   name='admin-settings-backup'),

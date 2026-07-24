@@ -19,6 +19,8 @@ export interface PublicProduct {
   is_featured: boolean;
   branch_stock?: number | null;
   available_in_city?: boolean;
+  in_stock?: boolean;
+  out_of_stock_display?: 'SHOW' | 'HIDE' | 'SOLD_OUT';
   thumb_url?: string | null;
 }
 
@@ -33,6 +35,8 @@ export interface PublicProductDetail {
   sizes: string[]; colors: PublicProductColor[];
   variants: { id: number; size: string; color: string }[];
   rating: number; reviews_count: number;
+  in_stock?: boolean;
+  out_of_stock_display?: 'SHOW' | 'HIDE' | 'SOLD_OUT';
 }
 
 export interface PublicCategory { id: number; name: string; slug: string; parent_id: number | null; }

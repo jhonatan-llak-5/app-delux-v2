@@ -4,12 +4,13 @@ from rest_framework.response import Response
 from rest_framework.views import APIView
 from rest_framework.decorators import action
 
-from apps.accounts.permissions import IsSuperadmin, IsTenantAdmin
+from apps.accounts.permissions import IsSuperadmin, IsTenantAdmin, IsBranchManager
 
 from .email import send_platform_email
 from .models import PlatformSettings, NewsletterSubscriber
 from .serializers import (
     PlatformSettingsSerializer,
+    StorePaymentSettingsSerializer,
     TestEmailSerializer,
     TestPayPhoneSerializer,
 )
@@ -38,6 +39,90 @@ class PlatformSettingsView(APIView):
         ser.is_valid(raise_exception=True)
         ser.save()
         return Response(ser.data)
+
+
+class StorePaymentSettingsView(APIView):
+    """Datos de pago (banco + QR DeUna) de la tienda. Admin y Gerente.
+    GET   /api/v1/admin/settings/payments/
+    PATCH /api/v1/admin/settings/payments/   (JSON o multipart con deuna_qr)
+    """
+    permission_classes = [permissions.IsAuthenticated, IsBranchManager]
+    parser_classes = [JSONParser, MultiPartParser, FormParser]
+
+    def get(self, request):
+        return Response(StorePaymentSettingsSerializer(
+            PlatformSettings.load(), context={'request': request}).data)
+
+    def patch(self, request):
+        inst = PlatformSettings.load()
+        ser = StorePaymentSettingsSerializer(
+            inst, data=request.data, partial=True, context={'request': request})
+        ser.is_valid(raise_exception=True)
+        ser.save()
+        return Response(ser.data)
+
+
+class StoreOptionsView(APIView):
+    """Opciones de tienda en línea. Admin y Gerente.
+    GET/PATCH /api/v1/admin/settings/store/
+    Campos: pickup_enabled, delivery_enabled, out_of_stock_display.
+    """
+    permission_classes = [permissions.IsAuthenticated, IsBranchManager]
+
+    def get(self, request):
+        c = PlatformSettings.load()
+        return Response({
+            'pickup_enabled': bool(c.pickup_enabled),
+            'delivery_enabled': bool(c.delivery_enabled),
+            'out_of_stock_display': c.out_of_stock_display or 'SHOW',
+        })
+
+    def patch(self, request):
+        c = PlatformSettings.load()
+        d = request.data or {}
+        fields = []
+        if 'pickup_enabled' in d:
+            c.pickup_enabled = bool(d.get('pickup_enabled')); fields.append('pickup_enabled')
+        if 'delivery_enabled' in d:
+            c.delivery_enabled = bool(d.get('delivery_enabled')); fields.append('delivery_enabled')
+        if 'out_of_stock_display' in d:
+            val = str(d.get('out_of_stock_display') or 'SHOW').upper()
+            if val not in ('SHOW', 'HIDE', 'SOLD_OUT'):
+                return Response({'detail': 'Opcion invalida.'}, status=status.HTTP_400_BAD_REQUEST)
+            c.out_of_stock_display = val; fields.append('out_of_stock_display')
+        if fields:
+            c.save(update_fields=fields)
+        return Response({
+            'pickup_enabled': bool(c.pickup_enabled),
+            'delivery_enabled': bool(c.delivery_enabled),
+            'out_of_stock_display': c.out_of_stock_display or 'SHOW',
+        })
+
+
+class StoreTaxSettingsView(APIView):
+    """IVA por defecto de la tienda. Accesible por Admin y Gerente.
+    GET   /api/v1/admin/settings/tax/   -> { "tax_rate": 15 }
+    PATCH /api/v1/admin/settings/tax/   -> actualiza solo el IVA por defecto.
+    """
+    permission_classes = [permissions.IsAuthenticated, IsBranchManager]
+
+    def get(self, request):
+        c = PlatformSettings.load()
+        return Response({'tax_rate': float(c.tax_rate or 0)})
+
+    def patch(self, request):
+        raw = (request.data or {}).get('tax_rate', None)
+        try:
+            val = round(float(raw), 2)
+        except (TypeError, ValueError):
+            return Response({'detail': 'IVA invalido.'}, status=status.HTTP_400_BAD_REQUEST)
+        if val < 0 or val > 100:
+            return Response({'detail': 'El IVA debe estar entre 0 y 100.'},
+                            status=status.HTTP_400_BAD_REQUEST)
+        c = PlatformSettings.load()
+        c.tax_rate = val
+        c.save(update_fields=['tax_rate'])
+        return Response({'tax_rate': float(c.tax_rate)})
 
 
 class TestEmailView(APIView):
@@ -107,6 +192,10 @@ class PublicUploadConfigView(APIView):
             'payphone_available': bool(
                 c.payphone_enabled and c.payphone_token and c.payphone_store_id),
             'cod_enabled': True,
+            # Tienda en línea
+            'pickup_enabled': bool(c.pickup_enabled),
+            'delivery_enabled': bool(c.delivery_enabled),
+            'out_of_stock_display': c.out_of_stock_display or 'SHOW',
             # Transferencia bancaria
             'transfer_enabled': bool(c.transfer_enabled),
             'bank_name': c.bank_name or '',

@@ -103,6 +103,11 @@ export class ProductService {
   update(id: number, payload: Partial<ProductPayload>) { return this.http.patch<Product>(`${this.base}/${id}/`, payload); }
   delete(id: number) { return this.http.delete<void>(`${this.base}/${id}/`); }
 
+  /** Aplica un IVA a varios productos. tax_rate=null => vuelve al IVA global. */
+  bulkTax(body: { tax_rate: number | null; product_ids?: number[]; all?: boolean }) {
+    return this.http.post<{ updated: number; tax_rate: number | null }>(`${this.base}/bulk-tax/`, body);
+  }
+
   toggleFeatured(id: number) {
     return this.http.post<{ is_featured: boolean }>(`${this.base}/${id}/toggle_featured/`, {});
   }

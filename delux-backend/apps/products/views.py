@@ -82,6 +82,34 @@ class AdminProductViewSet(viewsets.ModelViewSet):
                 ).distinct()
         return qs
 
+    @action(detail=False, methods=['post'], url_path='bulk-tax',
+            permission_classes=[permissions.IsAuthenticated, IsBranchManager])
+    def bulk_tax(self, request):
+        """Aplica un IVA a varios productos. Body:
+        { "tax_rate": <numero|null>, "all": true }  o  { "tax_rate": .., "product_ids": [..] }.
+        tax_rate = null -> el producto vuelve a usar el IVA global por defecto.
+        """
+        data = request.data or {}
+        raw = data.get('tax_rate', None)
+        tax_rate = None
+        if raw not in (None, '', 'null'):
+            try:
+                tax_rate = round(float(raw), 2)
+            except (TypeError, ValueError):
+                return Response({'detail': 'IVA invalido.'}, status=status.HTTP_400_BAD_REQUEST)
+            if tax_rate < 0 or tax_rate > 100:
+                return Response({'detail': 'El IVA debe estar entre 0 y 100.'},
+                                status=status.HTTP_400_BAD_REQUEST)
+        qs = self.get_queryset()
+        if not data.get('all'):
+            ids = data.get('product_ids') or []
+            if not ids:
+                return Response({'detail': 'Selecciona al menos un producto.'},
+                                status=status.HTTP_400_BAD_REQUEST)
+            qs = qs.filter(pk__in=ids)
+        updated = qs.update(tax_rate=tax_rate)
+        return Response({'updated': updated, 'tax_rate': tax_rate})
+
     @action(detail=False, methods=['get'])
     def summary(self, request):
         """Totales del catalogo (no dependen de la pagina cargada)."""

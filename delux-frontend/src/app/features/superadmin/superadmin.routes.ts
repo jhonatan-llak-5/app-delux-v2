@@ -244,6 +244,12 @@ export const SUPERADMIN_ROUTES: Routes = [
         loadComponent: () =>
           import('./pages/platform-settings/platform-settings.component').then(m => m.PlatformSettingsComponent),
       },
+      {
+        path: 'store-config',
+        canActivate: [roleGuard(['SUPERADMIN', 'TENANT_ADMIN', 'BRANCH_MANAGER'])],
+        loadComponent: () =>
+          import('./pages/store-config/store-config.component').then(m => m.StoreConfigComponent),
+      },
     ],
   },
 ];

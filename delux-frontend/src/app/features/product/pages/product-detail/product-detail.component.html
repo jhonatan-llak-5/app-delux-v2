@@ -198,14 +198,17 @@
 
             <!-- CTAs -->
             <div class="space-y-3 mt-8">
-              <button type="button" (click)="addToCart()"
+              <button type="button" (click)="addToCart()" [disabled]="buyBlocked()"
                       class="w-full h-14 rounded-full
-                             bg-[#0095f6] hover:bg-[#1877f2]
                              text-white font-semibold text-[15px]
                              inline-flex items-center justify-center gap-2
-                             transition-colors">
-                <i class="fa-solid fa-bag-shopping"></i>
-                Agregar al carrito
+                             transition-colors"
+                      [class.bg-[#0095f6]]="!buyBlocked()"
+                      [class.hover:bg-[#1877f2]]="!buyBlocked()"
+                      [class.bg-ink-400]="buyBlocked()"
+                      [class.cursor-not-allowed]="buyBlocked()">
+                <i class="fa-solid" [class.fa-bag-shopping]="!buyBlocked()" [class.fa-ban]="buyBlocked()"></i>
+                {{ buyBlocked() ? 'Agotado' : 'Agregar al carrito' }}
               </button>
               <button type="button" (click)="toggleWishlistWithToast()"
                       class="w-full h-14 rounded-full

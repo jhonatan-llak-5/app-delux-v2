@@ -61,12 +61,30 @@ class ProductCreateUpdateSerializer(serializers.ModelSerializer):
             'main_image_url', 'meta_title', 'meta_description',
             'images', 'variants', 'initial_stock',
         )
-        extra_kwargs = {'slug': {'required': False, 'allow_blank': True}}
+        extra_kwargs = {
+            'slug': {'required': False, 'allow_blank': True},
+            'brand': {'required': False, 'allow_null': True},
+            'category': {'required': False, 'allow_null': True},
+        }
 
     def validate(self, attrs):
         if not attrs.get('slug'):
             attrs['slug'] = slugify(attrs.get('name', ''))[:180]
         return attrs
+
+    @staticmethod
+    def _default_brand(tenant):
+        from apps.brands.models import Brand
+        obj, _ = Brand.objects.get_or_create(
+            tenant=tenant, slug='general', defaults={'name': 'General'})
+        return obj
+
+    @staticmethod
+    def _default_category(tenant):
+        from apps.categories.models import Category
+        obj, _ = Category.objects.get_or_create(
+            tenant=tenant, slug='general', defaults={'name': 'General'})
+        return obj
 
     def create(self, validated_data):
         images_data = validated_data.pop('images', [])
@@ -79,6 +97,10 @@ class ProductCreateUpdateSerializer(serializers.ModelSerializer):
             from apps.tenants.models import Tenant
             tenant = Tenant.objects.filter(is_active=True).first()
         validated_data['tenant'] = tenant
+        if not validated_data.get('brand'):
+            validated_data['brand'] = self._default_brand(tenant)
+        if not validated_data.get('category'):
+            validated_data['category'] = self._default_category(tenant)
         product = Product.objects.create(**validated_data)
         for idx, img in enumerate(images_data):
             ProductImage.objects.create(product=product, sort_order=img.get('sort_order', idx), **{k: v for k, v in img.items() if k != 'sort_order'})
@@ -90,6 +112,10 @@ class ProductCreateUpdateSerializer(serializers.ModelSerializer):
         images_data = validated_data.pop('images', None)
         variants_data = validated_data.pop('variants', None)
         stock_map = self._stock_map(validated_data.pop('initial_stock', []))
+        if 'brand' in validated_data and not validated_data['brand']:
+            validated_data['brand'] = self._default_brand(instance.tenant)
+        if 'category' in validated_data and not validated_data['category']:
+            validated_data['category'] = self._default_category(instance.tenant)
         for k, v in validated_data.items():
             setattr(instance, k, v)
         instance.save()

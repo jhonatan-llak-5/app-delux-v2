@@ -83,3 +83,27 @@ class TestPayPhoneSerializer(serializers.Serializer):
 class PayPhoneInitSerializer(serializers.Serializer):
     order_id = serializers.IntegerField()
     return_url = serializers.URLField()
+
+
+class StorePaymentSettingsSerializer(serializers.ModelSerializer):
+    """Solo datos de pago (banco + DeUna). Editable por Admin/Gerente."""
+    class Meta:
+        model = PlatformSettings
+        fields = (
+            'transfer_enabled', 'bank_name', 'bank_account_type', 'bank_account_holder',
+            'bank_account_number', 'bank_account_document', 'bank_contact_email',
+            'bank_contact_whatsapp', 'transfer_instructions',
+            'deuna_enabled', 'deuna_qr', 'deuna_instructions',
+        )
+
+    def to_representation(self, instance):
+        data = super().to_representation(instance)
+        req = self.context.get('request')
+        url = ''
+        if instance.deuna_qr:
+            url = instance.deuna_qr.url
+            if req:
+                url = req.build_absolute_uri(url)
+        data.pop('deuna_qr', None)
+        data['deuna_qr_url'] = url
+        return data

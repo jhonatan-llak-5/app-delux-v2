@@ -9,6 +9,7 @@ import { RefService } from '@core/services/ref.service';
 import { CartService } from '@features/checkout/services/cart.service';
 import { NotifyService } from '@shared/services/notify.service';
 import { PublicCatalogService } from '@shared/services/public-catalog.service';
+import { BrandingService } from '@core/services/branding.service';
 
 interface ColorOption { name: string; hex: string; image: string; }
 
@@ -17,6 +18,7 @@ interface ProductVM {
   slug: string; price: number; oldPrice?: number; rating: number; reviewsCount: number;
   tag: string; gallery: string[]; colors: ColorOption[]; sizes: string[]; description: string;
   variants: { id: number; size: string; color: string }[];
+  soldOut?: boolean;
 }
 
 const IMG_PLACEHOLDER = 'data:image/svg+xml,' + encodeURIComponent(
@@ -49,7 +51,12 @@ export class ProductDetailComponent implements OnInit {
   private me = inject(MeService);
   private auth = inject(AuthService);
   private ref = inject(RefService);
+  branding = inject(BrandingService);
   loading = signal(true);
+
+  /** Producto agotado y la tienda decidió no permitir su compra. */
+  buyBlocked = computed(() =>
+    this.product().soldOut === true && this.branding.outOfStockDisplay() !== 'SHOW');
 
   activeImg = signal(0);
   activeColorIdx = signal(0);
@@ -85,6 +92,7 @@ export class ProductDetailComponent implements OnInit {
           sizes: d.sizes || [],
           description: d.description || '',
           variants: d.variants || [],
+          soldOut: d.in_stock === false,
         });
         this.activeColorIdx.set(0);
         this.activeImg.set(0);
@@ -179,6 +187,10 @@ export class ProductDetailComponent implements OnInit {
   }
 
   addToCart() {
+    if (this.buyBlocked()) {
+      this.notify.warning('Producto agotado', { description: 'Este producto no está disponible por ahora.' });
+      return;
+    }
     if (!this.activeSize()) {
       this.sizeError.set(true);
       this.notify.warning('Selecciona una talla', {

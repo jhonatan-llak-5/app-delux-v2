@@ -224,8 +224,13 @@
                           transition-all duration-300">
 
                   <div class="relative aspect-square overflow-hidden bg-ink-100 dark:bg-white/[0.04]"
-                       [class.opacity-60]="!p.available">
-                    @if (!p.available) {
+                       [class.opacity-60]="!p.available || (branding.outOfStockDisplay() === 'SOLD_OUT' && p.soldOut)">
+                    @if (branding.outOfStockDisplay() === 'SOLD_OUT' && p.soldOut) {
+                      <span class="absolute top-3 right-3 z-10 px-2.5 py-1 rounded-full
+                                   text-[10px] font-bold uppercase tracking-wider bg-rose-600 text-white backdrop-blur">
+                        Agotado
+                      </span>
+                    } @else if (!p.available) {
                       <span class="absolute top-3 right-3 z-10 px-2.5 py-1 rounded-full
                                    text-[10px] font-bold uppercase tracking-wider bg-ink-950/80 text-white backdrop-blur">
                         Solo envío

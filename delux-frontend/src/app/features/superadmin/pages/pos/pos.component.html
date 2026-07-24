@@ -9,6 +9,11 @@
           Escanea o busca un producto, agrégalo al carrito y cobra. El stock se descuenta al instante.
         </p>
       </div>
+      <a routerLink="/app/admin/sales"
+         class="shrink-0 inline-flex items-center gap-2 px-4 h-10 rounded-xl border border-slate-200 bg-white hover:bg-slate-50 text-sm font-semibold text-slate-700">
+        <i class="fa-solid fa-receipt"></i>
+        <span class="hidden sm:inline">Historial de ventas</span>
+      </a>
     </div>
 
     @if (!branchId()) {
