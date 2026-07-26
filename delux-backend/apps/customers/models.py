@@ -11,10 +11,24 @@ class Customer(TenantOwnedModel):
         related_name='customer_profile'
     )
     full_name = models.CharField(max_length=160)
-    email = models.EmailField()
+    email = models.EmailField(blank=True)
     phone = models.CharField(max_length=30, blank=True)
     document_id = models.CharField(max_length=30, blank=True)
+    # Códigos SRI (alineados con facturación electrónica)
+    DOC_TYPES = [
+        ('05', 'Cédula'),
+        ('04', 'RUC'),
+        ('06', 'Pasaporte'),
+        ('07', 'Consumidor final'),
+        ('08', 'Identificación del exterior'),
+        ('09', 'Placa'),
+    ]
+    document_type = models.CharField(max_length=2, choices=DOC_TYPES, default='05', blank=True)
+    business_name = models.CharField(max_length=160, blank=True)
+    address = models.CharField(max_length=240, blank=True)
+    province = models.CharField(max_length=80, blank=True)
     accepts_marketing = models.BooleanField(default=False)
+    is_active = models.BooleanField(default=True)
     tags = models.JSONField(default=list, blank=True)
 
     class Meta:

@@ -3,43 +3,71 @@ import { DlxFieldErrorComponent } from '@shared/ui/field-error.component';
 import { CommonModule } from '@angular/common';
 import { DlxModalComponent } from '@shared/ui/modal.component';
 import { FormsModule } from '@angular/forms';
+import { DlxProvinceSelectComponent } from '@shared/ui/province-select.component';
+import { DlxPhoneInputComponent } from '@shared/ui/phone-input.component';
 import { Customer, CustomerPayload, CustomerService } from '@features/superadmin/services/customer.service';
 import { parseApiError } from '@shared/utils/api-error.util';
 
 @Component({
   selector: 'dlx-customer-form-modal',
   standalone: true,
-  imports: [DlxFieldErrorComponent, CommonModule, FormsModule, DlxModalComponent],
+  imports: [DlxFieldErrorComponent, CommonModule, FormsModule, DlxModalComponent, DlxProvinceSelectComponent, DlxPhoneInputComponent],
   changeDetection: ChangeDetectionStrategy.OnPush,
   template: `
     <dlx-modal [open]="true" [maxWidth]="480"
                [title]="customer ? 'Editar cliente' : 'Nuevo cliente'"
                (closed)="close.emit()">
       <form (ngSubmit)="save()" #f="ngForm" class="space-y-4">
+          <div class="grid grid-cols-3 gap-3">
+            <div>
+              <label class="eg-label">Identificación <span class="text-rose-500">*</span></label>
+              <select [(ngModel)]="payload.document_type" name="document_type" class="eg-input">
+                <option value="05">Cédula</option>
+                <option value="04">RUC</option>
+                <option value="06">Pasaporte</option>
+                <option value="07">Consumidor final</option>
+                <option value="08">Identificación del exterior</option>
+                <option value="09">Placa</option>
+              </select>
+            </div>
+            <div class="col-span-2">
+              <label class="eg-label">Número de identificación <span class="text-rose-500">*</span></label>
+              <input [(ngModel)]="payload.document_id" name="document_id" maxlength="30"
+                     class="eg-input font-mono" [class.!border-rose-400]="fe('document_id')" />
+              <dlx-field-error [error]="fe(\'document_id\')" />
+            </div>
+          </div>
           <div>
-            <label class="eg-label">Nombre completo *</label>
+            <label class="eg-label">Nombre / Razón social <span class="text-rose-500">*</span></label>
             <input [(ngModel)]="payload.full_name" name="full_name" required maxlength="160"
                    class="eg-input" [class.!border-rose-400]="fe('full_name')" />
             <dlx-field-error [error]="fe(\'full_name\')" />
           </div>
           <div>
-            <label class="eg-label">Email *</label>
-            <input [(ngModel)]="payload.email" name="email" type="email" required
-                   class="eg-input" [class.!border-rose-400]="fe('email')" />
-            <dlx-field-error [error]="fe(\'email\')" />
+            <label class="eg-label">Nombre comercial</label>
+            <input [(ngModel)]="payload.business_name" name="business_name" maxlength="160" class="eg-input" />
           </div>
           <div class="grid grid-cols-2 gap-3">
             <div>
               <label class="eg-label">Teléfono</label>
-              <input [(ngModel)]="payload.phone" name="phone" maxlength="30"
-                     class="eg-input" [class.!border-rose-400]="fe('phone')" />
+              <dlx-phone-input [(ngModel)]="payload.phone" name="phone" />
               <dlx-field-error [error]="fe(\'phone\')" />
             </div>
             <div>
-              <label class="eg-label">Cédula</label>
-              <input [(ngModel)]="payload.document_id" name="document_id" maxlength="30"
-                     class="eg-input font-mono" [class.!border-rose-400]="fe('document_id')" />
-              <dlx-field-error [error]="fe(\'document_id\')" />
+              <label class="eg-label">Email</label>
+              <input [(ngModel)]="payload.email" name="email" type="email"
+                     class="eg-input" [class.!border-rose-400]="fe('email')" />
+              <dlx-field-error [error]="fe(\'email\')" />
+            </div>
+          </div>
+          <div class="grid grid-cols-2 gap-3">
+            <div>
+              <label class="eg-label">Dirección</label>
+              <input [(ngModel)]="payload.address" name="address" maxlength="240" class="eg-input" />
+            </div>
+            <div>
+              <label class="eg-label">Provincia</label>
+              <dlx-province-select [(ngModel)]="payload.province" name="province" />
             </div>
           </div>
           <label class="flex items-center gap-3 cursor-pointer p-3 rounded-lg bg-emerald-50 hover:bg-emerald-100 transition">
@@ -78,6 +106,7 @@ export class CustomerFormModalComponent implements OnInit {
 
   payload: CustomerPayload = {
     full_name: '', email: '', phone: '', document_id: '',
+    document_type: '05', business_name: '', address: '', province: '',
     accepts_marketing: false, tags: [],
   };
   saving = signal(false);
@@ -92,6 +121,10 @@ export class CustomerFormModalComponent implements OnInit {
         email: this.customer.email,
         phone: this.customer.phone,
         document_id: this.customer.document_id,
+        document_type: this.customer.document_type || '05',
+        business_name: this.customer.business_name || '',
+        address: this.customer.address || '',
+        province: this.customer.province || '',
         accepts_marketing: this.customer.accepts_marketing,
         tags: this.customer.tags || [],
       };

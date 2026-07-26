@@ -47,8 +47,8 @@ import {
           <div><p class="text-xs text-slate-400">Gastos (30 días)</p><p class="font-bold">{{ money(f.gastos) }}</p></div>
         </div>
         <a routerLink="/app/admin/finanzas" class="card p-4 flex items-center gap-3 hover:ring-2 hover:ring-violet-200 transition">
-          <div class="w-10 h-10 rounded-xl bg-violet-50 dark:bg-violet-500/15 text-violet-600 grid place-items-center"><i class="fa-solid fa-chart-pie"></i></div>
-          <div class="flex-1"><p class="text-xs text-slate-400">Finanzas</p><p class="font-bold text-sm">Compras, ventas y ganancia</p></div>
+          <div class="w-10 h-10 rounded-xl bg-violet-50 dark:bg-violet-500/15 text-violet-600 grid place-items-center"><i class="fa-solid fa-scale-balanced"></i></div>
+          <div class="flex-1"><p class="text-xs text-slate-400">Balance general</p><p class="font-bold text-sm">Ingresos, egresos y balance</p></div>
           <i class="fa-solid fa-arrow-right text-slate-300"></i>
         </a>
       </div>

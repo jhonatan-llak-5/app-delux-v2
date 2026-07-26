@@ -75,6 +75,7 @@ class StoreOptionsView(APIView):
             'pickup_enabled': bool(c.pickup_enabled),
             'delivery_enabled': bool(c.delivery_enabled),
             'out_of_stock_display': c.out_of_stock_display or 'SHOW',
+            'consumidor_final_enabled': bool(c.consumidor_final_enabled),
         })
 
     def patch(self, request):
@@ -90,12 +91,15 @@ class StoreOptionsView(APIView):
             if val not in ('SHOW', 'HIDE', 'SOLD_OUT'):
                 return Response({'detail': 'Opcion invalida.'}, status=status.HTTP_400_BAD_REQUEST)
             c.out_of_stock_display = val; fields.append('out_of_stock_display')
+        if 'consumidor_final_enabled' in d:
+            c.consumidor_final_enabled = bool(d.get('consumidor_final_enabled')); fields.append('consumidor_final_enabled')
         if fields:
             c.save(update_fields=fields)
         return Response({
             'pickup_enabled': bool(c.pickup_enabled),
             'delivery_enabled': bool(c.delivery_enabled),
             'out_of_stock_display': c.out_of_stock_display or 'SHOW',
+            'consumidor_final_enabled': bool(c.consumidor_final_enabled),
         })
 
 

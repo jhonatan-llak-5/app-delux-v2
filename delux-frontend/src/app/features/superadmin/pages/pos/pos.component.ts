@@ -2,6 +2,9 @@ import { ChangeDetectionStrategy, Component, ElementRef, OnDestroy, OnInit, View
 import { DlxEmptyStateComponent } from '@shared/ui/empty-state.component';
 import { ImgFallbackDirective } from '@shared/ui/img-fallback.directive';
 import { DlxSearchInputComponent } from '@shared/ui/search-input.component';
+import { DlxProvinceSelectComponent } from '@shared/ui/province-select.component';
+import { DlxPhoneInputComponent } from '@shared/ui/phone-input.component';
+import { DlxPriceInputComponent } from '@shared/ui/price-input.component';
 import { AuthService } from '@core/services/auth.service';
 import { BranchContextService } from '@core/services/branch-context.service';
 import { BrandingService } from '@core/services/branding.service';
@@ -14,7 +17,10 @@ import { InventoryService, Stock } from '@features/superadmin/services/inventory
 import { OrderService, Order } from '@features/superadmin/services/order.service';
 import { AdminService, AdminBranch, AdminUser } from '@features/superadmin/services/admin.service';
 import { CouponService, CouponValidation } from '@features/superadmin/services/coupon.service';
-import { generateVoucherPDF } from '@shared/utils/voucher-pdf.util';
+import { CategoryService, Category } from '@features/superadmin/services/category.service';
+import { CustomerService, Customer } from '@features/superadmin/services/customer.service';
+import { StoreSettingsService } from '@features/superadmin/services/store-settings.service';
+import { generateVoucherPDF, printVoucherPDF } from '@shared/utils/voucher-pdf.util';
 import { parseApiError } from '@shared/utils/api-error.util';
 import { imgOrPlaceholder, onImageError } from '@shared/utils/img-placeholder';
 import { ViewMode, readViewPref, writeViewPref } from '@shared/utils/view-pref.util';
@@ -35,7 +41,7 @@ interface CartItem {
 @Component({
   selector: 'dlx-pos',
   standalone: true,
-  imports: [DlxEmptyStateComponent, ImgFallbackDirective, DlxSearchInputComponent, CommonModule, FormsModule, RouterLink],
+  imports: [DlxEmptyStateComponent, ImgFallbackDirective, DlxSearchInputComponent, CommonModule, FormsModule, RouterLink, DlxProvinceSelectComponent, DlxPhoneInputComponent, DlxPriceInputComponent],
   changeDetection: ChangeDetectionStrategy.OnPush,
   templateUrl: './pos.component.html',
 })
@@ -44,6 +50,10 @@ export class PosComponent implements OnInit, OnDestroy {
   private ord = inject(OrderService);
   private adminSvc = inject(AdminService);
   private couponSvc = inject(CouponService);
+  private catSvc = inject(CategoryService);
+  private custSvc = inject(CustomerService);
+  private storeSet = inject(StoreSettingsService);
+  cfEnabled = signal(false);   // "Consumidor Final" activado por la tienda
   private auth = inject(AuthService);
   branchCtx = inject(BranchContextService);
   private branding = inject(BrandingService);
@@ -60,6 +70,8 @@ export class PosComponent implements OnInit, OnDestroy {
   loading = signal(false);
   search = signal('');
   searched = signal(false);      // ¿ya se ejecutó una búsqueda?
+  categories = signal<Category[]>([]);
+  categoryFilter = signal<number | null>(null);
   view = signal<ViewMode>(readViewPref('dlx_pos_view', this.auth.user()?.id));
   scanCode = '';
   scanMsg = signal<{ ok: boolean; text: string } | null>(null);
@@ -74,9 +86,20 @@ export class PosComponent implements OnInit, OnDestroy {
   discount = signal(0);
   saving = signal(false);
   confirmOpen = signal(false);
+  paidWith: number | null = null;   // efectivo recibido (calculadora de vuelto)
+  change(): number { return (Number(this.paidWith) || 0) - this.total(); }
   error = signal<string | null>(null);
   completedOrder = signal<Order | null>(null);
-  customerData = { full_name: '', email: '', phone: '', document_id: '' };
+  customerData: Record<string, string> = {
+    full_name: '', email: '', phone: '', document_id: '',
+    document_type: '05', business_name: '', address: '', province: '',
+  };
+  customerId = signal<number | null>(null);   // cliente frecuente seleccionado
+  custQuery = '';
+  custResults = signal<Customer[]>([]);
+  custOpen = signal(false);
+  showCustForm = signal(false);
+  private cust$ = new Subject<string>();
 
   // Vendedor de la venta (solo gerente/admin puede elegir; el vendedor queda a su nombre).
   sellers = signal<AdminUser[]>([]);
@@ -116,7 +139,9 @@ export class PosComponent implements OnInit, OnDestroy {
     effect(() => {
       const id = this.branchCtx.current();
       this.branchId.set(id);
-      this.clearSearch();
+      // untracked: clearSearch()->reload() lee search()/categoryFilter(); sin esto el
+      // effect dependería de ellos y borraría la búsqueda en cada tecla.
+      untracked(() => this.clearSearch());
       // Al cambiar de sucursal, apaga la cámara si estaba encendida. Leemos
       // cameraOn() con untracked para NO volver dependiente el efecto de la
       // cámara (si no, al encenderla el efecto se re-ejecutaba y la apagaba).
@@ -138,15 +163,50 @@ export class PosComponent implements OnInit, OnDestroy {
 
   // --- Datos del cliente: también persisten por cuenta ---
   private customerKey() { return `dlx_pos_customer::${this.auth.user()?.id ?? 'anon'}`; }
+  private blankCustomer(): Record<string, string> {
+    return { full_name: '', email: '', phone: '', document_id: '', document_type: '05', business_name: '', address: '', province: '' };
+  }
   private readCustomer() {
-    const empty = { full_name: '', email: '', phone: '', document_id: '' };
+    const empty = this.blankCustomer();
     try { const v = localStorage.getItem(this.customerKey()); return v ? { ...empty, ...JSON.parse(v) } : empty; }
     catch { return empty; }
   }
+  // ── Cliente frecuente ──
+  onCustQuery(v: string) { this.custQuery = v; this.custOpen.set(true); this.cust$.next(v); }
+  private searchCustomers(term: string) {
+    const q = (term || '').trim();
+    if (!q) { this.custResults.set([]); return; }
+    this.custSvc.list({ search: q, page_size: 8 }).subscribe({
+      next: r => this.custResults.set(r.results || []),
+      error: () => this.custResults.set([]),
+    });
+  }
+  pickCustomer(c: Customer) {
+    this.customerId.set(c.id);
+    this.customerData = {
+      full_name: c.full_name || '', email: c.email || '', phone: c.phone || '',
+      document_id: c.document_id || '', document_type: c.document_type || 'CEDULA',
+      business_name: c.business_name || '', address: c.address || '', province: c.province || '',
+    };
+    this.custQuery = c.full_name;
+    this.custOpen.set(false);
+    this.showCustForm.set(false);
+    this.persistCustomer();
+  }
+  clearCustomer() {
+    this.customerId.set(null);
+    this.customerData = this.blankCustomer();
+    this.custQuery = '';
+    this.custResults.set([]);
+    this.custOpen.set(false);
+    this.showCustForm.set(false);
+    this.persistCustomer();
+  }
+  newCustomer() { this.clearCustomer(); this.showCustForm.set(true); }
   /** Guarda los datos del cliente en cada cambio (o los borra si están vacíos). */
   persistCustomer() {
     const c = this.customerData;
-    const hasData = !!(c.full_name || c.email || c.phone || c.document_id);
+    const hasData = !!(c['full_name'] || c['email'] || c['phone'] || c['document_id']);
     try {
       if (hasData) localStorage.setItem(this.customerKey(), JSON.stringify(c));
       else localStorage.removeItem(this.customerKey());
@@ -168,12 +228,19 @@ export class PosComponent implements OnInit, OnDestroy {
     this.discount.set(0);
     this.appliedCoupon.set(null);
     this.couponError.set(null);
-    this.customerData = { full_name: '', email: '', phone: '', document_id: '' };
+    this.customerData = this.blankCustomer();
+    this.customerId.set(null);
+    this.custQuery = '';
+    this.custResults.set([]);
+    this.showCustForm.set(false);
     this.persistCustomer();
   }
 
   ngOnInit() {
     this.search$.pipe(debounceTime(300)).subscribe(() => this.reload());
+    this.cust$.pipe(debounceTime(300)).subscribe(v => this.searchCustomers(v));
+    this.catSvc.list().subscribe(r => this.categories.set(r.results || []));
+    this.storeSet.getStoreOptions().subscribe({ next: o => this.cfEnabled.set(!!o.consumidor_final_enabled), error: () => {} });
     if (this.isManager()) {
       this.adminSvc.listUsers({ role: 'SALESPERSON' }).subscribe(r => this.sellers.set(r.results || []));
     }
@@ -181,7 +248,9 @@ export class PosComponent implements OnInit, OnDestroy {
 
   reload() {
     const term = this.search().trim();
-    if (!this.branchId() || !term) {
+    const cat = this.categoryFilter();
+    // Corre si hay término de búsqueda O una categoría seleccionada.
+    if (!this.branchId() || (!term && !cat)) {
       this.stocks.set([]);
       this.searched.set(false);
       this.loading.set(false);
@@ -189,7 +258,11 @@ export class PosComponent implements OnInit, OnDestroy {
     }
     this.loading.set(true);
     this.searched.set(true);
-    this.inv.stocks({ branch: this.branchId()!, search: term }).subscribe({
+    this.inv.stocks({
+      branch: this.branchId()!,
+      search: term || undefined,
+      category: cat || undefined,
+    }).subscribe({
       next: r => { this.stocks.set((r.results || []).filter(s => s.quantity > 0)); this.loading.set(false); },
       error: () => this.loading.set(false),
     });
@@ -197,11 +270,16 @@ export class PosComponent implements OnInit, OnDestroy {
 
   onSearch(v: string) {
     this.search.set(v);
-    if (!v.trim()) { this.stocks.set([]); this.searched.set(false); return; }
     this.search$.next();
   }
 
-  clearSearch() { this.search.set(''); this.stocks.set([]); this.searched.set(false); }
+  /** Cambio de categoría: filtra de inmediato (sin debounce). */
+  onCategory(id: number | null) {
+    this.categoryFilter.set(id);
+    this.reload();
+  }
+
+  clearSearch() { this.search.set(''); this.reload(); }
 
   setView(v: ViewMode) {
     this.view.set(v);
@@ -322,7 +400,11 @@ export class PosComponent implements OnInit, OnDestroy {
       branch_id: this.branchId()!,
       items: this.cart().map(i => ({ variant_id: i.variant_id, quantity: i.quantity })),
       discount: this.discount(),
-      customer_data: this.customerData.email ? this.customerData : undefined,
+      customer_id: this.customerId() ?? undefined,
+      // Se envían siempre los datos: si hay cliente seleccionado, el backend los
+      // actualiza (por si el vendedor los editó); si no, crea/reutiliza el cliente.
+      customer_data: (this.customerData['full_name'] || this.customerData['email'])
+        ? this.customerData : undefined,
       seller_id: this.isManager() ? this.sellerId : undefined,
     };
     this.ord.posCheckout(payload).subscribe({
@@ -397,14 +479,19 @@ export class PosComponent implements OnInit, OnDestroy {
   ngOnDestroy(): void { this.stopCamera(); }
 
   printVoucher() {
-    if (this.completedOrder()) generateVoucherPDF(this.completedOrder()!);
+    if (this.completedOrder()) printVoucherPDF(this.completedOrder()!);
   }
 
   newSale() {
     this.cart.set([]);
     this.discount.set(0);
+    this.paidWith = null;
     this.completedOrder.set(null);
-    this.customerData = { full_name: '', email: '', phone: '', document_id: '' };
+    this.customerData = this.blankCustomer();
+    this.customerId.set(null);
+    this.custQuery = '';
+    this.custResults.set([]);
+    this.showCustForm.set(false);
     this.persistCustomer();
     this.appliedCoupon.set(null);
     this.reload();

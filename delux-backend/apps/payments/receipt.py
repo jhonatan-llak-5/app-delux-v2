@@ -116,7 +116,7 @@ def build_order_receipt_pdf(order, request=None) -> bytes:
          Paragraph(f'<b>{order.code}</b>', val),
          Paragraph(order.created_at.strftime('%d/%m/%Y %H:%M'), small)],
         _qr_drawing(qr_url, 30),
-    ]], colWidths=[110 * mm, 40 * mm])
+    ]], colWidths=[134 * mm, 40 * mm])
     header.setStyle(TableStyle([
         ('VALIGN', (0, 0), (-1, -1), 'TOP'),
         ('ALIGN', (1, 0), (1, 0), 'RIGHT'),
@@ -140,7 +140,7 @@ def build_order_receipt_pdf(order, request=None) -> bytes:
          Paragraph(getattr(branch, 'name', '') or '', small),
          Paragraph(getattr(branch, 'address', '') or '', small),
          Paragraph(f'Estado: {order.get_status_display()}', small)],
-    ]], colWidths=[75 * mm, 75 * mm])
+    ]], colWidths=[87 * mm, 87 * mm])
     info.setStyle(TableStyle([
         ('VALIGN', (0, 0), (-1, -1), 'TOP'),
         ('LEFTPADDING', (0, 0), (-1, -1), 0),
@@ -158,7 +158,7 @@ def build_order_receipt_pdf(order, request=None) -> bytes:
             _money(it.unit_price),
             _money(it.subtotal),
         ])
-    items = Table(rows, colWidths=[62 * mm, 38 * mm, 15 * mm, 17 * mm, 18 * mm])
+    items = Table(rows, colWidths=[66 * mm, 44 * mm, 16 * mm, 22 * mm, 26 * mm])
     items.setStyle(TableStyle([
         ('BACKGROUND', (0, 0), (-1, 0), NAVY),
         ('TEXTCOLOR', (0, 0), (-1, 0), colors.white),
@@ -181,7 +181,7 @@ def build_order_receipt_pdf(order, request=None) -> bytes:
             dlabel += f' ({order.coupon_code})'
         tot_rows.append([dlabel, '-' + _money(order.discount)])
     tot_rows.append(['TOTAL', _money(order.total)])
-    totals = Table(tot_rows, colWidths=[40 * mm, 30 * mm], hAlign='RIGHT')
+    totals = Table(tot_rows, colWidths=[44 * mm, 30 * mm], hAlign='RIGHT')
     totals.setStyle(TableStyle([
         ('ALIGN', (0, 0), (-1, -1), 'RIGHT'),
         ('FONTSIZE', (0, 0), (-1, -1), 10),

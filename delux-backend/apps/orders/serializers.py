@@ -92,10 +92,31 @@ class POSCheckoutSerializer(serializers.Serializer):
 
         customer = None
         if validated_data.get('customer_id'):
-            customer = Customer.objects.filter(pk=validated_data['customer_id']).first()
+            customer = Customer.objects.filter(pk=validated_data['customer_id'], tenant=tenant).first()
+            # Si el vendedor editó los datos del cliente en el POS, se actualiza la
+            # ficha (todo menos el email, que es la clave única del cliente).
+            cd = validated_data.get('customer_data') or {}
+            if customer and cd:
+                _upd = []
+                for _f in ('full_name', 'phone', 'document_id', 'document_type',
+                           'business_name', 'address', 'province'):
+                    if _f in cd and (cd.get(_f) or '') != (getattr(customer, _f, '') or ''):
+                        setattr(customer, _f, cd.get(_f) or '')
+                        _upd.append(_f)
+                if _upd:
+                    customer.save(update_fields=_upd)
         elif validated_data.get('customer_data'):
             cd = validated_data['customer_data']
             _email = (cd.get('email') or '').strip()
+            _defaults = {
+                'full_name': cd.get('full_name') or 'Cliente POS',
+                'phone': cd.get('phone', ''),
+                'document_id': cd.get('document_id', ''),
+                'document_type': cd.get('document_type') or '05',
+                'business_name': cd.get('business_name', ''),
+                'address': cd.get('address', ''),
+                'province': cd.get('province', ''),
+            }
             _email_ok = False
             if _email:
                 from django.core.validators import validate_email as _ve
@@ -107,15 +128,20 @@ class POSCheckoutSerializer(serializers.Serializer):
                     _email_ok = False
             if _email_ok:
                 customer, _ = Customer.objects.get_or_create(
-                    tenant=tenant, email=_email,
-                    defaults={
-                        'full_name': cd.get('full_name', 'Cliente POS'),
-                        'phone': cd.get('phone', ''),
-                        'document_id': cd.get('document_id', ''),
-                    },
+                    tenant=tenant, email=_email, defaults=_defaults,
                 )
                 from apps.customers.utils import link_customer_to_user
                 link_customer_to_user(customer)
+            elif (cd.get('full_name') or '').strip():
+                # Cliente sin correo (mostrador con datos): se crea y queda guardado.
+                customer = Customer.objects.create(tenant=tenant, email='', **_defaults)
+
+        # Consumidor Final: si el dueño lo activó y la venta no tiene cliente.
+        if customer is None:
+            from apps.settings.models import PlatformSettings as _PS
+            if getattr(_PS.load(), 'consumidor_final_enabled', False):
+                from apps.customers.utils import get_or_create_consumidor_final
+                customer = get_or_create_consumidor_final(tenant)
 
         with transaction.atomic():
             today = timezone.now().strftime('%Y%m%d')
@@ -193,10 +219,14 @@ class POSCheckoutSerializer(serializers.Serializer):
         except Exception as e: print(f'[broadcast_pos] {e}')
 
         # Comprobante por email (solo si el cliente dejó un correo válido).
+        # Se ENCOLA en segundo plano para no bloquear el cobro en el POS: la
+        # respuesta vuelve al instante y el correo se envía después (Celery).
+        # Si el broker no está disponible, dispatch() cae a envío en línea.
         if customer and getattr(customer, 'email', ''):
             try:
-                from apps.notifications.services import notify_pos_receipt
-                notify_pos_receipt(order)
+                from apps.accounts.tasks import dispatch
+                from apps.notifications.tasks import send_pos_receipt_email
+                dispatch(send_pos_receipt_email, order.id)
             except Exception as e:
                 print(f'[pos_receipt] {e}')
 

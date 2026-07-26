@@ -5,12 +5,16 @@ from .models import Expense
 class ExpenseSerializer(serializers.ModelSerializer):
     branch_name = serializers.CharField(source='branch.name', read_only=True, default=None)
     category_label = serializers.CharField(source='get_category_display', read_only=True)
+    payment_method_label = serializers.CharField(source='get_payment_method_display', read_only=True)
+    supplier_name = serializers.CharField(source='supplier.name', read_only=True, default=None)
     created_by_name = serializers.CharField(source='created_by.get_full_name', read_only=True, default='')
 
     class Meta:
         model = Expense
         fields = [
             'id', 'date', 'amount', 'category', 'category_label',
+            'payment_method', 'payment_method_label',
+            'supplier', 'supplier_name',
             'description', 'branch', 'branch_name', 'receipt_url',
             'created_by', 'created_by_name', 'created_at',
         ]

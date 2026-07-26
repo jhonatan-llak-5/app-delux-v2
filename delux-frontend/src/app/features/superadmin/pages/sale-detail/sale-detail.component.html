@@ -91,7 +91,11 @@
                     [ngClass]="o.status | orderStatusClass">
                 {{ o.status | orderStatusLabel }}
               </span>
-              @if (canManage() && !isFinal(o.status)) {
+              @if (o.channel === 'POS') {
+                <p class="mt-2 text-[11px] text-slate-400">
+                  <i class="fa-solid fa-store"></i> Venta de mostrador (pagada). El estado no se modifica.
+                </p>
+              } @else if (canManage() && !isFinal(o.status)) {
                 <div class="mt-2 flex items-center gap-2">
                   <select [ngModel]="o.status" (ngModelChange)="changeStatus($event)" [disabled]="saving()"
                           class="eg-input text-xs !py-1.5 flex-1">

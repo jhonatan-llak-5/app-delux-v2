@@ -1,5 +1,6 @@
 import { ChangeDetectionStrategy, Component, EventEmitter, Input, OnInit, Output, inject, signal } from '@angular/core';
 import { DlxFieldErrorComponent } from '@shared/ui/field-error.component';
+import { DlxPriceInputComponent } from '@shared/ui/price-input.component';
 import { CommonModule } from '@angular/common';
 import { DlxModalComponent } from '@shared/ui/modal.component';
 import { FormsModule } from '@angular/forms';
@@ -9,7 +10,7 @@ import { parseApiError } from '@shared/utils/api-error.util';
 @Component({
   selector: 'dlx-coupon-form-modal',
   standalone: true,
-  imports: [DlxFieldErrorComponent, CommonModule, FormsModule, DlxModalComponent],
+  imports: [DlxFieldErrorComponent, CommonModule, FormsModule, DlxModalComponent, DlxPriceInputComponent],
   changeDetection: ChangeDetectionStrategy.OnPush,
   template: `
     <dlx-modal [open]="true" [maxWidth]="480"
@@ -50,15 +51,13 @@ import { parseApiError } from '@shared/utils/api-error.util';
               <label class="eg-label">
                 Valor * {{ payload.type === 'PERCENT' ? '(%)' : '($)' }}
               </label>
-              <input type="number" [(ngModel)]="payload.value" name="value" required min="0" step="0.01"
-                     [max]="payload.type === 'PERCENT' ? 100 : null"
-                     class="eg-input" [class.!border-rose-400]="fe('value')" />
+              <dlx-price-input [(ngModel)]="payload.value" name="value" [nullable]="true"
+                               [symbol]="payload.type === 'PERCENT' ? '%' : '$'" placeholder="0" />
               <dlx-field-error [error]="fe(\'value\')" />
             </div>
             <div>
               <label class="eg-label">Compra mínima ($)</label>
-              <input type="number" [(ngModel)]="payload.min_purchase" name="min_purchase" min="0" step="0.01"
-                     class="eg-input" />
+              <dlx-price-input [(ngModel)]="payload.min_purchase" name="min_purchase" [nullable]="true" placeholder="0" />
             </div>
           </div>
 

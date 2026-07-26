@@ -21,7 +21,12 @@ export interface Customer {
   email: string;
   phone: string;
   document_id: string;
+  document_type: string;
+  business_name: string;
+  address: string;
+  province: string;
   accepts_marketing: boolean;
+  is_active: boolean;
   tags: string[];
   total_orders: number;
   total_spent: string | null;
@@ -32,10 +37,15 @@ export interface Customer {
 
 export interface CustomerPayload {
   full_name: string;
-  email: string;
+  email?: string;
   phone?: string;
   document_id?: string;
+  document_type?: string;
+  business_name?: string;
+  address?: string;
+  province?: string;
   accepts_marketing?: boolean;
+  is_active?: boolean;
   tags?: string[];
 }
 
@@ -54,6 +64,7 @@ export class CustomerService {
   get(id: number) { return this.http.get<Customer>(`${this.base}/${id}/`); }
   create(payload: CustomerPayload) { return this.http.post<Customer>(`${this.base}/`, payload); }
   update(id: number, payload: Partial<CustomerPayload>) { return this.http.patch<Customer>(`${this.base}/${id}/`, payload); }
+  setActive(id: number, is_active: boolean) { return this.http.patch<Customer>(`${this.base}/${id}/`, { is_active }); }
   delete(id: number) { return this.http.delete<void>(`${this.base}/${id}/`); }
   summary() { return this.http.get<{ total_customers: number; with_purchases: number; marketing_subscribers: number }>(`${this.base}/summary/`); }
 }

@@ -20,6 +20,9 @@ export interface PublicProduct {
   branch_stock?: number | null;
   available_in_city?: boolean;
   in_stock?: boolean;
+  total_stock?: number;
+  sizes?: string[];
+  colors?: string[];
   out_of_stock_display?: 'SHOW' | 'HIDE' | 'SOLD_OUT';
   thumb_url?: string | null;
 }

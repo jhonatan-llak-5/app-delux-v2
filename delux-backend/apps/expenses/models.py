@@ -14,6 +14,12 @@ class ExpenseCategory(models.TextChoices):
     OTROS        = 'OTROS',        'Otros'
 
 
+class ExpensePaymentMethod(models.TextChoices):
+    CASH     = 'CASH',     'Efectivo'
+    TRANSFER = 'TRANSFER', 'Transferencia'
+    CARD     = 'CARD',     'Tarjeta'
+
+
 class Expense(TenantOwnedModel):
     """Gasto del negocio (contabilidad basica). Lo que antes se anotaba en la
     agenda: motorizado, publicidad, alimentacion, servicios, etc."""
@@ -22,6 +28,12 @@ class Expense(TenantOwnedModel):
     category = models.CharField(
         max_length=16, choices=ExpenseCategory.choices,
         default=ExpenseCategory.OTROS)
+    payment_method = models.CharField(
+        max_length=12, choices=ExpensePaymentMethod.choices,
+        default=ExpensePaymentMethod.CASH)
+    supplier = models.ForeignKey(
+        'inventory.Supplier', on_delete=models.SET_NULL, null=True, blank=True,
+        related_name='expenses')
     description = models.CharField(max_length=200, blank=True)
     branch = models.ForeignKey(
         'branches.Branch', on_delete=models.SET_NULL, null=True, blank=True,

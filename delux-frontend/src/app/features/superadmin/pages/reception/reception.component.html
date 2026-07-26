@@ -1,7 +1,7 @@
     <div class="mb-5 flex items-start justify-between gap-3 flex-wrap">
       <div>
-        <h1 class="text-2xl md:text-3xl font-bold tracking-tight">Recepción de mercadería</h1>
-        <p class="text-slate-500 text-sm mt-1">Ingresa productos de golpe: escanea, agrega y confirma. Genera código e imprime etiquetas.</p>
+        <h1 class="text-2xl md:text-3xl font-bold tracking-tight">Crear producto</h1>
+        <p class="text-slate-500 text-sm mt-1">Registra uno o varios productos, revisa lo que entra al stock y confirma. Genera código e imprime etiquetas.</p>
       </div>
       <button class="btn-secondary text-sm" (click)="startTour()">
         <i class="fa-solid fa-circle-question"></i> ¿Cómo funciona?
@@ -84,139 +84,88 @@
 
     <!-- ════════ TAB 1: SUBIR ════════ -->
     @if (tab() === 'upload') {
-    <div class="grid grid-cols-1 lg:grid-cols-2 gap-5">
-      <!-- Config: sucursales / proveedor / nota -->
-      <div class="card p-5 space-y-4">
+    <div class="card p-6 space-y-5">
+
+      <!-- Sección: destino y proveedor -->
+      <div class="space-y-4">
         <div data-tour="recv-branch">
           <label class="eg-label">¿A qué sucursales llega? *</label>
-          <div class="space-y-1.5 mt-1">
+          <div class="flex flex-wrap gap-2 mt-1">
             @for (b of branches(); track b.id) {
-              <label class="flex items-center gap-2 px-3 py-2.5 rounded-xl border cursor-pointer transition"
-                     [ngClass]="isSelected(b.id) ? 'border-[var(--dash-primary)] bg-[var(--dash-primary)]/5' : 'border-slate-200 dark:border-white/10 hover:border-slate-300'">
-                <input type="checkbox" [checked]="isSelected(b.id)" (change)="toggleBranch(b.id)" [disabled]="isBranchLocked(b.id)" class="w-4 h-4 accent-[var(--dash-primary)]" />
-                <span class="text-sm">{{ b.name }} · {{ b.city }}</span>
-              </label>
+              <button type="button" (click)="toggleBranch(b.id)" [disabled]="isBranchLocked(b.id)"
+                      class="px-3 py-2 rounded-xl border text-sm font-medium transition inline-flex items-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed"
+                      [ngClass]="isSelected(b.id) ? 'border-[var(--dash-primary)] bg-[var(--dash-primary)]/5 text-[var(--dash-primary)]' : 'border-slate-200 dark:border-white/10 text-slate-600 dark:text-white/70 hover:border-slate-300'">
+                <i class="fa-solid" [ngClass]="isSelected(b.id) ? 'fa-circle-check' : 'fa-store'"></i>
+                {{ b.name }} · {{ b.city }}
+              </button>
             }
           </div>
           @if (selectedBranches().length > 1) {
             <p class="text-[11px] text-slate-400 mt-1">Asigna la sucursal de cada producto en la pestaña Revisar.</p>
           }
         </div>
-        <div data-tour="recv-supplier">
-          <label class="eg-label">Proveedor</label>
-          <div class="flex gap-2">
-            <div class="relative flex-1">
-              <input [(ngModel)]="supplierName" (focus)="supplierOpen.set(true)"
-                     (ngModelChange)="supplierOpen.set(true); saveState()" (blur)="closeSupplierSoon()"
-                     class="eg-input w-full" placeholder="Nombre del proveedor" autocomplete="off" />
-              @if (supplierOpen() && filteredSuppliers().length) {
-                <div class="absolute left-0 right-0 top-full mt-1 z-30 max-h-52 overflow-y-auto rounded-xl py-1
-                            bg-white dark:bg-[#161a26] border border-slate-200 dark:border-white/10 shadow-xl">
-                  @for (sp of filteredSuppliers(); track sp.id) {
-                    <button type="button" (click)="pickSupplier(sp.name)"
-                            class="w-full text-left px-3 py-2.5 text-sm hover:bg-slate-100 dark:hover:bg-white/5 transition flex items-center gap-2">
-                      <i class="fa-solid fa-truck-field text-slate-400 text-xs"></i> {{ sp.name }}
-                    </button>
-                  }
-                </div>
-              }
-            </div>
-            <button type="button" class="eg-btn-secondary shrink-0" (click)="showSupplierModal.set(true)" title="Agregar proveedor con todos sus datos">
-              <i class="fa-solid fa-plus"></i>
-            </button>
-          </div>
-          <p class="text-[11px] text-slate-400 mt-1">Escribe el nombre, o usa <b>+</b> para registrar un proveedor con todos sus datos.</p>
-        </div>
-        <div>
-          <label class="eg-label">Nota (opcional)</label>
-          <input [(ngModel)]="note" (ngModelChange)="saveState()" class="eg-input" placeholder="Ej. Contenedor junio" />
-        </div>
-      </div>
 
-      <!-- Formas de agregar -->
-      <div class="card p-5 space-y-4">
-        <div>
-          <label class="eg-label">Buscar producto existente</label>
-          <div class="relative">
-            <i class="fa-solid fa-magnifying-glass absolute left-3 top-1/2 -translate-y-1/2 text-slate-400"></i>
-            <input [(ngModel)]="prodQuery" (ngModelChange)="prodSearch$.next($event)"
-                   (focus)="searchOpen.set(true)" (blur)="closeSearchSoon()"
-                   class="eg-input has-icon-left" placeholder="Nombre, talla, color o código… (ej. jogger negro 35)"
-                   autocomplete="off" [disabled]="!selectedBranches().length" />
-            @if (searchOpen() && searchResults().length) {
-              <div class="absolute left-0 right-0 top-full mt-1 z-30 max-h-64 overflow-y-auto rounded-xl py-1
-                          bg-white dark:bg-[#161a26] border border-slate-200 dark:border-white/10 shadow-xl">
-                @for (v of searchResults(); track v.id) {
-                  <button type="button" (click)="addExisting(v)"
-                          class="w-full text-left px-3 py-2.5 hover:bg-slate-100 dark:hover:bg-white/5 transition">
-                    <p class="text-sm font-medium truncate">{{ v.product_name }}</p>
-                    <p class="text-xs text-slate-400">{{ v.size || '—' }} / {{ v.color || '—' }} · {{ v.sku }}@if (v.barcode) { · {{ v.barcode }} }</p>
-                  </button>
+        <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+          <div data-tour="recv-supplier">
+            <label class="eg-label">Proveedor</label>
+            <div class="flex gap-2">
+              <div class="relative flex-1">
+                <input [(ngModel)]="supplierName" (focus)="supplierOpen.set(true)"
+                       (ngModelChange)="supplierOpen.set(true); saveState()" (blur)="closeSupplierSoon()"
+                       class="eg-input w-full" placeholder="Nombre del proveedor" autocomplete="off" />
+                @if (supplierOpen() && filteredSuppliers().length) {
+                  <div class="absolute left-0 right-0 top-full mt-1 z-30 max-h-52 overflow-y-auto rounded-xl py-1
+                              bg-white dark:bg-[#161a26] border border-slate-200 dark:border-white/10 shadow-xl">
+                    @for (sp of filteredSuppliers(); track sp.id) {
+                      <button type="button" (click)="pickSupplier(sp.name)"
+                              class="w-full text-left px-3 py-2.5 text-sm hover:bg-slate-100 dark:hover:bg-white/5 transition flex items-center gap-2">
+                        <i class="fa-solid fa-truck-field text-slate-400 text-xs"></i> {{ sp.name }}
+                      </button>
+                    }
+                  </div>
                 }
               </div>
-            }
-          </div>
-          <p class="text-[11px] text-slate-400 mt-1">Si ya lo subiste antes, búscalo por nombre o código de barras y se suma a la lista.</p>
-        </div>
-
-        <div data-tour="recv-scan">
-          <label class="eg-label">Escanear código de barras</label>
-          <div class="relative">
-            <i class="fa-solid fa-barcode absolute left-3 top-1/2 -translate-y-1/2 text-slate-400"></i>
-            <input #scan [(ngModel)]="scanCode" (keyup.enter)="onScan()" [disabled]="!selectedBranches().length"
-                   class="eg-input has-icon-left" placeholder="Escanea o escribe y Enter" autocomplete="off" />
-          </div>
-          @if (scanMsg()) { <p class="text-xs text-slate-500 mt-1">{{ scanMsg() }}</p> }
-        </div>
-
-        <div class="grid grid-cols-1 sm:grid-cols-2 gap-2.5">
-          <button type="button"
-                  class="h-12 rounded-xl border-2 font-semibold text-sm inline-flex items-center justify-center gap-2 transition
-                         border-[var(--dash-primary)] text-[var(--dash-primary)] dark:text-[var(--dash-primary)] dark:border-[#3b82f6]
-                         hover:bg-[var(--dash-primary)]/5 dark:hover:bg-[#3b82f6]/10 disabled:opacity-40 disabled:cursor-not-allowed"
-                  (click)="cameraOn() ? stopCamera() : startCamera()" [disabled]="!selectedBranches().length">
-            <i class="fa-solid" [class.fa-camera]="!cameraOn()" [class.fa-xmark]="cameraOn()"></i>
-            {{ cameraOn() ? 'Cerrar cámara' : 'Escanear con cámara' }}
-          </button>
-          <button type="button"
-                  class="h-12 rounded-xl font-semibold text-sm inline-flex items-center justify-center gap-2 transition text-white
-                         bg-gradient-to-r from-[var(--dash-primary)] to-[#2563eb] hover:from-[var(--dash-primary-d)] hover:to-[#3b82f6]
-                         shadow-lg shadow-[var(--dash-primary)]/20 disabled:opacity-40 disabled:cursor-not-allowed disabled:shadow-none"
-                  (click)="openNew('')" [disabled]="!selectedBranches().length" data-tour="recv-manual">
-            <i class="fa-solid fa-plus"></i> Agregar producto manual
-          </button>
-        </div>
-
-        @if (cameraOn()) {
-          <div class="fixed inset-0 z-[80] bg-black flex flex-col">
-            <div class="flex items-center justify-between px-4 py-3 text-white">
-              <span class="text-sm font-semibold"><i class="fa-solid fa-barcode mr-2"></i>Escanear código</span>
-              <button type="button" (click)="stopCamera()"
-                      class="w-11 h-11 rounded-full bg-white/15 hover:bg-white/25 grid place-items-center transition">
-                <i class="fa-solid fa-xmark text-xl"></i>
+              <button type="button" class="eg-btn-secondary shrink-0" (click)="showSupplierModal.set(true)" title="Agregar proveedor con todos sus datos">
+                <i class="fa-solid fa-plus"></i>
               </button>
             </div>
-            <div class="flex-1 relative overflow-hidden">
-              <video #camVideo class="absolute inset-0 w-full h-full object-cover" muted playsinline></video>
-              <div class="absolute inset-0 flex items-center justify-center pointer-events-none">
-                <div class="w-4/5 max-w-lg aspect-[3/2] border-4 border-white/70 rounded-2xl shadow-[0_0_0_9999px_rgba(0,0,0,0.45)]"></div>
-              </div>
-              <p class="absolute bottom-10 left-0 right-0 text-center text-white/90 text-sm">Apunta al código de barras o QR</p>
-            </div>
           </div>
-        }
-        @if (camError()) { <p class="text-xs text-amber-600">{{ camError() }}</p> }
-        @if (!selectedBranches().length) { <p class="text-xs text-amber-600">Elige al menos una sucursal destino arriba.</p> }
+          <div>
+            <label class="eg-label">Nota (opcional)</label>
+            <input [(ngModel)]="note" (ngModelChange)="saveState()" class="eg-input w-full" placeholder="Ej. Contenedor junio" />
+          </div>
+        </div>
+      </div>
 
-        @if (items().length) {
-          <button type="button" (click)="tab.set('review')"
-                  class="w-full h-11 rounded-xl bg-slate-100 dark:bg-white/5 hover:bg-slate-200 dark:hover:bg-white/10 transition
-                         font-semibold text-sm inline-flex items-center justify-center gap-2">
-            <i class="fa-solid fa-list-check"></i> Ver lista ({{ items().length }}) →
-          </button>
+      <div class="border-t border-slate-100 dark:border-white/10"></div>
+
+      <!-- Sección: datos del producto -->
+      <div data-tour="recv-manual">
+        <h2 class="font-bold text-ink-950 dark:text-white mb-3 flex items-center gap-2">
+          <i class="fa-solid fa-box-open text-[var(--dash-primary)]"></i> Datos del producto
+        </h2>
+        @if (!selectedBranches().length) {
+          <p class="text-xs text-amber-600 mb-3"><i class="fa-solid fa-triangle-exclamation mr-1"></i>Elige al menos una sucursal destino arriba.</p>
         }
+        <dlx-manual-product-modal [embedded]="true"
+                                  [brands]="brands()" [categories]="categories()" [categoryParents]="categoryParents()"
+                                  (add)="onManualAdd($event)" />
       </div>
     </div>
+
+    <!-- Productos agregados + continuar -->
+    @if (items().length) {
+      <div class="mt-4 flex items-center justify-between gap-3 rounded-2xl border border-ink-100 dark:border-white/10 bg-white dark:bg-slate-900 px-5 py-3">
+        <p class="text-sm text-ink-600 dark:text-white/70">
+          <i class="fa-solid fa-boxes-stacked text-[var(--dash-primary)] mr-1"></i>
+          <b class="text-ink-950 dark:text-white">{{ items().length }}</b> producto(s) listos para ingresar al stock
+        </p>
+        <button type="button" (click)="tab.set('review')"
+                class="inline-flex items-center gap-2 px-4 py-2.5 rounded-xl bg-[var(--dash-primary)] hover:bg-[var(--dash-primary-d)] text-white font-semibold transition">
+          Revisar lista ({{ items().length }}) <i class="fa-solid fa-arrow-right"></i>
+        </button>
+      </div>
+    }
     }
 
     <!-- ════════ TAB 2: REVISAR ════════ -->
@@ -401,81 +350,10 @@
     </div>
     }
 
-    <!-- Modal manual -->
-    @if (showManual()) {
-      <dlx-manual-product-modal [brands]="brands()" [categories]="categories()" [categoryParents]="categoryParents()" [barcode]="manualBarcode()"
-                                (add)="onManualAdd($event)" (cancel)="showManual.set(false)" />
-    }
-
     <!-- Modal proveedor completo -->
     @if (showSupplierModal()) {
       <dlx-supplier-form-modal [initialName]="supplierName"
                                (saved)="onSupplierCreated($event)" (cancel)="showSupplierModal.set(false)" />
-    }
-
-    <!-- Panel: agregar producto existente a la lista -->
-    @if (addDraft(); as d) {
-      <div class="fixed inset-0 z-50 grid place-items-center p-4 bg-black/40 backdrop-blur-sm">
-        <div class="w-full max-w-lg rounded-2xl bg-white dark:bg-[#121826] border border-slate-200 dark:border-white/10 shadow-2xl max-h-[88vh] overflow-y-auto" (click)="$event.stopPropagation()">
-          <div class="flex items-center justify-between px-5 py-4 border-b border-slate-100 dark:border-white/10">
-            <h2 class="font-bold text-lg">Agregar a la lista</h2>
-            <button class="text-slate-400 hover:text-slate-600" (click)="addDraft.set(null)"><i class="fa-solid fa-xmark text-lg"></i></button>
-          </div>
-          <div class="p-5 space-y-4">
-            <div class="flex items-start gap-3">
-              @if (d.variant.images && d.variant.images.length) {
-                <img [src]="d.variant.images[0]" [alt]="d.variant.product_name" dlxImgFallback
-                     class="w-20 h-20 rounded-xl object-cover border border-slate-200 dark:border-white/10 shrink-0" />
-              } @else {
-                <div class="w-20 h-20 rounded-xl grid place-items-center bg-slate-100 dark:bg-white/5 text-slate-300 shrink-0">
-                  <i class="fa-solid fa-image text-xl"></i>
-                </div>
-              }
-              <div class="min-w-0">
-                <p class="font-bold truncate">{{ d.variant.product_name }}</p>
-                <p class="text-xs text-slate-400">{{ d.variant.size || '—' }} / {{ d.variant.color || '—' }}</p>
-                <p class="text-xs text-slate-400 font-mono truncate">{{ d.variant.sku }}@if (d.variant.barcode) { · {{ d.variant.barcode }} }</p>
-              </div>
-            </div>
-
-            <div>
-              <label class="text-[11px] text-slate-400">Costo unitario</label>
-              <div class="sm:max-w-[180px]">
-                <dlx-price-input [(ngModel)]="d.unit_cost" extraClass="!h-10 w-full" />
-              </div>
-            </div>
-
-            <div>
-              <label class="text-[11px] text-slate-400">¿A qué sucursal(es) y cuántas?</label>
-              @if (!selectedBranches().length) {
-                <p class="text-xs text-amber-600 mt-1">Primero selecciona al menos una sucursal en el paso 1.</p>
-              } @else {
-                <div class="space-y-1.5 mt-0.5">
-                  @for (b of selectedBranchList(); track b.id) {
-                    <div class="flex items-center gap-2 rounded-xl border pl-3 pr-1.5 h-11 transition"
-                         [ngClass]="d.branchQty[b.id] != null ? 'border-[var(--dash-primary)] bg-[var(--dash-primary)]/5' : 'border-slate-200 dark:border-white/10'">
-                      <label class="flex items-center gap-2 flex-1 min-w-0 h-full cursor-pointer">
-                        <input type="checkbox" [checked]="d.branchQty[b.id] != null" (change)="panelToggle(b.id)" class="w-4 h-4 accent-[var(--dash-primary)] shrink-0" />
-                        <span class="text-sm truncate">{{ b.name }} · {{ b.city }}</span>
-                      </label>
-                      @if (d.branchQty[b.id] != null) {
-                        <div class="w-20 shrink-0">
-                          <input type="number" min="0" [ngModel]="d.branchQty[b.id]" (ngModelChange)="panelSetQty(b.id, $event)"
-                                 class="eg-input !h-8 w-full text-center text-sm" placeholder="0" />
-                        </div>
-                      }
-                    </div>
-                  }
-                </div>
-              }
-            </div>
-          </div>
-          <div class="flex justify-end gap-3 px-5 py-4 border-t border-slate-100 dark:border-white/10">
-            <button class="btn-secondary" (click)="addDraft.set(null)">Cancelar</button>
-            <button class="eg-btn-primary" (click)="confirmAddExisting()"><i class="fa-solid fa-plus"></i> Agregar a la lista</button>
-          </div>
-        </div>
-      </div>
     }
 
     <!-- Popup detalle -->

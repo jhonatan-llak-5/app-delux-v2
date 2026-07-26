@@ -32,10 +32,15 @@
 
       <!-- BUSCADOR + ESCÁNER + RESULTADOS -->
       <div class="space-y-4">
-        <!-- Buscador + botón de escáner con cámara -->
-        <div class="card p-4 flex items-center gap-3">
+        <!-- Buscador + categoría + botón de escáner con cámara -->
+        <div class="card p-4 flex flex-wrap items-center gap-3">
           <dlx-search-input [fluid]="true" [value]="search()" (valueChange)="onSearch($event)"
                             placeholder="Buscar por nombre, descripción, precio o código…" class="flex-1 min-w-0" />
+          <select [ngModel]="categoryFilter()" (ngModelChange)="onCategory($event)"
+                  class="eg-input !h-11 w-full sm:w-auto shrink-0" title="Filtrar por categoría">
+            <option [ngValue]="null">Todas las categorías</option>
+            @for (c of categories(); track c.id) { <option [ngValue]="c.id">{{ c.name }}</option> }
+          </select>
           <button type="button" (click)="startCamera()" [disabled]="!branchId()"
                   class="shrink-0 flex items-center gap-2 px-4 h-11 rounded-lg bg-[var(--dash-primary)] hover:bg-[var(--dash-primary-d)]
                          text-white text-sm font-semibold transition disabled:opacity-40 disabled:cursor-not-allowed">
@@ -64,7 +69,9 @@
           </div>
         } @else if (stocks().length === 0) {
           <dlx-empty-state icon="fa-box-open" title="Sin resultados"
-                           [description]="'No encontramos productos para «' + search() + '».'" />
+                           [description]="search().trim()
+                             ? ('No encontramos productos para «' + search() + '».')
+                             : 'No hay productos con stock en esta categoría.'" />
         } @else {
           <div class="flex items-center justify-between px-1">
             <p class="text-xs text-slate-400">{{ stocks().length }} resultado(s)</p>
@@ -268,9 +275,8 @@
               }
               <div class="flex justify-between items-center">
                 <span class="text-slate-500 text-sm">Descuento</span>
-                <input type="number" [ngModel]="discount()" (ngModelChange)="discount.set(+$event || 0)"
-                       min="0" [max]="subtotal()" step="0.01"
-                       class="w-24 px-2 py-1 rounded-lg bg-slate-50 border border-slate-200 text-sm text-right" />
+                <dlx-price-input [ngModel]="discount()" (ngModelChange)="discount.set(+$event || 0)"
+                                 extraClass="!h-8 w-28 text-right text-sm" />
               </div>
               <div class="flex justify-between items-center pt-3 mt-1 border-t border-slate-100 dark:border-white/10">
                 <span class="font-bold">TOTAL</span>
@@ -302,18 +308,93 @@
           <h2 class="font-bold tracking-tight mb-3 flex items-center gap-2">
             <i class="fa-solid fa-user"></i> Cliente <span class="text-xs text-slate-400 font-normal">(opcional)</span>
           </h2>
-          <div class="space-y-2">
-            <input [(ngModel)]="customerData.full_name" (ngModelChange)="persistCustomer()" placeholder="Nombre completo"
-                   class="eg-input" />
-            <input [(ngModel)]="customerData.email" (ngModelChange)="persistCustomer()" type="email" placeholder="email@ejemplo.com"
-                   class="eg-input" />
-            <div class="grid grid-cols-2 gap-2">
-              <input [(ngModel)]="customerData.phone" (ngModelChange)="persistCustomer()" placeholder="Teléfono"
-                     class="eg-input" />
-              <input [(ngModel)]="customerData.document_id" (ngModelChange)="persistCustomer()" placeholder="Cédula / RUC"
-                     class="eg-input" />
+
+          <!-- Cliente seleccionado: badge + permite editar sus datos abajo -->
+          @if (customerId()) {
+            <div class="flex items-center gap-2 rounded-xl border border-emerald-200 bg-emerald-50/60 px-3 py-2 mb-1">
+              <span class="inline-flex items-center gap-1.5 px-2 py-0.5 rounded-full bg-emerald-100 text-emerald-700 text-[11px] font-bold uppercase shrink-0">
+                <i class="fa-solid fa-circle-check"></i> Seleccionado
+              </span>
+              <span class="text-sm font-semibold truncate flex-1">{{ customerData['full_name'] }}</span>
+              <button type="button" (click)="clearCustomer()" title="Quitar cliente"
+                      class="w-7 h-7 grid place-items-center rounded-full hover:bg-emerald-100 text-slate-500 shrink-0">
+                <i class="fa-solid fa-xmark text-xs"></i>
+              </button>
             </div>
-          </div>
+          } @else {
+            <!-- Buscador de cliente frecuente -->
+            <div class="relative">
+              <i class="fa-solid fa-magnifying-glass text-sm absolute left-3 top-1/2 -translate-y-1/2 text-slate-400"></i>
+              <input [ngModel]="custQuery" (ngModelChange)="onCustQuery($event)" (focus)="custOpen.set(true)"
+                     placeholder="Buscar cliente por nombre, cédula o teléfono…"
+                     class="eg-input has-icon-left" autocomplete="off" />
+              @if (custOpen() && custResults().length) {
+                <div class="absolute z-20 mt-1 w-full bg-white rounded-xl border border-slate-200 shadow-lg overflow-hidden max-h-64 overflow-y-auto">
+                  @for (c of custResults(); track c.id) {
+                    <button type="button" (click)="pickCustomer(c)"
+                            class="w-full text-left px-3 py-2.5 hover:bg-slate-50 border-b border-slate-100 last:border-0">
+                      <p class="font-medium text-sm">{{ c.full_name }}</p>
+                      <p class="text-[11px] text-slate-500">
+                        {{ c.document_id || 'Sin ID' }}{{ c.phone ? '  ·  ' + c.phone : '' }}{{ c.email ? '  ·  ' + c.email : '' }}
+                      </p>
+                    </button>
+                  }
+                </div>
+              }
+            </div>
+
+            @if (cfEnabled() && !showCustForm()) {
+              <div class="flex items-center gap-2 mt-2 text-[11px] text-slate-500 bg-slate-50 rounded-lg px-3 py-2">
+                <i class="fa-solid fa-user-tag text-slate-400"></i>
+                Sin cliente, la venta se asignará a <b class="text-slate-700">Consumidor Final</b>.
+              </div>
+            }
+
+            <div class="flex items-center justify-between mt-2">
+              <p class="text-[11px] text-slate-400">Selecciona un cliente guardado o crea uno nuevo.</p>
+              <button type="button" (click)="showCustForm.set(!showCustForm())"
+                      class="text-xs font-semibold text-[var(--dash-primary-d)] hover:underline">
+                <i class="fa-solid" [class.fa-plus]="!showCustForm()" [class.fa-chevron-up]="showCustForm()"></i>
+                {{ showCustForm() ? 'Ocultar datos' : 'Nuevo cliente' }}
+              </button>
+            </div>
+          }
+
+          <!-- Formulario: nuevo cliente o edición del cliente seleccionado -->
+          @if (customerId() || showCustForm()) {
+              <div class="space-y-2 mt-3 pt-3 border-t border-slate-100">
+                <div class="grid grid-cols-3 gap-2">
+                  <select [(ngModel)]="customerData['document_type']" (ngModelChange)="persistCustomer()" class="eg-input col-span-1"
+                          title="Tipo de identificación *">
+                    <option value="05">Cédula</option>
+                    <option value="04">RUC</option>
+                    <option value="06">Pasaporte</option>
+                    <option value="07">Consumidor final</option>
+                    <option value="08">Id. exterior</option>
+                    <option value="09">Placa</option>
+                  </select>
+                  <input [(ngModel)]="customerData['document_id']" (ngModelChange)="persistCustomer()" placeholder="Número de identificación *"
+                         class="eg-input col-span-2" />
+                </div>
+                <input [(ngModel)]="customerData['full_name']" (ngModelChange)="persistCustomer()" placeholder="Nombre / Razón social *"
+                       class="eg-input" />
+                <input [(ngModel)]="customerData['business_name']" (ngModelChange)="persistCustomer()" placeholder="Nombre comercial (opcional)"
+                       class="eg-input" />
+                <dlx-phone-input [(ngModel)]="customerData['phone']" (ngModelChange)="persistCustomer()" />
+                <input [(ngModel)]="customerData['email']" (ngModelChange)="persistCustomer()" type="email" placeholder="email@ejemplo.com"
+                       class="eg-input" />
+                <div class="grid grid-cols-2 gap-2">
+                  <input [(ngModel)]="customerData['address']" (ngModelChange)="persistCustomer()" placeholder="Dirección"
+                         class="eg-input" />
+                  <dlx-province-select [(ngModel)]="customerData['province']" (ngModelChange)="persistCustomer()" />
+                </div>
+                <p class="text-[11px] text-slate-400">
+                  @if (customerId()) { Puedes editar los datos; se actualizarán al cobrar esta venta. }
+                  @else { El cliente se guardará automáticamente al cobrar y podrás reutilizarlo. }
+                  <span class="text-rose-400">*</span> obligatorios.
+                </p>
+              </div>
+          }
         </div>
 
         @if (error()) {
@@ -356,6 +437,22 @@
               <p class="text-3xl font-display font-bold mt-1">${{ total().toFixed(2) }}</p>
               @if (taxRate() > 0) {
                 <p class="text-[11px] text-slate-400 mt-1">IVA {{ taxRate() }}% incluido</p>
+              }
+            </div>
+
+            <!-- Calculadora de vuelto (efectivo) -->
+            <div class="mt-4 rounded-xl border border-slate-200 dark:border-white/10 p-4 text-left">
+              <label class="eg-label">¿Con cuánto paga tu cliente?</label>
+              <dlx-price-input [(ngModel)]="paidWith" [nullable]="true" placeholder="0.00"
+                               extraClass="w-full text-lg font-semibold" />
+              <div class="flex items-center justify-between mt-3">
+                <span class="text-sm text-slate-500">Vuelto a devolver</span>
+                <span class="text-xl font-bold" [class.text-emerald-600]="change() >= 0" [class.text-rose-500]="change() < 0">
+                  ${{ change() >= 0 ? change().toFixed(2) : '0.00' }}
+                </span>
+              </div>
+              @if (change() < 0 && paidWith) {
+                <p class="text-[11px] text-rose-500 mt-1">Falta ${{ (-change()).toFixed(2) }} para cubrir el total.</p>
               }
             </div>
           </div>

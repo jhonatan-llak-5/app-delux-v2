@@ -7,6 +7,7 @@ import { parseApiError } from '@shared/utils/api-error.util';
 import { FileValidatorService } from '@shared/services/file-validator.service';
 import { BrandingService } from '@core/services/branding.service';
 import { DlxToggleComponent } from '@shared/ui/toggle.component';
+import { DlxPriceInputComponent } from '@shared/ui/price-input.component';
 
 type TabId = 'email' | 'recaptcha' | 'brand' | 'uploads' | 'payments' | 'backup';
 type ExtControl = 'allowed_image_extensions' | 'allowed_file_extensions' | 'allowed_video_extensions';
@@ -42,7 +43,7 @@ const VIDEO_EXTENSIONS: ExtensionOption[] = [
 @Component({
   selector: 'dlx-platform-settings',
   standalone: true,
-  imports: [CommonModule, FormsModule, ReactiveFormsModule, DlxToggleComponent],
+  imports: [CommonModule, FormsModule, ReactiveFormsModule, DlxToggleComponent, DlxPriceInputComponent],
   changeDetection: ChangeDetectionStrategy.OnPush,
   templateUrl: './platform-settings.component.html',
 })

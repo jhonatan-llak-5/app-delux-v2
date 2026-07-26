@@ -2,11 +2,16 @@ import { ChangeDetectionStrategy, Component, OnInit, computed, inject, signal } 
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { RouterLink } from '@angular/router';
+import { jsPDF } from 'jspdf';
 import { NotifyService } from '@shared/services/notify.service';
 import { BrandingService } from '@core/services/branding.service';
 import { AuthService } from '@core/services/auth.service';
 import { NotificationsService } from '@shared/services/notifications.service';
+import { DlxPasswordInputComponent } from '@shared/ui/password-input.component';
+import { DlxPriceInputComponent } from '@shared/ui/price-input.component';
+import { ScheduleEditorComponent } from '@features/superadmin/pages/schedule-editor/schedule-editor.component';
 import { ProductService, Product } from '@features/superadmin/services/product.service';
+import { AdminService, AdminBranch } from '@features/superadmin/services/admin.service';
 import { StoreSettingsService, StorePayments, StoreOptions } from '@features/superadmin/services/store-settings.service';
 
 type TabId = 'perfil' | 'tienda' | 'impuestos' | 'pagos' | 'notificaciones';
@@ -14,7 +19,7 @@ type TabId = 'perfil' | 'tienda' | 'impuestos' | 'pagos' | 'notificaciones';
 @Component({
   selector: 'dlx-store-config',
   standalone: true,
-  imports: [CommonModule, FormsModule, RouterLink],
+  imports: [CommonModule, FormsModule, RouterLink, DlxPasswordInputComponent, ScheduleEditorComponent, DlxPriceInputComponent],
   changeDetection: ChangeDetectionStrategy.OnPush,
   template: `
     <div class="flex items-center gap-2 text-xs text-slate-500 mb-1">
@@ -75,14 +80,14 @@ type TabId = 'perfil' | 'tienda' | 'impuestos' | 'pagos' | 'notificaciones';
           <div class="space-y-4">
             <div>
               <label class="eg-label">Contraseña actual</label>
-              <input type="password" [(ngModel)]="pwd.current" class="eg-input" autocomplete="current-password" />
+              <dlx-password-input [(ngModel)]="pwd.current" autocomplete="current-password" placeholder="••••••••" />
             </div>
             <div>
               <label class="eg-label">Nueva contraseña</label>
-              <input type="password" [(ngModel)]="pwd.next" class="eg-input" autocomplete="new-password" />
+              <dlx-password-input [(ngModel)]="pwd.next" autocomplete="new-password" placeholder="Mínimo 8 caracteres" />
             </div>
             <button type="button" (click)="savePassword()" [disabled]="savingPwd()"
-                    class="px-5 h-11 rounded-xl border border-slate-300 text-sm font-semibold hover:bg-slate-50 disabled:opacity-50">
+                    class="px-5 h-11 rounded-xl bg-ink-950 text-white text-sm font-semibold hover:bg-black disabled:opacity-50">
               @if (savingPwd()) { <i class="fa-solid fa-spinner fa-spin mr-1"></i> }
               Actualizar contraseña
             </button>
@@ -94,6 +99,36 @@ type TabId = 'perfil' | 'tienda' | 'impuestos' | 'pagos' | 'notificaciones';
     <!-- ══════════ TIENDA ══════════ -->
     @if (tab() === 'tienda') {
       <div class="max-w-3xl space-y-6">
+        <!-- Enlace de la tienda -->
+        <div class="card p-6">
+          <h2 class="font-bold tracking-tight mb-1">Tu tienda en línea</h2>
+          <p class="text-sm text-slate-500 mb-3">Comparte este enlace con tus clientes para que vean tu catálogo.</p>
+          <div class="flex gap-2">
+            <input [value]="storeUrl" readonly class="eg-input font-mono text-sm" />
+            <button type="button" (click)="copyStoreUrl()"
+                    class="shrink-0 px-4 h-11 rounded-xl border border-slate-300 text-sm font-semibold hover:bg-slate-50">
+              <i class="fa-solid fa-copy mr-1"></i> Copiar
+            </button>
+          </div>
+        </div>
+
+        <!-- Catálogo PDF -->
+        <div class="card p-6">
+          <h2 class="font-bold tracking-tight mb-1">Catálogo en PDF</h2>
+          <p class="text-sm text-slate-500 mb-4">Genera un catálogo con diseño moderno de todos tus productos (foto, precio, tallas, colores y stock) para descargar o compartir.</p>
+          <div class="flex flex-wrap gap-2">
+            <button type="button" (click)="downloadCatalog()" [disabled]="pdfLoading()"
+                    class="px-5 h-11 rounded-xl bg-ink-950 text-white text-sm font-semibold hover:bg-black disabled:opacity-50">
+              @if (pdfLoading()) { <i class="fa-solid fa-spinner fa-spin mr-1"></i> } @else { <i class="fa-solid fa-file-pdf mr-1"></i> }
+              Descargar catálogo PDF
+            </button>
+            <button type="button" (click)="shareCatalog()"
+                    class="px-5 h-11 rounded-xl border border-slate-300 text-sm font-semibold hover:bg-slate-50">
+              <i class="fa-solid fa-share-nodes mr-1"></i> Compartir enlace
+            </button>
+          </div>
+        </div>
+
         <!-- Métodos de entrega -->
         <div class="card p-6">
           <h2 class="font-bold tracking-tight mb-1">Métodos de entrega</h2>
@@ -154,9 +189,28 @@ type TabId = 'perfil' | 'tienda' | 'impuestos' | 'pagos' | 'notificaciones';
           </div>
         </div>
 
-        <!-- Horarios de atención (ya existe) -->
-        <a routerLink="/app/admin/schedules"
-           class="card p-5 flex items-center justify-between hover:bg-slate-50">
+        <!-- Consumidor Final -->
+        <div class="card p-6">
+          <div class="flex items-center justify-between gap-4">
+            <div>
+              <h2 class="font-bold tracking-tight">Cliente "Consumidor Final"</h2>
+              <p class="text-sm text-slate-500 mt-0.5">
+                Si está activo, las ventas sin cliente se asignan automáticamente a un cliente
+                "Consumidor Final" (útil para facturación electrónica). Si está inactivo, esas ventas quedan sin cliente.
+              </p>
+            </div>
+            <button type="button" (click)="store.consumidor_final_enabled = !store.consumidor_final_enabled"
+                    class="w-12 h-7 rounded-full transition relative shrink-0"
+                    [ngClass]="store.consumidor_final_enabled ? 'bg-emerald-500' : 'bg-slate-300'">
+              <span class="absolute top-1 w-5 h-5 rounded-full bg-white transition-all"
+                    [ngClass]="store.consumidor_final_enabled ? 'left-6' : 'left-1'"></span>
+            </button>
+          </div>
+        </div>
+
+        <!-- Horarios de atención (abre modal) -->
+        <button type="button" (click)="schedulesOpen.set(true)"
+           class="card p-5 w-full flex items-center justify-between hover:bg-slate-50 text-left">
           <div class="flex items-center gap-3">
             <i class="fa-solid fa-clock text-slate-500"></i>
             <div>
@@ -165,7 +219,7 @@ type TabId = 'perfil' | 'tienda' | 'impuestos' | 'pagos' | 'notificaciones';
             </div>
           </div>
           <i class="fa-solid fa-chevron-right text-slate-400"></i>
-        </a>
+        </button>
 
         <button type="button" (click)="saveStore()" [disabled]="savingStore()"
                 class="px-5 h-11 rounded-xl bg-ink-950 text-white text-sm font-semibold hover:bg-black disabled:opacity-50">
@@ -195,9 +249,8 @@ type TabId = 'perfil' | 'tienda' | 'impuestos' | 'pagos' | 'notificaciones';
           </div>
           <div class="flex items-center gap-2 mb-4">
             <label class="text-sm text-slate-500">Personalizado:</label>
-            <input type="number" min="0" max="100" step="0.5" [(ngModel)]="customDefault"
-                   (ngModelChange)="onCustomDefault($event)"
-                   class="eg-input !h-10 w-28" placeholder="%" />
+            <dlx-price-input [(ngModel)]="customDefault" (ngModelChange)="onCustomDefault($event)"
+                             symbol="%" [nullable]="true" placeholder="IVA" extraClass="!h-10 w-28" />
           </div>
           <button type="button" (click)="saveDefault()" [disabled]="savingDefault()"
                   class="px-5 h-11 rounded-xl bg-ink-950 text-white text-sm font-semibold hover:bg-black disabled:opacity-50">
@@ -284,19 +337,6 @@ type TabId = 'perfil' | 'tienda' | 'impuestos' | 'pagos' | 'notificaciones';
     <!-- ══════════ PAGOS ══════════ -->
     @if (tab() === 'pagos') {
       <div class="max-w-3xl space-y-6">
-        <!-- Enlace de la tienda -->
-        <div class="card p-6">
-          <h2 class="font-bold tracking-tight mb-1">Tu tienda en línea</h2>
-          <p class="text-sm text-slate-500 mb-3">Comparte este enlace con tus clientes para que vean tu catálogo.</p>
-          <div class="flex gap-2">
-            <input [value]="storeUrl" readonly class="eg-input font-mono text-sm" />
-            <button type="button" (click)="copyStoreUrl()"
-                    class="shrink-0 px-4 h-11 rounded-xl border border-slate-300 text-sm font-semibold hover:bg-slate-50">
-              <i class="fa-solid fa-copy mr-1"></i> Copiar
-            </button>
-          </div>
-        </div>
-
         <!-- Transferencia bancaria -->
         <div class="card p-6">
           <div class="flex items-center justify-between mb-4">
@@ -410,10 +450,28 @@ type TabId = 'perfil' | 'tienda' | 'impuestos' | 'pagos' | 'notificaciones';
         </a>
       </div>
     }
+
+    <!-- Modal ancho: Horarios de atención (reusa el editor existente) -->
+    @if (schedulesOpen()) {
+      <div class="fixed inset-0 z-50 flex items-start justify-center p-4 md:p-8 overflow-y-auto">
+        <div class="absolute inset-0 bg-black/40" (click)="schedulesOpen.set(false)"></div>
+        <div class="relative w-full max-w-4xl bg-white rounded-2xl shadow-2xl p-6 my-4">
+          <div class="flex items-center justify-between mb-4">
+            <h2 class="text-lg font-bold">Horarios de atención</h2>
+            <button type="button" (click)="schedulesOpen.set(false)"
+                    class="w-8 h-8 grid place-items-center rounded-full bg-slate-100 hover:bg-slate-200 text-slate-600">
+              <i class="fa-solid fa-xmark"></i>
+            </button>
+          </div>
+          <dlx-schedule-editor />
+        </div>
+      </div>
+    }
   `,
 })
 export class StoreConfigComponent implements OnInit {
   private productSvc = inject(ProductService);
+  private adminSvc = inject(AdminService);
   private storeSvc = inject(StoreSettingsService);
   private branding = inject(BrandingService);
   private notifyToast = inject(NotifyService);
@@ -429,7 +487,9 @@ export class StoreConfigComponent implements OnInit {
   ];
   tab = signal<TabId>('perfil');
   presets = [0, 5, 12, 15];
-  storeUrl = typeof window !== 'undefined' ? window.location.origin : '';
+  storeUrl = (typeof window !== 'undefined' ? window.location.origin : '') + '/catalogo';
+  schedulesOpen = signal(false);
+  pdfLoading = signal(false);
 
   // Perfil
   prof = { full_name: '', phone: '' };
@@ -462,7 +522,7 @@ export class StoreConfigComponent implements OnInit {
   savingPay = signal(false);
 
   // Tienda
-  store: StoreOptions = { pickup_enabled: true, delivery_enabled: true, out_of_stock_display: 'SHOW' };
+  store: StoreOptions = { pickup_enabled: true, delivery_enabled: true, out_of_stock_display: 'SHOW', consumidor_final_enabled: false };
   savingStore = signal(false);
   oosOptions: { id: StoreOptions['out_of_stock_display']; title: string; desc: string; rec?: boolean }[] = [
     { id: 'SHOW',     title: 'Mostrarlos como están', desc: 'El cliente los ve igual que cualquier otro.' },
@@ -613,6 +673,292 @@ export class StoreConfigComponent implements OnInit {
       },
       error: () => { this.savingPay.set(false); this.notifyToast.error('No se pudo guardar.'); },
     });
+  }
+
+  // ── Compartir ──
+  async shareCatalog(): Promise<void> {
+    const data = { title: this.branding.siteName(), text: 'Mira nuestro catálogo', url: this.storeUrl };
+    const nav = navigator as any;
+    if (nav.share) {
+      try { await nav.share(data); } catch { /* el usuario canceló */ }
+    } else {
+      this.copyStoreUrl();
+    }
+  }
+
+  // ── Catálogo PDF ──
+  private trunc(s: string, n: number): string { s = s || ''; return s.length > n ? s.slice(0, n - 1) + '…' : s; }
+  private loadImg(url: string, png = false): Promise<{ data: string; w: number; h: number } | null> {
+    return new Promise(resolve => {
+      if (!url) return resolve(null);
+      const img = new Image();
+      img.crossOrigin = 'anonymous';
+      img.onload = () => {
+        try {
+          const c = document.createElement('canvas');
+          c.width = img.naturalWidth; c.height = img.naturalHeight;
+          c.getContext('2d')!.drawImage(img, 0, 0);
+          resolve({ data: c.toDataURL(png ? 'image/png' : 'image/jpeg', 0.85), w: img.naturalWidth, h: img.naturalHeight });
+        } catch { resolve(null); }
+      };
+      img.onerror = () => resolve(null);
+      img.src = url;
+    });
+  }
+  private isPromo(p: Product): boolean {
+    return !!p.compare_at_price && Number(p.compare_at_price) > Number(p.base_price);
+  }
+  private pdfCover(doc: jsPDF, store: string, tagline: string, logo: { data: string; w: number; h: number } | null, pageW: number, pageH: number): void {
+    const cx = pageW / 2;
+    doc.setFillColor(9, 12, 20); doc.rect(0, 0, pageW, pageH, 'F');
+    // Marco doble dorado
+    doc.setDrawColor(198, 161, 74); doc.setLineWidth(0.7); doc.rect(9, 9, pageW - 18, pageH - 18, 'S');
+    doc.setLineWidth(0.2); doc.rect(12.5, 12.5, pageW - 25, pageH - 25, 'S');
+    // Etiqueta superior
+    doc.setTextColor(198, 161, 74); doc.setFont('helvetica', 'bold'); doc.setFontSize(9);
+    doc.text('C A T Á L O G O   O F I C I A L', cx, 42, { align: 'center' });
+    // Título central
+    doc.setTextColor(248, 248, 248); doc.setFont('times', 'normal'); doc.setFontSize(58);
+    doc.text('Catálogo', cx, pageH / 2 - 6, { align: 'center' });
+    doc.setTextColor(198, 161, 74); doc.setFont('times', 'italic'); doc.setFontSize(30);
+    doc.text('de productos', cx, pageH / 2 + 13, { align: 'center' });
+    doc.setDrawColor(198, 161, 74); doc.setLineWidth(0.5);
+    doc.line(cx - 22, pageH / 2 + 23, cx + 22, pageH / 2 + 23);
+    if (tagline) {
+      doc.setTextColor(170, 175, 185); doc.setFont('helvetica', 'normal'); doc.setFontSize(11);
+      doc.text(this.trunc(tagline, 60), cx, pageH / 2 + 33, { align: 'center' });
+    }
+    // Pie: logo + nombre + año
+    if (logo) {
+      const h = 15; const w = Math.min(logo.w * (h / logo.h), 58);
+      try { doc.addImage(logo.data, 'PNG', cx - w / 2, pageH - 58, w, h); } catch { /* usa texto */ }
+    }
+    doc.setTextColor(215, 215, 220); doc.setFont('helvetica', 'bold'); doc.setFontSize(12);
+    doc.text(store, cx, pageH - 36, { align: 'center' });
+    doc.setTextColor(198, 161, 74); doc.setFont('helvetica', 'normal'); doc.setFontSize(9);
+    doc.text(String(new Date().getFullYear()), cx, pageH - 29, { align: 'center' });
+  }
+  private pdfContact(doc: jsPDF, store: string, logo: { data: string; w: number; h: number } | null, branches: AdminBranch[], pageW: number, pageH: number): void {
+    const cx = pageW / 2, M = 22;
+    doc.setFillColor(9, 12, 20); doc.rect(0, 0, pageW, pageH, 'F');
+    doc.setDrawColor(198, 161, 74); doc.setLineWidth(0.7); doc.rect(9, 9, pageW - 18, pageH - 18, 'S');
+    doc.setLineWidth(0.2); doc.rect(12.5, 12.5, pageW - 25, pageH - 25, 'S');
+    // Encabezado
+    doc.setTextColor(198, 161, 74); doc.setFont('helvetica', 'bold'); doc.setFontSize(9);
+    doc.text('G U Í A   D E   C O M P R A', cx, 28, { align: 'center' });
+    doc.setTextColor(248, 248, 248); doc.setFont('times', 'normal'); doc.setFontSize(26);
+    doc.text('Cómo comprar', cx, 40, { align: 'center' });
+    doc.setDrawColor(198, 161, 74); doc.setLineWidth(0.4); doc.line(cx - 18, 44, cx + 18, 44);
+
+    let y = 58;
+    const section = (t: string) => {
+      doc.setTextColor(198, 161, 74); doc.setFont('helvetica', 'bold'); doc.setFontSize(11);
+      doc.text(t.toUpperCase(), M, y);
+      doc.setDrawColor(55, 61, 74); doc.setLineWidth(0.2); doc.line(M, y + 2.5, pageW - M, y + 2.5);
+      y += 8.5;
+    };
+    const row = (label: string, value: string) => {
+      doc.setFont('helvetica', 'normal'); doc.setFontSize(9);
+      if (label) { doc.setTextColor(150, 155, 165); doc.text(label, M, y); }
+      doc.setTextColor(226, 226, 231); doc.setFontSize(10);
+      doc.text(value, label ? M + 30 : M, y);
+      y += 6.2;
+    };
+    const bullet = (value: string) => {
+      doc.setTextColor(198, 161, 74); doc.setFont('helvetica', 'bold'); doc.setFontSize(10);
+      doc.text('•', M, y);
+      doc.setTextColor(226, 226, 231); doc.setFont('helvetica', 'normal');
+      doc.text(value, M + 5, y);
+      y += 6.2;
+    };
+
+    // Contacto
+    section('Contacto');
+    if (this.branding.whatsappNumber()) row('Tel / WhatsApp', this.branding.whatsappNumber());
+    if (this.branding.contactEmail()) row('Correo', this.branding.contactEmail());
+    doc.setTextColor(160, 165, 175); doc.setFont('helvetica', 'italic'); doc.setFontSize(9);
+    doc.text('Escríbenos y con gusto te ayudamos con tu pedido.', M, y); y += 9;
+
+    // Métodos de pago
+    section('Métodos de pago');
+    let anyPay = false;
+    if (this.branding.transferEnabled()) { bullet('Transferencia bancaria'); anyPay = true; }
+    if (this.branding.deunaEnabled()) { bullet('DeUna (QR)'); anyPay = true; }
+    if (this.branding.codEnabled()) { bullet('Pago contra entrega'); anyPay = true; }
+    if (!anyPay) bullet('Consulta los métodos disponibles');
+    y += 3;
+
+    // Ubicaciones
+    if (branches.length) {
+      section('Visítanos');
+      for (const b of branches.slice(0, 6)) {
+        doc.setTextColor(198, 161, 74); doc.setFont('helvetica', 'bold'); doc.setFontSize(10);
+        doc.text(b.name + (b.city ? '  —  ' + b.city : ''), M, y); y += 5;
+        const detail = [b.address, b.phone ? 'Tel: ' + b.phone : ''].filter(Boolean).join('   ·   ');
+        if (detail) {
+          doc.setTextColor(195, 200, 208); doc.setFont('helvetica', 'normal'); doc.setFontSize(9);
+          doc.text(this.trunc(detail, 92), M, y); y += 4.5;
+        }
+        y += 3;
+      }
+      y += 1;
+    }
+
+    // Compra en línea
+    section('Compra en línea');
+    const web = (typeof window !== 'undefined' ? window.location.origin : '');
+    row('Sitio web', web + '/shop');
+
+    // Pie
+    if (logo) {
+      const h = 13; const w = Math.min(logo.w * (h / logo.h), 46);
+      try { doc.addImage(logo.data, 'PNG', cx - w / 2, pageH - 40, w, h); } catch { /* usa texto */ }
+    }
+    doc.setTextColor(170, 175, 185); doc.setFont('helvetica', 'normal'); doc.setFontSize(9);
+    doc.text('Gracias por tu preferencia  ·  ' + store, cx, pageH - 22, { align: 'center' });
+  }
+
+  async downloadCatalog(): Promise<void> {
+    this.pdfLoading.set(true);
+    try {
+      const res: any = await new Promise((resolve, reject) =>
+        this.productSvc.list({ page_size: 200 }).subscribe({ next: resolve, error: reject }));
+      const products: Product[] = res?.results || [];
+      if (!products.length) { this.notifyToast.error('No hay productos para el catálogo.'); return; }
+
+      // Sucursales (para la página de ubicaciones).
+      let branches: AdminBranch[] = [];
+      try {
+        const br: any = await new Promise((resolve, reject) =>
+          this.adminSvc.listBranches().subscribe({ next: resolve, error: reject }));
+        branches = br?.results || br || [];
+      } catch { /* sin sucursales */ }
+
+      const store = this.branding.siteName();
+      // Precarga: logo + imágenes de producto (para dibujar sin esperas).
+      const logo = await this.loadImg(this.branding.logoUrl(), true);
+      const imgs = new Map<number, { data: string; w: number; h: number } | null>();
+      for (const p of products) { if (!imgs.has(p.id)) imgs.set(p.id, await this.loadImg(p.main_image_url)); }
+
+      // Secciones: Promociones primero, luego por categoría (alfabético).
+      const promos = products.filter(p => this.isPromo(p));
+      const byCat = new Map<string, Product[]>();
+      for (const p of products) {
+        const k = p.category_name || 'Otros';
+        (byCat.get(k) || byCat.set(k, []).get(k)!).push(p);
+      }
+      const sections: { title: string; items: Product[] }[] = [];
+      if (promos.length) sections.push({ title: 'PROMOCIONES', items: promos });
+      [...byCat.keys()].sort((a, b) => a.localeCompare(b)).forEach(k => sections.push({ title: k, items: byCat.get(k)! }));
+
+      const doc = new jsPDF('p', 'mm', 'a4');
+      const pageW = 210, pageH = 297, margin = 12, cols = 2, gap = 8, bottom = 14;
+      const cardW = (pageW - margin * 2 - gap * (cols - 1)) / cols;
+      const imgH = 36, cardH = 74, rowGap = 5;
+
+      const drawHeader = () => {
+        if (logo) {
+          const h = 8; const w = Math.min(logo.w * (h / logo.h), 40);
+          try { doc.addImage(logo.data, 'PNG', margin, 7, w, h); } catch { /* usa texto */ }
+        } else {
+          doc.setFont('helvetica', 'bold'); doc.setFontSize(16); doc.setTextColor(11, 14, 22);
+          doc.text(store.toUpperCase(), margin, 14);
+        }
+        doc.setFont('helvetica', 'normal'); doc.setFontSize(9); doc.setTextColor(120, 128, 140);
+        doc.text('Catálogo de productos', pageW - margin, 13, { align: 'right' });
+        doc.setDrawColor(11, 14, 22); doc.setLineWidth(0.5);
+        doc.line(margin, 20, pageW - margin, 20);
+      };
+
+      const drawCard = (p: Product, x: number, y: number) => {
+        doc.setDrawColor(228); doc.setLineWidth(0.2);
+        doc.roundedRect(x, y, cardW, cardH, 3, 3, 'S');
+        const bx = x + 3, by = y + 3, bw = cardW - 6, bh = imgH;
+        doc.setFillColor(247, 248, 250); doc.roundedRect(bx, by, bw, bh, 2, 2, 'F');
+        const im = imgs.get(p.id);
+        if (im) {
+          const r = Math.min(bw / im.w, bh / im.h);
+          const w = im.w * r, h = im.h * r;
+          try { doc.addImage(im.data, 'JPEG', bx + (bw - w) / 2, by + (bh - h) / 2, w, h); } catch { /* no válida */ }
+        } else {
+          doc.setTextColor(180); doc.setFont('helvetica', 'normal'); doc.setFontSize(8);
+          doc.text('Sin imagen', x + cardW / 2, by + bh / 2, { align: 'center' });
+        }
+        const promo = this.isPromo(p);
+        if (promo) {
+          doc.setFillColor(220, 38, 38); doc.roundedRect(x + cardW - 21, y + 5, 17, 6, 1, 1, 'F');
+          doc.setTextColor(255, 255, 255); doc.setFont('helvetica', 'bold'); doc.setFontSize(7);
+          doc.text('OFERTA', x + cardW - 12.5, y + 9, { align: 'center' });
+        }
+
+        let ty = y + imgH + 9;
+        doc.setFont('helvetica', 'bold'); doc.setFontSize(10); doc.setTextColor(20, 24, 33);
+        doc.text(this.trunc(p.name, 30), x + 4, ty);
+        ty += 4.5; doc.setFont('helvetica', 'normal'); doc.setFontSize(8); doc.setTextColor(120, 128, 140);
+        doc.text(this.trunc([p.brand_name, p.category_name].filter(Boolean).join(' · '), 34), x + 4, ty);
+
+        ty += 6.5; doc.setFont('helvetica', 'bold'); doc.setFontSize(12); doc.setTextColor(16, 122, 84);
+        const priceStr = '$ ' + Number(p.base_price).toFixed(2);
+        doc.text(priceStr, x + 4, ty);
+        if (promo) {
+          const nw = doc.getTextWidth(priceStr);
+          const os = '$ ' + Number(p.compare_at_price).toFixed(2);
+          doc.setFont('helvetica', 'normal'); doc.setFontSize(8); doc.setTextColor(150, 155, 165);
+          doc.text(os, x + 4 + nw + 3, ty);
+          const ow = doc.getTextWidth(os);
+          doc.setDrawColor(150, 155, 165); doc.setLineWidth(0.3);
+          doc.line(x + 4 + nw + 3, ty - 1.3, x + 4 + nw + 3 + ow, ty - 1.3);
+        }
+
+        const vd = p.variants_detail || [];
+        const sizes = [...new Set(vd.map(v => (v.size || '').trim()).filter(Boolean))];
+        const colors = [...new Set(vd.map(v => (v.color || '').trim()).filter(Boolean))];
+        ty += 5.5; doc.setFont('helvetica', 'normal'); doc.setFontSize(7.5); doc.setTextColor(90, 96, 106);
+        if (sizes.length) doc.text(this.trunc('Tallas: ' + sizes.join(', '), 44), x + 4, ty);
+        ty += 4; if (colors.length) doc.text(this.trunc('Colores: ' + colors.join(', '), 44), x + 4, ty);
+        ty += 4;
+        const stock = p.total_stock ?? 0;
+        doc.setTextColor(stock > 0 ? 16 : 200, stock > 0 ? 122 : 40, stock > 0 ? 84 : 40);
+        doc.text('Stock: ' + stock + (stock > 0 ? ' u.' : ' (agotado)'), x + 4, ty);
+      };
+
+      // Portada elegante
+      this.pdfCover(doc, store, this.branding.tagline(), logo, pageW, pageH);
+      doc.addPage();
+
+      // Layout en flujo con encabezados de sección.
+      let y = 26;
+      drawHeader();
+      const ensure = (need: number) => {
+        if (y + need > pageH - bottom) { doc.addPage(); drawHeader(); y = 26; }
+      };
+      for (const sec of sections) {
+        ensure(10 + cardH);
+        doc.setFillColor(sec.title === 'PROMOCIONES' ? 220 : 11, sec.title === 'PROMOCIONES' ? 38 : 14, sec.title === 'PROMOCIONES' ? 38 : 22);
+        doc.roundedRect(margin, y, pageW - margin * 2, 8, 1.5, 1.5, 'F');
+        doc.setTextColor(255, 255, 255); doc.setFont('helvetica', 'bold'); doc.setFontSize(11);
+        doc.text(sec.title.toUpperCase() + '  (' + sec.items.length + ')', margin + 4, y + 5.5);
+        y += 12;
+        for (let i = 0; i < sec.items.length; i += cols) {
+          ensure(cardH + rowGap);
+          drawCard(sec.items[i], margin, y);
+          if (sec.items[i + 1]) drawCard(sec.items[i + 1], margin + cardW + gap, y);
+          y += cardH + rowGap;
+        }
+        y += 3;
+      }
+
+      // Última página: guía de compra / contacto / ubicaciones
+      doc.addPage();
+      this.pdfContact(doc, store, logo, branches, pageW, pageH);
+
+      doc.save('catalogo-' + store.toLowerCase().replace(/\s+/g, '-') + '.pdf');
+      this.notifyToast.success('Catálogo generado.');
+    } catch {
+      this.notifyToast.error('No se pudo generar el catálogo.');
+    } finally {
+      this.pdfLoading.set(false);
+    }
   }
 
   // ── Tienda ──

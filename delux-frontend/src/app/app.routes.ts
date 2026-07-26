@@ -95,6 +95,13 @@ export const appRoutes: Routes = [
       import('./features/dashboard/dashboard.routes').then(m => m.DASHBOARD_ROUTES),
   },
 
+  // Catálogo público (enlace para compartir) — página propia, sin carrito
+  {
+    path: 'catalogo',
+    loadComponent: () =>
+      import('./features/shop/catalog-page.component').then(m => m.CatalogPageComponent),
+  },
+
   // Kiosko de consulta (tablet en tienda) — pantalla pública full-screen
   {
     path: 'kiosko',

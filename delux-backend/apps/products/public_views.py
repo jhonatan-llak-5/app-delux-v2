@@ -106,6 +106,22 @@ class PublicProductsView(APIView):
                     .values('variant__product_id').annotate(total=Sum('quantity')))
         total_stock_map = {r['variant__product_id']: r['total'] or 0 for r in tot_rows}
 
+        # Tallas y colores por producto (para el catálogo público).
+        from apps.variants.models import Variant as _Variant
+        sizes_map: dict = {}
+        colors_map: dict = {}
+        for v in (_Variant.objects.filter(product_id__in=pids, is_active=True)
+                  .values('product_id', 'size', 'color')):
+            pid = v['product_id']
+            if v['size']:
+                sizes_map.setdefault(pid, [])
+                if v['size'] not in sizes_map[pid]:
+                    sizes_map[pid].append(v['size'])
+            if v['color']:
+                colors_map.setdefault(pid, [])
+                if v['color'] not in colors_map[pid]:
+                    colors_map[pid].append(v['color'])
+
         # Mapa de stock por ciudad o sucursal (para disponibilidad).
         stock_map = {}
         zone_active = False
@@ -135,6 +151,9 @@ class PublicProductsView(APIView):
                 'branch_stock': stock if zone_active else None,
                 'available_in_city': (stock > 0) if zone_active else True,
                 'in_stock': total_stock_map.get(p.id, 0) > 0,
+                'total_stock': total_stock_map.get(p.id, 0),
+                'sizes': sizes_map.get(p.id, []),
+                'colors': colors_map.get(p.id, []),
                 'out_of_stock_display': oos,
             }
 

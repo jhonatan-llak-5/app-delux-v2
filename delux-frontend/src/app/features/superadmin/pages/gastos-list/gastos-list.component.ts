@@ -9,6 +9,7 @@ import { BranchContextService } from '@core/services/branch-context.service';
 import { DlxExportMenuComponent } from '@shared/ui/export-menu.component';
 import { ExportColumn } from '@shared/utils/export.util';
 import { ExpenseService, Expense, ExpenseCategoryOpt, ExpenseSummary } from '@features/superadmin/services/expense.service';
+import { InventoryService, Supplier } from '@features/superadmin/services/inventory.service';
 
 type Period = 'hoy' | 'semana' | 'quincena' | 'mes' | 'anio';
 
@@ -21,6 +22,7 @@ type Period = 'hoy' | 'semana' | 'quincena' | 'mes' | 'anio';
 })
 export class GastosListComponent {
   private svc = inject(ExpenseService);
+  private inv = inject(InventoryService);
   private notify = inject(NotifyService);
   private confirm = inject(ConfirmService);
   ctx = inject(BranchContextService);
@@ -30,7 +32,20 @@ export class GastosListComponent {
   items = signal<Expense[]>([]);
   summary = signal<ExpenseSummary | null>(null);
   categories = signal<ExpenseCategoryOpt[]>([]);
+  suppliers = signal<Supplier[]>([]);
   period = signal<Period>('mes');
+
+  readonly payMethods: { value: string; label: string; icon: string }[] = [
+    { value: 'CASH', label: 'Efectivo', icon: 'fa-money-bill-wave' },
+    { value: 'TRANSFER', label: 'Transferencia', icon: 'fa-building-columns' },
+    { value: 'CARD', label: 'Tarjeta', icon: 'fa-credit-card' },
+  ];
+  payLabel(v?: string): string {
+    return this.payMethods.find(m => m.value === v)?.label || '';
+  }
+  payIcon(v?: string): string {
+    return this.payMethods.find(m => m.value === v)?.icon || 'fa-wallet';
+  }
 
   readonly periods: { key: Period; label: string }[] = [
     { key: 'hoy', label: 'Hoy' },
@@ -43,6 +58,8 @@ export class GastosListComponent {
   readonly exportColumns: ExportColumn<Expense>[] = [
     { header: 'Fecha', key: 'date' },
     { header: 'Categoría', key: 'category_label' },
+    { header: 'Forma de pago', key: (r) => r.payment_method_label || '' },
+    { header: 'Proveedor', key: (r) => r.supplier_name || '' },
     { header: 'Descripción', key: 'description' },
     { header: 'Sucursal', key: (r) => r.branch_name || '' },
     { header: 'Monto (USD)', key: (r) => Number(r.amount).toFixed(2) },
@@ -60,12 +77,52 @@ export class GastosListComponent {
     return [...rows, totalRow];
   });
 
-  form = { date: this.today(), amount: null as number | null, category: 'OTROS', description: '', branch: null as number | null };
+  form = {
+    date: this.today(), amount: null as number | null, category: 'OTROS',
+    payment_method: 'CASH', supplier: null as number | null,
+    description: '', branch: null as number | null,
+  };
 
   canPickBranch = computed(() => this.ctx.canSwitch());
 
+  // ── Proveedor: combobox tipo inventario (buscar / seleccionar / crear inline) ──
+  supplierQuery = '';
+  supplierOpen = signal(false);
+  creatingSupplier = signal(false);
+
+  filteredSuppliers(): Supplier[] {
+    const q = this.supplierQuery.trim().toLowerCase();
+    const list = this.suppliers();
+    return (q ? list.filter(s => s.name.toLowerCase().includes(q)) : list).slice(0, 8);
+  }
+  exactSupplierExists(): boolean {
+    const q = this.supplierQuery.trim().toLowerCase();
+    return !!q && this.suppliers().some(s => s.name.toLowerCase() === q);
+  }
+  onSupplierInput(): void { this.supplierOpen.set(true); this.form.supplier = null; }
+  pickSupplier(s: Supplier): void {
+    this.form.supplier = s.id; this.supplierQuery = s.name; this.supplierOpen.set(false);
+  }
+  clearSupplier(): void { this.form.supplier = null; this.supplierQuery = ''; }
+  closeSupplierSoon(): void { setTimeout(() => this.supplierOpen.set(false), 150); }
+  createSupplierInline(): void {
+    const name = this.supplierQuery.trim();
+    if (!name || this.creatingSupplier()) return;
+    this.creatingSupplier.set(true);
+    this.inv.createSupplier({ name }).subscribe({
+      next: sup => {
+        this.suppliers.update(l => [...l, sup]);
+        this.form.supplier = sup.id; this.supplierQuery = sup.name;
+        this.supplierOpen.set(false); this.creatingSupplier.set(false);
+        this.notify.success('Proveedor creado');
+      },
+      error: e => { this.creatingSupplier.set(false); this.notify.error(parseApiError(e).message || 'No se pudo crear el proveedor'); },
+    });
+  }
+
   constructor() {
     this.svc.categories().subscribe({ next: c => this.categories.set(c), error: () => {} });
+    this.inv.listSuppliers().subscribe({ next: r => this.suppliers.set(r.results), error: () => {} });
     effect(() => { this.period(); this.ctx.current(); this.reload(); }, { allowSignalWrites: true });
   }
 
@@ -107,6 +164,8 @@ export class GastosListComponent {
     this.saving.set(true);
     const body: Partial<Expense> = {
       date: this.form.date, amount: this.form.amount, category: this.form.category,
+      payment_method: this.form.payment_method,
+      supplier: this.form.supplier ?? null,
       description: this.form.description.trim(),
     };
     const branch = this.canPickBranch() ? (this.form.branch ?? this.ctx.current()) : undefined;
@@ -114,7 +173,7 @@ export class GastosListComponent {
     this.svc.create(body).subscribe({
       next: () => {
         this.notify.success('Gasto registrado');
-        this.form.amount = null; this.form.description = '';
+        this.form.amount = null; this.form.description = ''; this.form.supplier = null; this.supplierQuery = '';
         this.saving.set(false);
         this.reload();
       },

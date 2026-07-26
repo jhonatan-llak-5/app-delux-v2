@@ -36,6 +36,20 @@ def send_order_state_email(order_id, new_status, tracking_code=''):
         notify_order_state_change(order, new_status, tracking_code=tracking_code)
 
 
+@shared_task
+def send_pos_receipt_email(order_id):
+    """Envía el comprobante de una venta POS en segundo plano (no bloquea el
+    cobro en el punto de venta)."""
+    from apps.orders.models import Order
+    from .services import notify_pos_receipt
+    order = (Order.objects.filter(pk=order_id)
+             .select_related('customer', 'branch')
+             .prefetch_related('items')
+             .first())
+    if order:
+        notify_pos_receipt(order)
+
+
 @shared_task(name='notifications.deliver_email')
 def deliver_email(from_email, to_email, raw_message):
     """Envía por SMTP un correo ya renderizado, en segundo plano."""

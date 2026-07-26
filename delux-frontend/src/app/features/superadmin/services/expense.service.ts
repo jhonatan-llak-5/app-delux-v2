@@ -9,6 +9,10 @@ export interface Expense {
   amount: string | number;
   category: string;
   category_label: string;
+  payment_method?: string;
+  payment_method_label?: string;
+  supplier?: number | null;
+  supplier_name?: string | null;
   description: string;
   branch: number | null;
   branch_name?: string | null;
@@ -37,6 +41,15 @@ export interface FinanceSummary {
 export interface FinanceTimeline { labels: string[]; web: number[]; pos: number[]; gastos: number[]; granularity: 'day' | 'month'; }
 export interface FinanceYear { year: number; ventas: string; compras: string; gastos: string; ganancia: string; }
 export interface FinanceTopProduct { product: string; qty: number; revenue: string; delta: number | null; }
+export interface FinanceTxn {
+  id: string; kind: 'INGRESO' | 'EGRESO'; date: string;
+  concept: string; party: string; method: string; ref: string; amount: string;
+}
+export interface FinanceTxnPage {
+  count: number; page: number; page_size: number; results: FinanceTxn[];
+  ingresos_total: string; egresos_total: string; balance: string;
+}
+export interface TxnFilter extends ExpenseFilter { q?: string; kind?: 'INGRESO' | 'EGRESO' | ''; page?: number; page_size?: number; }
 export interface ExpenseFilter { branch?: number | null; category?: string; from?: string; to?: string; }
 interface Paged<T> { count: number; results: T[]; }
 
@@ -83,5 +96,13 @@ export class ExpenseService {
   }
   financeTopProducts(f: ExpenseFilter = {}): Observable<FinanceTopProduct[]> {
     return this.http.get<FinanceTopProduct[]>(`${this.financeBase}/top_products/`, { params: this.toParams(f) });
+  }
+  financeTransactions(f: TxnFilter = {}): Observable<FinanceTxnPage> {
+    let p = this.toParams(f);
+    if (f.q) p = p.set('q', f.q);
+    if (f.kind) p = p.set('kind', f.kind);
+    if (f.page) p = p.set('page', String(f.page));
+    if (f.page_size) p = p.set('page_size', String(f.page_size));
+    return this.http.get<FinanceTxnPage>(`${this.financeBase}/transactions/`, { params: p });
   }
 }

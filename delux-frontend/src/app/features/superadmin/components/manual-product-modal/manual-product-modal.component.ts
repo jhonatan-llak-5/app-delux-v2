@@ -38,8 +38,20 @@ export class ManualProductModalComponent implements OnInit {
   @Input() categories: string[] = [];
   @Input() categoryParents: Record<string, string> = {};
   @Input() barcode = '';
+  /** Cuando es true se renderiza como formulario embebido (sin modal) y se
+   *  autolimpia tras cada "Agregar", para poder cargar varios productos. */
+  @Input() embedded = false;
   @Output() add = new EventEmitter<ManualProduct[]>();
   @Output() cancel = new EventEmitter<void>();
+
+  /** Interruptor "¿Tiene variantes?": si está apagado se captura un solo
+   *  producto (una cantidad); si está encendido se habilita la tarjeta de
+   *  colores/tallas. */
+  hasVariants = signal(false);
+  toggleVariants(v: boolean): void {
+    this.hasVariants.set(v);
+    if (!v) { this.selColors = []; this.selSizes = []; }
+  }
 
   error = signal<string | null>(null);
   fieldErrors = signal<Record<string, string>>({});
@@ -94,7 +106,21 @@ export class ManualProductModalComponent implements OnInit {
     color: '', size: '', barcode: '', cost: 0, price: 0, quantity: 1, description: '',
   };
 
-  ngOnInit(): void { this.nf.barcode = this.barcode || ''; }
+  ngOnInit(): void {
+    this.nf.barcode = this.barcode || '';
+    if (this.qtyMap['|'] == null) this.qtyMap['|'] = 1;  // cantidad por defecto (sin variantes)
+  }
+
+  private resetForm(): void {
+    const keepKind = this.nf.kind;
+    this.nf = { product_name: '', brand: '', category: '', kind: keepKind,
+      color: '', size: '', barcode: '', cost: 0, price: 0, quantity: 1, description: '' };
+    this.images = []; this.selColors = []; this.selSizes = [];
+    this.newColor = ''; this.newSizeText = ''; this.bulkQty = 1;
+    this.qtyMap = { '|': 1 };
+    this.hasVariants.set(false);
+    this.fieldErrors.set({}); this.error.set(null);
+  }
 
   sizePreset(): string[] { return KIND_PRESETS[this.nf.kind]?.sizes ?? []; }
   sizeLabel(): string { return KIND_PRESETS[this.nf.kind]?.sizeLabel ?? 'Talla'; }
@@ -171,5 +197,6 @@ export class ManualProductModalComponent implements OnInit {
       description: (this.nf.description || '').trim(),
       images: imgs,
     })));
+    if (this.embedded) this.resetForm();  // deja el form listo para el siguiente producto
   }
 }

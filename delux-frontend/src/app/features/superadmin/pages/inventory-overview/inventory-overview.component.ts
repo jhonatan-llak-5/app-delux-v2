@@ -23,11 +23,12 @@ import { printProductLabels } from '@shared/utils/print-labels';
 import { BrandingService } from '@core/services/branding.service';
 import { NotifyService } from '@shared/services/notify.service';
 import { DlxPaginationComponent } from '@shared/ui/pagination.component';
+import { DlxPriceInputComponent } from '@shared/ui/price-input.component';
 
 @Component({
   selector: 'dlx-inventory-overview',
   standalone: true,
-  imports: [DlxEmptyStateComponent, ImgFallbackDirective, DlxStatCardComponent, DlxSearchInputComponent, CommonModule, FormsModule, RouterLink, StockAdjustModalComponent, TransferModalComponent, RowActionsComponent, DlxPaginationComponent, DlxExportMenuComponent],
+  imports: [DlxEmptyStateComponent, ImgFallbackDirective, DlxStatCardComponent, DlxSearchInputComponent, CommonModule, FormsModule, RouterLink, StockAdjustModalComponent, TransferModalComponent, RowActionsComponent, DlxPaginationComponent, DlxExportMenuComponent, DlxPriceInputComponent],
   changeDetection: ChangeDetectionStrategy.OnPush,
   templateUrl: './inventory-overview.component.html',
 })
@@ -54,6 +55,13 @@ export class InventoryOverviewComponent implements OnInit {
   pageSize = signal(50);
   summary = signal<InventorySummary | null>(null);
   branches = signal<AdminBranch[]>([]);
+  // Indicadores colapsables (se recuerda la preferencia; por defecto ocultos)
+  kpisOpen = signal<boolean>(typeof localStorage !== 'undefined' && localStorage.getItem('dlx_inv_kpis') === '1');
+  toggleKpis(): void {
+    const v = !this.kpisOpen();
+    this.kpisOpen.set(v);
+    try { localStorage.setItem('dlx_inv_kpis', v ? '1' : '0'); } catch {}
+  }
   loading = signal(true);
 
   search = signal('');

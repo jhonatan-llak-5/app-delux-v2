@@ -21,6 +21,7 @@ export interface StoreOptions {
   pickup_enabled: boolean;
   delivery_enabled: boolean;
   out_of_stock_display: 'SHOW' | 'HIDE' | 'SOLD_OUT';
+  consumidor_final_enabled: boolean;
 }
 
 /**

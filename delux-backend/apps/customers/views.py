@@ -16,12 +16,17 @@ class AdminCustomerViewSet(viewsets.ModelViewSet):
     ordering = ['-created_at']
 
     def get_queryset(self):
+        from django.db.models import Q
         from apps.orders.models import OrderStatus
         qs = Customer.objects.prefetch_related('addresses').annotate(
             total_orders=Count('orders', distinct=True),
             total_spent=Sum('orders__total', filter=models_q_paid()),
             last_order_at=Max('orders__created_at'),
         )
+        # Solo clientes reales: sin cuenta (mostrador/invitado/Consumidor Final)
+        # o cuentas de rol CUSTOMER. Excluye staff (admin/gerente/vendedor/afiliado)
+        # que hayan generado ficha al usar funciones de cliente (favoritos, reseñas…).
+        qs = qs.filter(Q(user__isnull=True) | Q(user__role='CUSTOMER'))
         return qs
 
     def get_serializer_class(self):

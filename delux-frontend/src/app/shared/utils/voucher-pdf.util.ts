@@ -2,7 +2,8 @@ import { Order } from '@features/superadmin/services/order.service';
 import jsPDF from 'jspdf';
 import autoTable from 'jspdf-autotable';
 
-export function generateVoucherPDF(order: Order): void {
+/** Construye el documento del voucher (sin guardarlo). */
+function buildVoucherDoc(order: Order): jsPDF {
   const doc = new jsPDF({ unit: 'mm', format: [80, 220] });
 
   let y = 8;
@@ -96,5 +97,27 @@ export function generateVoucherPDF(order: Order): void {
   y += 3;
   doc.text('delux.com.ec', center, y, { align: 'center' });
 
-  doc.save(`voucher-${order.code}.pdf`);
+  return doc;
+}
+
+/** Descarga el voucher como PDF. */
+export function generateVoucherPDF(order: Order): void {
+  buildVoucherDoc(order).save(`voucher-${order.code}.pdf`);
+}
+
+/**
+ * Abre el voucher en una vista previa (nueva pestaña) y lanza el diálogo de
+ * impresión del navegador, donde el usuario elige la impresora. Si el navegador
+ * bloquea la ventana emergente, cae a descargar el PDF.
+ */
+export function printVoucherPDF(order: Order): void {
+  const doc = buildVoucherDoc(order);
+  try {
+    doc.autoPrint();
+    const url = doc.output('bloburl');
+    const win = window.open(url as any, '_blank');
+    if (!win) { doc.save(`voucher-${order.code}.pdf`); }   // popup bloqueado
+  } catch {
+    doc.save(`voucher-${order.code}.pdf`);
+  }
 }

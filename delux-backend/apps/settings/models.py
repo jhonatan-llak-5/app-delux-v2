@@ -152,6 +152,9 @@ class PlatformSettings(models.Model):
     out_of_stock_display = models.CharField(
         max_length=10, choices=OUT_OF_STOCK_CHOICES, default=OOS_SHOW,
         help_text='Cómo se muestran en el catálogo los productos sin stock.')
+    consumidor_final_enabled = models.BooleanField(
+        default=False,
+        help_text='Asigna "Consumidor Final" a las ventas sin cliente (para facturación).')
 
     updated_at = models.DateTimeField(auto_now=True)
 

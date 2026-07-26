@@ -201,14 +201,11 @@ export class ReceptionComponent implements OnInit, OnDestroy {
     { target: '[data-tour=\"recv-supplier\"]', placement: 'right', icon: 'fa-truck-field',
       title: '2. Proveedor',
       body: 'Escribe el proveedor. Si no existe, se crea solo. Queda el historial de quién te entregó.' },
-    { target: '[data-tour=\"recv-scan\"]', placement: 'right', icon: 'fa-barcode',
-      title: '3. Escanea el código',
-      body: 'Escanea (o escribe y Enter) el código de la caja. Si ya existe, suma +1; si es nuevo, abre el formulario.' },
-    { target: '[data-tour=\"recv-manual\"]', placement: 'right', icon: 'fa-plus',
-      title: '4. O agrégalo manual',
-      body: 'Si no tiene código, agrégalo a mano. El formulario se adapta al tipo: calzado tallas 35-45, ropa S-XL, etc.' },
+    { target: '[data-tour=\"recv-manual\"]', placement: 'left', icon: 'fa-box-open',
+      title: '3. Datos del producto',
+      body: 'Llena el producto y pulsa «Agregar a la lista». Puedes cargar varios seguidos. Si tiene tallas o colores, activa «Este producto tiene variantes».' },
     { target: '[data-tour=\"recv-confirm\"]', placement: 'top', icon: 'fa-check',
-      title: '5. Confirma',
+      title: '4. Confirma',
       body: 'Al confirmar se crea todo de golpe y se genera el código interno. Luego podrás imprimir las etiquetas. ¡Listo! 🚀' },
   ];
 

@@ -188,6 +188,84 @@ class FinanceViewSet(viewsets.ViewSet):
         return Response(out)
 
     @action(detail=False, methods=['get'])
+    def transactions(self, request):
+        """Lista combinada de INGRESOS (ventas pagadas) y EGRESOS (gastos) del
+        periodo, ordenada por fecha desc, con búsqueda por concepto y filtro de
+        tipo. Estilo 'Balance general': cada fila es un movimiento."""
+        from_d, to_d = _parse_range(request)
+        tenant_id = self._tenant_id(request)
+        branch_id = self._scope_branch(request)
+        q = (request.query_params.get('q') or '').strip().lower()
+        kind = (request.query_params.get('kind') or '').upper()  # INGRESO | EGRESO | ''
+
+        rows = []
+
+        # ── INGRESOS: ventas pagadas ──
+        if kind != 'EGRESO':
+            oq = self._orders_qs(request, from_d, to_d).select_related('customer')
+            chan_lbl = dict(OrderChannel.choices)
+            for o in oq:
+                cust = getattr(o.customer, 'full_name', '') or ''
+                concept = f'Venta {o.code}'
+                rows.append({
+                    'id': f'O{o.id}', 'kind': 'INGRESO',
+                    'date': o.created_at.isoformat(),
+                    'concept': concept,
+                    'party': cust,
+                    'method': chan_lbl.get(o.channel, o.channel),
+                    'ref': o.code,
+                    'amount': str(_dec(o.total)),
+                })
+
+        # ── EGRESOS: gastos operativos ──
+        if kind != 'INGRESO':
+            eq = Expense.objects.filter(date__gte=from_d, date__lte=to_d).select_related('supplier')
+            if tenant_id: eq = eq.filter(tenant_id=tenant_id)
+            if branch_id: eq = eq.filter(branch_id=branch_id)
+            cat_lbl = dict(ExpenseCategory.choices)
+            pay_lbl = {'CASH': 'Efectivo', 'TRANSFER': 'Transferencia', 'CARD': 'Tarjeta'}
+            for e in eq:
+                concept = e.description or cat_lbl.get(e.category, e.category)
+                rows.append({
+                    'id': f'E{e.id}', 'kind': 'EGRESO',
+                    'date': e.date.isoformat(),
+                    'concept': concept,
+                    'party': getattr(e.supplier, 'name', '') or '',
+                    'method': pay_lbl.get(e.payment_method, ''),
+                    'ref': cat_lbl.get(e.category, ''),
+                    'amount': str(_dec(e.amount)),
+                })
+
+        # Búsqueda por concepto (o parte relacionada)
+        if q:
+            rows = [r for r in rows if q in r['concept'].lower()
+                    or q in (r['party'] or '').lower()
+                    or q in (r['ref'] or '').lower()]
+
+        # Orden por fecha desc (los ingresos traen hora; los gastos solo fecha)
+        rows.sort(key=lambda r: r['date'], reverse=True)
+
+        # Paginación simple
+        try:
+            page = max(1, int(request.query_params.get('page', 1)))
+            page_size = min(100, max(1, int(request.query_params.get('page_size', 20))))
+        except (TypeError, ValueError):
+            page, page_size = 1, 20
+        total = len(rows)
+        start = (page - 1) * page_size
+        page_rows = rows[start:start + page_size]
+
+        ingresos = sum(Decimal(r['amount']) for r in rows if r['kind'] == 'INGRESO')
+        egresos = sum(Decimal(r['amount']) for r in rows if r['kind'] == 'EGRESO')
+        return Response({
+            'count': total, 'page': page, 'page_size': page_size,
+            'results': page_rows,
+            'ingresos_total': str(ingresos),
+            'egresos_total': str(egresos),
+            'balance': str(ingresos - egresos),
+        })
+
+    @action(detail=False, methods=['get'])
     def top_products(self, request):
         """Productos mas vendidos del periodo (cantidad + ingresos) con
         tendencia vs el periodo anterior."""

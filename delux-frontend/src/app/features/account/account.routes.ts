@@ -1,5 +1,6 @@
 import { Routes } from '@angular/router';
 import { authGuard } from '@core/guards/auth.guard';
+import { roleGuard } from '@core/guards/role.guard';
 
 export const ACCOUNT_ROUTES: Routes = [
   {
@@ -26,6 +27,7 @@ export const ACCOUNT_ROUTES: Routes = [
       },
       {
         path: 'wishlist',
+        canActivate: [roleGuard(['CUSTOMER'])],
         loadComponent: () =>
           import('./pages/wishlist-tab/wishlist-tab.component').then(m => m.WishlistTabComponent),
       },

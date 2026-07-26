@@ -4,13 +4,14 @@ import { DlxStatCardComponent } from '@shared/ui';
 import { DlxSearchInputComponent } from '@shared/ui/search-input.component';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
+import { DlxPriceInputComponent } from '@shared/ui/price-input.component';
 import { ShippingService, Shipment } from '@shared/services/shipping.service';
 import { NotifyService } from '@shared/services/notify.service';
 
 @Component({
   selector: 'dlx-shipments-list',
   standalone: true,
-  imports: [DlxEmptyStateComponent, DlxStatCardComponent, DlxSearchInputComponent, CommonModule, FormsModule],
+  imports: [DlxEmptyStateComponent, DlxStatCardComponent, DlxSearchInputComponent, CommonModule, FormsModule, DlxPriceInputComponent],
   changeDetection: ChangeDetectionStrategy.OnPush,
   template: `
     <div class="mb-6">
@@ -93,14 +94,8 @@ import { NotifyService } from '@shared/services/notify.service';
                         [ngClass]="statusBadge(s.status)">{{ s.status_label }}</span>
                 </td>
                 <td class="px-5 py-3 text-right">
-                  <div class="inline-flex items-center gap-1">
-                    <span class="text-slate-400 text-xs">$</span>
-                    <input type="number" min="0" step="0.01" [ngModel]="s.shipping_cost"
-                           (blur)="saveCost(s, $any($event.target).value)"
-                           (keyup.enter)="saveCost(s, $any($event.target).value)"
-                           class="w-20 px-2 py-1 rounded text-xs bg-slate-100 border-0 text-right"
-                           title="Costo acordado con el courier (no afecta el total del pedido)" />
-                  </div>
+                  <dlx-price-input [(ngModel)]="s.shipping_cost" (blurred)="saveCost(s, s.shipping_cost)"
+                                   [nullable]="true" extraClass="!h-9 w-28 text-right" />
                 </td>
                 <td class="px-5 py-3 text-right">
                   <div class="inline-flex items-center gap-2">
@@ -168,8 +163,8 @@ export class ShipmentsListComponent implements OnInit {
       },
     });
   }
-  saveCost(s: Shipment, value: string) {
-    const cost = Math.max(0, +value || 0);
+  saveCost(s: Shipment, value: string | number | null) {
+    const cost = Math.max(0, +(value ?? 0) || 0);
     if (cost.toFixed(2) === (+s.shipping_cost || 0).toFixed(2)) return;
     this.svc.setShippingCost(s.id, cost).subscribe({
       next: r => { s.shipping_cost = r.shipping_cost; this.notify.success('Costo de envío guardado'); },

@@ -118,7 +118,13 @@ export const SUPERADMIN_ROUTES: Routes = [
         loadComponent: () =>
           import('./pages/schedule-editor/schedule-editor.component').then(m => m.ScheduleEditorComponent),
       },
-      { path: 'customers', pathMatch: 'full', redirectTo: 'users' },
+      {
+        path: 'customers',
+        pathMatch: 'full',
+        canActivate: [roleGuard(['SUPERADMIN', 'TENANT_ADMIN', 'BRANCH_MANAGER'])],
+        loadComponent: () =>
+          import('./pages/customers-list/customers-list.component').then(m => m.CustomersListComponent),
+      },
       {
         path: 'customers/:id',
         loadComponent: () =>

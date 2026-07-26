@@ -62,6 +62,7 @@ import { DlxPaginationComponent } from '@shared/ui/pagination.component';
               <th class="px-5 py-3 font-semibold text-right">Total gastado</th>
               <th class="px-5 py-3 font-semibold">Última compra</th>
               <th class="px-5 py-3 font-semibold text-center">Marketing</th>
+              <th class="px-5 py-3 font-semibold text-center">Estado</th>
               <th class="px-5 py-3 font-semibold text-right">Acciones</th>
             </tr>
           </thead>
@@ -104,6 +105,12 @@ import { DlxPaginationComponent } from '@shared/ui/pagination.component';
                     <i class="fa-solid fa-minus text-slate-300"></i>
                   }
                 </td>
+                <td class="px-5 py-3 text-center">
+                  <span class="inline-flex items-center px-2 py-0.5 rounded-full text-[11px] font-semibold"
+                        [ngClass]="c.is_active !== false ? 'bg-emerald-100 text-emerald-700' : 'bg-slate-200 text-slate-500'">
+                    {{ c.is_active !== false ? 'Activo' : 'Inactivo' }}
+                  </span>
+                </td>
                 <td class="px-5 py-3 text-right">
                   <div class="inline-flex gap-1">
                     <a [routerLink]="['/app/admin/customers', c.id]" title="Ver detalle"
@@ -113,6 +120,10 @@ import { DlxPaginationComponent } from '@shared/ui/pagination.component';
                     <button (click)="openEdit(c)" title="Editar"
                             class="w-8 h-8 grid place-items-center rounded-lg hover:bg-sky-100 hover:text-sky-700 text-slate-500">
                       <i class="fa-solid fa-pen text-xs"></i>
+                    </button>
+                    <button (click)="toggleActive(c)" [title]="c.is_active !== false ? 'Desactivar' : 'Activar'"
+                            class="w-8 h-8 grid place-items-center rounded-lg hover:bg-amber-100 hover:text-amber-700 text-slate-500">
+                      <i class="fa-solid text-xs" [class.fa-toggle-on]="c.is_active !== false" [class.fa-toggle-off]="c.is_active === false"></i>
                     </button>
                     <button (click)="remove(c)" title="Eliminar"
                             class="w-8 h-8 grid place-items-center rounded-lg hover:bg-rose-100 hover:text-rose-700 text-slate-500">
@@ -177,6 +188,14 @@ export class CustomersListComponent implements OnInit {
   avatarColor(c: Customer) {
     const palette = ['#7c3aed', '#22d3ee', '#14b8a6', '#f59e0b', '#ec4899', '#3b82f6'];
     return palette[c.id % palette.length];
+  }
+
+  toggleActive(c: Customer) {
+    const next = !c.is_active;
+    this.svc.setActive(c.id, next).subscribe({
+      next: () => { this.notify.success(next ? 'Cliente activado' : 'Cliente desactivado'); this.reload(); },
+      error: e => this.notify.fromServerError(e, 'No se pudo cambiar el estado.'),
+    });
   }
 
   openCreate() { this.editing.set(null); this.showModal.set(true); }

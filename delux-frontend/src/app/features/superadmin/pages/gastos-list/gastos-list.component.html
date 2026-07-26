@@ -1,4 +1,4 @@
-<div class="max-w-[1200px] mx-auto px-4 md:px-6 py-6 space-y-6">
+<div class="px-4 md:px-6 py-6 space-y-6">
 
   <!-- Header -->
   <div class="flex flex-wrap items-end justify-between gap-4">
@@ -61,6 +61,58 @@
               <option [value]="c.value">{{ c.label }}</option>
             }
           </select>
+        </div>
+
+        <div>
+          <label class="block text-xs font-semibold text-ink-500 dark:text-white/60 mb-1">Forma de pago</label>
+          <div class="grid grid-cols-3 gap-2">
+            @for (m of payMethods; track m.value) {
+              <button type="button" (click)="form.payment_method = m.value"
+                      class="flex flex-col items-center gap-1 py-2 rounded-xl border text-xs font-semibold transition"
+                      [ngClass]="form.payment_method === m.value
+                        ? 'border-[var(--dash-primary)] bg-[var(--dash-primary-l)] text-[var(--dash-primary)]'
+                        : 'border-ink-200 dark:border-white/10 text-ink-500 dark:text-white/60 hover:border-ink-300'">
+                <i class="fa-solid {{ m.icon }}"></i> {{ m.label }}
+              </button>
+            }
+          </div>
+        </div>
+
+        <div>
+          <label class="block text-xs font-semibold text-ink-500 dark:text-white/60 mb-1">Proveedor <span class="text-ink-400 dark:text-white/40 font-normal">(opcional)</span></label>
+          <div class="relative">
+            <input [(ngModel)]="supplierQuery" (focus)="supplierOpen.set(true)"
+                   (ngModelChange)="onSupplierInput()" (blur)="closeSupplierSoon()"
+                   class="input-modern w-full pr-8" placeholder="Escribe o busca un proveedor…" autocomplete="off" />
+            @if (form.supplier || supplierQuery) {
+              <button type="button" (click)="clearSupplier()" title="Quitar"
+                      class="absolute right-2 top-1/2 -translate-y-1/2 w-6 h-6 grid place-items-center text-ink-400 hover:text-ink-700 dark:hover:text-white">
+                <i class="fa-solid fa-xmark text-xs"></i>
+              </button>
+            }
+
+            @if (supplierOpen()) {
+              <div class="absolute left-0 right-0 top-full mt-1 z-30 max-h-56 overflow-y-auto rounded-xl py-1
+                          bg-white dark:bg-slate-800 border border-ink-200 dark:border-white/10 shadow-xl">
+                @for (s of filteredSuppliers(); track s.id) {
+                  <button type="button" (click)="pickSupplier(s)"
+                          class="w-full text-left px-3 py-2.5 text-sm hover:bg-ink-50 dark:hover:bg-white/5 transition flex items-center gap-2"
+                          [ngClass]="form.supplier === s.id ? 'text-[var(--dash-primary)] font-semibold' : 'text-ink-700 dark:text-white/80'">
+                    <i class="fa-solid fa-truck-field text-ink-400 text-xs"></i> {{ s.name }}
+                  </button>
+                }
+                @if (supplierQuery.trim() && !exactSupplierExists()) {
+                  <button type="button" (click)="createSupplierInline()" [disabled]="creatingSupplier()"
+                          class="w-full text-left px-3 py-2.5 text-sm border-t border-ink-100 dark:border-white/10 hover:bg-emerald-50 dark:hover:bg-emerald-500/10 text-emerald-700 dark:text-emerald-400 font-semibold flex items-center gap-2 disabled:opacity-60">
+                    <i class="fa-solid" [ngClass]="creatingSupplier() ? 'fa-spinner fa-spin' : 'fa-plus'"></i>
+                    Crear "{{ supplierQuery.trim() }}"
+                  </button>
+                } @else if (!filteredSuppliers().length) {
+                  <p class="px-3 py-2.5 text-sm text-ink-400 dark:text-white/50">Escribe un nombre para crearlo…</p>
+                }
+              </div>
+            }
+          </div>
         </div>
 
         <div>
@@ -139,8 +191,13 @@
                     {{ x.description || x.category_label }}
                   </p>
                   <p class="text-xs text-ink-400 dark:text-white/50">
-                    {{ x.category_label }} · {{ x.date }}<span *ngIf="x.branch_name"> · {{ x.branch_name }}</span>
+                    {{ x.category_label }} · {{ x.date }}<span *ngIf="x.branch_name"> · {{ x.branch_name }}</span><span *ngIf="x.supplier_name"> · {{ x.supplier_name }}</span>
                   </p>
+                  @if (x.payment_method) {
+                    <span class="inline-flex items-center gap-1 mt-1 text-[11px] font-medium text-ink-500 dark:text-white/60 bg-ink-100 dark:bg-white/10 rounded-full px-2 py-0.5">
+                      <i class="fa-solid {{ payIcon(x.payment_method) }}"></i> {{ x.payment_method_label || payLabel(x.payment_method) }}
+                    </span>
+                  }
                 </div>
                 <span class="font-bold text-ink-950 dark:text-white whitespace-nowrap">${{ money(x.amount) }}</span>
                 <button (click)="remove(x)" title="Eliminar"

@@ -180,15 +180,15 @@
                 <input class="eg-input" formControlName="platform_tagline" />
               </label>
               <label class="block"><span class="eg-label">IVA (%)</span>
-                <input type="number" min="0" max="100" step="0.01" class="eg-input" formControlName="tax_rate" />
+                <dlx-price-input formControlName="tax_rate" symbol="%" [nullable]="true" placeholder="IVA" />
                 <span class="text-[11px] text-slate-400 mt-1 block">Se usa para calcular el precio final con IVA (etiquetas, kiosko, formularios). Ej. 15.</span>
               </label>
               <label class="block"><span class="eg-label">Comisión de afiliados (%)</span>
-                <input type="number" min="0" max="100" step="0.01" class="eg-input" formControlName="affiliate_commission_rate" />
+                <dlx-price-input formControlName="affiliate_commission_rate" symbol="%" [nullable]="true" />
                 <span class="text-[11px] text-slate-400 mt-1 block">% que gana el afiliado por cada venta atribuida a su código. Ej. 10.</span>
               </label>
               <label class="block"><span class="eg-label">Mínimo de pago a afiliados ($)</span>
-                <input type="number" min="0" step="0.01" class="eg-input" formControlName="affiliate_min_payout" />
+                <dlx-price-input formControlName="affiliate_min_payout" [nullable]="true" />
                 <span class="text-[11px] text-slate-400 mt-1 block">Monto mínimo acumulado para poder registrar un pago. 0 = sin mínimo.</span>
               </label>
             </div>

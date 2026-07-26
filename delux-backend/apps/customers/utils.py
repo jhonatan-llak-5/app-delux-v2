@@ -23,3 +23,14 @@ def link_customer_to_user(customer):
     customer.user = user
     customer.save(update_fields=['user'])
     return customer
+
+
+def get_or_create_consumidor_final(tenant):
+    """Cliente ficticio "Consumidor Final" (SRI id 9999999999999) por tienda."""
+    from .models import Customer
+    c = Customer.objects.filter(tenant=tenant, document_id='9999999999999').first()
+    if c:
+        return c
+    return Customer.objects.create(
+        tenant=tenant, full_name='Consumidor Final',
+        document_type='07', document_id='9999999999999', email='')

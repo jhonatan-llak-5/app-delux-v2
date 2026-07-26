@@ -1,5 +1,16 @@
-    <dlx-modal [open]="true" [maxWidth]="760" title="Nuevo producto" (closed)="cancel.emit()">
-      <div class="space-y-4">
+@if (embedded) {
+  <div class="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-4 items-start">
+    <ng-container [ngTemplateOutlet]="body"></ng-container>
+  </div>
+} @else {
+  <dlx-modal [open]="true" [maxWidth]="760" title="Nuevo producto" (closed)="cancel.emit()">
+    <div class="space-y-4">
+      <ng-container [ngTemplateOutlet]="body"></ng-container>
+    </div>
+  </dlx-modal>
+}
+
+<ng-template #body>
         <div>
           <label class="eg-label">Tipo de producto</label>
           <select [(ngModel)]="nf.kind" class="eg-input w-full">
@@ -13,12 +24,12 @@
           <dlx-field-error [error]="fe('product_name')" />
         </div>
 
-        <div>
+        <div class="md:col-span-2 xl:col-span-3">
           <label class="eg-label">Descripción (opcional)</label>
           <textarea [(ngModel)]="nf.description" rows="2" class="eg-input w-full" placeholder="Descripción breve del producto…"></textarea>
         </div>
 
-        <div class="grid grid-cols-2 gap-3">
+        <div class="grid grid-cols-2 gap-3 md:col-span-2 xl:col-span-3">
           <div class="relative">
             <label class="eg-label">Marca *</label>
             <input [(ngModel)]="nf.brand" (focus)="brandOpen.set(true)" (ngModelChange)="brandOpen.set(true)" (blur)="closeSoon('brand')"
@@ -68,43 +79,55 @@
           </div>
         </div>
 
-        <div class="space-y-2">
-          <label class="eg-label !mb-0">Colores (elige uno o varios)</label>
-          <div class="flex flex-wrap gap-1.5">
-            @for (c of colorPresets; track c) {
-              <button type="button" (click)="toggleColor(c)"
-                      class="px-2.5 py-1 rounded-lg text-xs font-semibold border transition inline-flex items-center gap-1.5"
-                      [ngClass]="selColors.includes(c) ? 'bg-ink-950 text-white border-ink-950 dark:bg-white dark:text-ink-950' : 'border-slate-200 dark:border-white/15 text-slate-600 dark:text-white/70'">
-                <span class="w-3 h-3 rounded-full border border-black/10 dark:border-white/20" [style.background]="colorHex(c)"></span>{{ c }}
-              </button>
-            }
-          </div>
-          <div class="flex gap-2">
-            <input [(ngModel)]="newColor" (keydown.enter)="$event.preventDefault(); addColorText()"
-                   class="eg-input flex-1" placeholder="Otro color…" autocomplete="off" />
-            <button type="button" class="eg-btn-secondary text-sm" (click)="addColorText()" [disabled]="!newColor.trim()">Añadir</button>
-          </div>
-        </div>
+        <!-- ¿Tiene variantes? -->
+        <label class="md:col-span-2 xl:col-span-3 flex items-center gap-3 rounded-xl border px-3 py-2.5 cursor-pointer transition"
+               [ngClass]="hasVariants() ? 'border-[var(--dash-primary)] bg-[var(--dash-primary)]/5' : 'border-slate-200 dark:border-white/10'">
+          <input type="checkbox" [checked]="hasVariants()" (change)="toggleVariants($any($event.target).checked)"
+                 class="w-4 h-4 accent-[var(--dash-primary)]" />
+          <span class="flex-1">
+            <span class="text-sm font-semibold text-ink-950 dark:text-white">Este producto tiene variantes</span>
+            <span class="block text-[11px] text-slate-400">Actívalo si manejas varias tallas o colores. Si no, se registra como un solo producto.</span>
+          </span>
+          <i class="fa-solid fa-layer-group text-slate-300"></i>
+        </label>
 
-        <div class="space-y-2">
-          <label class="eg-label !mb-0">{{ sizeLabel() }}s (elige una o varias)</label>
-          @if (sizePreset().length) {
+        @if (hasVariants()) {
+          <div class="md:col-span-2 xl:col-span-3 space-y-2 rounded-xl border border-slate-200 dark:border-white/10 p-3">
+            <label class="eg-label !mb-0">Colores (elige uno o varios)</label>
             <div class="flex flex-wrap gap-1.5">
-              @for (s of sizePreset(); track s) {
-                <button type="button" (click)="toggleSize(s)"
-                        class="px-3 py-1.5 rounded-lg text-xs font-semibold border transition"
-                        [ngClass]="selSizes.includes(s) ? 'bg-ink-950 text-white border-ink-950 dark:bg-white dark:text-ink-950' : 'border-slate-200 dark:border-white/15 text-slate-600 dark:text-white/70'">{{ s }}</button>
+              @for (c of colorPresets; track c) {
+                <button type="button" (click)="toggleColor(c)"
+                        class="px-2.5 py-1 rounded-lg text-xs font-semibold border transition inline-flex items-center gap-1.5"
+                        [ngClass]="selColors.includes(c) ? 'bg-ink-950 text-white border-ink-950 dark:bg-white dark:text-ink-950' : 'border-slate-200 dark:border-white/15 text-slate-600 dark:text-white/70'">
+                  <span class="w-3 h-3 rounded-full border border-black/10 dark:border-white/20" [style.background]="colorHex(c)"></span>{{ c }}
+                </button>
               }
             </div>
-          }
-          <div class="flex gap-2">
-            <input [(ngModel)]="newSizeText" (keydown.enter)="$event.preventDefault(); addSizeText()"
-                   class="eg-input flex-1" placeholder="Otra talla/medida…" autocomplete="off" />
-            <button type="button" class="eg-btn-secondary text-sm" (click)="addSizeText()" [disabled]="!newSizeText.trim()">Añadir</button>
-          </div>
-        </div>
+            <div class="flex gap-2">
+              <input [(ngModel)]="newColor" (keydown.enter)="$event.preventDefault(); addColorText()"
+                     class="eg-input flex-1" placeholder="Otro color…" autocomplete="off" />
+              <button type="button" class="eg-btn-secondary text-sm" (click)="addColorText()" [disabled]="!newColor.trim()">Añadir</button>
+            </div>
 
-        <div>
+            <label class="eg-label !mb-0 mt-2">{{ sizeLabel() }}s (elige una o varias)</label>
+            @if (sizePreset().length) {
+              <div class="flex flex-wrap gap-1.5">
+                @for (s of sizePreset(); track s) {
+                  <button type="button" (click)="toggleSize(s)"
+                          class="px-3 py-1.5 rounded-lg text-xs font-semibold border transition"
+                          [ngClass]="selSizes.includes(s) ? 'bg-ink-950 text-white border-ink-950 dark:bg-white dark:text-ink-950' : 'border-slate-200 dark:border-white/15 text-slate-600 dark:text-white/70'">{{ s }}</button>
+                }
+              </div>
+            }
+            <div class="flex gap-2">
+              <input [(ngModel)]="newSizeText" (keydown.enter)="$event.preventDefault(); addSizeText()"
+                     class="eg-input flex-1" placeholder="Otra talla/medida…" autocomplete="off" />
+              <button type="button" class="eg-btn-secondary text-sm" (click)="addSizeText()" [disabled]="!newSizeText.trim()">Añadir</button>
+            </div>
+          </div>
+        }
+
+        <div class="md:col-span-2 xl:col-span-3">
           <div class="flex items-center justify-between mb-2 gap-2 flex-wrap">
             <label class="eg-label !mb-0">{{ useMatrix() ? 'Cantidad por color y talla' : 'Cantidad' }}</label>
             @if (comboList().length > 1) {
@@ -162,7 +185,7 @@
           <p class="text-xs text-slate-400 mt-2">Total: <b class="text-ink-950 dark:text-white">{{ totalUnits() }}</b> unidad(es) · <b>{{ comboCount() }}</b> variante(s)</p>
         </div>
 
-        <div>
+        <div class="md:col-span-2 xl:col-span-3">
           <label class="eg-label">Código de barras</label>
           @if (isSingleVariant()) {
             <input [(ngModel)]="nf.barcode" class="eg-input w-full font-mono" placeholder="Escanea o escribe (opcional)" />
@@ -175,7 +198,7 @@
           }
         </div>
 
-        <div class="grid grid-cols-2 gap-3">
+        <div class="grid grid-cols-2 gap-3 md:col-span-2 xl:col-span-3">
           <div>
             <label class="eg-label">Costo (compra)</label>
             <dlx-price-input [(ngModel)]="nf.cost" extraClass="w-full" />
@@ -186,7 +209,7 @@
           </div>
         </div>
         @if ((+nf.price || 0) > 0 || (+nf.cost || 0) > 0) {
-          <div class="rounded-xl bg-slate-50 dark:bg-white/5 p-3 text-xs space-y-1">
+          <div class="md:col-span-2 xl:col-span-3 rounded-xl bg-slate-50 dark:bg-white/5 p-3 text-xs space-y-1">
             <div class="flex justify-between"><span class="text-slate-500">Precio sin IVA</span><span>{{ money(netPrice()) }}</span></div>
             <div class="flex justify-between"><span class="text-slate-500">IVA ({{ ivaRate() }}%)</span><span>{{ money(ivaAmount()) }}</span></div>
             <div class="flex justify-between font-semibold"><span>Precio final con IVA</span><span class="text-[var(--dash-primary)] dark:text-[var(--dash-primary)]">{{ money(finalPrice()) }}</span></div>
@@ -197,18 +220,18 @@
           </div>
         }
 
-        <div>
+        <div class="md:col-span-2 xl:col-span-3">
           <dlx-image-uploader [(ngModel)]="images" label="Fotos del producto (opcional)" [maxImages]="8" />
         </div>
 
-        @if (error()) { <p class="text-rose-600 text-sm">{{ error() }}</p> }
+        @if (error()) { <p class="md:col-span-2 xl:col-span-3 text-rose-600 text-sm">{{ error() }}</p> }
 
-        <div class="flex justify-end gap-2 pt-2 border-t border-slate-100 dark:border-white/10">
-          <button type="button" (click)="cancel.emit()" class="eg-btn-secondary">Cancelar</button>
-          <button type="button" (click)="submit()" class="eg-btn-primary">
-            <i class="fa-solid fa-plus"></i> Agregar a la recepción
+        <div class="md:col-span-2 xl:col-span-3 flex justify-end gap-2 pt-2 border-t border-slate-100 dark:border-white/10">
+          @if (!embedded) {
+            <button type="button" (click)="cancel.emit()" class="eg-btn-secondary">Cancelar</button>
+          }
+          <button type="button" (click)="submit()" class="eg-btn-primary" [class.w-full]="embedded" [class.justify-center]="embedded">
+            <i class="fa-solid fa-plus"></i> Agregar a la lista
           </button>
         </div>
-      </div>
-    </dlx-modal>
-  
+</ng-template>

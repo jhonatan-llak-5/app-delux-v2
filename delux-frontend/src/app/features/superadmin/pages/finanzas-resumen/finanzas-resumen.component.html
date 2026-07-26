@@ -1,14 +1,26 @@
-<div class="max-w-[1200px] mx-auto px-4 md:px-6 py-6 space-y-6">
+<div class="px-4 md:px-6 py-6 space-y-6">
 
   <!-- Header -->
   <div class="flex flex-wrap items-end justify-between gap-4">
     <div>
-      <h1 class="text-2xl md:text-3xl font-bold text-ink-950 dark:text-white">Resumen financiero</h1>
+      <h1 class="text-2xl md:text-3xl font-bold text-ink-950 dark:text-white">Balance general</h1>
       <p class="text-sm text-ink-500 dark:text-white/60 mt-1">
-        Ventas − Compras − Gastos = Ganancia · <span class="font-semibold text-ink-700 dark:text-white/80">{{ ctx.currentName() }}</span>
+        Ingresos y egresos de <span class="font-semibold text-ink-700 dark:text-white/80">{{ ctx.currentName() }}</span>
       </p>
     </div>
-    <div class="inline-flex rounded-xl bg-ink-100 dark:bg-white/10 p-1">
+    <div class="flex items-center gap-3">
+      <dlx-export-menu [columns]="exportColumns" [rows]="exportRows()" filename="balance"
+                       title="Balance general" [subtitle]="exportSubtitle()" />
+      <a routerLink="/app/admin/pos"
+         class="inline-flex items-center gap-2 px-4 py-2.5 rounded-xl bg-[var(--dash-primary)] hover:bg-[var(--dash-primary-d)] text-white font-semibold transition">
+        <i class="fa-solid fa-plus"></i> Crear venta
+      </a>
+    </div>
+  </div>
+
+  <!-- Filtros -->
+  <div class="flex flex-wrap items-center gap-3">
+    <div class="inline-flex flex-wrap rounded-xl bg-ink-100 dark:bg-white/10 p-1">
       @for (p of periods; track p.key) {
         <button (click)="setPeriod(p.key)"
                 class="px-3 py-1.5 rounded-lg text-sm font-semibold transition"
@@ -17,210 +29,143 @@
         </button>
       }
     </div>
-  </div>
 
-  <!-- Rango personalizado + exportar -->
-  <div class="flex flex-wrap items-center justify-between gap-3">
     @if (period() === 'custom') {
-      <div class="flex items-center gap-2">
-        <input type="date" [ngModel]="customFrom()" (ngModelChange)="onFromChange($event)" [max]="customTo() || maxDate" class="input-modern" />
+      <div class="flex items-center gap-2 text-sm">
+        <input type="date" [max]="maxDate" [ngModel]="customFrom()" (ngModelChange)="onFromChange($event)" class="input-modern" />
         <span class="text-ink-400">→</span>
-        <input type="date" [ngModel]="customTo()" (ngModelChange)="onToChange($event)" [min]="customFrom()" [max]="maxDate" class="input-modern" />
+        <input type="date" [max]="maxDate" [ngModel]="customTo()" (ngModelChange)="onToChange($event)" class="input-modern" />
       </div>
-    } @else { <div></div> }
-    <dlx-export-menu [columns]="exportColumns" [rows]="exportRows()" filename="finanzas"
-                     title="Reporte financiero" [subtitle]="exportSubtitle()" />
+    }
+
+    <div class="flex-1 min-w-[200px] max-w-sm ml-auto">
+      <dlx-search-input [value]="search()" (valueChange)="onSearch($event)" placeholder="Buscar concepto…" [fluid]="true" />
+    </div>
   </div>
 
-  @if (loading() && !data()) {
-    <div class="p-10 text-center text-ink-400 dark:text-white/50"><i class="fa-solid fa-spinner fa-spin"></i> Cargando…</div>
-  } @else if (data(); as d) {
-
-    <!-- Guía rápida (¿cómo vas?) -->
-    <div class="grid grid-cols-1 sm:grid-cols-3 gap-4">
-      @for (g of guide(); track g.label) {
-        <div class="rounded-2xl border p-4 flex items-center gap-4"
-             [ngClass]="g.tone === 'good' ? 'border-emerald-200 dark:border-emerald-500/30 bg-emerald-50/50 dark:bg-emerald-500/5' : g.tone === 'bad' ? 'border-rose-200 dark:border-rose-500/30 bg-rose-50/50 dark:bg-rose-500/5' : 'border-ink-100 dark:border-white/10 bg-white dark:bg-slate-900'">
-          <div class="w-12 h-12 rounded-xl grid place-items-center text-xl shrink-0"
-               [ngClass]="g.tone === 'good' ? 'bg-emerald-100 text-emerald-600 dark:bg-emerald-500/20 dark:text-emerald-300' : g.tone === 'bad' ? 'bg-rose-100 text-rose-600 dark:bg-rose-500/20 dark:text-rose-300' : 'bg-ink-100 text-ink-400 dark:bg-white/10 dark:text-white/50'">
-            <i class="fa-solid" [ngClass]="(g.delta == null || g.delta === 0) ? 'fa-equals' : (g.delta > 0 ? 'fa-arrow-trend-up' : 'fa-arrow-trend-down')"></i>
-          </div>
-          <div class="min-w-0">
-            <p class="text-xs uppercase tracking-wide text-ink-400 dark:text-white/50">{{ g.label }} <span class="font-bold text-ink-700 dark:text-white/80">{{ g.delta == null ? '' : (g.delta > 0 ? '+' : '') + g.delta + '%' }}</span></p>
-            <p class="text-lg font-bold text-ink-900 dark:text-white leading-tight">{{ g.value }}</p>
-            <p class="text-xs text-ink-500 dark:text-white/60 leading-tight">{{ g.msg }}</p>
-          </div>
-        </div>
-      }
+  <!-- KPIs -->
+  <div class="grid grid-cols-1 sm:grid-cols-3 gap-4">
+    <div class="rounded-2xl border border-ink-100 dark:border-white/10 bg-white dark:bg-slate-900 p-5">
+      <div class="flex items-center gap-2 text-xs uppercase tracking-wide text-ink-400 dark:text-white/50">
+        <i class="fa-solid fa-scale-balanced"></i> Balance
+      </div>
+      <p class="mt-1 text-3xl font-bold" [ngClass]="balance() >= 0 ? 'text-emerald-600 dark:text-emerald-400' : 'text-rose-600 dark:text-rose-400'">
+        ${{ money(balance()) }}
+      </p>
+      <p class="text-[11px] text-ink-400 dark:text-white/50 mt-1">Ventas − Gastos</p>
     </div>
-
-    <!-- KPIs -->
-    <div class="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-4 gap-4">
-      <!-- Ventas -->
-      <div class="rounded-2xl border border-ink-100 dark:border-white/10 bg-white dark:bg-slate-900 p-5">
-        <div class="flex items-center justify-between">
-          <p class="text-xs uppercase tracking-wide text-ink-400 dark:text-white/50">Ventas</p>
-          <span class="text-xs font-semibold {{ deltaClass(d.deltas.ventas, true) }}">
-            <i class="fa-solid {{ deltaIcon(d.deltas.ventas) }}"></i>
-            {{ d.deltas.ventas == null ? '—' : (d.deltas.ventas > 0 ? '+' : '') + d.deltas.ventas + '%' }}
-          </span>
-        </div>
-        <p class="mt-1 text-2xl font-bold text-ink-950 dark:text-white">${{ money(d.ventas) }}</p>
-        <p class="text-[11px] text-ink-400 dark:text-white/50 mt-1">Web ${{ money(d.ventas_web) }} · POS ${{ money(d.ventas_pos) }}</p>
+    <div class="rounded-2xl border border-ink-100 dark:border-white/10 bg-white dark:bg-slate-900 p-5">
+      <div class="flex items-center gap-2 text-xs uppercase tracking-wide text-ink-400 dark:text-white/50">
+        <i class="fa-solid fa-money-bill-trend-up text-emerald-500"></i> Ventas totales
       </div>
-      <!-- Compras -->
-      <div class="rounded-2xl border border-ink-100 dark:border-white/10 bg-white dark:bg-slate-900 p-5">
-        <div class="flex items-center justify-between">
-          <p class="text-xs uppercase tracking-wide text-ink-400 dark:text-white/50">Compras</p>
-          <span class="text-xs font-semibold {{ deltaClass(d.deltas.compras, false) }}">
-            <i class="fa-solid {{ deltaIcon(d.deltas.compras) }}"></i>
-            {{ d.deltas.compras == null ? '—' : (d.deltas.compras > 0 ? '+' : '') + d.deltas.compras + '%' }}
-          </span>
-        </div>
-        <p class="mt-1 text-2xl font-bold text-ink-950 dark:text-white">${{ money(d.compras) }}</p>
-        <p class="text-[11px] text-ink-400 dark:text-white/50 mt-1">Recepciones confirmadas</p>
-      </div>
-      <!-- Gastos -->
-      <div class="rounded-2xl border border-ink-100 dark:border-white/10 bg-white dark:bg-slate-900 p-5">
-        <div class="flex items-center justify-between">
-          <p class="text-xs uppercase tracking-wide text-ink-400 dark:text-white/50">Gastos</p>
-          <span class="text-xs font-semibold {{ deltaClass(d.deltas.gastos, false) }}">
-            <i class="fa-solid {{ deltaIcon(d.deltas.gastos) }}"></i>
-            {{ d.deltas.gastos == null ? '—' : (d.deltas.gastos > 0 ? '+' : '') + d.deltas.gastos + '%' }}
-          </span>
-        </div>
-        <p class="mt-1 text-2xl font-bold text-ink-950 dark:text-white">${{ money(d.gastos) }}</p>
-        <a routerLink="/app/admin/gastos" class="text-[11px] text-[var(--dash-primary)] hover:underline mt-1 inline-block">Ver detalle →</a>
-      </div>
-      <!-- Ganancia -->
-      <div class="rounded-2xl border-2 p-5"
-           [ngClass]="(+d.ganancia >= 0) ? 'border-emerald-200 dark:border-emerald-500/30 bg-emerald-50/60 dark:bg-emerald-500/10' : 'border-rose-200 dark:border-rose-500/30 bg-rose-50/60 dark:bg-rose-500/10'">
-        <div class="flex items-center justify-between">
-          <p class="text-xs uppercase tracking-wide text-ink-500 dark:text-white/60 font-semibold">Ganancia</p>
-          <span class="text-xs font-semibold {{ deltaClass(d.deltas.ganancia, true) }}">
-            <i class="fa-solid {{ deltaIcon(d.deltas.ganancia) }}"></i>
-            {{ d.deltas.ganancia == null ? '—' : (d.deltas.ganancia > 0 ? '+' : '') + d.deltas.ganancia + '%' }}
-          </span>
-        </div>
-        <p class="mt-1 text-2xl font-bold" [ngClass]="(+d.ganancia >= 0) ? 'text-emerald-700 dark:text-emerald-300' : 'text-rose-700 dark:text-rose-300'">${{ money(d.ganancia) }}</p>
-        <p class="text-[11px] text-ink-400 dark:text-white/50 mt-1">Ventas − Compras − Gastos</p>
-      </div>
+      <p class="mt-1 text-3xl font-bold text-ink-950 dark:text-white">${{ money(data()?.ventas || 0) }}</p>
+      <p class="text-[11px] text-ink-400 dark:text-white/50 mt-1">{{ data()?.orders || 0 }} venta(s)</p>
     </div>
+    <div class="rounded-2xl border border-ink-100 dark:border-white/10 bg-white dark:bg-slate-900 p-5">
+      <div class="flex items-center gap-2 text-xs uppercase tracking-wide text-ink-400 dark:text-white/50">
+        <i class="fa-solid fa-money-bill-wave text-rose-500"></i> Gastos totales
+      </div>
+      <p class="mt-1 text-3xl font-bold text-ink-950 dark:text-white">${{ money(data()?.gastos || 0) }}</p>
+      <p class="text-[11px] text-ink-400 dark:text-white/50 mt-1">Gastos operativos del periodo</p>
+    </div>
+  </div>
 
-    <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
-      <!-- Estado de resultados (P&L) -->
-      <div class="rounded-2xl border border-ink-100 dark:border-white/10 bg-white dark:bg-slate-900 p-5">
-        <h2 class="font-bold text-ink-950 dark:text-white mb-4">Estado de resultados</h2>
-        <div class="space-y-2 text-sm">
-          <div class="flex items-center justify-between py-1.5">
-            <span class="text-ink-600 dark:text-white/70"><i class="fa-solid fa-globe w-4 text-center text-sky-500"></i> Ventas Web</span>
-            <span class="font-semibold text-ink-950 dark:text-white">${{ money(d.ventas_web) }}</span>
-          </div>
-          <div class="flex items-center justify-between py-1.5">
-            <span class="text-ink-600 dark:text-white/70"><i class="fa-solid fa-cash-register w-4 text-center text-violet-500"></i> Ventas POS</span>
-            <span class="font-semibold text-ink-950 dark:text-white">${{ money(d.ventas_pos) }}</span>
-          </div>
-          <div class="flex items-center justify-between py-1.5 border-t border-ink-100 dark:border-white/10 pt-2.5">
-            <span class="font-semibold text-ink-800 dark:text-white/90">Total ingresos</span>
-            <span class="font-bold text-emerald-600 dark:text-emerald-400">+${{ money(d.ventas) }}</span>
-          </div>
-          <div class="flex items-center justify-between py-1.5">
-            <span class="text-ink-600 dark:text-white/70"><i class="fa-solid fa-truck-ramp-box w-4 text-center text-amber-500"></i> Compras (mercadería)</span>
-            <span class="font-semibold text-rose-600 dark:text-rose-400">−${{ money(d.compras) }}</span>
-          </div>
-          <div class="flex items-center justify-between py-1.5">
-            <span class="text-ink-600 dark:text-white/70"><i class="fa-solid fa-wallet w-4 text-center text-amber-500"></i> Gastos operativos</span>
-            <span class="font-semibold text-rose-600 dark:text-rose-400">−${{ money(d.gastos) }}</span>
-          </div>
-          <div class="flex items-center justify-between py-2.5 border-t-2 border-ink-200 dark:border-white/15 mt-1">
-            <span class="font-bold text-ink-950 dark:text-white">Ganancia neta</span>
-            <span class="font-bold text-lg" [ngClass]="(+d.ganancia >= 0) ? 'text-emerald-600 dark:text-emerald-400' : 'text-rose-600 dark:text-rose-400'">${{ money(d.ganancia) }}</span>
+  <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
+
+    <!-- Transacciones -->
+    <div class="lg:col-span-2">
+      <div class="rounded-2xl border border-ink-100 dark:border-white/10 bg-white dark:bg-slate-900 overflow-hidden">
+        <div class="px-5 py-4 border-b border-ink-100 dark:border-white/10 flex flex-wrap items-center justify-between gap-3">
+          <h2 class="font-bold text-ink-950 dark:text-white">Transacciones</h2>
+          <div class="inline-flex rounded-lg bg-ink-100 dark:bg-white/10 p-1">
+            @for (k of kinds; track k.key) {
+              <button (click)="setKind(k.key)"
+                      class="px-3 py-1 rounded-md text-xs font-semibold transition"
+                      [ngClass]="txnKind() === k.key ? 'bg-white dark:bg-white/15 text-ink-950 dark:text-white shadow-sm' : 'text-ink-500 dark:text-white/60'">
+                {{ k.label }}
+              </button>
+            }
           </div>
         </div>
-      </div>
 
-      <!-- Gastos por categoría -->
-      <div class="rounded-2xl border border-ink-100 dark:border-white/10 bg-white dark:bg-slate-900 p-5">
-        <h2 class="font-bold text-ink-950 dark:text-white mb-4">Gastos por categoría</h2>
-        @if (d.gastos_by_cat.length) {
-          <div class="space-y-3">
-            @for (c of d.gastos_by_cat; track c.category) {
-              <div>
-                <div class="flex items-center justify-between text-sm">
-                  <span class="text-ink-700 dark:text-white/80">{{ c.label }}</span>
-                  <span class="font-semibold text-ink-950 dark:text-white">${{ money(c.total) }}</span>
+        @if (loadingTxns()) {
+          <div class="p-10 text-center text-ink-400 dark:text-white/50"><i class="fa-solid fa-spinner fa-spin"></i> Cargando…</div>
+        } @else if (!txns().length) {
+          <div class="p-12 text-center text-ink-400 dark:text-white/50">
+            <i class="fa-regular fa-folder-open text-3xl mb-2 block"></i>
+            Aún no tienes movimientos en esta fecha.
+            <div class="mt-4">
+              <a routerLink="/app/admin/pos" class="inline-flex items-center gap-2 px-4 py-2 rounded-xl bg-ink-900 dark:bg-white/10 text-white text-sm font-semibold">
+                <i class="fa-solid fa-plus"></i> Crear venta
+              </a>
+            </div>
+          </div>
+        } @else {
+          <div class="divide-y divide-ink-100 dark:divide-white/10">
+            @for (t of txns(); track t.id) {
+              <div class="flex items-center gap-3 px-5 py-3 hover:bg-ink-50 dark:hover:bg-white/[0.03]">
+                <div class="w-9 h-9 rounded-xl grid place-items-center shrink-0"
+                     [ngClass]="t.kind === 'INGRESO' ? 'bg-emerald-100 text-emerald-600 dark:bg-emerald-500/15 dark:text-emerald-400' : 'bg-rose-100 text-rose-600 dark:bg-rose-500/15 dark:text-rose-400'">
+                  <i class="fa-solid" [ngClass]="t.kind === 'INGRESO' ? 'fa-arrow-down' : 'fa-arrow-up'"></i>
                 </div>
-                <div class="mt-1 h-1.5 rounded-full bg-ink-100 dark:bg-white/10 overflow-hidden">
-                  <div class="h-full bg-[var(--dash-primary)] rounded-full" [style.width.%]="pct(c.total, d.gastos)"></div>
+                <div class="min-w-0 flex-1">
+                  <p class="text-sm font-semibold text-ink-950 dark:text-white truncate">{{ t.concept }}</p>
+                  <p class="text-xs text-ink-400 dark:text-white/50 truncate">
+                    {{ txnDate(t.date) }}<span *ngIf="t.method"> · {{ t.method }}</span><span *ngIf="t.party"> · {{ t.party }}</span>
+                  </p>
                 </div>
+                <span class="font-bold whitespace-nowrap"
+                      [ngClass]="t.kind === 'INGRESO' ? 'text-emerald-600 dark:text-emerald-400' : 'text-rose-600 dark:text-rose-400'">
+                  {{ t.kind === 'INGRESO' ? '+' : '−' }}${{ money(t.amount) }}
+                </span>
               </div>
             }
           </div>
-        } @else {
-          <p class="text-sm text-ink-400 dark:text-white/50">Sin gastos registrados en este periodo.</p>
+
+          <!-- Paginación -->
+          @if (totalPages() > 1) {
+            <div class="flex items-center justify-between px-5 py-3 border-t border-ink-100 dark:border-white/10 text-sm">
+              <span class="text-ink-400 dark:text-white/50">{{ txnPage()?.count || 0 }} movimiento(s)</span>
+              <div class="flex items-center gap-2">
+                <button (click)="prevPage()" [disabled]="page() <= 1"
+                        class="w-8 h-8 grid place-items-center rounded-lg border border-ink-200 dark:border-white/10 disabled:opacity-40"><i class="fa-solid fa-chevron-left text-xs"></i></button>
+                <span class="text-ink-600 dark:text-white/70">{{ page() }} / {{ totalPages() }}</span>
+                <button (click)="nextPage()" [disabled]="page() >= totalPages()"
+                        class="w-8 h-8 grid place-items-center rounded-lg border border-ink-200 dark:border-white/10 disabled:opacity-40"><i class="fa-solid fa-chevron-right text-xs"></i></button>
+              </div>
+            </div>
+          }
         }
       </div>
     </div>
 
-    <!-- Gráficos Ventas Web vs POS (ancho completo) -->
-    <div class="grid grid-cols-1 gap-6">
-      <div class="rounded-2xl border border-ink-100 dark:border-white/10 bg-white dark:bg-slate-900 p-5">
-        <h2 class="font-bold text-ink-950 dark:text-white mb-1 flex items-center gap-2"><i class="fa-solid fa-globe text-[var(--dash-primary)]"></i> Ventas Web</h2>
-        <p class="text-xs text-ink-400 dark:text-white/50 mb-3">Total ${{ money(d.ventas_web) }} en el periodo</p>
-        @if (webConfig()) { <dlx-chart-canvas [config]="webConfig()!" [height]="240" /> }
-        @else { <p class="text-sm text-ink-400 dark:text-white/50 py-8 text-center">Sin datos.</p> }
-      </div>
-      <div class="rounded-2xl border border-ink-100 dark:border-white/10 bg-white dark:bg-slate-900 p-5">
-        <h2 class="font-bold text-ink-950 dark:text-white mb-1 flex items-center gap-2"><i class="fa-solid fa-cash-register text-[#0b1c40] dark:text-sky-300"></i> Ventas POS</h2>
-        <p class="text-xs text-ink-400 dark:text-white/50 mb-3">Total ${{ money(d.ventas_pos) }} en el periodo</p>
-        @if (posConfig()) { <dlx-chart-canvas [config]="posConfig()!" [height]="240" /> }
-        @else { <p class="text-sm text-ink-400 dark:text-white/50 py-8 text-center">Sin datos.</p> }
-      </div>
-    </div>
-
-    <!-- Ventas vs Gastos en el tiempo -->
-    <div class="rounded-2xl border border-ink-100 dark:border-white/10 bg-white dark:bg-slate-900 p-5">
-      <h2 class="font-bold text-ink-950 dark:text-white mb-1 flex items-center gap-2"><i class="fa-solid fa-chart-column text-[var(--dash-primary)]"></i> Ventas vs Gastos</h2>
-      <p class="text-xs text-ink-400 dark:text-white/50 mb-3">Tendencia en el tiempo — mira cuándo gastas más de lo que vendes</p>
-      @if (flowConfig()) { <dlx-chart-canvas [config]="flowConfig()!" [height]="280" /> }
-      @else { <p class="text-sm text-ink-400 dark:text-white/50 py-8 text-center">Sin datos.</p> }
-    </div>
-
-    <!-- Comparativo anual -->
-    <div class="rounded-2xl border border-ink-100 dark:border-white/10 bg-white dark:bg-slate-900 p-5">
-      <h2 class="font-bold text-ink-950 dark:text-white mb-1 flex items-center gap-2"><i class="fa-solid fa-chart-column text-[var(--dash-primary)]"></i> Comparativo anual</h2>
-      <p class="text-xs text-ink-400 dark:text-white/50 mb-3">Ventas, compras, gastos y ganancia por año</p>
-      @if (yearlyConfig()) { <dlx-chart-canvas [config]="yearlyConfig()!" [height]="300" /> }
-      @else { <p class="text-sm text-ink-400 dark:text-white/50 py-8 text-center">Sin datos.</p> }
-    </div>
-
     <!-- Productos más vendidos -->
-    <div class="rounded-2xl border border-ink-100 dark:border-white/10 bg-white dark:bg-slate-900 p-5">
-      <h2 class="font-bold text-ink-950 dark:text-white mb-1 flex items-center gap-2"><i class="fa-solid fa-fire text-[var(--dash-primary)]"></i> Productos más vendidos</h2>
-      <p class="text-xs text-ink-400 dark:text-white/50 mb-3">En el periodo · con tendencia vs periodo anterior</p>
-      @if (topProducts().length) {
-        <div class="divide-y divide-ink-100 dark:divide-white/10">
-          @for (tp of topProducts(); track tp.product; let i = $index) {
-            <div class="flex items-center gap-3 py-2.5">
-              <span class="w-6 text-center font-bold text-ink-300 dark:text-white/30">{{ i + 1 }}</span>
-              <div class="min-w-0 flex-1">
-                <p class="text-sm font-semibold text-ink-950 dark:text-white truncate">{{ tp.product }}</p>
-                <p class="text-xs text-ink-400 dark:text-white/50">{{ tp.qty }} vendidos · ${{ money(tp.revenue) }}</p>
-              </div>
-              <span class="text-xs font-semibold {{ deltaClass(tp.delta, true) }}">
-                <i class="fa-solid {{ deltaIcon(tp.delta) }}"></i>
-                {{ tp.delta == null ? 'nuevo' : (tp.delta > 0 ? '+' : '') + tp.delta + '%' }}
-              </span>
-            </div>
-          }
+    <div class="lg:col-span-1">
+      <div class="rounded-2xl border border-ink-100 dark:border-white/10 bg-white dark:bg-slate-900 overflow-hidden">
+        <div class="px-5 py-4 border-b border-ink-100 dark:border-white/10">
+          <h2 class="font-bold text-ink-950 dark:text-white flex items-center gap-2">
+            <i class="fa-solid fa-fire text-amber-500"></i> Más vendidos
+          </h2>
         </div>
-      } @else {
-        <p class="text-sm text-ink-400 dark:text-white/50 py-6 text-center">Sin ventas en este periodo.</p>
-      }
+        @if (!topProducts().length) {
+          <div class="p-8 text-center text-ink-400 dark:text-white/50 text-sm">
+            <i class="fa-regular fa-chart-bar text-2xl mb-2 block"></i>
+            Sin ventas en este periodo.
+          </div>
+        } @else {
+          <div class="divide-y divide-ink-100 dark:divide-white/10">
+            @for (p of topProducts(); track p.product; let i = $index) {
+              <div class="flex items-center gap-3 px-5 py-3">
+                <span class="w-6 h-6 rounded-lg bg-ink-100 dark:bg-white/10 grid place-items-center text-xs font-bold text-ink-500 dark:text-white/60 shrink-0">{{ i + 1 }}</span>
+                <div class="min-w-0 flex-1">
+                  <p class="text-sm font-semibold text-ink-950 dark:text-white truncate">{{ p.product }}</p>
+                  <p class="text-xs text-ink-400 dark:text-white/50">{{ p.qty }} u · ${{ money(p.revenue) }}</p>
+                </div>
+              </div>
+            }
+          </div>
+        }
+      </div>
     </div>
-
-    <p class="text-[11px] text-ink-400 dark:text-white/40 text-center">
-      Periodo {{ d.range.from }} a {{ d.range.to }} · comparado con {{ d.prev_range.from }} a {{ d.prev_range.to }}
-    </p>
-  }
+  </div>
 </div>

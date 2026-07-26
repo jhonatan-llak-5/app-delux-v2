@@ -69,7 +69,10 @@ export interface POSPayload {
   branch_id: number;
   items: POSItem[];
   customer_id?: number | null;
-  customer_data?: { full_name?: string; email?: string; phone?: string; document_id?: string };
+  customer_data?: {
+    full_name?: string; email?: string; phone?: string; document_id?: string;
+    document_type?: string; business_name?: string; address?: string; province?: string;
+  };
   discount?: number;
   notes?: string;
   seller_id?: number | null;
