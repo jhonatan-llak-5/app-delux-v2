@@ -42,7 +42,7 @@ export const SUPERADMIN_ROUTES: Routes = [
       {
         path: 'products/:id',
         loadComponent: () =>
-          import('./pages/product-form/product-form.component').then(m => m.ProductFormComponent),
+          import('./pages/product-edit/product-edit.component').then(m => m.ProductEditComponent),
       },
       {
         path: 'inventory',

@@ -51,12 +51,17 @@ class ProductCreateUpdateSerializer(serializers.ModelSerializer):
     images = ProductImageSerializer(many=True, required=False)
     variants = serializers.ListField(child=serializers.DictField(), required=False, write_only=True)
     initial_stock = serializers.ListField(child=serializers.DictField(), required=False, write_only=True)
+    # Alta rápida de marca/categoría por nombre (crea si no existe). Permite
+    # usar el mismo formulario de creación en la edición, sin selects por id.
+    brand_name = serializers.CharField(required=False, allow_blank=True, write_only=True)
+    category_name = serializers.CharField(required=False, allow_blank=True, write_only=True)
 
     class Meta:
         model = Product
         fields = (
             'name', 'slug', 'short_description', 'description',
-            'brand', 'category', 'base_price', 'compare_at_price', 'tax_rate',
+            'brand', 'category', 'brand_name', 'category_name',
+            'base_price', 'compare_at_price', 'tax_rate',
             'gender', 'status', 'tag', 'is_featured',
             'main_image_url', 'meta_title', 'meta_description',
             'images', 'variants', 'initial_stock',
@@ -71,6 +76,36 @@ class ProductCreateUpdateSerializer(serializers.ModelSerializer):
         if not attrs.get('slug'):
             attrs['slug'] = slugify(attrs.get('name', ''))[:180]
         return attrs
+
+    def _resolve_brand_by_name(self, tenant, name):
+        from apps.brands.models import Brand
+        name = (name or '').strip()
+        if not name:
+            return None
+        b = Brand.objects.filter(tenant=tenant, name__iexact=name).first()
+        if b:
+            return b
+        from django.utils.text import slugify as _sl
+        base = _sl(name) or 'marca'
+        slug, i = base, 2
+        while Brand.objects.filter(tenant=tenant, slug=slug).exists():
+            slug = f'{base}-{i}'; i += 1
+        return Brand.objects.create(tenant=tenant, name=name, slug=slug)
+
+    def _resolve_category_by_name(self, tenant, name):
+        from apps.categories.models import Category
+        name = (name or '').strip()
+        if not name:
+            return None
+        c = Category.objects.filter(tenant=tenant, name__iexact=name).first()
+        if c:
+            return c
+        from django.utils.text import slugify as _sl
+        base = _sl(name) or 'categoria'
+        slug, i = base, 2
+        while Category.objects.filter(tenant=tenant, slug=slug).exists():
+            slug = f'{base}-{i}'; i += 1
+        return Category.objects.create(tenant=tenant, name=name, slug=slug)
 
     @staticmethod
     def _default_brand(tenant):
@@ -90,6 +125,8 @@ class ProductCreateUpdateSerializer(serializers.ModelSerializer):
         images_data = validated_data.pop('images', [])
         variants_data = validated_data.pop('variants', [])
         stock_map = self._stock_map(validated_data.pop('initial_stock', []))
+        brand_name = validated_data.pop('brand_name', '')
+        category_name = validated_data.pop('category_name', '')
         # Tenant del usuario o primero activo (superadmin global)
         request = self.context.get('request')
         tenant = getattr(request.user, 'tenant', None) if request else None
@@ -97,6 +134,10 @@ class ProductCreateUpdateSerializer(serializers.ModelSerializer):
             from apps.tenants.models import Tenant
             tenant = Tenant.objects.filter(is_active=True).first()
         validated_data['tenant'] = tenant
+        if not validated_data.get('brand') and brand_name:
+            validated_data['brand'] = self._resolve_brand_by_name(tenant, brand_name)
+        if not validated_data.get('category') and category_name:
+            validated_data['category'] = self._resolve_category_by_name(tenant, category_name)
         if not validated_data.get('brand'):
             validated_data['brand'] = self._default_brand(tenant)
         if not validated_data.get('category'):
@@ -112,6 +153,12 @@ class ProductCreateUpdateSerializer(serializers.ModelSerializer):
         images_data = validated_data.pop('images', None)
         variants_data = validated_data.pop('variants', None)
         stock_map = self._stock_map(validated_data.pop('initial_stock', []))
+        brand_name = validated_data.pop('brand_name', None)
+        category_name = validated_data.pop('category_name', None)
+        if brand_name:
+            validated_data['brand'] = self._resolve_brand_by_name(instance.tenant, brand_name)
+        if category_name:
+            validated_data['category'] = self._resolve_category_by_name(instance.tenant, category_name)
         if 'brand' in validated_data and not validated_data['brand']:
             validated_data['brand'] = self._default_brand(instance.tenant)
         if 'category' in validated_data and not validated_data['category']:

@@ -1,237 +1,320 @@
 @if (embedded) {
-  <div class="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-4 items-start">
+  <div class="grid grid-cols-1 lg:grid-cols-2 gap-5 items-start">
     <ng-container [ngTemplateOutlet]="body"></ng-container>
   </div>
 } @else {
-  <dlx-modal [open]="true" [maxWidth]="760" title="Nuevo producto" (closed)="cancel.emit()">
-    <div class="space-y-4">
+  <dlx-modal [open]="true" [maxWidth]="900" title="Nuevo producto" (closed)="cancel.emit()">
+    <div class="grid grid-cols-1 md:grid-cols-2 gap-5 items-start">
       <ng-container [ngTemplateOutlet]="body"></ng-container>
     </div>
   </dlx-modal>
 }
 
 <ng-template #body>
-        <div>
-          <label class="eg-label">Tipo de producto</label>
-          <select [(ngModel)]="nf.kind" class="eg-input w-full">
-            @for (k of kinds; track k.value) { <option [ngValue]="k.value">{{ k.label }}</option> }
-          </select>
-        </div>
 
-        <div>
-          <label class="eg-label">Modelo / nombre *</label>
-          <input [(ngModel)]="nf.product_name" class="eg-input w-full" [class.!border-rose-400]="fe('product_name')" placeholder="Ej. CAMPUS MK" />
-          <dlx-field-error [error]="fe('product_name')" />
-        </div>
+  <!-- ══════ COLUMNA IZQUIERDA: Datos del producto ══════ -->
+  <section class="card p-5 space-y-4">
+    <h3 class="font-bold text-ink-950 dark:text-white flex items-center gap-2"><i class="fa-solid fa-box-open text-[var(--dash-primary)]"></i> Datos del producto</h3>
 
-        <div class="md:col-span-2 xl:col-span-3">
-          <label class="eg-label">Descripción (opcional)</label>
-          <textarea [(ngModel)]="nf.description" rows="2" class="eg-input w-full" placeholder="Descripción breve del producto…"></textarea>
-        </div>
+    <dlx-image-uploader [(ngModel)]="images" label="Fotos del producto (opcional)" [maxImages]="8" />
 
-        <div class="grid grid-cols-2 gap-3 md:col-span-2 xl:col-span-3">
-          <div class="relative">
-            <label class="eg-label">Marca *</label>
-            <input [(ngModel)]="nf.brand" (focus)="brandOpen.set(true)" (ngModelChange)="brandOpen.set(true)" (blur)="closeSoon('brand')"
-                   class="eg-input w-full" [class.!border-rose-400]="fe('brand')" placeholder="Marca" autocomplete="off" />
-            @if (brandOpen() && (filteredBrands().length || brandIsNew())) {
-              <div class="absolute left-0 right-0 top-full mt-1 z-30 max-h-52 overflow-y-auto rounded-xl py-1
-                          bg-white dark:bg-[#161a26] border border-slate-200 dark:border-white/10 shadow-xl">
-                @for (b of filteredBrands(); track b) {
-                  <button type="button" (click)="pickBrand(b)"
-                          class="w-full text-left px-3 py-2 text-sm hover:bg-slate-100 dark:hover:bg-white/5 transition">{{ b }}</button>
-                }
-                @if (brandIsNew()) {
-                  <button type="button" (click)="pickBrand(nf.brand.trim())"
-                          class="w-full text-left px-3 py-2 text-sm text-emerald-600 dark:text-emerald-400 font-medium hover:bg-emerald-50 dark:hover:bg-emerald-500/10 transition border-t border-slate-100 dark:border-white/10">
-                    <i class="fa-solid fa-plus"></i> Crear marca «{{ nf.brand.trim() }}»
-                  </button>
-                }
-              </div>
-            }
-            <dlx-field-error [error]="fe('brand')" />
+    @if (!isEdit()) {
+      <div>
+        <label class="eg-label">Código de barras</label>
+        @if (isSingleVariant()) {
+          <div class="flex gap-2">
+            <input [(ngModel)]="nf.barcode" class="eg-input flex-1 font-mono" placeholder="Escanea o escribe (opcional)" />
+            <button type="button" (click)="startScan()" title="Escanear con cámara"
+                    class="shrink-0 px-3 h-11 rounded-xl border border-[var(--dash-primary)] text-[var(--dash-primary)] hover:bg-[var(--dash-primary)]/5 font-semibold text-sm inline-flex items-center gap-2">
+              <i class="fa-solid fa-camera"></i> Escanear
+            </button>
           </div>
-          <div class="relative">
-            <label class="eg-label">Categoría *</label>
-            <input [(ngModel)]="nf.category" (focus)="catOpen.set(true)" (ngModelChange)="catOpen.set(true)" (blur)="closeSoon('cat')"
-                   class="eg-input w-full" [class.!border-rose-400]="fe('category')" placeholder="Categoría" autocomplete="off" />
-            @if (catOpen() && (filteredCats().length || catIsNew())) {
-              <div class="absolute left-0 right-0 top-full mt-1 z-30 max-h-52 overflow-y-auto rounded-xl py-1
-                          bg-white dark:bg-[#161a26] border border-slate-200 dark:border-white/10 shadow-xl">
-                @for (c of filteredCats(); track c) {
-                  <button type="button" (click)="pickCat(c)"
-                          class="w-full text-left px-3 py-2 text-sm hover:bg-slate-100 dark:hover:bg-white/5 transition">
-                    {{ c }}@if (parentOf(c)) { <span class="text-slate-400 text-xs"> · {{ parentOf(c) }}</span> }
-                  </button>
-                }
-                @if (catIsNew()) {
-                  <button type="button" (click)="pickCat(nf.category.trim())"
-                          class="w-full text-left px-3 py-2 text-sm text-emerald-600 dark:text-emerald-400 font-medium hover:bg-emerald-50 dark:hover:bg-emerald-500/10 transition border-t border-slate-100 dark:border-white/10">
-                    <i class="fa-solid fa-plus"></i> Crear categoría «{{ nf.category.trim() }}»
-                  </button>
-                }
-              </div>
-            }
-            <dlx-field-error [error]="fe('category')" />
-            @if (parentOf(nf.category)) {
-              <p class="text-[11px] text-slate-400 mt-1"><i class="fa-solid fa-sitemap"></i> Pertenece a: {{ parentOf(nf.category) }}</p>
+          @if (camError()) { <p class="text-[11px] text-amber-600 mt-1">{{ camError() }}</p> }
+        } @else {
+          <div class="rounded-xl border border-amber-200 dark:border-amber-500/30 bg-amber-50 dark:bg-amber-500/10 px-3 py-2 text-[12px] text-amber-800 dark:text-amber-300">
+            <i class="fa-solid fa-circle-info mr-1"></i>
+            Varias tallas/colores: a cada variante se le generará su propio código interno.
+          </div>
+        }
+      </div>
+    }
+
+    <div>
+      <label class="eg-label">Nombre del producto *</label>
+      <input [(ngModel)]="nf.product_name" class="eg-input w-full" [class.!border-rose-400]="fe('product_name')" placeholder="Ej. Camiseta" />
+      <dlx-field-error [error]="fe('product_name')" />
+    </div>
+
+    @if (!isEdit()) {
+      <label class="flex items-center gap-3 rounded-xl border px-3 py-2.5 cursor-pointer transition"
+             [ngClass]="hasVariants() ? 'border-[var(--dash-primary)] bg-[var(--dash-primary)]/5' : 'border-slate-200 dark:border-white/10'">
+        <input type="checkbox" [checked]="hasVariants()" (change)="toggleVariants($any($event.target).checked)" class="w-4 h-4 accent-[var(--dash-primary)]" />
+        <span class="flex-1">
+          <span class="text-sm font-semibold text-ink-950 dark:text-white">Este producto tiene variantes</span>
+          <span class="block text-[11px] text-slate-400">Actívalo si manejas varias tallas o colores.</span>
+        </span>
+        <i class="fa-solid fa-layer-group text-slate-300"></i>
+      </label>
+
+      @if (!hasVariants()) {
+        <div>
+          <label class="eg-label">Cantidad *</label>
+          <input type="number" min="0" [ngModel]="getQty('', '')" (ngModelChange)="setQty('', '', $event)"
+                 class="eg-input w-full" [class.!border-rose-400]="fe('qty')" placeholder="0" />
+          <dlx-field-error [error]="fe('qty')" />
+        </div>
+      }
+    }
+
+    <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+      <div>
+        <label class="eg-label">Precio de venta (con IVA) *</label>
+        <dlx-price-input [(ngModel)]="nf.price" extraClass="w-full" />
+        <dlx-field-error [error]="fe('price')" />
+      </div>
+      @if (!isEdit()) {
+        <div>
+          <label class="eg-label">Costo de compra *</label>
+          <dlx-price-input [(ngModel)]="nf.cost" extraClass="w-full" />
+          <dlx-field-error [error]="fe('cost')" />
+        </div>
+      }
+    </div>
+
+    @if ((+nf.price || 0) > 0) {
+      <div class="rounded-xl bg-slate-50 dark:bg-white/5 p-3 text-xs space-y-1">
+        <div class="flex justify-between"><span class="text-slate-500">Precio sin IVA</span><span>{{ money(netPrice()) }}</span></div>
+        <div class="flex justify-between"><span class="text-slate-500">IVA ({{ effectiveIva() }}%)</span><span>{{ money(ivaAmount()) }}</span></div>
+        @if ((+nf.cost || 0) > 0) {
+          <div class="flex justify-between font-semibold border-t border-slate-200 dark:border-white/10 pt-1 mt-1">
+            <span class="text-slate-500">Margen</span>
+            <span [class.text-emerald-600]="margin() >= 0" [class.text-rose-600]="margin() < 0">{{ money(margin()) }}@if (marginPct()) { · {{ marginPct() | number:'1.0-0' }}% }</span>
+          </div>
+        }
+      </div>
+    }
+  </section>
+
+  <!-- ══════ COLUMNA DERECHA: Información adicional ══════ -->
+  <section class="card p-5 space-y-4">
+    <h3 class="font-bold text-ink-950 dark:text-white flex items-center gap-2"><i class="fa-solid fa-circle-info text-[var(--dash-primary)]"></i> Información adicional</h3>
+
+    @if (!isEdit()) {
+      <div>
+        <label class="eg-label">Tipo de producto</label>
+        <select [(ngModel)]="nf.kind" class="eg-input w-full">
+          @for (k of kinds; track k.value) { <option [ngValue]="k.value">{{ k.label }}</option> }
+        </select>
+      </div>
+    }
+
+    <div class="relative">
+      <label class="eg-label">Marca <span class="text-slate-400 font-normal">(opcional)</span></label>
+      <input [(ngModel)]="nf.brand" (focus)="brandOpen.set(true)" (ngModelChange)="brandOpen.set(true)" (blur)="closeSoon('brand')"
+             class="eg-input w-full transition" [class.!border-emerald-400]="brandChosen()" placeholder="Escribe o elige una marca" autocomplete="off" />
+      @if (brandChosen()) { <i class="fa-solid fa-circle-check text-emerald-500 text-sm absolute right-3 top-[38px]"></i> }
+      @if (brandOpen() && (filteredBrands().length || brandIsNew())) {
+        <div class="absolute left-0 right-0 top-full mt-1 z-30 max-h-52 overflow-y-auto rounded-xl py-1 bg-white dark:bg-[#161a26] border border-slate-200 dark:border-white/10 shadow-xl">
+          @for (b of filteredBrands(); track b) {
+            <button type="button" (click)="pickBrand(b)"
+                    class="w-full text-left px-3 py-2 text-sm hover:bg-slate-100 dark:hover:bg-white/5 transition"
+                    [ngClass]="nf.brand.trim().toLowerCase() === b.toLowerCase() ? 'text-[var(--dash-primary)] font-semibold' : ''">{{ b }}</button>
+          }
+          @if (brandIsNew()) {
+            <button type="button" (click)="createBrand()"
+                    class="w-full text-left px-3 py-2 text-sm text-emerald-600 dark:text-emerald-400 font-medium hover:bg-emerald-50 dark:hover:bg-emerald-500/10 transition border-t border-slate-100 dark:border-white/10">
+              <i class="fa-solid fa-plus"></i> Crear marca «{{ nf.brand.trim() }}»
+            </button>
+          }
+        </div>
+      }
+    </div>
+
+    <div class="relative">
+      <label class="eg-label">Categoría <span class="text-slate-400 font-normal">(opcional)</span></label>
+      <input [(ngModel)]="nf.category" (focus)="catOpen.set(true)" (ngModelChange)="catOpen.set(true)" (blur)="closeSoon('cat')"
+             class="eg-input w-full transition" [class.!border-emerald-400]="catChosen()" placeholder="Escribe o elige una categoría" autocomplete="off" />
+      @if (catChosen()) { <i class="fa-solid fa-circle-check text-emerald-500 text-sm absolute right-3 top-[38px]"></i> }
+      @if (catOpen() && (filteredCats().length || catIsNew())) {
+        <div class="absolute left-0 right-0 top-full mt-1 z-30 max-h-52 overflow-y-auto rounded-xl py-1 bg-white dark:bg-[#161a26] border border-slate-200 dark:border-white/10 shadow-xl">
+          @for (c of filteredCats(); track c) {
+            <button type="button" (click)="pickCat(c)"
+                    class="w-full text-left px-3 py-2 text-sm hover:bg-slate-100 dark:hover:bg-white/5 transition"
+                    [ngClass]="nf.category.trim().toLowerCase() === c.toLowerCase() ? 'text-[var(--dash-primary)] font-semibold' : ''">
+              {{ c }}@if (parentOf(c)) { <span class="text-slate-400 text-xs"> · {{ parentOf(c) }}</span> }
+            </button>
+          }
+          @if (catIsNew()) {
+            <button type="button" (click)="createCat()"
+                    class="w-full text-left px-3 py-2 text-sm text-emerald-600 dark:text-emerald-400 font-medium hover:bg-emerald-50 dark:hover:bg-emerald-500/10 transition border-t border-slate-100 dark:border-white/10">
+              <i class="fa-solid fa-plus"></i> Crear categoría «{{ nf.category.trim() }}»
+            </button>
+          }
+        </div>
+      }
+    </div>
+
+    <div>
+      <label class="eg-label">Descripción (opcional)</label>
+      <textarea [(ngModel)]="nf.description" rows="3" class="eg-input w-full" placeholder="Añadir una descripción ayudará a tus clientes a elegir más fácil"></textarea>
+    </div>
+
+    <div>
+      <label class="eg-label">Impuesto del producto</label>
+      <select [(ngModel)]="taxRate" class="eg-input w-full">
+        @for (t of taxOptions; track t.value) {
+          <option [ngValue]="t.value">{{ t.value === null ? ('IVA global (' + globalIva() + '%)') : t.label }}</option>
+        }
+      </select>
+    </div>
+
+    <!-- Oferta -->
+    <label class="flex items-center gap-3 rounded-xl border px-3 py-2.5 cursor-pointer transition"
+           [ngClass]="onOffer ? 'border-rose-400 bg-rose-50 dark:bg-rose-500/10' : 'border-slate-200 dark:border-white/10'">
+      <input type="checkbox" [checked]="onOffer" (change)="toggleOffer($any($event.target).checked)" class="w-4 h-4 accent-rose-500" />
+      <span class="flex-1">
+        <span class="text-sm font-semibold text-ink-950 dark:text-white">Este producto está en oferta</span>
+        <span class="block text-[11px] text-slate-400">Aplica un % de descuento sobre el precio.</span>
+      </span>
+      <i class="fa-solid fa-tag text-rose-400"></i>
+    </label>
+    @if (onOffer) {
+      <div class="grid grid-cols-1 sm:grid-cols-2 gap-3 items-end">
+        <div>
+          <label class="eg-label">Descuento (%)</label>
+          <input type="number" min="0" max="99" [(ngModel)]="discount" class="eg-input w-full" placeholder="Ej. 20" />
+        </div>
+        <div class="rounded-xl bg-rose-50 dark:bg-rose-500/10 px-3 py-2 text-sm">
+          <div class="flex justify-between"><span class="text-slate-500 line-through">{{ money(+nf.price || 0) }}</span>
+            <span class="font-bold text-rose-600">{{ money(offerPrice()) }}</span></div>
+          <p class="text-[11px] text-rose-500 mt-0.5">Precio en oferta ({{ (+discount || 0) }}%)</p>
+        </div>
+      </div>
+    }
+  </section>
+
+  <!-- Card: Variantes (ancho completo, solo cuando se activan) -->
+  @if (!isEdit() && hasVariants()) {
+    <section class="card p-5 space-y-4 lg:col-span-2">
+      <h3 class="font-bold text-ink-950 dark:text-white flex items-center gap-2"><i class="fa-solid fa-layer-group text-[var(--dash-primary)]"></i> Variantes y cantidad</h3>
+      <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+        <div class="space-y-2">
+          <label class="eg-label !mb-0">Colores (elige uno o varios)</label>
+          <div class="flex flex-wrap gap-1.5">
+            @for (c of colorPresets; track c) {
+              <button type="button" (click)="toggleColor(c)"
+                      class="px-2.5 py-1 rounded-lg text-xs font-semibold border transition inline-flex items-center gap-1.5"
+                      [ngClass]="selColors.includes(c) ? 'bg-ink-950 text-white border-ink-950 dark:bg-white dark:text-ink-950' : 'border-slate-200 dark:border-white/15 text-slate-600 dark:text-white/70'">
+                <span class="w-3 h-3 rounded-full border border-black/10 dark:border-white/20" [style.background]="colorHex(c)"></span>{{ c }}
+              </button>
             }
           </div>
+          <div class="flex gap-2">
+            <input [(ngModel)]="newColor" (keydown.enter)="$event.preventDefault(); addColorText()" class="eg-input flex-1" placeholder="Otro color…" autocomplete="off" />
+            <button type="button" class="eg-btn-secondary text-sm" (click)="addColorText()" [disabled]="!newColor.trim()">Añadir</button>
+          </div>
         </div>
-
-        <!-- ¿Tiene variantes? -->
-        <label class="md:col-span-2 xl:col-span-3 flex items-center gap-3 rounded-xl border px-3 py-2.5 cursor-pointer transition"
-               [ngClass]="hasVariants() ? 'border-[var(--dash-primary)] bg-[var(--dash-primary)]/5' : 'border-slate-200 dark:border-white/10'">
-          <input type="checkbox" [checked]="hasVariants()" (change)="toggleVariants($any($event.target).checked)"
-                 class="w-4 h-4 accent-[var(--dash-primary)]" />
-          <span class="flex-1">
-            <span class="text-sm font-semibold text-ink-950 dark:text-white">Este producto tiene variantes</span>
-            <span class="block text-[11px] text-slate-400">Actívalo si manejas varias tallas o colores. Si no, se registra como un solo producto.</span>
-          </span>
-          <i class="fa-solid fa-layer-group text-slate-300"></i>
-        </label>
-
-        @if (hasVariants()) {
-          <div class="md:col-span-2 xl:col-span-3 space-y-2 rounded-xl border border-slate-200 dark:border-white/10 p-3">
-            <label class="eg-label !mb-0">Colores (elige uno o varios)</label>
+        <div class="space-y-2">
+          <label class="eg-label !mb-0">{{ sizeLabel() }}s (elige una o varias)</label>
+          @if (sizePreset().length) {
             <div class="flex flex-wrap gap-1.5">
-              @for (c of colorPresets; track c) {
-                <button type="button" (click)="toggleColor(c)"
-                        class="px-2.5 py-1 rounded-lg text-xs font-semibold border transition inline-flex items-center gap-1.5"
-                        [ngClass]="selColors.includes(c) ? 'bg-ink-950 text-white border-ink-950 dark:bg-white dark:text-ink-950' : 'border-slate-200 dark:border-white/15 text-slate-600 dark:text-white/70'">
-                  <span class="w-3 h-3 rounded-full border border-black/10 dark:border-white/20" [style.background]="colorHex(c)"></span>{{ c }}
-                </button>
+              @for (s of sizePreset(); track s) {
+                <button type="button" (click)="toggleSize(s)"
+                        class="px-3 py-1.5 rounded-lg text-xs font-semibold border transition"
+                        [ngClass]="selSizes.includes(s) ? 'bg-ink-950 text-white border-ink-950 dark:bg-white dark:text-ink-950' : 'border-slate-200 dark:border-white/15 text-slate-600 dark:text-white/70'">{{ s }}</button>
               }
             </div>
-            <div class="flex gap-2">
-              <input [(ngModel)]="newColor" (keydown.enter)="$event.preventDefault(); addColorText()"
-                     class="eg-input flex-1" placeholder="Otro color…" autocomplete="off" />
-              <button type="button" class="eg-btn-secondary text-sm" (click)="addColorText()" [disabled]="!newColor.trim()">Añadir</button>
-            </div>
-
-            <label class="eg-label !mb-0 mt-2">{{ sizeLabel() }}s (elige una o varias)</label>
-            @if (sizePreset().length) {
-              <div class="flex flex-wrap gap-1.5">
-                @for (s of sizePreset(); track s) {
-                  <button type="button" (click)="toggleSize(s)"
-                          class="px-3 py-1.5 rounded-lg text-xs font-semibold border transition"
-                          [ngClass]="selSizes.includes(s) ? 'bg-ink-950 text-white border-ink-950 dark:bg-white dark:text-ink-950' : 'border-slate-200 dark:border-white/15 text-slate-600 dark:text-white/70'">{{ s }}</button>
-                }
-              </div>
-            }
-            <div class="flex gap-2">
-              <input [(ngModel)]="newSizeText" (keydown.enter)="$event.preventDefault(); addSizeText()"
-                     class="eg-input flex-1" placeholder="Otra talla/medida…" autocomplete="off" />
-              <button type="button" class="eg-btn-secondary text-sm" (click)="addSizeText()" [disabled]="!newSizeText.trim()">Añadir</button>
-            </div>
+          }
+          <div class="flex gap-2">
+            <input [(ngModel)]="newSizeText" (keydown.enter)="$event.preventDefault(); addSizeText()" class="eg-input flex-1" placeholder="Otra talla/medida…" autocomplete="off" />
+            <button type="button" class="eg-btn-secondary text-sm" (click)="addSizeText()" [disabled]="!newSizeText.trim()">Añadir</button>
           </div>
-        }
+        </div>
+      </div>
 
-        <div class="md:col-span-2 xl:col-span-3">
-          <div class="flex items-center justify-between mb-2 gap-2 flex-wrap">
-            <label class="eg-label !mb-0">{{ useMatrix() ? 'Cantidad por color y talla' : 'Cantidad' }}</label>
-            @if (comboList().length > 1) {
-              <div class="flex items-center gap-1.5">
-                <input type="number" min="0" [(ngModel)]="bulkQty" class="eg-input !h-9 w-20 text-center text-sm" />
-                <button type="button" class="eg-btn-secondary !h-9 text-xs" (click)="applyBulk()"><i class="fa-solid fa-wand-magic-sparkles"></i> Aplicar a todas</button>
-              </div>
-            }
-          </div>
-
-          @if (useMatrix()) {
-            <!-- Matriz color × talla (solo con varios colores y varias tallas) -->
-            <div class="rounded-xl border border-slate-200 dark:border-white/10 overflow-x-auto">
-              <table class="text-sm border-collapse min-w-full">
-                <thead class="bg-slate-50 dark:bg-white/5 text-slate-500">
-                  <tr>
-                    <th class="sticky left-0 z-10 bg-slate-50 dark:bg-[#161a26] px-3 py-2 text-left font-semibold whitespace-nowrap border-r border-slate-200 dark:border-white/10">Color / Talla</th>
-                    @for (sz of sizesOrDefault(); track sz) { <th class="px-2 py-2 text-center font-semibold min-w-[64px]">{{ sz || '—' }}</th> }
-                  </tr>
-                </thead>
-                <tbody>
-                  @for (c of colorsOrDefault(); track c) {
-                    <tr class="border-t border-slate-100 dark:border-white/5">
-                      <td class="sticky left-0 z-10 bg-white dark:bg-[#121826] px-3 py-2 font-medium whitespace-nowrap border-r border-slate-200 dark:border-white/10">
-                        <span class="inline-flex items-center gap-1.5"><span class="w-3 h-3 rounded-full border border-black/10 dark:border-white/20" [style.background]="colorHex(c)"></span>{{ c || '—' }}</span>
+      <div>
+        <div class="flex items-center justify-between mb-2 gap-2 flex-wrap">
+          <label class="eg-label !mb-0">{{ useMatrix() ? 'Cantidad por color y talla' : 'Cantidad' }}</label>
+          @if (comboList().length > 1) {
+            <div class="flex items-center gap-1.5">
+              <input type="number" min="0" [(ngModel)]="bulkQty" class="eg-input !h-9 w-20 text-center text-sm" />
+              <button type="button" class="eg-btn-secondary !h-9 text-xs" (click)="applyBulk()"><i class="fa-solid fa-wand-magic-sparkles"></i> Aplicar a todas</button>
+            </div>
+          }
+        </div>
+        @if (useMatrix()) {
+          <div class="rounded-xl border border-slate-200 dark:border-white/10 overflow-x-auto">
+            <table class="text-sm border-collapse min-w-full">
+              <thead class="bg-slate-50 dark:bg-white/5 text-slate-500">
+                <tr>
+                  <th class="sticky left-0 z-10 bg-slate-50 dark:bg-[#161a26] px-3 py-2 text-left font-semibold whitespace-nowrap border-r border-slate-200 dark:border-white/10">Color / Talla</th>
+                  @for (sz of sizesOrDefault(); track sz) { <th class="px-2 py-2 text-center font-semibold min-w-[64px]">{{ sz || '—' }}</th> }
+                </tr>
+              </thead>
+              <tbody>
+                @for (c of colorsOrDefault(); track c) {
+                  <tr class="border-t border-slate-100 dark:border-white/5">
+                    <td class="sticky left-0 z-10 bg-white dark:bg-[#121826] px-3 py-2 font-medium whitespace-nowrap border-r border-slate-200 dark:border-white/10">
+                      <span class="inline-flex items-center gap-1.5"><span class="w-3 h-3 rounded-full border border-black/10 dark:border-white/20" [style.background]="colorHex(c)"></span>{{ c || '—' }}</span>
+                    </td>
+                    @for (sz of sizesOrDefault(); track sz) {
+                      <td class="px-1.5 py-1.5 text-center">
+                        <input type="number" min="0" [ngModel]="getQty(c, sz)" (ngModelChange)="setQty(c, sz, $event)" class="eg-input !h-9 w-16 text-center text-sm" placeholder="0" />
                       </td>
-                      @for (sz of sizesOrDefault(); track sz) {
-                        <td class="px-1.5 py-1.5 text-center">
-                          <input type="number" min="0" [ngModel]="getQty(c, sz)" (ngModelChange)="setQty(c, sz, $event)"
-                                 class="eg-input !h-9 w-16 text-center text-sm" placeholder="0" />
-                        </td>
-                      }
-                    </tr>
-                  }
-                </tbody>
-              </table>
-            </div>
-          } @else {
-            <!-- Lista simple (1 sola combinación o una sola dimensión múltiple) -->
-            <div class="space-y-2">
-              @for (cb of comboList(); track cb.key) {
-                <div class="flex items-center gap-3 rounded-xl border border-slate-200 dark:border-white/10 px-3 h-12">
-                  <span class="flex-1 text-sm font-medium truncate inline-flex items-center gap-1.5">
-                    @if (cb.color) { <span class="w-3 h-3 rounded-full border border-black/10 dark:border-white/20 shrink-0" [style.background]="colorHex(cb.color)"></span> }
-                    {{ comboLabel(cb) }}
-                  </span>
-                  <div class="w-28 shrink-0">
-                    <input type="number" min="0" [ngModel]="getQty(cb.color, cb.size)" (ngModelChange)="setQty(cb.color, cb.size, $event)"
-                           class="eg-input !h-9 w-full text-center" placeholder="0" />
-                  </div>
+                    }
+                  </tr>
+                }
+              </tbody>
+            </table>
+          </div>
+        } @else {
+          <div class="space-y-2">
+            @for (cb of comboList(); track cb.key) {
+              <div class="flex items-center gap-3 rounded-xl border border-slate-200 dark:border-white/10 px-3 h-12">
+                <span class="flex-1 text-sm font-medium truncate inline-flex items-center gap-1.5">
+                  @if (cb.color) { <span class="w-3 h-3 rounded-full border border-black/10 dark:border-white/20 shrink-0" [style.background]="colorHex(cb.color)"></span> }
+                  {{ comboLabel(cb) }}
+                </span>
+                <div class="w-28 shrink-0">
+                  <input type="number" min="0" [ngModel]="getQty(cb.color, cb.size)" (ngModelChange)="setQty(cb.color, cb.size, $event)" class="eg-input !h-9 w-full text-center" placeholder="0" />
                 </div>
-              }
-            </div>
-          }
-          <p class="text-xs text-slate-400 mt-2">Total: <b class="text-ink-950 dark:text-white">{{ totalUnits() }}</b> unidad(es) · <b>{{ comboCount() }}</b> variante(s)</p>
-        </div>
-
-        <div class="md:col-span-2 xl:col-span-3">
-          <label class="eg-label">Código de barras</label>
-          @if (isSingleVariant()) {
-            <input [(ngModel)]="nf.barcode" class="eg-input w-full font-mono" placeholder="Escanea o escribe (opcional)" />
-            <p class="text-[11px] text-slate-400 mt-1">Se guarda el código de fábrica y, además, se genera un código interno propio. Si lo dejas vacío, solo se usa el interno.</p>
-          } @else {
-            <div class="rounded-xl border border-amber-200 dark:border-amber-500/30 bg-amber-50 dark:bg-amber-500/10 px-3 py-2 text-[12px] text-amber-800 dark:text-amber-300">
-              <i class="fa-solid fa-circle-info mr-1"></i>
-              Elegiste varias tallas/colores. El código de barras es único por talla, así que a cada variante se le generará su propio código interno único. Para conservar el de fábrica, agrega una talla/color a la vez.
-            </div>
-          }
-        </div>
-
-        <div class="grid grid-cols-2 gap-3 md:col-span-2 xl:col-span-3">
-          <div>
-            <label class="eg-label">Costo (compra)</label>
-            <dlx-price-input [(ngModel)]="nf.cost" extraClass="w-full" />
-          </div>
-          <div>
-            <label class="eg-label">Precio venta (sin IVA)</label>
-            <dlx-price-input [(ngModel)]="nf.price" extraClass="w-full" />
-          </div>
-        </div>
-        @if ((+nf.price || 0) > 0 || (+nf.cost || 0) > 0) {
-          <div class="md:col-span-2 xl:col-span-3 rounded-xl bg-slate-50 dark:bg-white/5 p-3 text-xs space-y-1">
-            <div class="flex justify-between"><span class="text-slate-500">Precio sin IVA</span><span>{{ money(netPrice()) }}</span></div>
-            <div class="flex justify-between"><span class="text-slate-500">IVA ({{ ivaRate() }}%)</span><span>{{ money(ivaAmount()) }}</span></div>
-            <div class="flex justify-between font-semibold"><span>Precio final con IVA</span><span class="text-[var(--dash-primary)] dark:text-[var(--dash-primary)]">{{ money(finalPrice()) }}</span></div>
-            <div class="flex justify-between border-t border-slate-200 dark:border-white/10 pt-1 mt-1">
-              <span class="text-slate-500">Margen (precio − costo)</span>
-              <span [class.text-emerald-600]="margin() >= 0" [class.text-rose-600]="margin() < 0">{{ money(margin()) }}@if (marginPct()) { · {{ marginPct() | number:'1.0-0' }}% }</span>
-            </div>
+              </div>
+            }
           </div>
         }
+        <p class="text-xs text-slate-400 mt-2">Total: <b class="text-ink-950 dark:text-white">{{ totalUnits() }}</b> unidad(es) · <b>{{ comboCount() }}</b> variante(s)</p>
+      </div>
+    </section>
+  }
 
-        <div class="md:col-span-2 xl:col-span-3">
-          <dlx-image-uploader [(ngModel)]="images" label="Fotos del producto (opcional)" [maxImages]="8" />
+  @if (error()) { <p class="lg:col-span-2 text-rose-600 text-sm">{{ error() }}</p> }
+
+  <div class="lg:col-span-2 flex justify-end gap-2 pt-1">
+    @if (!embedded) {
+      <button type="button" (click)="cancel.emit()" class="eg-btn-secondary">Cancelar</button>
+    }
+    <button type="button" (click)="submit()" class="eg-btn-primary" [disabled]="saving">
+      <i class="fa-solid" [ngClass]="saving ? 'fa-spinner fa-spin' : (isEdit() ? 'fa-floppy-disk' : 'fa-plus')"></i>
+      {{ isEdit() ? 'Guardar cambios' : 'Agregar a la lista' }}
+    </button>
+  </div>
+
+  <!-- Overlay de cámara para escanear -->
+  @if (cameraOn()) {
+    <div class="fixed inset-0 z-[80] bg-black flex flex-col">
+      <div class="flex items-center justify-between px-4 py-3 text-white">
+        <span class="text-sm font-semibold"><i class="fa-solid fa-barcode mr-2"></i>Escanear código</span>
+        <button type="button" (click)="stopScan()" class="w-11 h-11 rounded-full bg-white/15 hover:bg-white/25 grid place-items-center transition">
+          <i class="fa-solid fa-xmark text-xl"></i>
+        </button>
+      </div>
+      <div class="flex-1 relative overflow-hidden">
+        <video #camVideo class="absolute inset-0 w-full h-full object-cover" muted playsinline></video>
+        <div class="absolute inset-0 flex items-center justify-center pointer-events-none">
+          <div class="w-4/5 max-w-lg aspect-[3/2] border-4 border-white/70 rounded-2xl shadow-[0_0_0_9999px_rgba(0,0,0,0.45)]"></div>
         </div>
-
-        @if (error()) { <p class="md:col-span-2 xl:col-span-3 text-rose-600 text-sm">{{ error() }}</p> }
-
-        <div class="md:col-span-2 xl:col-span-3 flex justify-end gap-2 pt-2 border-t border-slate-100 dark:border-white/10">
-          @if (!embedded) {
-            <button type="button" (click)="cancel.emit()" class="eg-btn-secondary">Cancelar</button>
-          }
-          <button type="button" (click)="submit()" class="eg-btn-primary" [class.w-full]="embedded" [class.justify-center]="embedded">
-            <i class="fa-solid fa-plus"></i> Agregar a la lista
-          </button>
-        </div>
+        <p class="absolute bottom-10 left-0 right-0 text-center text-white/90 text-sm">Apunta al código de barras</p>
+      </div>
+    </div>
+  }
 </ng-template>

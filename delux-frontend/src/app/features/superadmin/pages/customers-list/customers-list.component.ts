@@ -61,7 +61,6 @@ import { DlxPaginationComponent } from '@shared/ui/pagination.component';
               <th class="px-5 py-3 font-semibold text-center">Órdenes</th>
               <th class="px-5 py-3 font-semibold text-right">Total gastado</th>
               <th class="px-5 py-3 font-semibold">Última compra</th>
-              <th class="px-5 py-3 font-semibold text-center">Marketing</th>
               <th class="px-5 py-3 font-semibold text-center">Estado</th>
               <th class="px-5 py-3 font-semibold text-right">Acciones</th>
             </tr>
@@ -99,13 +98,6 @@ import { DlxPaginationComponent } from '@shared/ui/pagination.component';
                   {{ c.last_order_at ? (c.last_order_at | date:'mediumDate') : '—' }}
                 </td>
                 <td class="px-5 py-3 text-center">
-                  @if (c.accepts_marketing) {
-                    <i class="fa-solid fa-circle-check text-emerald-600"></i>
-                  } @else {
-                    <i class="fa-solid fa-minus text-slate-300"></i>
-                  }
-                </td>
-                <td class="px-5 py-3 text-center">
                   <span class="inline-flex items-center px-2 py-0.5 rounded-full text-[11px] font-semibold"
                         [ngClass]="c.is_active !== false ? 'bg-emerald-100 text-emerald-700' : 'bg-slate-200 text-slate-500'">
                     {{ c.is_active !== false ? 'Activo' : 'Inactivo' }}
@@ -117,18 +109,24 @@ import { DlxPaginationComponent } from '@shared/ui/pagination.component';
                        class="w-8 h-8 grid place-items-center rounded-lg hover:bg-slate-100 text-slate-500">
                       <i class="fa-solid fa-eye text-xs"></i>
                     </a>
-                    <button (click)="openEdit(c)" title="Editar"
-                            class="w-8 h-8 grid place-items-center rounded-lg hover:bg-sky-100 hover:text-sky-700 text-slate-500">
-                      <i class="fa-solid fa-pen text-xs"></i>
-                    </button>
-                    <button (click)="toggleActive(c)" [title]="c.is_active !== false ? 'Desactivar' : 'Activar'"
-                            class="w-8 h-8 grid place-items-center rounded-lg hover:bg-amber-100 hover:text-amber-700 text-slate-500">
-                      <i class="fa-solid text-xs" [class.fa-toggle-on]="c.is_active !== false" [class.fa-toggle-off]="c.is_active === false"></i>
-                    </button>
-                    <button (click)="remove(c)" title="Eliminar"
-                            class="w-8 h-8 grid place-items-center rounded-lg hover:bg-rose-100 hover:text-rose-700 text-slate-500">
-                      <i class="fa-solid fa-trash text-xs"></i>
-                    </button>
+                    @if (isFinal(c)) {
+                      <span title="Cliente del sistema (fijo)" class="w-8 h-8 grid place-items-center rounded-lg text-slate-300">
+                        <i class="fa-solid fa-lock text-xs"></i>
+                      </span>
+                    } @else {
+                      <button (click)="openEdit(c)" title="Editar"
+                              class="w-8 h-8 grid place-items-center rounded-lg hover:bg-sky-100 hover:text-sky-700 text-slate-500">
+                        <i class="fa-solid fa-pen text-xs"></i>
+                      </button>
+                      <button (click)="toggleActive(c)" [title]="c.is_active !== false ? 'Desactivar' : 'Activar'"
+                              class="w-8 h-8 grid place-items-center rounded-lg hover:bg-amber-100 hover:text-amber-700 text-slate-500">
+                        <i class="fa-solid text-xs" [class.fa-toggle-on]="c.is_active !== false" [class.fa-toggle-off]="c.is_active === false"></i>
+                      </button>
+                      <button (click)="remove(c)" title="Eliminar"
+                              class="w-8 h-8 grid place-items-center rounded-lg hover:bg-rose-100 hover:text-rose-700 text-slate-500">
+                        <i class="fa-solid fa-trash text-xs"></i>
+                      </button>
+                    }
                   </div>
                 </td>
               </tr>
@@ -199,6 +197,8 @@ export class CustomersListComponent implements OnInit {
   }
 
   openCreate() { this.editing.set(null); this.showModal.set(true); }
+  /** Consumidor Final (cliente fijo del sistema, id SRI 9999999999999). */
+  isFinal(c: Customer): boolean { return (c.document_id || '') === '9999999999999'; }
   openEdit(c: Customer) { this.editing.set(c); this.showModal.set(true); }
   closeModal() { this.showModal.set(false); this.editing.set(null); }
   onSaved() { this.closeModal(); this.notify.success('Cliente guardado'); this.reload(); }

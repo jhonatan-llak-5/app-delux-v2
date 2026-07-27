@@ -46,8 +46,10 @@ export interface ProductPayload {
   slug?: string;
   short_description?: string;
   description?: string;
-  brand: number;
-  category: number;
+  brand?: number | null;
+  category?: number | null;
+  brand_name?: string;
+  category_name?: string;
   base_price: number | string;
   compare_at_price?: number | string | null;
   tax_rate?: number | string | null;

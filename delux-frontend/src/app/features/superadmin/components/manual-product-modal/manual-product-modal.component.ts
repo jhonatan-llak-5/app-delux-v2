@@ -1,4 +1,4 @@
-import { ChangeDetectionStrategy, Component, EventEmitter, Input, OnInit, Output, signal } from '@angular/core';
+import { ChangeDetectionStrategy, Component, ElementRef, EventEmitter, Input, OnDestroy, OnInit, Output, ViewChild, signal } from '@angular/core';
 import { DlxFieldErrorComponent } from '@shared/ui/field-error.component';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
@@ -7,12 +7,22 @@ import { DlxImageUploaderComponent, DlxImageItem } from '@shared/ui/image-upload
 import { DlxPriceInputComponent } from '@shared/ui/price-input.component';
 import { inject } from '@angular/core';
 import { BrandingService } from '@core/services/branding.service';
+import { SRI_IVA_OPTIONS } from '@shared/data/taxes';
 
 export interface ManualProduct {
   product_name: string; brand: string; category: string; kind: string;
   color: string; size: string; barcode: string;
   cost: number; price: number; quantity: number;
+  tax_rate: number | null; compare_at_price: number | null;
   description: string;
+  images: string[];
+}
+
+/** Datos para prellenar el formulario al EDITAR un producto. */
+export interface ProductInitial {
+  product_name: string; brand: string; category: string; kind: string;
+  description: string; barcode: string;
+  base_price: number; compare_at_price: number | null; tax_rate: number | null;
   images: string[];
 }
 
@@ -33,40 +43,103 @@ const KIND_PRESETS: Record<string, { label: string; sizeLabel: string; sizes: st
   changeDetection: ChangeDetectionStrategy.OnPush,
   templateUrl: './manual-product-modal.component.html',
 })
-export class ManualProductModalComponent implements OnInit {
+export class ManualProductModalComponent implements OnInit, OnDestroy {
   @Input() brands: string[] = [];
   @Input() categories: string[] = [];
   @Input() categoryParents: Record<string, string> = {};
   @Input() barcode = '';
-  /** Cuando es true se renderiza como formulario embebido (sin modal) y se
-   *  autolimpia tras cada "Agregar", para poder cargar varios productos. */
   @Input() embedded = false;
+  /** 'create' (recepción, multi + variantes) o 'edit' (solo datos del producto). */
+  @Input() mode: 'create' | 'edit' = 'create';
+  @Input() initial: ProductInitial | null = null;
+  @Input() saving = false;
   @Output() add = new EventEmitter<ManualProduct[]>();
   @Output() cancel = new EventEmitter<void>();
 
-  /** Interruptor "¿Tiene variantes?": si está apagado se captura un solo
-   *  producto (una cantidad); si está encendido se habilita la tarjeta de
-   *  colores/tallas. */
+  private branding = inject(BrandingService);
+
+  error = signal<string | null>(null);
+  fieldErrors = signal<Record<string, string>>({});
+  fe(k: string): string | undefined { return this.fieldErrors()[k]; }
+
+  isEdit(): boolean { return this.mode === 'edit'; }
+
+  // ── Escáner de código de barras con cámara ──
+  @ViewChild('camVideo') camVideo?: ElementRef<HTMLVideoElement>;
+  cameraOn = signal(false);
+  camError = signal<string | null>(null);
+  private stream?: MediaStream;
+  private detector: any;
+  private scanTimer: any;
+
+  async startScan(): Promise<void> {
+    this.camError.set(null);
+    const BD = (window as any).BarcodeDetector;
+    if (!BD) { this.camError.set('Tu navegador no soporta escaneo por cámara. Escribe o usa un lector USB.'); return; }
+    try {
+      this.detector = new BD({ formats: ['ean_13', 'ean_8', 'code_128', 'code_39', 'upc_a', 'upc_e', 'qr_code'] });
+      this.stream = await navigator.mediaDevices.getUserMedia({ video: { facingMode: 'environment' } });
+      this.cameraOn.set(true);
+      setTimeout(() => {
+        const v = this.camVideo?.nativeElement;
+        if (v) { v.srcObject = this.stream!; v.play().catch(() => {}); this.loop(); }
+      }, 120);
+    } catch { this.camError.set('No se pudo abrir la cámara.'); }
+  }
+  private async loop(): Promise<void> {
+    if (!this.cameraOn()) return;
+    const v = this.camVideo?.nativeElement;
+    if (v && v.readyState >= 2) {
+      try {
+        const codes = await this.detector.detect(v);
+        if (codes && codes.length && codes[0].rawValue) { this.nf.barcode = String(codes[0].rawValue); this.stopScan(); return; }
+      } catch { /* frame sin código */ }
+    }
+    this.scanTimer = setTimeout(() => this.loop(), 300);
+  }
+  stopScan(): void {
+    this.cameraOn.set(false);
+    if (this.scanTimer) { clearTimeout(this.scanTimer); this.scanTimer = null; }
+    this.stream?.getTracks().forEach(t => t.stop());
+    this.stream = undefined;
+  }
+  ngOnDestroy(): void { this.stopScan(); }
+
+  // ── Variantes ──
   hasVariants = signal(false);
   toggleVariants(v: boolean): void {
     this.hasVariants.set(v);
     if (!v) { this.selColors = []; this.selSizes = []; }
   }
 
-  error = signal<string | null>(null);
-  fieldErrors = signal<Record<string, string>>({});
-  fe(k: string): string | undefined { return this.fieldErrors()[k]; }
-  private branding = inject(BrandingService);
-  ivaRate(): number { return this.branding.taxRate(); }
-  netPrice(): number { const b = +this.nf.price || 0; const r = this.ivaRate(); return r ? b / (1 + r / 100) : b; }
+  // ── Impuesto por producto (null = usa el IVA global de Configuración) ──
+  taxRate: number | null = null;
+  globalIva(): number { return this.branding.taxRate(); }
+  effectiveIva(): number { return this.taxRate != null ? this.taxRate : this.globalIva(); }
+  readonly taxOptions = SRI_IVA_OPTIONS;
+
+  // ── Precio con IVA (nf.price = precio de venta con IVA incluido) ──
+  netPrice(): number { const b = +this.nf.price || 0; const r = this.effectiveIva(); return r ? b / (1 + r / 100) : b; }
   ivaAmount(): number { return (+this.nf.price || 0) - this.netPrice(); }
-  finalPrice(): number { return +this.nf.price || 0; }
-  margin(): number { return (+this.nf.price || 0) - (+this.nf.cost || 0); }
+  margin(): number { return (this.finalPrice()) - (+this.nf.cost || 0); }
   marginPct(): number { const c = +this.nf.cost || 0; return c > 0 ? (this.margin() / c) * 100 : 0; }
   money(v: number): string { return '$' + (Math.round((v || 0) * 100) / 100).toFixed(2); }
+
+  // ── Oferta (descuento %) ──
+  onOffer = false;
+  discount = 0;
+  toggleOffer(v: boolean): void { this.onOffer = v; if (!v) this.discount = 0; }
+  offerPrice(): number {
+    const d = Math.min(99, Math.max(0, +this.discount || 0));
+    return (+this.nf.price || 0) * (1 - d / 100);
+  }
+  /** Precio que realmente se cobra (base_price a guardar). */
+  finalPrice(): number { return this.onOffer && +this.discount > 0 ? this.offerPrice() : (+this.nf.price || 0); }
+  compareAtPrice(): number | null { return this.onOffer && +this.discount > 0 ? (+this.nf.price || 0) : null; }
+
+  // ── Marca / categoría (combobox autocreable) ──
   brandOpen = signal(false);
   catOpen = signal(false);
-
   filteredBrands(): string[] {
     const q = this.nf.brand.trim().toLowerCase();
     return (q ? this.brands.filter(b => b.toLowerCase().includes(q)) : this.brands).slice(0, 50);
@@ -76,8 +149,6 @@ export class ManualProductModalComponent implements OnInit {
     const q = this.nf.category.trim().toLowerCase();
     return (q ? this.categories.filter(c => c.toLowerCase().includes(q)) : this.categories).slice(0, 50);
   }
-  // Verdadero cuando lo escrito no coincide con ninguna marca/categoria existente:
-  // el backend la creara automaticamente al guardar.
   brandIsNew(): boolean {
     const v = this.nf.brand.trim().toLowerCase();
     return !!v && !this.brands.some(b => b.toLowerCase() === v);
@@ -86,11 +157,25 @@ export class ManualProductModalComponent implements OnInit {
     const v = this.nf.category.trim().toLowerCase();
     return !!v && !this.categories.some(c => c.toLowerCase() === v);
   }
+  brandChosen(): boolean { return !!this.nf.brand.trim(); }
+  catChosen(): boolean { return !!this.nf.category.trim(); }
+  // Se registra visualmente como "creada" (aparece en la lista local) al confirmarla.
+  createBrand(): void {
+    const v = this.nf.brand.trim();
+    if (v && !this.brands.some(b => b.toLowerCase() === v.toLowerCase())) this.brands = [...this.brands, v];
+    this.brandOpen.set(false);
+  }
+  createCat(): void {
+    const v = this.nf.category.trim();
+    if (v && !this.categories.some(c => c.toLowerCase() === v.toLowerCase())) this.categories = [...this.categories, v];
+    this.catOpen.set(false);
+  }
   pickBrand(b: string): void { this.nf.brand = b; this.brandOpen.set(false); }
   pickCat(c: string): void { this.nf.category = c; this.catOpen.set(false); }
   closeSoon(which: 'brand' | 'cat'): void {
     setTimeout(() => (which === 'brand' ? this.brandOpen : this.catOpen).set(false), 150);
   }
+
   images: DlxImageItem[] = [];
   readonly colorPresets = ['Negro', 'Blanco', 'Gris', 'Azul', 'Celeste', 'Rojo', 'Verde', 'Amarillo', 'Naranja', 'Morado', 'Rosa', 'Café', 'Beige', 'Multicolor'];
   private readonly colorHexMap: Record<string, string> = {
@@ -101,14 +186,37 @@ export class ManualProductModalComponent implements OnInit {
   };
   colorHex(name: string): string { return this.colorHexMap[name] || '#cbd5e1'; }
   readonly kinds = Object.entries(KIND_PRESETS).map(([value, v]) => ({ value, label: v.label }));
-  nf: Omit<ManualProduct, 'images'> = {
+  nf: Omit<ManualProduct, 'images' | 'tax_rate' | 'compare_at_price'> = {
     product_name: '', brand: '', category: '', kind: 'CALZADO',
     color: '', size: '', barcode: '', cost: 0, price: 0, quantity: 1, description: '',
   };
 
   ngOnInit(): void {
     this.nf.barcode = this.barcode || '';
-    if (this.qtyMap['|'] == null) this.qtyMap['|'] = 1;  // cantidad por defecto (sin variantes)
+    if (this.qtyMap['|'] == null) this.qtyMap['|'] = 1;
+    if (this.initial) this.prefill(this.initial);
+  }
+
+  private prefill(p: ProductInitial): void {
+    this.nf.product_name = p.product_name || '';
+    this.nf.brand = p.brand || '';
+    this.nf.category = p.category || '';
+    this.nf.kind = p.kind || 'OTRO';
+    this.nf.description = p.description || '';
+    this.nf.barcode = p.barcode || '';
+    this.taxRate = p.tax_rate != null ? +p.tax_rate : null;
+    this.images = (p.images || []).map(u => ({ url: u } as DlxImageItem));
+    // Oferta: si compare_at_price > base_price, está en oferta.
+    const base = +p.base_price || 0;
+    const cmp = p.compare_at_price != null ? +p.compare_at_price : 0;
+    if (cmp > base && cmp > 0) {
+      this.onOffer = true;
+      this.nf.price = cmp;                                    // precio regular
+      this.discount = Math.round((1 - base / cmp) * 100);
+    } else {
+      this.onOffer = false;
+      this.nf.price = base;
+    }
   }
 
   private resetForm(): void {
@@ -119,6 +227,7 @@ export class ManualProductModalComponent implements OnInit {
     this.newColor = ''; this.newSizeText = ''; this.bulkQty = 1;
     this.qtyMap = { '|': 1 };
     this.hasVariants.set(false);
+    this.onOffer = false; this.discount = 0; this.taxRate = null;
     this.fieldErrors.set({}); this.error.set(null);
   }
 
@@ -174,15 +283,36 @@ export class ManualProductModalComponent implements OnInit {
     this.error.set(null);
     const errs: Record<string, string> = {};
     if (!this.nf.product_name.trim()) errs['product_name'] = 'Este campo es obligatorio.';
-    if (!this.nf.brand.trim()) errs['brand'] = 'Este campo es obligatorio.';
-    if (!this.nf.category.trim()) errs['category'] = 'Este campo es obligatorio.';
+    if ((+this.nf.price || 0) <= 0) errs['price'] = 'Ingresa un precio válido.';
+    if (!this.isEdit()) {
+      if ((+this.nf.cost || 0) <= 0) errs['cost'] = 'Ingresa un costo válido.';
+      if (!this.hasVariants() && this.getQty('', '') <= 0) errs['qty'] = 'Ingresa la cantidad.';
+    }
     this.fieldErrors.set(errs);
     if (Object.keys(errs).length) return;
-    const list = this.combos();
-    if (!list.length) { this.error.set('Pon al menos una cantidad en la matriz.'); return; }
-    this.error.set(null);
+
     const imgs = this.images.map(i => i.url).filter(u => !!u);
+    const tax = this.taxRate;
+    const cmp = this.compareAtPrice();
+
+    if (this.isEdit()) {
+      // Edición: un solo producto, sin cantidades ni variantes.
+      this.add.emit([{
+        product_name: this.nf.product_name.trim(),
+        brand: this.nf.brand.trim(), category: this.nf.category.trim(),
+        kind: this.nf.kind, color: '', size: '', barcode: this.nf.barcode.trim(),
+        cost: +(this.nf.cost ?? 0), price: this.finalPrice(), quantity: 0,
+        tax_rate: tax, compare_at_price: cmp,
+        description: (this.nf.description || '').trim(), images: imgs,
+      }]);
+      return;
+    }
+
+    const list = this.combos();
+    if (!list.length) { this.error.set('Pon al menos una cantidad.'); return; }
     const single = list.length === 1;
+    // El precio de la variante es el que se cobra (con oferta aplicada).
+    const finalUnit = this.finalPrice();
     this.add.emit(list.map(x => ({
       product_name: this.nf.product_name.trim(),
       brand: this.nf.brand.trim(),
@@ -192,11 +322,13 @@ export class ManualProductModalComponent implements OnInit {
       size: x.size.trim(),
       barcode: single ? this.nf.barcode.trim() : '',
       cost: +(this.nf.cost ?? 0),
-      price: +(this.nf.price ?? 0),
+      price: finalUnit,
       quantity: x.qty,
+      tax_rate: tax,
+      compare_at_price: cmp,
       description: (this.nf.description || '').trim(),
       images: imgs,
     })));
-    if (this.embedded) this.resetForm();  // deja el form listo para el siguiente producto
+    if (this.embedded) this.resetForm();
   }
 }

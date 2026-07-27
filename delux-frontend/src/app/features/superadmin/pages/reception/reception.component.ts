@@ -33,6 +33,8 @@ interface Row {
   sku?: string;
   unit_cost: number;
   price?: number;
+  tax_rate?: number | null;
+  compare_at_price?: number | null;
   isNew: boolean;
   description?: string;
   branchQty: Record<number, number>;
@@ -236,6 +238,8 @@ export class ReceptionComponent implements OnInit, OnDestroy {
     if (!r.branchQty) r.branchQty = {};
     if (!r.branchMemo) r.branchMemo = {};
     if (r.branchQty[bid] != null) {
+      // Siempre debe quedar al menos una sucursal seleccionada.
+      if (Object.keys(r.branchQty).length <= 1) { this.notify.warning('Debe quedar al menos una sucursal seleccionada.'); return; }
       // Desmarcar: recuerda la cantidad que tenía.
       r.branchMemo[bid] = +r.branchQty[bid] || 0;
       delete r.branchQty[bid];
@@ -404,6 +408,7 @@ export class ReceptionComponent implements OnInit, OnDestroy {
       key: this.keySeq++, product_name: p.product_name, brand_name: p.brand,
       category_name: p.category, kind: p.kind, color: p.color, size: p.size,
       barcode: p.barcode, unit_cost: p.cost, price: p.price, description: p.description,
+      tax_rate: p.tax_rate, compare_at_price: p.compare_at_price,
       isNew: true, branchQty: (def != null ? { [def]: +p.quantity || 1 } : {}), images: p.images,
     }))]);
     this.showManual.set(false);
@@ -502,7 +507,9 @@ export class ReceptionComponent implements OnInit, OnDestroy {
               quantity: +q, unit_cost: +r.unit_cost, barcode: r.barcode,
               product_name: r.product_name, kind: r.kind,
               brand_name: r.brand_name, category_name: r.category_name,
-              color: r.color, size: r.size, price: +(r.price ?? 0), branch: +bid, images: r.images, description: r.description,
+              color: r.color, size: r.size, price: +(r.price ?? 0),
+              tax_rate: r.tax_rate ?? null, compare_at_price: r.compare_at_price ?? null,
+              branch: +bid, images: r.images, description: r.description,
             });
       }
     }

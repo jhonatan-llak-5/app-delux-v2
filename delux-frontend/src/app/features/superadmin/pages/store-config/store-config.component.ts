@@ -1,6 +1,7 @@
 import { ChangeDetectionStrategy, Component, OnInit, computed, inject, signal } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
+import { SRI_IVA_RATES } from '@shared/data/taxes';
 import { RouterLink } from '@angular/router';
 import { jsPDF } from 'jspdf';
 import { NotifyService } from '@shared/services/notify.service';
@@ -486,7 +487,7 @@ export class StoreConfigComponent implements OnInit {
     { id: 'notificaciones', label: 'Notificaciones', icon: 'fa-bell' },
   ];
   tab = signal<TabId>('perfil');
-  presets = [0, 5, 12, 15];
+  presets = SRI_IVA_RATES;
   storeUrl = (typeof window !== 'undefined' ? window.location.origin : '') + '/catalogo';
   schedulesOpen = signal(false);
   pdfLoading = signal(false);

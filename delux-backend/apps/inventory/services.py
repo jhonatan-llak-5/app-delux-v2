@@ -55,3 +55,21 @@ def resolve_category(tenant, raw):
     if c:
         return c
     return Category.objects.create(tenant=tenant, name=name, slug=unique_slug(Category, tenant, name))
+
+
+def default_brand(tenant):
+    """Marca 'General' de reserva cuando el producto no trae marca (opcional)."""
+    from apps.brands.models import Brand
+    b = Brand.objects.filter(tenant=tenant, slug='general').first()
+    if b:
+        return b
+    return Brand.objects.create(tenant=tenant, name='General', slug='general')
+
+
+def default_category(tenant):
+    """Categoría 'General' de reserva cuando el producto no trae categoría."""
+    from apps.categories.models import Category
+    c = Category.objects.filter(tenant=tenant, slug='general').first()
+    if c:
+        return c
+    return Category.objects.create(tenant=tenant, name='General', slug='general')

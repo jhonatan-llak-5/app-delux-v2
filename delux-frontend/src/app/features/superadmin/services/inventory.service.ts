@@ -102,6 +102,7 @@ export interface ReceptionItemIn {
   brand_id?: number; brand_name?: string;
   category_id?: number; category_name?: string;
   color?: string; size?: string; price?: number;
+  tax_rate?: number | null; compare_at_price?: number | null;
   branch?: number;
   images?: string[];
   description?: string;

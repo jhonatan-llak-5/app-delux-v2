@@ -128,6 +128,7 @@ export class InventoryOverviewComponent implements OnInit {
   rowActions(s: Stock): RowAction[] {
     return [
       { label: 'Editar producto', icon: 'fa-pen-to-square', run: () => this.router.navigate(['/app/admin/products', s.product_id]) },
+      { label: 'Ver historial', icon: 'fa-clock-rotate-left', run: () => this.router.navigate(['/app/admin/inventory/movements'], { queryParams: { product: s.product_id, name: s.product_name } }) },
       { label: 'Ajustar', icon: 'fa-pen', run: () => this.openAdjust(s) },
       { label: 'Transferir', icon: 'fa-truck', disabled: s.quantity === 0, run: () => this.openTransfer(s) },
       { label: 'Imprimir etiqueta', icon: 'fa-barcode', run: () => this.printLabel(s) },

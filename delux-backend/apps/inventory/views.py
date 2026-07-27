@@ -17,7 +17,7 @@ from .serializers import (
 )
 from .services import (
     resolve_tenant, unique_slug, next_sku_number,
-    resolve_brand, resolve_category,
+    resolve_brand, resolve_category, default_brand, default_category,
 )
 
 
@@ -315,6 +315,14 @@ class AdminMovementViewSet(viewsets.ReadOnlyModelViewSet):
             .select_related('stock', 'stock__variant', 'stock__variant__product',
                             'stock__branch', 'actor')
         )
+        user = self.request.user
+        role = getattr(user, 'role', None)
+        # Aislar por tienda (tenant) salvo superadmin.
+        if role != 'SUPERADMIN':
+            qs = qs.filter(tenant_id=getattr(user, 'tenant_id', None))
+        # Gerente/Vendedor: solo su sucursal.
+        if role in ('BRANCH_MANAGER', 'SALESPERSON') and getattr(user, 'branch_id', None):
+            qs = qs.filter(stock__branch_id=user.branch_id)
         params = self.request.query_params
         if params.get('branch'):  qs = qs.filter(stock__branch_id=params['branch'])
         if params.get('product'): qs = qs.filter(stock__variant__product_id=params['product'])
@@ -432,10 +440,9 @@ class AdminReceptionViewSet(viewsets.ModelViewSet):
                     if raw.get('product_id'):
                         product = Product.objects.filter(pk=raw['product_id'], tenant=tenant).first()
                     if product is None:
-                        brand = resolve_brand(tenant, raw)
-                        category = resolve_category(tenant, raw)
-                        if not (brand and category):
-                            raise ValidationError('Marca y categoria son obligatorias para productos nuevos.')
+                        # Marca/categoria son opcionales: si no vienen se usa "General".
+                        brand = resolve_brand(tenant, raw) or default_brand(tenant)
+                        category = resolve_category(tenant, raw) or default_category(tenant)
                         name = (raw.get('product_name') or '').strip() or 'Producto'
                         kind = (raw.get('kind') or 'OTRO')
                         pkey = (name.lower(), brand.id, category.id, kind)
@@ -443,10 +450,16 @@ class AdminReceptionViewSet(viewsets.ModelViewSet):
                         if product is None:
                             imgs = [u.strip() for u in (raw.get('images') or [])
                                     if isinstance(u, str) and u.strip().lower().startswith(('http://', 'https://'))]
+                            # Impuesto por producto (None = usa el IVA global) y oferta.
+                            _tax = raw.get('tax_rate')
+                            _cmp = raw.get('compare_at_price') or None
                             product = Product.objects.create(
                                 tenant=tenant, name=name, slug=unique_slug(Product, tenant, name),
                                 brand=brand, category=category, kind=kind,
                                 base_price=raw.get('price') or 0,
+                                compare_at_price=_cmp,
+                                tax_rate=(_tax if _tax not in ('', None) else None),
+                                tag=('SALE' if _cmp else ''),
                                 description=(raw.get('description') or ''),
                                 main_image_url=(imgs[0] if imgs else ''),
                                 status='PUBLISHED',
