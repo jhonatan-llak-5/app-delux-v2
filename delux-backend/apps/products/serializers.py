@@ -6,6 +6,11 @@ from .models import Product, ProductImage
 
 
 class ProductImageSerializer(serializers.ModelSerializer):
+    # Las imágenes subidas devuelven rutas RELATIVAS (/media/products/...),
+    # que un URLField rechazaría. Se aceptan como texto.
+    url = serializers.CharField()
+    thumb_url = serializers.CharField(required=False, allow_blank=True)
+
     class Meta:
         model = ProductImage
         fields = ('id', 'url', 'thumb_url', 'alt', 'sort_order', 'is_main')
@@ -55,6 +60,8 @@ class ProductCreateUpdateSerializer(serializers.ModelSerializer):
     # usar el mismo formulario de creación en la edición, sin selects por id.
     brand_name = serializers.CharField(required=False, allow_blank=True, write_only=True)
     category_name = serializers.CharField(required=False, allow_blank=True, write_only=True)
+    # Acepta rutas relativas de imagen (/media/...), no solo URLs absolutas.
+    main_image_url = serializers.CharField(required=False, allow_blank=True)
 
     class Meta:
         model = Product
@@ -163,9 +170,24 @@ class ProductCreateUpdateSerializer(serializers.ModelSerializer):
             validated_data['brand'] = self._default_brand(instance.tenant)
         if 'category' in validated_data and not validated_data['category']:
             validated_data['category'] = self._default_category(instance.tenant)
+        # ¿Cambió el precio del producto? (comparando el valor nuevo con el
+        # actual). Solo entonces se considera "aplicar a todas las variantes".
+        from decimal import Decimal, InvalidOperation
+        base_price_changed = False
+        if 'base_price' in validated_data:
+            try:
+                base_price_changed = Decimal(str(validated_data['base_price'])) != (instance.base_price or Decimal('0'))
+            except (InvalidOperation, TypeError):
+                base_price_changed = True
         for k, v in validated_data.items():
             setattr(instance, k, v)
         instance.save()
+        # Al CAMBIAR el precio en el formulario del producto, ese precio se
+        # aplica a TODAS las variantes: se limpia cualquier precio propio
+        # (price_override) que tuvieran. Si el precio no cambió, se respetan los
+        # precios por variante ya definidos.
+        if base_price_changed:
+            instance.variants.update(price_override=None)
         # Si vienen imágenes, reemplaza todas
         if images_data is not None:
             instance.images.all().delete()

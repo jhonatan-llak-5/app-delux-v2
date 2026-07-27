@@ -16,7 +16,7 @@
   <section class="card p-5 space-y-4">
     <h3 class="font-bold text-ink-950 dark:text-white flex items-center gap-2"><i class="fa-solid fa-box-open text-[var(--dash-primary)]"></i> Datos del producto</h3>
 
-    <dlx-image-uploader [(ngModel)]="images" label="Fotos del producto (opcional)" [maxImages]="8" />
+    <dlx-image-uploader [(ngModel)]="images" (ngModelChange)="onImagesChange()" label="Fotos del producto (opcional)" [maxImages]="8" />
 
     @if (!isEdit()) {
       <div>
@@ -78,6 +78,11 @@
         <label class="eg-label">Precio de venta (con IVA) *</label>
         <dlx-price-input [(ngModel)]="nf.price" (ngModelChange)="clearErr('price')" extraClass="w-full" />
         <dlx-field-error [error]="fe('price')" />
+        @if (isEdit() || hasVariants()) {
+          <p class="mt-1.5 inline-flex items-center gap-1.5 text-[11px] font-medium text-amber-700 dark:text-amber-300 bg-amber-50 dark:bg-amber-500/10 border border-amber-200 dark:border-amber-500/30 rounded-lg px-2 py-1">
+            <i class="fa-solid fa-circle-info"></i> Este precio se aplica a todas las variantes del producto.
+          </p>
+        }
       </div>
     </div>
 

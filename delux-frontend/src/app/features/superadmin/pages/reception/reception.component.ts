@@ -3,7 +3,7 @@ import { ImgFallbackDirective } from '@shared/ui/img-fallback.directive';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { InventoryService, Supplier, ReceptionItemIn, ReceptionResult, ScanResult } from '@features/superadmin/services/inventory.service';
-import { ManualProductModalComponent, ManualProduct } from '@features/superadmin/components/manual-product-modal/manual-product-modal.component';
+import { ManualProductModalComponent, ManualProduct, ManualDraft } from '@features/superadmin/components/manual-product-modal/manual-product-modal.component';
 import { Subject, debounceTime } from 'rxjs';
 import { AdminService, AdminBranch } from '@features/superadmin/services/admin.service';
 import { BrandService } from '@features/superadmin/services/brand.service';
@@ -72,6 +72,11 @@ export class ReceptionComponent implements OnInit, OnDestroy {
   private tour = inject(TourService);
 
   private readonly STORAGE_KEY = 'dlx_reception_draft';
+
+  @ViewChild('manualRef') manual?: ManualProductModalComponent;
+  /** Borrador del formulario de producto (en progreso) restaurado del storage. */
+  restoredManual: ManualDraft | null = null;
+  clearFormOpen = signal(false);
 
   @ViewChild('camVideo') camVideo?: ElementRef<HTMLVideoElement>;
   cameraOn = signal(false);
@@ -152,12 +157,15 @@ export class ReceptionComponent implements OnInit, OnDestroy {
   saveState(): void {
     if (typeof window === 'undefined') return;
     try {
+      // Formulario de producto en progreso: solo se guarda si tiene contenido.
+      const productDraft = (this.manual && this.manual.hasContent()) ? this.manual.snapshot() : null;
       localStorage.setItem(this.STORAGE_KEY, JSON.stringify({
         items: this.items(),
         selectedBranches: this.selectedBranches(),
         supplierName: this.supplierName,
         note: this.note,
         keySeq: this.keySeq,
+        productDraft,
       }));
     } catch { /* storage lleno o no disponible */ }
   }
@@ -168,6 +176,7 @@ export class ReceptionComponent implements OnInit, OnDestroy {
       const raw = localStorage.getItem(this.STORAGE_KEY);
       if (!raw) return;
       const d = JSON.parse(raw);
+      // Lista de productos ya agregados.
       if (Array.isArray(d.items) && d.items.length) {
         this.items.set((d.items as any[]).map(r => {
           if (!r.branchQty) {
@@ -178,17 +187,37 @@ export class ReceptionComponent implements OnInit, OnDestroy {
         }));
         const maxKey = d.items.reduce((m: number, r: any) => Math.max(m, r.key || 0), 0);
         this.keySeq = d.keySeq && d.keySeq > maxKey ? d.keySeq : maxKey + 1;
-        if (d.supplierName) this.supplierName = d.supplierName;
-        if (d.note) this.note = d.note;
-        if (Array.isArray(d.selectedBranches) && d.selectedBranches.length) {
-          this.restoredBranches = d.selectedBranches;
-        }
       }
+      // Proveedor / nota / sucursales y el formulario en progreso se restauran
+      // SIEMPRE (aunque aún no haya productos agregados a la lista).
+      if (d.supplierName) this.supplierName = d.supplierName;
+      if (d.note) this.note = d.note;
+      if (Array.isArray(d.selectedBranches) && d.selectedBranches.length) {
+        this.restoredBranches = d.selectedBranches;
+      }
+      if (d.productDraft) this.restoredManual = d.productDraft as ManualDraft;
     } catch { /* draft corrupto */ }
   }
 
   private clearState(): void {
     if (typeof window !== 'undefined') localStorage.removeItem(this.STORAGE_KEY);
+  }
+
+  /** Persiste tras un cambio en el formulario de producto embebido. */
+  persistManual(): void { this.saveState(); }
+  /** Persiste tras un click (deja que el modelo se actualice primero). */
+  persistManualDeferred(): void { setTimeout(() => this.saveState(), 0); }
+
+  /** ¿Hay algo escrito en el formulario de producto? (para el botón Limpiar). */
+  formHasContent(): boolean { return !!this.manual?.hasContent(); }
+
+  askClearForm(): void { if (this.formHasContent()) this.clearFormOpen.set(true); }
+  doClearForm(): void {
+    this.manual?.clearForm();
+    this.restoredManual = null;
+    this.clearFormOpen.set(false);
+    this.saveState();
+    this.notify.success('Formulario limpiado.');
   }
 
   startTour(): void { this.tour.runSteps(this.tourSteps); }
@@ -297,6 +326,23 @@ export class ReceptionComponent implements OnInit, OnDestroy {
   }
   groupUnits(rows: Row[]): number { return rows.reduce((a, r) => a + this.rowUnits(r), 0); }
   groupCost(rows: Row[]): number { return rows.reduce((a, r) => a + this.rowUnits(r) * (+r.unit_cost || 0), 0); }
+  /** Primera imagen disponible del grupo (todas las variantes comparten fotos). */
+  groupImage(rows: Row[]): string | undefined { for (const r of rows) if (r.images && r.images.length) return r.images[0]; return undefined; }
+
+  // ── Acordeón de productos (pasos 2 y 3) ──
+  expandedGroups = signal<Set<string>>(new Set());
+  isGroupOpen(key: string): boolean { return this.expandedGroups().has(key); }
+  toggleGroup(key: string): void {
+    const n = new Set(this.expandedGroups());
+    n.has(key) ? n.delete(key) : n.add(key);
+    this.expandedGroups.set(n);
+  }
+  /** Quita todas las variantes de un producto de la lista. */
+  removeGroup(rows: Row[]): void {
+    const keys = new Set(rows.map(r => r.key));
+    this.items.set(this.items().filter(r => !keys.has(r.key)));
+    this.saveState();
+  }
   private bumpBranchQty(r: Row, bid: number | null): void {
     if (bid == null) return;
     if (!r.branchQty) r.branchQty = {};
@@ -439,6 +485,8 @@ export class ReceptionComponent implements OnInit, OnDestroy {
     this.notify.success(list.length > 1
       ? `«${nm}» agregado a la lista (${list.length} variantes).`
       : `«${nm}» agregado a la lista.`);
+    // El formulario se resetea solo (embedded); limpiamos su borrador guardado.
+    this.restoredManual = null;
     this.saveState();
   }
 

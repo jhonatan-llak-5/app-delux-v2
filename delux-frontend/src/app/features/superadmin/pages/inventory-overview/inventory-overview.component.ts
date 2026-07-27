@@ -12,7 +12,7 @@ import { FormsModule } from '@angular/forms';
 import { Router, RouterLink } from '@angular/router';
 import { debounceTime, Subject, forkJoin } from 'rxjs';
 
-import { Stock, InventorySummary, InventoryService } from '@features/superadmin/services/inventory.service';
+import { Stock, InventorySummary, InventoryService, ProductGroup } from '@features/superadmin/services/inventory.service';
 import { AdminService, AdminBranch } from '@features/superadmin/services/admin.service';
 import { BranchContextService } from '@core/services/branch-context.service';
 import { RowActionsComponent, RowAction } from '@shared/ui/row-actions.component';
@@ -46,21 +46,33 @@ export class InventoryOverviewComponent implements OnInit {
   private productSvc = inject(ProductService);
   private confirm = inject(ConfirmService);
 
-  // ── Selección múltiple (por fila de stock) ──
-  selected = signal<Set<number>>(new Set());
+  // ── Selección múltiple (por PRODUCTO) ──
+  selected = signal<Set<number>>(new Set());   // guarda product_id
   /** ¿Mostrar columna Sucursal? Solo si el usuario puede cambiar de sucursal. */
   showBranchCol = computed(() => this.branchCtx.canSwitch());
-  isSel(id: number): boolean { return this.selected().has(id); }
-  toggleSel(id: number): void { const n = new Set(this.selected()); n.has(id) ? n.delete(id) : n.add(id); this.selected.set(n); }
-  allSelected = computed(() => { const s = this.stocks(); return s.length > 0 && s.every(x => this.selected().has(x.id)); });
-  toggleAllSel(): void { this.allSelected() ? this.selected.set(new Set()) : this.selected.set(new Set(this.stocks().map(x => x.id))); }
+  isSel(productId: number): boolean { return this.selected().has(productId); }
+  toggleSel(productId: number): void { const n = new Set(this.selected()); n.has(productId) ? n.delete(productId) : n.add(productId); this.selected.set(n); }
+  allSelected = computed(() => { const g = this.groups(); return g.length > 0 && g.every(x => this.selected().has(x.product_id)); });
+  toggleAllSel(): void { this.allSelected() ? this.selected.set(new Set()) : this.selected.set(new Set(this.groups().map(x => x.product_id))); }
   clearSel(): void { this.selected.set(new Set()); }
-  private selectedProductIds(): number[] {
-    const ids = this.selected(); const set = new Set<number>();
-    for (const s of this.stocks()) if (ids.has(s.id)) set.add(s.product_id);
-    return [...set];
-  }
+  private selectedProductIds(): number[] { return [...this.selected()]; }
+
+  // ── Expandir / colapsar producto ──
+  expanded = signal<Set<number>>(new Set());
+  isExpanded(productId: number): boolean { return this.expanded().has(productId); }
+  toggleExpand(productId: number): void { const n = new Set(this.expanded()); n.has(productId) ? n.delete(productId) : n.add(productId); this.expanded.set(n); }
   isActive(s: Stock): boolean { return (s.product_status || 'PUBLISHED') === 'PUBLISHED'; }
+  isActiveGroup(g: ProductGroup): boolean { return (g.product_status || 'PUBLISHED') === 'PUBLISHED'; }
+  /** Precio a mostrar de una variante (override o precio base del producto). */
+  variantPrice(s: Stock): number { return s.price_override != null ? +s.price_override : (+s.base_price || 0); }
+  /** Rango "$min – $max" (o un solo valor si son iguales) para la fila de producto. */
+  private fmtRange(min: number, max: number): string {
+    const lo = +min || 0, hi = +max || 0;
+    if (!lo && !hi) return '—';
+    return lo === hi ? `$${lo.toFixed(2)}` : `$${lo.toFixed(2)} – $${hi.toFixed(2)}`;
+  }
+  priceRange(g: ProductGroup): string { return this.fmtRange(g.price_min, g.price_max); }
+  costRange(g: ProductGroup): string { return this.fmtRange(g.cost_min, g.cost_max); }
 
   bulkSetStatus(status: 'PUBLISHED' | 'PAUSED'): void {
     const pids = this.selectedProductIds();
@@ -92,16 +104,17 @@ export class InventoryOverviewComponent implements OnInit {
     });
   }
 
-  /** Elimina (borrado lógico) un solo producto desde el menú de la fila. */
-  async deleteOne(s: Stock): Promise<void> {
+  /** Elimina (borrado lógico) un producto completo (todas sus variantes). */
+  async deleteProduct(g: ProductGroup): Promise<void> {
+    const n = g.variants_count;
     const ok = await this.confirm.ask({
       title: 'Eliminar producto',
-      message: `¿Eliminar "${s.product_name}"? Dejará de aparecer en el catálogo, el inventario y el punto de venta. Las ventas ya registradas se conservan intactas.`,
+      message: `¿Eliminar "${g.product_name}"${n > 1 ? ` y sus ${n} variantes` : ''}? Dejará de aparecer en el catálogo, el inventario y el punto de venta. Las ventas ya registradas se conservan intactas.`,
       variant: 'danger', confirmText: 'Eliminar',
     });
     if (!ok) return;
-    this.productSvc.delete(s.product_id).subscribe({
-      next: () => { this.notify.success(`Producto "${s.product_name}" eliminado.`); this.clearSel(); this.reload(); },
+    this.productSvc.delete(g.product_id).subscribe({
+      next: () => { this.notify.success(`Producto "${g.product_name}" eliminado.`); this.clearSel(); this.reload(); },
       error: e => this.notify.error(parseApiError(e).message || 'No se pudo eliminar.'),
     });
   }
@@ -122,7 +135,8 @@ export class InventoryOverviewComponent implements OnInit {
     }, { allowSignalWrites: true });
   }
 
-  stocks = signal<Stock[]>([]);
+  stocks = signal<Stock[]>([]);          // aplanado (para edición/guardado por variante)
+  groups = signal<ProductGroup[]>([]);   // agrupado por producto (para render)
   total = signal(0);
   page = signal(1);
   pageSize = signal(50);
@@ -158,14 +172,21 @@ export class InventoryOverviewComponent implements OnInit {
     this.loading.set(true);
     this.clearSel();
     this.svc.summary(this.branchFilter || undefined).subscribe(s => this.summary.set(s));
-    this.svc.stocks({
+    this.svc.stocksByProduct({
       search: this.search(),
       branch: this.branchFilter || undefined,
       low_stock: this.lowOnly,
       out_of_stock: this.outOnly,
       page: this.page(), page_size: this.pageSize(),
     }).subscribe({
-      next: r => { this.stocks.set(r.results); this.total.set(r.count); this.loading.set(false); this.buildDraft(r.results); },
+      next: r => {
+        this.groups.set(r.results);
+        const flat = r.results.flatMap(g => g.stocks);
+        this.stocks.set(flat);
+        this.total.set(r.count);
+        this.loading.set(false);
+        this.buildDraft(flat);
+      },
       error: () => this.loading.set(false),
     });
   }
@@ -199,15 +220,43 @@ export class InventoryOverviewComponent implements OnInit {
     this.reload();
   }
 
-  rowActions(s: Stock): RowAction[] {
+  /** Acciones a nivel de PRODUCTO (fila principal). */
+  productActions(g: ProductGroup): RowAction[] {
     return [
-      { label: 'Editar producto', icon: 'fa-pen-to-square', run: () => this.router.navigate(['/app/admin/products', s.product_id]) },
-      { label: 'Ver historial', icon: 'fa-clock-rotate-left', run: () => this.router.navigate(['/app/admin/inventory/movements'], { queryParams: { product: s.product_id, name: s.product_name } }) },
-      { label: 'Ajustar', icon: 'fa-pen', run: () => this.openAdjust(s) },
-      { label: 'Transferir', icon: 'fa-truck', disabled: s.quantity === 0, run: () => this.openTransfer(s) },
-      { label: 'Imprimir etiqueta', icon: 'fa-barcode', run: () => this.printLabel(s) },
-      { label: 'Eliminar', icon: 'fa-trash', variant: 'danger', run: () => this.deleteOne(s) },
+      { label: 'Editar producto', icon: 'fa-pen-to-square', run: () => this.router.navigate(['/app/admin/products', g.product_id]) },
+      { label: 'Ver historial', icon: 'fa-clock-rotate-left', run: () => this.router.navigate(['/app/admin/inventory/movements'], { queryParams: { product: g.product_id, name: g.product_name } }) },
+      { label: 'Eliminar producto', icon: 'fa-trash', variant: 'danger', run: () => this.deleteProduct(g) },
     ];
+  }
+
+  /** Acciones a nivel de VARIANTE (línea dentro del producto). */
+  variantActions(s: Stock, g: ProductGroup): RowAction[] {
+    return [
+      { label: 'Ajustar', icon: 'fa-pen', run: () => this.openAdjust(s) },
+      { label: 'Imprimir etiqueta', icon: 'fa-barcode', run: () => this.printLabel(s) },
+      { label: 'Eliminar variante', icon: 'fa-trash', variant: 'danger', run: () => this.deleteVariant(s, g) },
+    ];
+  }
+
+  /** Elimina (borrado lógico) una sola variante talla/color. */
+  async deleteVariant(s: Stock, g: ProductGroup): Promise<void> {
+    const last = g.variants_count <= 1;
+    const detalle = `${s.variant_size || '—'} / ${s.variant_color || '—'}`;
+    const ok = await this.confirm.ask({
+      title: 'Eliminar variante',
+      message: last
+        ? `"${detalle}" es la única variante de "${s.product_name}". Al eliminarla se elimina también el producto. ¿Continuar?`
+        : `¿Eliminar la variante "${detalle}" de "${s.product_name}"? Las demás variantes se conservan.`,
+      variant: 'danger', confirmText: 'Eliminar',
+    });
+    if (!ok) return;
+    this.svc.deleteVariant(s.variant).subscribe({
+      next: r => {
+        this.notify.success(r.product_deleted ? `Producto "${s.product_name}" eliminado.` : 'Variante eliminada.');
+        this.clearSel(); this.reload();
+      },
+      error: e => this.notify.error(parseApiError(e).message || 'No se pudo eliminar la variante.'),
+    });
   }
 
   printLabel(s: Stock): void {

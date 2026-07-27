@@ -44,7 +44,7 @@ class AdminStockViewSet(viewsets.ReadOnlyModelViewSet):
     def get_queryset(self):
         qs = (
             Stock.objects
-            .filter(variant__product__deleted_at__isnull=True)
+            .filter(variant__product__deleted_at__isnull=True, variant__is_active=True)
             .select_related(
                 'variant', 'variant__product',
                 'variant__product__brand', 'variant__product__category',
@@ -138,14 +138,17 @@ class AdminStockViewSet(viewsets.ReadOnlyModelViewSet):
 
     @action(detail=True, methods=['post'], url_path='set-pricing')
     def set_pricing(self, request, pk=None):
-        """Actualiza precio de venta (producto) y/o costo (variante) desde inventario.
+        """Actualiza el precio de venta y/o el costo de UNA variante desde el
+        inventario. Aquí el precio es POR VARIANTE (price_override), para poder
+        darle a una talla/color un precio distinto. Para fijar un precio único a
+        todo el producto se edita en el formulario del producto.
         El precio NO cambia el stock, por eso no requiere motivo."""
         stock = self.get_object()
         variant = stock.variant
         data = request.data or {}
         if data.get('base_price') not in (None, ''):
-            variant.product.base_price = data['base_price']
-            variant.product.save(update_fields=['base_price'])
+            variant.price_override = data['base_price']
+            variant.save(update_fields=['price_override'])
         if data.get('cost') not in (None, ''):
             variant.cost = data['cost']
             variant.save(update_fields=['cost'])
@@ -180,6 +183,72 @@ class AdminStockViewSet(viewsets.ReadOnlyModelViewSet):
             'out_of_stock_count': out_count,
             'by_branch': by_branch,
         })
+
+    @action(detail=False, methods=['get'], url_path='by-product')
+    def by_product(self, request):
+        """Inventario agrupado por producto: una entrada por producto con sus
+        variantes/stocks anidados. Pagina por PRODUCTO (no por variante), así
+        un producto con muchas tallas ocupa una sola fila expandible."""
+        qs = self.get_queryset().order_by(
+            'variant__product__name', 'variant__product_id',
+            'variant__size', 'variant__color', 'variant__sku',
+        )
+        # IDs de producto en orden de aparición, sin repetir.
+        ordered_pids = list(dict.fromkeys(qs.values_list('variant__product_id', flat=True)))
+        total = len(ordered_pids)
+        try:
+            page = max(1, int(request.query_params.get('page', 1)))
+            size = min(200, max(1, int(request.query_params.get('page_size', 50))))
+        except (TypeError, ValueError):
+            page, size = 1, 50
+        page_pids = ordered_pids[(page - 1) * size: (page - 1) * size + size]
+        page_set = set(page_pids)
+
+        rows = [s for s in qs if s.variant.product_id in page_set]
+        data_rows = StockSerializer(rows, many=True).data
+
+        groups = {}
+        for s, data in zip(rows, data_rows):
+            p = s.variant.product
+            g = groups.get(p.id)
+            if g is None:
+                g = {
+                    'product_id': p.id,
+                    'product_name': p.name,
+                    'brand_name': p.brand.name if p.brand_id else '',
+                    'category_name': p.category.name if p.category_id else '',
+                    'product_main_image': p.main_image_url or '',
+                    'product_status': p.status,
+                    'variants_count': 0,
+                    'total_qty': 0,
+                    'low_count': 0,
+                    'stocks': [],
+                    '_prices': set(),
+                    '_costs': set(),
+                }
+                groups[p.id] = g
+            g['stocks'].append(data)
+            g['total_qty'] += s.quantity
+            if s.quantity <= s.min_threshold:
+                g['low_count'] += 1
+            # Precio efectivo (override de variante o precio del producto) y costo
+            # de la variante, para calcular el rango desde–hasta del producto.
+            eff_price = s.variant.price_override if s.variant.price_override is not None else p.base_price
+            if eff_price is not None:
+                g['_prices'].add(float(eff_price))
+            if s.variant.cost is not None:
+                g['_costs'].add(float(s.variant.cost))
+        for g in groups.values():
+            g['variants_count'] = len({row['variant'] for row in g['stocks']})
+            prices = g.pop('_prices')
+            costs = g.pop('_costs')
+            g['price_min'] = round(min(prices), 2) if prices else 0
+            g['price_max'] = round(max(prices), 2) if prices else 0
+            g['cost_min'] = round(min(costs), 2) if costs else 0
+            g['cost_max'] = round(max(costs), 2) if costs else 0
+
+        results = [groups[pid] for pid in page_pids if pid in groups]
+        return Response({'count': total, 'results': results})
 
     @action(detail=False, methods=['get'], url_path='variant-search')
     def variant_search(self, request):
@@ -485,6 +554,9 @@ class AdminReceptionViewSet(viewsets.ModelViewSet):
                             size=size, color=color,
                             barcode=(raw.get('barcode') or '').strip(),
                             cost=cost,
+                            # Cada variante puede llegar con su propio precio en
+                            # la recepción, así que se guarda como price_override.
+                            # (product.base_price queda como precio por defecto).
                             price_override=(raw.get('price') or None),
                         )
 

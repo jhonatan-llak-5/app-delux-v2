@@ -18,6 +18,19 @@ export interface ManualProduct {
   images: string[];
 }
 
+/** Snapshot completo del formulario embebido (para persistir el borrador). */
+export interface ManualDraft {
+  nf: Omit<ManualProduct, 'images' | 'tax_rate' | 'compare_at_price'>;
+  images: DlxImageItem[];
+  taxRate: number | null;
+  onOffer: boolean;
+  discount: number;
+  hasVariants: boolean;
+  selColors: string[];
+  selSizes: string[];
+  qtyMap: Record<string, number>;
+}
+
 /** Datos para prellenar el formulario al EDITAR un producto. */
 export interface ProductInitial {
   product_name: string; brand: string; category: string; kind: string;
@@ -52,9 +65,13 @@ export class ManualProductModalComponent implements OnInit, OnDestroy {
   /** 'create' (recepción, multi + variantes) o 'edit' (solo datos del producto). */
   @Input() mode: 'create' | 'edit' = 'create';
   @Input() initial: ProductInitial | null = null;
+  /** Borrador a restaurar (solo en modo embebido). */
+  @Input() draft: ManualDraft | null = null;
   @Input() saving = false;
   @Output() add = new EventEmitter<ManualProduct[]>();
   @Output() cancel = new EventEmitter<void>();
+  /** Se emite cuando el formulario cambia, para que el padre persista el borrador. */
+  @Output() changed = new EventEmitter<void>();
 
   private branding = inject(BrandingService);
 
@@ -200,7 +217,56 @@ export class ManualProductModalComponent implements OnInit, OnDestroy {
     this.nf.barcode = this.barcode || '';
     if (this.qtyMap['|'] == null) this.qtyMap['|'] = 1;
     if (this.initial) this.prefill(this.initial);
+    if (this.embedded && this.draft) this.applyDraft(this.draft);
   }
+
+  /** Restaura un borrador guardado (modo embebido). */
+  private applyDraft(d: ManualDraft): void {
+    try {
+      if (d.nf) this.nf = { ...this.nf, ...d.nf };
+      this.images = Array.isArray(d.images) ? d.images.map(i => ({ ...i })) : [];
+      this.taxRate = d.taxRate ?? null;
+      this.onOffer = !!d.onOffer;
+      this.discount = +d.discount || 0;
+      this.hasVariants.set(!!d.hasVariants);
+      this.selColors = Array.isArray(d.selColors) ? [...d.selColors] : [];
+      this.selSizes = Array.isArray(d.selSizes) ? [...d.selSizes] : [];
+      this.qtyMap = d.qtyMap && typeof d.qtyMap === 'object' ? { ...d.qtyMap } : { '|': 1 };
+    } catch { /* borrador corrupto */ }
+  }
+
+  /** Snapshot serializable del formulario, para persistir el borrador. */
+  snapshot(): ManualDraft {
+    return {
+      nf: { ...this.nf },
+      images: this.images.map(i => ({ ...i })),
+      taxRate: this.taxRate,
+      onOffer: this.onOffer,
+      discount: this.discount,
+      hasVariants: this.hasVariants(),
+      selColors: [...this.selColors],
+      selSizes: [...this.selSizes],
+      qtyMap: { ...this.qtyMap },
+    };
+  }
+
+  /** ¿El formulario tiene algo escrito/seleccionado? (para mostrar «Limpiar»). */
+  hasContent(): boolean {
+    const n = this.nf;
+    if ((n.product_name || '').trim() || (n.brand || '').trim() || (n.category || '').trim()
+        || (n.barcode || '').trim() || (n.description || '').trim()) return true;
+    if ((+n.cost || 0) > 0 || (+n.price || 0) > 0) return true;
+    if (this.images.length) return true;
+    if (this.selColors.length || this.selSizes.length) return true;
+    if (this.onOffer && +this.discount > 0) return true;
+    return false;
+  }
+
+  /** Vacía el formulario (uso externo desde el botón «Limpiar formulario»). */
+  clearForm(): void { this.resetForm(); this.changed.emit(); }
+
+  /** El uploader avisa cambios de imágenes -> el padre re-persiste. */
+  onImagesChange(): void { this.changed.emit(); }
 
   private prefill(p: ProductInitial): void {
     this.nf.product_name = p.product_name || '';

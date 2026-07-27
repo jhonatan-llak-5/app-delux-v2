@@ -30,6 +30,24 @@ export interface Stock {
   updated_at: string;
 }
 
+/** Inventario agrupado: un producto con sus variantes/stocks anidados. */
+export interface ProductGroup {
+  product_id: number;
+  product_name: string;
+  brand_name: string;
+  category_name: string;
+  product_main_image: string;
+  product_status: string;
+  variants_count: number;
+  total_qty: number;
+  low_count: number;
+  price_min: number;
+  price_max: number;
+  cost_min: number;
+  cost_max: number;
+  stocks: Stock[];
+}
+
 export interface StockMovement {
   id: number;
   stock_id: number;
@@ -148,6 +166,25 @@ export class InventoryService {
       }
     });
     return this.http.get<Paged<Stock>>(`${this.base}/stocks/`, { params: p });
+  }
+
+  /** Inventario agrupado por producto (paginado por producto). */
+  stocksByProduct(params: {
+    search?: string; branch?: number;
+    low_stock?: boolean; out_of_stock?: boolean;
+    page?: number; page_size?: number;
+  } = {}): Observable<Paged<ProductGroup>> {
+    let p = new HttpParams();
+    Object.entries(params).forEach(([k, v]) => {
+      if (v !== undefined && v !== null && v !== '' && v !== false) p = p.set(k, String(v));
+    });
+    return this.http.get<Paged<ProductGroup>>(`${this.base}/stocks/by-product/`, { params: p });
+  }
+
+  /** Elimina (borrado lógico) una sola variante. product_deleted=true si era la última. */
+  deleteVariant(variantId: number): Observable<{ detail: string; product_deleted: boolean }> {
+    return this.http.delete<{ detail: string; product_deleted: boolean }>(
+      `${environment.apiUrl}/admin/variants/${variantId}/`);
   }
 
   summary(branch?: number): Observable<InventorySummary> {

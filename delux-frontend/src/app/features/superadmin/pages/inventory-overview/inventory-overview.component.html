@@ -110,7 +110,7 @@
           <i class="fa-solid fa-spinner fa-spin text-2xl mb-3"></i>
           <p>Cargando stocks...</p>
         </div>
-      } @else if (stocks().length === 0) {
+      } @else if (groups().length === 0) {
         <dlx-empty-state icon="fa-boxes-stacked" title="No hay stocks con esos filtros." />
       } @else {
         <div class="overflow-x-auto">
@@ -152,55 +152,89 @@
               }
             </thead>
             <tbody>
-              @for (s of stocks(); track s.id) {
-                <tr class="border-t border-slate-100 hover:bg-slate-50/60" [ngClass]="isSel(s.id) ? 'bg-[var(--dash-primary)]/5' : ''">
+              @for (g of groups(); track g.product_id) {
+                <!-- Fila del PRODUCTO (una por producto) -->
+                <tr class="border-t border-slate-200 dark:border-white/10"
+                    [ngClass]="isSel(g.product_id) ? 'bg-[var(--dash-primary)]/5' : 'bg-slate-50/50 dark:bg-white/[0.02]'">
                   <td class="px-4 py-3">
-                    <input type="checkbox" [checked]="isSel(s.id)" (change)="toggleSel(s.id)" class="w-4 h-4 accent-[var(--dash-primary)]" />
+                    <input type="checkbox" [checked]="isSel(g.product_id)" (change)="toggleSel(g.product_id)" class="w-4 h-4 accent-[var(--dash-primary)]" />
                   </td>
                   <td class="px-5 py-3">
-                    <div class="flex items-center gap-3">
-                      <img [src]="imgSrc(s.product_main_image)" [alt]="s.product_name"
-                           class="w-10 h-10 rounded-lg object-cover bg-slate-100 shrink-0"
- dlxImgFallback />
+                    <button type="button" (click)="toggleExpand(g.product_id)" class="flex items-center gap-3 w-full text-left">
+                      <i class="fa-solid fa-chevron-right text-xs text-slate-400 transition-transform shrink-0"
+                         [ngClass]="isExpanded(g.product_id) ? 'rotate-90' : ''"></i>
+                      <img [src]="imgSrc(g.product_main_image)" [alt]="g.product_name"
+                           class="w-10 h-10 rounded-lg object-cover bg-slate-100 shrink-0" dlxImgFallback />
                       <div class="min-w-0">
-                        <p class="font-medium truncate flex items-center gap-1.5">
-                          <span class="truncate">{{ s.product_name }}</span>
-                          @if (!isActive(s)) { <span class="shrink-0 px-1.5 py-0.5 rounded-md text-[10px] font-bold uppercase tracking-wide bg-slate-200 text-slate-500 dark:bg-white/10 dark:text-white/50">Inactivo</span> }
+                        <p class="font-semibold truncate flex items-center gap-1.5">
+                          <span class="truncate">{{ g.product_name }}</span>
+                          @if (!isActiveGroup(g)) { <span class="shrink-0 px-1.5 py-0.5 rounded-md text-[10px] font-bold uppercase tracking-wide bg-slate-200 text-slate-500 dark:bg-white/10 dark:text-white/50">Inactivo</span> }
+                          @if (g.low_count > 0) { <span class="shrink-0 px-1.5 py-0.5 rounded-md text-[10px] font-bold uppercase tracking-wide bg-amber-100 text-amber-700">Stock bajo</span> }
                         </p>
-                        <p class="text-[11px] text-slate-500 truncate">{{ s.category_name }} · {{ s.brand_name }}</p>
-                        <p class="text-[11px] text-slate-400 mt-0.5 font-mono">{{ s.variant_sku }} · {{ s.variant_size || '—' }} / {{ s.variant_color || '—' }}</p>
+                        <p class="text-[11px] text-slate-500 truncate">{{ g.category_name }} · {{ g.brand_name }}</p>
+                        <p class="text-[11px] text-slate-400 mt-0.5">{{ g.variants_count }} variante(s)</p>
                       </div>
-                    </div>
+                    </button>
                   </td>
-                  @if (showBranchCol()) {
-                    <td class="px-5 py-3">
-                      <span class="inline-flex items-center gap-1.5 text-xs">
-                        <i class="fa-solid fa-location-dot text-slate-400"></i>
-                        {{ s.branch_name }}
-                      </span>
-                    </td>
-                  }
-                  <td class="px-4 py-3 text-right min-w-[140px]">
-                    <dlx-price-input [(ngModel)]="dr(s).price" (ngModelChange)="onDraftChange()"
-                                     extraClass="!h-9 w-28 text-right text-sm" />
+                  @if (showBranchCol()) { <td class="px-5 py-3"></td> }
+                  <td class="px-4 py-3 text-right cursor-pointer" (click)="toggleExpand(g.product_id)" title="Precio por variante (desde–hasta)">
+                    <span class="text-sm font-semibold whitespace-nowrap">{{ priceRange(g) }}</span>
                   </td>
-                  <td class="px-4 py-3 text-right min-w-[140px]">
-                    <dlx-price-input [(ngModel)]="dr(s).cost" (ngModelChange)="onDraftChange()"
-                                     extraClass="!h-9 w-28 text-right text-sm" />
+                  <td class="px-4 py-3 text-right cursor-pointer" (click)="toggleExpand(g.product_id)" title="Costo por variante (desde–hasta)">
+                    <span class="text-sm font-semibold text-slate-500 whitespace-nowrap">{{ costRange(g) }}</span>
                   </td>
-                  <td class="px-4 py-3 text-center min-w-[110px]">
-                    <input type="number" min="0" [(ngModel)]="dr(s).qty" (ngModelChange)="onDraftChange()"
-                           class="eg-input !h-9 w-20 text-center text-sm font-bold"
-                           [ngClass]="qtyDelta(s) !== 0 ? '!border-amber-400' : ''" />
+                  <td class="px-4 py-3 text-center">
+                    <span class="inline-flex items-center justify-center min-w-[2.5rem] px-2 h-8 rounded-lg bg-slate-100 dark:bg-white/10 text-sm font-bold">{{ g.total_qty }}</span>
                   </td>
-                  <td class="px-4 py-3 text-right whitespace-nowrap">
-                    <span class="font-semibold text-emerald-600">$ {{ ganancia(s) | number:'1.2-2' }}</span>
-                    <span class="ml-1 text-[10px] px-1.5 py-0.5 rounded-full bg-emerald-50 text-emerald-700">{{ gananciaPct(s) | number:'1.0-0' }}%</span>
+                  <td class="px-4 py-3 text-center cursor-pointer" (click)="toggleExpand(g.product_id)">
+                    <span class="inline-flex items-center gap-1 text-[11px] font-semibold text-emerald-600 dark:text-emerald-400" title="La ganancia se calcula por variante">
+                      <i class="fa-solid fa-arrow-down text-[10px] transition-transform" [ngClass]="isExpanded(g.product_id) ? 'rotate-180' : ''"></i> por variante
+                    </span>
                   </td>
                   <td class="px-5 py-3 text-right">
-                    <dlx-row-actions [actions]="rowActions(s)" />
+                    <dlx-row-actions [actions]="productActions(g)" />
                   </td>
                 </tr>
+                <!-- Filas de VARIANTE (al expandir) -->
+                @if (isExpanded(g.product_id)) {
+                  @for (s of g.stocks; track s.id) {
+                    <tr class="border-t border-slate-100 dark:border-white/5 hover:bg-slate-50/60 dark:hover:bg-white/[0.02]">
+                      <td class="px-4 py-2.5"></td>
+                      <td class="px-5 py-2.5">
+                        <div class="flex items-center gap-2 pl-6">
+                          <i class="fa-solid fa-turn-up fa-rotate-90 text-[10px] text-slate-300 dark:text-white/20 shrink-0"></i>
+                          <div class="min-w-0">
+                            <p class="text-sm font-medium truncate">{{ s.variant_size || '—' }} / {{ s.variant_color || '—' }}</p>
+                            <p class="text-[11px] text-slate-400 font-mono">{{ s.variant_sku }}</p>
+                          </div>
+                        </div>
+                      </td>
+                      @if (showBranchCol()) {
+                        <td class="px-5 py-2.5">
+                          <span class="inline-flex items-center gap-1.5 text-xs"><i class="fa-solid fa-location-dot text-slate-400"></i>{{ s.branch_name }}</span>
+                        </td>
+                      }
+                      <td class="px-4 py-2.5 text-right min-w-[140px]">
+                        <dlx-price-input [(ngModel)]="dr(s).price" (ngModelChange)="onDraftChange()" extraClass="!h-9 w-28 text-right text-sm" />
+                      </td>
+                      <td class="px-4 py-2.5 text-right min-w-[140px]">
+                        <dlx-price-input [(ngModel)]="dr(s).cost" (ngModelChange)="onDraftChange()" extraClass="!h-9 w-28 text-right text-sm" />
+                      </td>
+                      <td class="px-4 py-2.5 text-center min-w-[110px]">
+                        <input type="number" min="0" [(ngModel)]="dr(s).qty" (ngModelChange)="onDraftChange()"
+                               class="eg-input !h-9 w-20 text-center text-sm font-bold"
+                               [ngClass]="qtyDelta(s) !== 0 ? '!border-amber-400' : ''" />
+                      </td>
+                      <td class="px-4 py-2.5 text-right whitespace-nowrap">
+                        <span class="font-semibold text-emerald-600">$ {{ ganancia(s) | number:'1.2-2' }}</span>
+                        <span class="ml-1 text-[10px] px-1.5 py-0.5 rounded-full bg-emerald-50 text-emerald-700">{{ gananciaPct(s) | number:'1.0-0' }}%</span>
+                      </td>
+                      <td class="px-5 py-2.5 text-right">
+                        <dlx-row-actions [actions]="variantActions(s, g)" />
+                      </td>
+                    </tr>
+                  }
+                }
               }
             </tbody>
           </table>
