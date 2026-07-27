@@ -262,6 +262,13 @@ export class ReceptionComponent implements OnInit, OnDestroy {
       .map(([bid, q]) => this.branchLabel(+bid) + ': ' + q)
       .join(' · ');
   }
+  /** Solo los nombres de sucursal (sin cantidades). */
+  rowBranchNames(r: Row): string {
+    return Object.entries(r.branchQty || {})
+      .filter(([, q]) => (+q) > 0)
+      .map(([bid]) => this.branchLabel(+bid))
+      .join(' · ');
+  }
   groupedSummary(): { key: string; name: string; isNew: boolean; rows: Row[] }[] {
     const groups: { key: string; name: string; isNew: boolean; rows: Row[] }[] = [];
     const idx = new Map<string, number>();
@@ -545,7 +552,15 @@ export class ReceptionComponent implements OnInit, OnDestroy {
     const list = this.suppliers();
     return (q ? list.filter(s => s.name.toLowerCase().includes(q)) : list).slice(0, 8);
   }
-  pickSupplier(name: string): void { this.supplierName = name; this.supplierOpen.set(false); this.saveState(); }
+  pickSupplier(name: string): void {
+    // La recepción usa un solo proveedor para todo el lote; si ya hay productos
+    // agregados con otro proveedor, avisar que se aplicará a todos.
+    const prev = (this.supplierName || '').trim();
+    if (this.items().length && prev && prev.toLowerCase() !== name.trim().toLowerCase()) {
+      this.notify.warning(`Esta subida se registra con un solo proveedor: «${name}» se aplicará a todos los productos.`);
+    }
+    this.supplierName = name; this.supplierOpen.set(false); this.saveState();
+  }
   closeSupplierSoon(): void { setTimeout(() => this.supplierOpen.set(false), 150); }
 
   onSupplierCreated(s: Supplier): void {

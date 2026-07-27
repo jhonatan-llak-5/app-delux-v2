@@ -61,6 +61,11 @@ export class ManualProductModalComponent implements OnInit, OnDestroy {
   error = signal<string | null>(null);
   fieldErrors = signal<Record<string, string>>({});
   fe(k: string): string | undefined { return this.fieldErrors()[k]; }
+  /** Limpia el error de un campo apenas el usuario corrige el valor. */
+  clearErr(k: string): void {
+    const e = this.fieldErrors();
+    if (e[k]) { const n = { ...e }; delete n[k]; this.fieldErrors.set(n); }
+  }
 
   isEdit(): boolean { return this.mode === 'edit'; }
 

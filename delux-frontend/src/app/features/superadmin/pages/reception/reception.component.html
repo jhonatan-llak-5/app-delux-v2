@@ -123,9 +123,12 @@
                   </div>
                 }
               </div>
-              <button type="button" class="eg-btn-secondary shrink-0" (click)="showSupplierModal.set(true)" title="Agregar proveedor con todos sus datos">
+              <button type="button" class="shrink-0 w-11 h-11 grid place-items-center rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white transition" (click)="showSupplierModal.set(true)" title="Agregar proveedor con todos sus datos">
                 <i class="fa-solid fa-plus"></i>
               </button>
+            </div>
+            <div class="mt-1.5 inline-flex items-center gap-1.5 text-[11px] font-semibold text-amber-800 dark:text-amber-300 bg-amber-50 dark:bg-amber-500/10 border border-amber-200 dark:border-amber-500/30 rounded-lg px-2 py-1">
+              <i class="fa-solid fa-circle-info"></i> Se aplica a todos los productos de esta subida.
             </div>
           </div>
 
@@ -193,74 +196,84 @@
           </button>
         </div>
       } @else {
-        <div class="space-y-2.5">
-          @for (it of items(); track it.key) {
-            <div class="card p-4">
-              <div class="flex items-start justify-between gap-3">
-                <div class="flex items-start gap-3 min-w-0">
-                  @if (it.images && it.images.length) {
-                    <img [src]="it.images[0]" [alt]="it.product_name" dlxImgFallback
-                         class="w-12 h-12 rounded-lg object-cover border border-slate-200 dark:border-white/10 shrink-0" />
-                  } @else {
-                    <div class="w-12 h-12 rounded-lg grid place-items-center bg-slate-100 dark:bg-white/5 text-slate-300 shrink-0">
-                      <i class="fa-solid fa-image"></i>
-                    </div>
-                  }
-                  <div class="min-w-0">
-                    <p class="font-medium truncate flex items-center gap-1.5">
-                      <span class="truncate">{{ it.product_name }}</span>
-                      @if (it.isNew) { <span class="shrink-0 px-1.5 py-0.5 rounded-md text-[10px] font-bold uppercase tracking-wide bg-emerald-100 text-emerald-700 dark:bg-emerald-500/15 dark:text-emerald-400">Nuevo</span> }
-                    </p>
-                    <p class="text-xs text-slate-400 truncate">
-                      {{ it.size || '—' }} / {{ it.color || '—' }}
-                      @if (it.sku) { · {{ it.sku }} } @else if (it.brand_name) { · {{ it.brand_name }} }
-                    </p>
-                  </div>
-                </div>
-                <div class="flex items-center gap-3 shrink-0">
-                  <button class="text-slate-400 hover:text-[var(--dash-primary)]" (click)="openDetail(it)" title="Ver detalle"><i class="fa-solid fa-eye text-sm"></i></button>
-                  <button class="text-rose-500 hover:text-rose-700" (click)="removeRow(it.key)" title="Quitar"><i class="fa-solid fa-trash text-sm"></i></button>
-                </div>
-              </div>
-
-              <div class="grid grid-cols-1 sm:grid-cols-[170px_170px_1fr] gap-4 mt-3">
-                <div>
-                  <label class="text-[11px] text-slate-400">Costo unitario</label>
-                  <dlx-price-input [(ngModel)]="it.unit_cost" (ngModelChange)="touchItems()" extraClass="!h-9 w-full" />
-                </div>
-                <div>
-                  <label class="text-[11px] text-slate-400">Precio de venta</label>
-                  <dlx-price-input [(ngModel)]="it.price" (ngModelChange)="touchItems()" extraClass="!h-9 w-full" />
-                </div>
-
-                <div>
-                  <label class="text-[11px] text-slate-400">Cantidad por sucursal</label>
-                  <div class="space-y-1.5 mt-0.5">
-                    @for (b of rowBranchOptions(it); track b.id) {
-                      <div class="flex items-center gap-2 rounded-xl border pl-3 pr-1.5 h-11 transition"
-                           [ngClass]="hasBranch(it, b.id) ? 'border-[var(--dash-primary)] bg-[var(--dash-primary)]/5' : 'border-slate-200 dark:border-white/10'">
-                        <label class="flex items-center gap-2 flex-1 min-w-0 h-full cursor-pointer">
-                          <input type="checkbox" [checked]="hasBranch(it, b.id)" (change)="toggleRowBranch(it, b.id)" class="w-4 h-4 accent-[var(--dash-primary)] shrink-0" />
-                          <span class="text-sm truncate">{{ b.name }} · {{ b.city }}</span>
-                        </label>
-                        @if (hasBranch(it, b.id)) {
-                          <div class="w-20 shrink-0">
-                            <input type="number" min="0" [ngModel]="it.branchQty[b.id]" (ngModelChange)="setRowQty(it, b.id, $event)"
-                                   class="eg-input !h-8 w-full text-center text-sm" placeholder="0" />
+        <div class="card overflow-hidden">
+          <div class="overflow-x-auto">
+            <table class="w-full text-sm">
+              <thead class="bg-slate-50 dark:bg-white/5 text-slate-500">
+                <tr class="text-left">
+                  <th class="px-4 py-3 font-semibold">Producto</th>
+                  <th class="px-4 py-3 font-semibold text-right min-w-[120px]">Costo</th>
+                  <th class="px-4 py-3 font-semibold text-right min-w-[120px]">Precio</th>
+                  <th class="px-4 py-3 font-semibold min-w-[230px]">Cantidad por sucursal</th>
+                  <th class="px-4 py-3 font-semibold text-right">Subtotal</th>
+                  <th class="px-4 py-3 font-semibold text-right">Acciones</th>
+                </tr>
+              </thead>
+              <tbody class="divide-y divide-slate-100 dark:divide-white/5 align-middle">
+                @for (it of items(); track it.key) {
+                  <tr class="hover:bg-slate-50/60 dark:hover:bg-white/[0.02]">
+                    <td class="px-4 py-3">
+                      <div class="flex items-start gap-3 min-w-0">
+                        @if (it.images && it.images.length) {
+                          <img [src]="it.images[0]" [alt]="it.product_name" dlxImgFallback
+                               class="w-10 h-10 rounded-lg object-cover border border-slate-200 dark:border-white/10 shrink-0" />
+                        } @else {
+                          <div class="w-10 h-10 rounded-lg grid place-items-center bg-slate-100 dark:bg-white/5 text-slate-300 shrink-0">
+                            <i class="fa-solid fa-image"></i>
+                          </div>
+                        }
+                        <div class="min-w-0">
+                          <p class="font-medium truncate flex items-center gap-1.5">
+                            <span class="truncate">{{ it.product_name }}</span>
+                            @if (it.isNew) { <span class="shrink-0 px-1.5 py-0.5 rounded-md text-[10px] font-bold uppercase tracking-wide bg-emerald-100 text-emerald-700 dark:bg-emerald-500/15 dark:text-emerald-400">Nuevo</span> }
+                          </p>
+                          <p class="text-xs text-slate-400 truncate">
+                            {{ it.size || '—' }} / {{ it.color || '—' }}
+                            @if (it.sku) { · {{ it.sku }} } @else if (it.brand_name) { · {{ it.brand_name }} }
+                          </p>
+                        </div>
+                      </div>
+                    </td>
+                    <td class="px-4 py-3 text-right">
+                      <dlx-price-input [(ngModel)]="it.unit_cost" (ngModelChange)="touchItems()" extraClass="!h-9 w-28 text-right" />
+                    </td>
+                    <td class="px-4 py-3 text-right">
+                      <dlx-price-input [(ngModel)]="it.price" (ngModelChange)="touchItems()" extraClass="!h-9 w-28 text-right" />
+                    </td>
+                    <td class="px-4 py-3">
+                      <div class="space-y-1.5">
+                        @for (b of rowBranchOptions(it); track b.id) {
+                          <div class="flex items-center gap-2 rounded-xl border pl-3 pr-1.5 h-10 transition"
+                               [ngClass]="hasBranch(it, b.id) ? 'border-[var(--dash-primary)] bg-[var(--dash-primary)]/5' : 'border-slate-200 dark:border-white/10'">
+                            <label class="flex items-center gap-2 flex-1 min-w-0 h-full cursor-pointer">
+                              <input type="checkbox" [checked]="hasBranch(it, b.id)" (change)="toggleRowBranch(it, b.id)" class="w-4 h-4 accent-[var(--dash-primary)] shrink-0" />
+                              <span class="text-xs truncate">{{ b.name }}</span>
+                            </label>
+                            @if (hasBranch(it, b.id)) {
+                              <div class="w-16 shrink-0">
+                                <input type="number" min="0" [ngModel]="it.branchQty[b.id]" (ngModelChange)="setRowQty(it, b.id, $event)"
+                                       class="eg-input !h-8 w-full text-center text-sm" placeholder="0" />
+                              </div>
+                            }
                           </div>
                         }
                       </div>
-                    }
-                  </div>
-                </div>
-              </div>
-
-              <div class="flex items-center justify-between mt-3 pt-2.5 border-t border-slate-100 dark:border-white/5 text-sm">
-                <span class="text-slate-500">{{ rowUnits(it) }} uds @if (rowBranchSummary(it)) { <span class="text-slate-400">· {{ rowBranchSummary(it) }}</span> }</span>
-                <span class="font-bold">{{ money(rowUnits(it) * (+it.unit_cost || 0)) }}</span>
-              </div>
-            </div>
-          }
+                    </td>
+                    <td class="px-4 py-3 text-right whitespace-nowrap">
+                      <p class="font-bold">{{ money(rowUnits(it) * (+it.unit_cost || 0)) }}</p>
+                      <p class="text-[11px] text-slate-400">{{ rowUnits(it) }} uds</p>
+                    </td>
+                    <td class="px-4 py-3">
+                      <div class="flex items-center justify-end gap-1">
+                        <button class="w-8 h-8 grid place-items-center rounded-lg text-slate-400 hover:text-[var(--dash-primary)] hover:bg-slate-100 dark:hover:bg-white/5" (click)="openDetail(it)" title="Ver detalle"><i class="fa-solid fa-eye text-sm"></i></button>
+                        <button class="w-8 h-8 grid place-items-center rounded-lg text-rose-500 hover:text-rose-700 hover:bg-rose-50 dark:hover:bg-rose-500/10" (click)="removeRow(it.key)" title="Quitar"><i class="fa-solid fa-trash text-sm"></i></button>
+                      </div>
+                    </td>
+                  </tr>
+                }
+              </tbody>
+            </table>
+          </div>
         </div>
       }
     </div>
@@ -268,7 +281,7 @@
 
     <!-- ════════ TAB 3: CONFIRMAR ════════ -->
     @if (tab() === 'confirm') {
-    <div class="max-w-3xl">
+    <div class="max-w-5xl">
       @if (items().length === 0) {
         <div class="card p-10 text-center">
           <p class="text-slate-500 mb-4">No hay productos para confirmar.</p>
@@ -302,39 +315,44 @@
             @if (note.trim()) { <div class="flex justify-between"><span class="text-slate-500">Nota</span><span class="font-medium text-right">{{ note.trim() }}</span></div> }
           </div>
 
-          <div class="space-y-2 max-h-80 overflow-y-auto pr-0.5">
-            @for (g of groupedSummary(); track g.key) {
-              <div class="rounded-xl border border-slate-200 dark:border-white/10 overflow-hidden">
-                <div class="flex items-center justify-between gap-2 px-3 py-2 bg-slate-50 dark:bg-white/5">
-                  <div class="min-w-0 flex items-center gap-2">
-                    <p class="font-semibold truncate">{{ g.name }}</p>
-                    @if (g.isNew) {
-                      <span class="shrink-0 px-1.5 py-0.5 rounded-md text-[10px] font-bold uppercase tracking-wide bg-emerald-100 text-emerald-700 dark:bg-emerald-500/15 dark:text-emerald-400">Nuevo</span>
-                    } @else {
-                      <span class="shrink-0 px-1.5 py-0.5 rounded-md text-[10px] font-bold uppercase tracking-wide bg-slate-200 text-slate-500 dark:bg-white/10 dark:text-white/50">Existente</span>
-                    }
-                  </div>
-                  <div class="text-right shrink-0 text-xs whitespace-nowrap">
-                    <span class="font-bold">{{ groupUnits(g.rows) }} uds</span>
-                    <span class="text-slate-400"> · {{ money(groupCost(g.rows)) }}</span>
-                  </div>
-                </div>
-                <div class="divide-y divide-slate-100 dark:divide-white/5">
-                  @for (it of g.rows; track it.key) {
-                    <div class="flex items-center justify-between gap-3 px-3 py-1.5 text-sm">
-                      <div class="min-w-0 flex items-center gap-2 flex-wrap">
-                        <span class="inline-flex items-center px-1.5 py-0.5 rounded-md text-[11px] font-medium bg-slate-100 dark:bg-white/10 text-slate-600 dark:text-white/70">{{ it.size || '—' }} / {{ it.color || '—' }}</span>
-                        @if (rowBranchSummary(it)) { <span class="text-[11px] text-slate-400 truncate">{{ rowBranchSummary(it) }}</span> }
-                      </div>
-                      <div class="text-right shrink-0 whitespace-nowrap">
-                        <span class="font-medium">{{ rowUnits(it) }} × {{ money(it.unit_cost) }}</span>
-                        <span class="text-xs text-slate-400 ml-1.5">{{ money(rowUnits(it) * (+it.unit_cost || 0)) }}</span>
-                      </div>
-                    </div>
+          <div class="rounded-xl border border-slate-200 dark:border-white/10 overflow-hidden">
+            <div class="overflow-x-auto max-h-96">
+              <table class="w-full text-sm">
+                <thead class="bg-slate-50 dark:bg-white/5 text-slate-500 sticky top-0">
+                  <tr class="text-left">
+                    <th class="px-4 py-2.5 font-semibold">Producto</th>
+                    <th class="px-4 py-2.5 font-semibold">Variante</th>
+                    <th class="px-4 py-2.5 font-semibold">Sucursales</th>
+                    <th class="px-4 py-2.5 font-semibold text-center">Cant.</th>
+                    <th class="px-4 py-2.5 font-semibold text-right">Costo</th>
+                    <th class="px-4 py-2.5 font-semibold text-right">Subtotal</th>
+                  </tr>
+                </thead>
+                <tbody class="divide-y divide-slate-100 dark:divide-white/5">
+                  @for (it of items(); track it.key) {
+                    <tr>
+                      <td class="px-4 py-2.5">
+                        <span class="font-medium">{{ it.product_name }}</span>
+                        @if (it.isNew) { <span class="ml-1.5 px-1.5 py-0.5 rounded-md text-[10px] font-bold uppercase tracking-wide bg-emerald-100 text-emerald-700 dark:bg-emerald-500/15 dark:text-emerald-400">Nuevo</span> }
+                      </td>
+                      <td class="px-4 py-2.5 text-slate-500">{{ it.size || '—' }} / {{ it.color || '—' }}</td>
+                      <td class="px-4 py-2.5 text-slate-500 text-xs">{{ rowBranchNames(it) || '—' }}</td>
+                      <td class="px-4 py-2.5 text-center font-medium">{{ rowUnits(it) }}</td>
+                      <td class="px-4 py-2.5 text-right">{{ money(it.unit_cost) }}</td>
+                      <td class="px-4 py-2.5 text-right font-semibold">{{ money(rowUnits(it) * (+it.unit_cost || 0)) }}</td>
+                    </tr>
                   }
-                </div>
-              </div>
-            }
+                </tbody>
+                <tfoot class="bg-slate-50 dark:bg-white/5 font-bold">
+                  <tr>
+                    <td class="px-4 py-2.5" colspan="3">Total</td>
+                    <td class="px-4 py-2.5 text-center">{{ totalUnits() }}</td>
+                    <td class="px-4 py-2.5"></td>
+                    <td class="px-4 py-2.5 text-right">{{ money(totalCost()) }}</td>
+                  </tr>
+                </tfoot>
+              </table>
+            </div>
           </div>
 
           <div class="flex items-center justify-between gap-3 flex-wrap pt-2">

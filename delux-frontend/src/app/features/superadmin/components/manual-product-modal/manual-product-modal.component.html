@@ -41,7 +41,7 @@
 
     <div>
       <label class="eg-label">Nombre del producto *</label>
-      <input [(ngModel)]="nf.product_name" class="eg-input w-full" [class.!border-rose-400]="fe('product_name')" placeholder="Ej. Camiseta" />
+      <input [(ngModel)]="nf.product_name" (ngModelChange)="clearErr('product_name')" class="eg-input w-full" [class.!border-rose-400]="fe('product_name')" placeholder="Ej. Camiseta" />
       <dlx-field-error [error]="fe('product_name')" />
     </div>
 
@@ -59,7 +59,7 @@
       @if (!hasVariants()) {
         <div>
           <label class="eg-label">Cantidad *</label>
-          <input type="number" min="0" [ngModel]="getQty('', '')" (ngModelChange)="setQty('', '', $event)"
+          <input type="number" min="0" [ngModel]="getQty('', '')" (ngModelChange)="setQty('', '', $event); clearErr('qty')"
                  class="eg-input w-full" [class.!border-rose-400]="fe('qty')" placeholder="0" />
           <dlx-field-error [error]="fe('qty')" />
         </div>
@@ -67,18 +67,18 @@
     }
 
     <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
-      <div>
-        <label class="eg-label">Precio de venta (con IVA) *</label>
-        <dlx-price-input [(ngModel)]="nf.price" extraClass="w-full" />
-        <dlx-field-error [error]="fe('price')" />
-      </div>
       @if (!isEdit()) {
         <div>
           <label class="eg-label">Costo de compra *</label>
-          <dlx-price-input [(ngModel)]="nf.cost" extraClass="w-full" />
+          <dlx-price-input [(ngModel)]="nf.cost" (ngModelChange)="clearErr('cost')" extraClass="w-full" />
           <dlx-field-error [error]="fe('cost')" />
         </div>
       }
+      <div>
+        <label class="eg-label">Precio de venta (con IVA) *</label>
+        <dlx-price-input [(ngModel)]="nf.price" (ngModelChange)="clearErr('price')" extraClass="w-full" />
+        <dlx-field-error [error]="fe('price')" />
+      </div>
     </div>
 
     @if ((+nf.price || 0) > 0) {
