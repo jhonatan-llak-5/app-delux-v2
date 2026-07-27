@@ -13,7 +13,7 @@ class AdminVariantViewSet(viewsets.ModelViewSet):
     ordering = ['-created_at']
 
     def get_queryset(self):
-        qs = Variant.objects.select_related('product').annotate(
+        qs = Variant.objects.filter(product__deleted_at__isnull=True).select_related('product').annotate(
             total_stock=Sum('stocks__quantity')
         )
         product_id = self.request.query_params.get('product')

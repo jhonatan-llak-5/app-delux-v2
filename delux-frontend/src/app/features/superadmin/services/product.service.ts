@@ -110,6 +110,15 @@ export class ProductService {
     return this.http.post<{ updated: number; tax_rate: number | null }>(`${this.base}/bulk-tax/`, body);
   }
 
+  /** Activa/desactiva varios productos. status: 'PUBLISHED' (activo) | 'PAUSED' (inactivo). */
+  bulkStatus(product_ids: number[], status: string) {
+    return this.http.post<{ updated: number; status: string }>(`${this.base}/bulk-status/`, { product_ids, status });
+  }
+  /** Elimina varios productos (borrado lógico: se ocultan pero se conservan las ventas). */
+  bulkDelete(product_ids: number[]) {
+    return this.http.post<{ deleted: number; skipped: number }>(`${this.base}/bulk-delete/`, { product_ids });
+  }
+
   toggleFeatured(id: number) {
     return this.http.post<{ is_featured: boolean }>(`${this.base}/${id}/toggle_featured/`, {});
   }

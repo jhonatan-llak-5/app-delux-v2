@@ -1,4 +1,5 @@
 from django.db.models import Count, Sum, Q, Exists, OuterRef
+from django.utils import timezone
 from rest_framework import filters, permissions, status, viewsets
 from rest_framework.decorators import action
 from rest_framework.response import Response
@@ -21,6 +22,7 @@ class AdminProductViewSet(viewsets.ModelViewSet):
     def get_queryset(self):
         qs = (
             Product.objects
+            .filter(deleted_at__isnull=True)
             .select_related('brand', 'category', 'tenant')
             .prefetch_related('images')
             .annotate(
@@ -70,7 +72,7 @@ class AdminProductViewSet(viewsets.ModelViewSet):
 
     def _summary_base(self):
         """Catalogo visible por el rol (sin filtros de lista) para KPIs totales."""
-        qs = Product.objects.all()
+        qs = Product.objects.filter(deleted_at__isnull=True)
         user = self.request.user
         if getattr(user, 'role', None) and user.role != 'SUPERADMIN':
             if user.tenant_id:
@@ -129,21 +131,20 @@ class AdminProductViewSet(viewsets.ModelViewSet):
         return ProductSerializer
 
     def destroy(self, request, *args, **kwargs):
-        """Borrado físico del producto (cascade: variantes, stock, imágenes).
+        """Borrado lógico (soft delete) del producto.
 
-        Si el producto tiene ventas registradas (OrderItem PROTECT sobre la
-        variante) no se puede borrar sin perder historial: se sugiere archivar.
-        """
+        No se elimina físicamente: se marca con `deleted_at` para ocultarlo en
+        todo el sistema (catálogo, inventario, POS, kiosko) conservando el
+        registro. Así las ventas ya realizadas (OrderItem, con snapshot de
+        nombre/precio) permanecen intactas y el producto puede "eliminarse"
+        siempre, tenga o no ventas."""
         product = self.get_object()
-        from apps.orders.models import OrderItem
-        if OrderItem.objects.filter(variant__product=product).exists():
-            return Response(
-                {'detail': 'No se puede eliminar: el producto tiene ventas registradas. '
-                           'Archívalo en su lugar.'},
-                status=status.HTTP_409_CONFLICT,
-            )
         name = product.name
-        product.delete()
+        product.deleted_at = timezone.now()
+        # Al eliminar lo despublicamos también para que no aparezca en ningún
+        # listado que aún consulte por estado.
+        product.status = 'ARCHIVED'
+        product.save(update_fields=['deleted_at', 'status', 'updated_at'])
         return Response(
             {'detail': f'Producto "{name}" eliminado.'},
             status=status.HTTP_200_OK,
@@ -169,6 +170,29 @@ class AdminProductViewSet(viewsets.ModelViewSet):
         p.status = 'ARCHIVED'
         p.save(update_fields=['status', 'updated_at'])
         return Response({'detail': 'Producto archivado.', 'status': p.status})
+
+    @action(detail=False, methods=['post'], url_path='bulk-status')
+    def bulk_status(self, request):
+        """Activa/desactiva varios productos a la vez. status: PUBLISHED | PAUSED."""
+        ids = request.data.get('product_ids') or []
+        new_status = (request.data.get('status') or '').upper()
+        if new_status not in ('PUBLISHED', 'PAUSED', 'ARCHIVED', 'DRAFT'):
+            return Response({'detail': 'Estado inválido.'}, status=400)
+        qs = self.get_queryset().filter(pk__in=ids)
+        updated = qs.update(status=new_status)
+        return Response({'updated': updated, 'status': new_status})
+
+    @action(detail=False, methods=['post'], url_path='bulk-delete')
+    def bulk_delete(self, request):
+        """Elimina varios productos a la vez (borrado lógico).
+
+        Se marcan con `deleted_at` (y ARCHIVED) para ocultarlos en todo el
+        sistema sin perder el registro; las ventas asociadas quedan intactas.
+        Como es borrado lógico, todos los seleccionados se pueden eliminar."""
+        ids = request.data.get('product_ids') or []
+        qs = self.get_queryset().filter(pk__in=ids)
+        deleted = qs.update(deleted_at=timezone.now(), status='ARCHIVED')
+        return Response({'deleted': deleted, 'skipped': 0})
 
     @action(detail=True, methods=['get', 'post'], url_path='images')
     def manage_images(self, request, pk=None):

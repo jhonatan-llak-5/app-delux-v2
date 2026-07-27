@@ -43,7 +43,8 @@ class PublicBranchesView(APIView):
             .annotate(
                 products_count=Count(
                     'stocks__variant__product',
-                    filter=Q(stocks__quantity__gt=0),
+                    filter=Q(stocks__quantity__gt=0,
+                             stocks__variant__product__deleted_at__isnull=True),
                     distinct=True,
                 )
             )

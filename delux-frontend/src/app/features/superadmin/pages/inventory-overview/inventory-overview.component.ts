@@ -24,6 +24,9 @@ import { BrandingService } from '@core/services/branding.service';
 import { NotifyService } from '@shared/services/notify.service';
 import { DlxPaginationComponent } from '@shared/ui/pagination.component';
 import { DlxPriceInputComponent } from '@shared/ui/price-input.component';
+import { ProductService } from '@features/superadmin/services/product.service';
+import { ConfirmService } from '@shared/components/confirm/confirm.service';
+import { parseApiError } from '@shared/utils/api-error.util';
 
 @Component({
   selector: 'dlx-inventory-overview',
@@ -40,13 +43,83 @@ export class InventoryOverviewComponent implements OnInit {
   private router = inject(Router);
   private branding = inject(BrandingService);
   private notify = inject(NotifyService);
-  private inited = false;
+  private productSvc = inject(ProductService);
+  private confirm = inject(ConfirmService);
+
+  // ── Selección múltiple (por fila de stock) ──
+  selected = signal<Set<number>>(new Set());
+  /** ¿Mostrar columna Sucursal? Solo si el usuario puede cambiar de sucursal. */
+  showBranchCol = computed(() => this.branchCtx.canSwitch());
+  isSel(id: number): boolean { return this.selected().has(id); }
+  toggleSel(id: number): void { const n = new Set(this.selected()); n.has(id) ? n.delete(id) : n.add(id); this.selected.set(n); }
+  allSelected = computed(() => { const s = this.stocks(); return s.length > 0 && s.every(x => this.selected().has(x.id)); });
+  toggleAllSel(): void { this.allSelected() ? this.selected.set(new Set()) : this.selected.set(new Set(this.stocks().map(x => x.id))); }
+  clearSel(): void { this.selected.set(new Set()); }
+  private selectedProductIds(): number[] {
+    const ids = this.selected(); const set = new Set<number>();
+    for (const s of this.stocks()) if (ids.has(s.id)) set.add(s.product_id);
+    return [...set];
+  }
+  isActive(s: Stock): boolean { return (s.product_status || 'PUBLISHED') === 'PUBLISHED'; }
+
+  bulkSetStatus(status: 'PUBLISHED' | 'PAUSED'): void {
+    const pids = this.selectedProductIds();
+    if (!pids.length) return;
+    this.productSvc.bulkStatus(pids, status).subscribe({
+      next: r => {
+        this.notify.success(`${r.updated} producto(s) ${status === 'PUBLISHED' ? 'activado(s)' : 'desactivado(s)'}.`);
+        this.clearSel(); this.reload();
+      },
+      error: e => this.notify.error(parseApiError(e).message || 'No se pudo actualizar el estado.'),
+    });
+  }
+  async bulkDelete(): Promise<void> {
+    const pids = this.selectedProductIds();
+    if (!pids.length) return;
+    const ok = await this.confirm.ask({
+      title: 'Eliminar productos',
+      message: `¿Eliminar ${pids.length} producto(s)? Dejarán de aparecer en el catálogo, el inventario y el punto de venta. Las ventas ya registradas se conservan intactas.`,
+      variant: 'danger', confirmText: 'Eliminar',
+    });
+    if (!ok) return;
+    this.productSvc.bulkDelete(pids).subscribe({
+      next: r => {
+        if (r.deleted) this.notify.success(`${r.deleted} producto(s) eliminado(s).`);
+        else this.notify.info('No se eliminó ningún producto.');
+        this.clearSel(); this.reload();
+      },
+      error: e => this.notify.error(parseApiError(e).message || 'No se pudo eliminar.'),
+    });
+  }
+
+  /** Elimina (borrado lógico) un solo producto desde el menú de la fila. */
+  async deleteOne(s: Stock): Promise<void> {
+    const ok = await this.confirm.ask({
+      title: 'Eliminar producto',
+      message: `¿Eliminar "${s.product_name}"? Dejará de aparecer en el catálogo, el inventario y el punto de venta. Las ventas ya registradas se conservan intactas.`,
+      variant: 'danger', confirmText: 'Eliminar',
+    });
+    if (!ok) return;
+    this.productSvc.delete(s.product_id).subscribe({
+      next: () => { this.notify.success(`Producto "${s.product_name}" eliminado.`); this.clearSel(); this.reload(); },
+      error: e => this.notify.error(parseApiError(e).message || 'No se pudo eliminar.'),
+    });
+  }
 
   constructor() {
+    // La carga la maneja este efecto (no ngOnInit): así el inventario se carga
+    // recién cuando la sesión y el contexto de sucursal están listos. En un
+    // refresco en frío el usuario/sucursal se resuelven DESPUÉS de crear el
+    // componente; si cargáramos de una en ngOnInit la petición saldría sin
+    // contexto y la tabla se quedaba en "Cargando…". El efecto reacciona a
+    // ambos y recarga cuando ya hay sesión.
     effect(() => {
-      const b = this.branchCtx.current();
-      if (this.inited) { this.branchFilter = b; this.reload(); }
-    });
+      const user = this.auth.user();          // espera a que la sesión esté lista
+      const b = this.branchCtx.current();      // y reacciona al selector global
+      if (!user) return;
+      this.branchFilter = b;
+      this.reload();
+    }, { allowSignalWrites: true });
   }
 
   stocks = signal<Stock[]>([]);
@@ -76,13 +149,14 @@ export class InventoryOverviewComponent implements OnInit {
   ngOnInit(): void {
     this.search$.pipe(debounceTime(300)).subscribe(() => this.reload());
     this.adminSvc.listBranches().subscribe(r => this.branches.set(r.results || []));
-    this.branchFilter = this.branchCtx.current();
-    this.reload();
-    this.inited = true;
+    // La carga inicial la dispara el effect del constructor cuando la sesión y
+    // el contexto de sucursal ya están listos (evita quedarse en "Cargando…"
+    // al refrescar la página directamente en /inventory).
   }
 
   reload(): void {
     this.loading.set(true);
+    this.clearSel();
     this.svc.summary(this.branchFilter || undefined).subscribe(s => this.summary.set(s));
     this.svc.stocks({
       search: this.search(),
@@ -132,6 +206,7 @@ export class InventoryOverviewComponent implements OnInit {
       { label: 'Ajustar', icon: 'fa-pen', run: () => this.openAdjust(s) },
       { label: 'Transferir', icon: 'fa-truck', disabled: s.quantity === 0, run: () => this.openTransfer(s) },
       { label: 'Imprimir etiqueta', icon: 'fa-barcode', run: () => this.printLabel(s) },
+      { label: 'Eliminar', icon: 'fa-trash', variant: 'danger', run: () => this.deleteOne(s) },
     ];
   }
 

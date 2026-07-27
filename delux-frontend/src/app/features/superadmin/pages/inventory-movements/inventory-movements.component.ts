@@ -74,7 +74,7 @@ import { AdminService, AdminBranch } from '@features/superadmin/services/admin.s
             <tr class="text-left">
               <th class="px-5 py-3 font-semibold">Fecha</th>
               <th class="px-5 py-3 font-semibold">Tipo</th>
-              @if (!productId()) { <th class="px-5 py-3 font-semibold">Producto / SKU</th> }
+              @if (!productId()) { <th class="px-5 py-3 font-semibold">Producto / Código</th> }
               <th class="px-5 py-3 font-semibold">Sucursal</th>
               <th class="px-5 py-3 font-semibold text-center">Antes</th>
               <th class="px-5 py-3 font-semibold text-center">Movimiento</th>

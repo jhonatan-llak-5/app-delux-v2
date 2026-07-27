@@ -148,7 +148,7 @@ class MeWishlistView(APIView):
         product_id = request.data.get('product_id')
         if not product_id:
             return Response({'detail': 'product_id requerido.'}, status=400)
-        product = Product.objects.filter(pk=product_id).first()
+        product = Product.objects.filter(pk=product_id, deleted_at__isnull=True).first()
         if not product:
             return Response({'detail': 'Producto no existe.'}, status=404)
         item, created = WishlistItem.objects.get_or_create(

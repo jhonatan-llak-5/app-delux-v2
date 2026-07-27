@@ -183,6 +183,7 @@ export class DashboardLayoutComponent implements AfterViewInit, OnDestroy {
     ] },
     { title: 'Inventario', roles: ['SUPERADMIN', 'TENANT_ADMIN'], items: [
       { label: 'Inventario',  icon: 'fa-boxes-stacked', route: '/app/admin/inventory', exact: true },
+      { label: 'Etiquetas',   icon: 'fa-barcode',       route: '/app/admin/labels' },
       { label: 'Proveedores', icon: 'fa-truck-field',   route: '/app/admin/inventory/suppliers' },
       { label: 'Categorías',  icon: 'fa-folder-tree',   route: '/app/admin/categories' },
       { label: 'Marcas',      icon: 'fa-tags',          route: '/app/admin/brands' },
@@ -222,6 +223,7 @@ export class DashboardLayoutComponent implements AfterViewInit, OnDestroy {
     ] },
     { title: 'Inventario', roles: ['BRANCH_MANAGER'], items: [
       { label: 'Inventario',  icon: 'fa-boxes-stacked', route: '/app/admin/inventory', exact: true },
+      { label: 'Etiquetas',   icon: 'fa-barcode',       route: '/app/admin/labels' },
       { label: 'Proveedores', icon: 'fa-truck-field',   route: '/app/admin/inventory/suppliers' },
     ] },
     { title: 'Finanzas', roles: ['BRANCH_MANAGER'], items: [

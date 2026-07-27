@@ -10,7 +10,7 @@ from .models import Product, ProductStatus
 
 
 def filter_products(request):
-    qs = Product.objects.filter(status=ProductStatus.PUBLISHED).select_related('brand', 'category')
+    qs = Product.objects.filter(status=ProductStatus.PUBLISHED, deleted_at__isnull=True).select_related('brand', 'category')
 
     params = request.query_params
     q = params.get('q')
@@ -180,7 +180,7 @@ class SearchAutocompleteView(APIView):
         if len(q) < 2:
             return Response({'products': [], 'brands': [], 'categories': []})
         products = Product.objects.filter(
-            status=ProductStatus.PUBLISHED, name__icontains=q
+            status=ProductStatus.PUBLISHED, deleted_at__isnull=True, name__icontains=q
         ).select_related('brand')[:6]
         brands = Brand.objects.filter(is_active=True, name__icontains=q)[:4]
         cats = Category.objects.filter(is_active=True, name__icontains=q)[:4]
@@ -198,9 +198,10 @@ class ProductFacetsView(APIView):
     permission_classes = [permissions.AllowAny]
 
     def get(self, request):
-        qs = Product.objects.filter(status=ProductStatus.PUBLISHED)
+        qs = Product.objects.filter(status=ProductStatus.PUBLISHED, deleted_at__isnull=True)
         agg = qs.aggregate(min_price=Min('base_price'), max_price=Max('base_price'))
-        brands = list(Brand.objects.filter(is_active=True, products__status=ProductStatus.PUBLISHED)
+        brands = list(Brand.objects.filter(is_active=True, products__status=ProductStatus.PUBLISHED,
+                                            products__deleted_at__isnull=True)
                       .values('id', 'name', 'slug').distinct())
         cats = list(Category.objects.filter(is_active=True)
                     .values('id', 'name', 'slug', 'parent_id'))
@@ -222,7 +223,7 @@ class PublicProductDetailView(APIView):
         from apps.reviews.models import Review, ReviewStatus
 
         p = (Product.objects
-             .filter(pk=pk, status=ProductStatus.PUBLISHED)
+             .filter(pk=pk, status=ProductStatus.PUBLISHED, deleted_at__isnull=True)
              .select_related('brand', 'category')
              .prefetch_related('images')
              .first())

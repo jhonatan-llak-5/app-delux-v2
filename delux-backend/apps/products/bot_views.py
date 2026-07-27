@@ -113,7 +113,7 @@ class BotProductsView(APIView):
         except (TypeError, ValueError):
             limit = 5
 
-        base = Product.objects.filter(status=ProductStatus.PUBLISHED).select_related('brand', 'category')
+        base = Product.objects.filter(status=ProductStatus.PUBLISHED, deleted_at__isnull=True).select_related('brand', 'category')
 
         # --- Interpretar la consulta ---
         words = _norm(q).split()

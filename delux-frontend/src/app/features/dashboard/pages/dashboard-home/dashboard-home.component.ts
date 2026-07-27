@@ -35,7 +35,7 @@ interface Row {
                        icon="fa-cart-shopping" iconBg="bg-sky-100 text-sky-600" />
       <dlx-ui-kpi-card label="Clientes nuevos"  value="42"      [delta]="-2.3"
                        icon="fa-users"         iconBg="bg-violet-100 text-violet-600" />
-      <dlx-ui-kpi-card label="SKUs bajos stock" value="9"       [delta]="3.0"
+      <dlx-ui-kpi-card label="Códigos con stock bajo" value="9"       [delta]="3.0"
                        icon="fa-box"           iconBg="bg-amber-100 text-amber-600" />
     </div>
 

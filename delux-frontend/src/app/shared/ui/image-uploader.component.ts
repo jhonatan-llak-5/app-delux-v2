@@ -42,7 +42,7 @@ export interface DlxImageItem {
 
       <!-- Galería -->
       @if (images().length > 0) {
-        <div class="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-3">
+        <div class="grid grid-cols-[repeat(auto-fill,minmax(140px,1fr))] gap-3">
           @for (img of images(); track img.url; let i = $index) {
             <div class="relative group aspect-square rounded-xl overflow-hidden
                         border-2 transition"
@@ -57,29 +57,29 @@ export interface DlxImageItem {
                    class="w-full h-full object-cover bg-[var(--dash-hover)]"
                    dlxImgFallback />
               <!-- Overlay con acciones -->
-              <div class="absolute inset-0 bg-black/0 group-hover:bg-black/45 transition
-                          flex items-center justify-center gap-1 opacity-0 group-hover:opacity-100">
+              <div class="absolute inset-0 bg-black/0 group-hover:bg-black/50 transition
+                          flex flex-wrap items-center justify-center gap-1.5 p-2 opacity-0 group-hover:opacity-100">
                 @if (!img.isMain) {
                   <button type="button" (click)="setMain(i)" title="Marcar como principal"
-                          class="w-8 h-8 rounded-md bg-white/95 text-ink-950 grid place-items-center hover:bg-white">
-                    <i class="fa-solid fa-star text-xs"></i>
+                          class="w-9 h-9 rounded-md grid place-items-center shadow" style="background:#ffffff">
+                    <i class="fa-solid fa-star text-sm" style="color:#0f172a"></i>
                   </button>
                 }
                 @if (i > 0) {
                   <button type="button" (click)="move(i, i-1)" title="Mover arriba"
-                          class="w-8 h-8 rounded-md bg-white/95 text-ink-950 grid place-items-center hover:bg-white">
-                    <i class="fa-solid fa-arrow-left text-xs"></i>
+                          class="w-9 h-9 rounded-md grid place-items-center shadow" style="background:#ffffff">
+                    <i class="fa-solid fa-arrow-left text-sm" style="color:#0f172a"></i>
                   </button>
                 }
                 @if (i < images().length - 1) {
                   <button type="button" (click)="move(i, i+1)" title="Mover abajo"
-                          class="w-8 h-8 rounded-md bg-white/95 text-ink-950 grid place-items-center hover:bg-white">
-                    <i class="fa-solid fa-arrow-right text-xs"></i>
+                          class="w-9 h-9 rounded-md grid place-items-center shadow" style="background:#ffffff">
+                    <i class="fa-solid fa-arrow-right text-sm" style="color:#0f172a"></i>
                   </button>
                 }
                 <button type="button" (click)="remove(i)" title="Eliminar"
-                        class="w-8 h-8 rounded-md bg-rose-600 text-white grid place-items-center hover:bg-rose-700">
-                  <i class="fa-solid fa-trash text-xs"></i>
+                        class="w-9 h-9 rounded-md grid place-items-center shadow" style="background:#e11d48">
+                  <i class="fa-solid fa-trash text-sm" style="color:#ffffff"></i>
                 </button>
               </div>
             </div>

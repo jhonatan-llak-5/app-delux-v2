@@ -102,7 +102,7 @@ def create_web_order(tenant, data, user=None):
     subtotal = Decimal('0')
     for it in data['items']:
         variant = Variant.objects.select_related('product').filter(
-            pk=it['variant_id']
+            pk=it['variant_id'], product__deleted_at__isnull=True
         ).first()
         if not variant:
             raise ValidationError({'detail': f"Variante {it['variant_id']} no existe."})

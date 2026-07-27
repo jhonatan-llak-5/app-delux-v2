@@ -78,6 +78,7 @@ class AdminBranchViewSet(viewsets.ModelViewSet):
         products = (
             Product.objects.filter(
                 tenant=branch.tenant,
+                deleted_at__isnull=True,
                 variants__stocks__branch=branch,
                 variants__stocks__quantity__gt=0,
             )

@@ -603,6 +603,36 @@ docker compose exec backend python manage.py createsuperuser
 docker compose exec backend python manage.py seed_delux   # tenant + sucursales demo
 ```
 
+## Comandos de mantenimiento (backend)
+
+### Limpieza de imágenes huérfanas de productos
+
+Las imágenes de producto se suben al servidor apenas se seleccionan (a `media/products/`).
+Si una subida no se confirma (recarga de página, se quita de la lista, o se elimina el
+producto), el archivo puede quedar **huérfano** (sin ningún registro que lo use).
+Este comando los limpia de forma **manual y segura**:
+
+```bash
+# 1) Ver qué se borraría — NO borra nada (dry-run, modo por defecto)
+docker compose exec backend python manage.py clean_orphan_images
+
+# 2) Borrar de verdad (solo archivos con más de 7 días sin usar)
+docker compose exec backend python manage.py clean_orphan_images --apply
+
+# 3) Cambiar el umbral de antigüedad (p. ej. 30 días)
+docker compose exec backend python manage.py clean_orphan_images --apply --older-than 30
+```
+
+Protecciones:
+
+- **Dry-run por defecto:** sin `--apply` solo lista, no borra nada.
+- **Nunca toca lo que está en uso:** conserva todo lo referenciado en la base de datos
+  (`ProductImage.url`, `ProductImage.thumb_url` y `Product.main_image_url`), incluidas las
+  **miniaturas**.
+- **Protege lo reciente:** solo considera archivos con más de N días (`--older-than`,
+  por defecto 7), para no borrar subidas en curso o borradores no confirmados.
+- **Solo mira `media/products/`** (y su subcarpeta `thumbs/`).
+
 ## Frontend
 
 ```bash

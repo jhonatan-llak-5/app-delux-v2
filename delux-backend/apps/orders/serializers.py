@@ -165,7 +165,7 @@ class POSCheckoutSerializer(serializers.Serializer):
             tax_amount = Decimal('0')
             for it in items_input:
                 variant = Variant.objects.select_related('product').filter(
-                    pk=it['variant_id']
+                    pk=it['variant_id'], product__deleted_at__isnull=True
                 ).first()
                 if not variant:
                     raise serializers.ValidationError(

@@ -211,7 +211,13 @@ export class ReceptionComponent implements OnInit, OnDestroy {
       body: 'Al confirmar se crea todo de golpe y se genera el código interno. Luego podrás imprimir las etiquetas. ¡Listo! 🚀' },
   ];
 
-  canConfirm(): boolean { return this.selectedBranches().length > 0 && this.totalUnits() > 0; }
+  canConfirm(): boolean { return this.selectedBranches().length > 0 && this.totalUnits() > 0 && !!this.supplierName.trim(); }
+
+  /** Avanza al paso Confirmar validando que haya proveedor (obligatorio). */
+  goToConfirm(): void {
+    if (!this.supplierName.trim()) { this.notify.warning('El proveedor es obligatorio para la recepción.'); return; }
+    this.tab.set('confirm');
+  }
 
   confirmMessage(): string {
     const prods = this.items().length;
@@ -239,7 +245,11 @@ export class ReceptionComponent implements OnInit, OnDestroy {
     if (!r.branchMemo) r.branchMemo = {};
     if (r.branchQty[bid] != null) {
       // Siempre debe quedar al menos una sucursal seleccionada.
-      if (Object.keys(r.branchQty).length <= 1) { this.notify.warning('Debe quedar al menos una sucursal seleccionada.'); return; }
+      if (Object.keys(r.branchQty).length <= 1) {
+        this.notify.warning('Debe quedar al menos una sucursal seleccionada.');
+        this.touchItems();   // re-sincroniza el checkbox (queda marcado)
+        return;
+      }
       // Desmarcar: recuerda la cantidad que tenía.
       r.branchMemo[bid] = +r.branchQty[bid] || 0;
       delete r.branchQty[bid];
@@ -268,6 +278,11 @@ export class ReceptionComponent implements OnInit, OnDestroy {
       .filter(([, q]) => (+q) > 0)
       .map(([bid]) => this.branchLabel(+bid))
       .join(' · ');
+  }
+  /** Nombre+cantidad si hay más de una sucursal; solo el nombre si es una. */
+  rowBranchDisplay(r: Row): string {
+    const active = Object.entries(r.branchQty || {}).filter(([, q]) => (+q) > 0);
+    return active.length > 1 ? this.rowBranchSummary(r) : this.rowBranchNames(r);
   }
   groupedSummary(): { key: string; name: string; isNew: boolean; rows: Row[] }[] {
     const groups: { key: string; name: string; isNew: boolean; rows: Row[] }[] = [];
@@ -420,6 +435,10 @@ export class ReceptionComponent implements OnInit, OnDestroy {
     }))]);
     this.showManual.set(false);
     this.scanMsg.set('Agregado: ' + list.length + ' variante(s)');
+    const nm = (list[0]?.product_name || 'Producto').trim();
+    this.notify.success(list.length > 1
+      ? `«${nm}» agregado a la lista (${list.length} variantes).`
+      : `«${nm}» agregado a la lista.`);
     this.saveState();
   }
 

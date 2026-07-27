@@ -45,6 +45,11 @@ export const SUPERADMIN_ROUTES: Routes = [
           import('./pages/product-edit/product-edit.component').then(m => m.ProductEditComponent),
       },
       {
+        path: 'labels',
+        loadComponent: () =>
+          import('./pages/labels/labels.component').then(m => m.LabelsComponent),
+      },
+      {
         path: 'inventory',
         loadComponent: () =>
           import('./pages/inventory-overview/inventory-overview.component').then(m => m.InventoryOverviewComponent),

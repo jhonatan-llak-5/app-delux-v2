@@ -67,10 +67,10 @@ def kiosk_product(request):
     product = None
     matched = None
     if pid:
-        product = (Product.objects.filter(pk=pid, tenant=tenant)
+        product = (Product.objects.filter(pk=pid, tenant=tenant, deleted_at__isnull=True)
                    .select_related('brand', 'category').first())
     elif code:
-        v = (Variant.objects.filter(tenant=tenant)
+        v = (Variant.objects.filter(tenant=tenant, product__deleted_at__isnull=True)
              .filter(Q(sku__iexact=code) | Q(barcode__iexact=code))
              .select_related('product', 'product__brand', 'product__category').first())
         if v:
@@ -97,7 +97,7 @@ def kiosk_search(request):
     from apps.branches.models import Branch
     token = (request.query_params.get('token') or '').strip()
     branch = Branch.objects.filter(kiosk_token=token, is_active=True).first() if token else None
-    prods = (Product.objects.filter(tenant=tenant)
+    prods = (Product.objects.filter(tenant=tenant, deleted_at__isnull=True)
              .filter(Q(name__icontains=q) | Q(short_description__icontains=q)
                      | Q(description__icontains=q)
                      | Q(variants__sku__icontains=q) | Q(variants__barcode__icontains=q))
@@ -187,7 +187,7 @@ def kiosk_unlock(request):
 def kiosk_featured(request):
     """Productos destacados/publicados para el modo atracción del kiosko."""
     tenant = _tenant()
-    qs = (Product.objects.filter(tenant=tenant, status='PUBLISHED')
+    qs = (Product.objects.filter(tenant=tenant, status='PUBLISHED', deleted_at__isnull=True)
           .exclude(main_image_url='')
           .select_related('brand')
           .order_by('-is_featured', '-created_at')[:24])

@@ -69,6 +69,11 @@ class Product(TenantOwnedModel):
 
     is_featured = models.BooleanField(default=False)
 
+    # Borrado lógico: si tiene fecha, el producto está "eliminado" (oculto en
+    # todos lados) pero su registro se conserva para no perder el historial de
+    # ventas asociado. None = activo.
+    deleted_at = models.DateTimeField(null=True, blank=True, db_index=True)
+
     def effective_tax_rate(self):
         """IVA % de este producto: el propio, o el global si esta vacio."""
         from decimal import Decimal

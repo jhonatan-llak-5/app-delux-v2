@@ -44,6 +44,7 @@ class AdminStockViewSet(viewsets.ReadOnlyModelViewSet):
     def get_queryset(self):
         qs = (
             Stock.objects
+            .filter(variant__product__deleted_at__isnull=True)
             .select_related(
                 'variant', 'variant__product',
                 'variant__product__brand', 'variant__product__category',
@@ -190,7 +191,7 @@ class AdminStockViewSet(viewsets.ReadOnlyModelViewSet):
         tenant = resolve_tenant(request.user)
         # Busqueda por palabras: cada token debe coincidir en nombre, talla,
         # color, marca, categoria, SKU o codigo de barras (ej. "jogger negro 35").
-        qs = Variant.objects.filter(tenant=tenant)
+        qs = Variant.objects.filter(tenant=tenant, product__deleted_at__isnull=True)
         for token in q.split():
             qs = qs.filter(
                 Q(product__name__icontains=token)
@@ -224,7 +225,7 @@ class AdminStockViewSet(viewsets.ReadOnlyModelViewSet):
         if not code:
             return Response({'found': False})
         tenant = resolve_tenant(request.user)
-        v = (Variant.objects.filter(tenant=tenant)
+        v = (Variant.objects.filter(tenant=tenant, product__deleted_at__isnull=True)
              .filter(Q(sku__iexact=code) | Q(barcode__iexact=code))
              .select_related('product', 'product__brand', 'product__category')
              .prefetch_related('product__images')
@@ -448,8 +449,13 @@ class AdminReceptionViewSet(viewsets.ModelViewSet):
                         pkey = (name.lower(), brand.id, category.id, kind)
                         product = created_products.get(pkey)
                         if product is None:
+                            # Acepta URLs absolutas (http/https) y rutas locales
+                            # relativas (p. ej. /media/products/...), que es lo que
+                            # devuelve la subida de imágenes.
                             imgs = [u.strip() for u in (raw.get('images') or [])
-                                    if isinstance(u, str) and u.strip().lower().startswith(('http://', 'https://'))]
+                                    if isinstance(u, str) and u.strip()
+                                    and (u.strip().lower().startswith(('http://', 'https://'))
+                                         or u.strip().startswith('/'))]
                             # Impuesto por producto (None = usa el IVA global) y oferta.
                             _tax = raw.get('tax_rate')
                             _cmp = raw.get('compare_at_price') or None

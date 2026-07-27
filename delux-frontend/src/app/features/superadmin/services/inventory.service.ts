@@ -12,6 +12,7 @@ export interface Stock {
   variant_color: string;
   product_id: number;
   product_name: string;
+  product_status?: string;
   product_main_image: string;
   brand_name: string;
   category_name: string;
