@@ -23,6 +23,11 @@ class Variant(TenantOwnedModel):
     weight_grams = models.PositiveIntegerField(default=0)
     is_active = models.BooleanField(default=True)
 
+    # Atributos de la variante para dimensiones personalizadas:
+    # {"Talla": "40", "Material": "Cuero"}. size/color se conservan (pobladas
+    # con las dos primeras dimensiones) para compatibilidad de búsqueda/etiquetas.
+    attributes = models.JSONField(default=dict, blank=True)
+
     class Meta:
         unique_together = [('tenant', 'sku')]
         indexes = [models.Index(fields=['product', 'size', 'color'])]

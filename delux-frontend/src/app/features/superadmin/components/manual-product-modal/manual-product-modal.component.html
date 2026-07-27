@@ -59,7 +59,7 @@
       @if (!hasVariants()) {
         <div>
           <label class="eg-label">Cantidad *</label>
-          <input type="number" min="0" [ngModel]="getQty('', '')" (ngModelChange)="setQty('', '', $event); clearErr('qty')"
+          <input type="number" min="0" [(ngModel)]="simpleQty" (ngModelChange)="clearErr('qty')"
                  class="eg-input w-full" [class.!border-rose-400]="fe('qty')" placeholder="0" />
           <dlx-field-error [error]="fe('qty')" />
         </div>
@@ -201,94 +201,171 @@
   <!-- Card: Variantes (ancho completo, solo cuando se activan) -->
   @if (!isEdit() && hasVariants()) {
     <section class="card p-5 space-y-4 lg:col-span-2">
-      <h3 class="font-bold text-ink-950 dark:text-white flex items-center gap-2"><i class="fa-solid fa-layer-group text-[var(--dash-primary)]"></i> Variantes y cantidad</h3>
-      <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
-        <div class="space-y-2">
-          <label class="eg-label !mb-0">Colores (elige uno o varios)</label>
-          <div class="flex flex-wrap gap-1.5">
-            @for (c of colorPresets; track c) {
-              <button type="button" (click)="toggleColor(c)"
-                      class="px-2.5 py-1 rounded-lg text-xs font-semibold border transition inline-flex items-center gap-1.5"
-                      [ngClass]="selColors.includes(c) ? 'bg-ink-950 text-white border-ink-950 dark:bg-white dark:text-ink-950' : 'border-slate-200 dark:border-white/15 text-slate-600 dark:text-white/70'">
-                <span class="w-3 h-3 rounded-full border border-black/10 dark:border-white/20" [style.background]="colorHex(c)"></span>{{ c }}
-              </button>
-            }
-          </div>
-          <div class="flex gap-2">
-            <input [(ngModel)]="newColor" (keydown.enter)="$event.preventDefault(); addColorText()" class="eg-input flex-1" placeholder="Otro color…" autocomplete="off" />
-            <button type="button" class="eg-btn-secondary text-sm" (click)="addColorText()" [disabled]="!newColor.trim()">Añadir</button>
-          </div>
-        </div>
-        <div class="space-y-2">
-          <label class="eg-label !mb-0">{{ sizeLabel() }}s (elige una o varias)</label>
-          @if (sizePreset().length) {
-            <div class="flex flex-wrap gap-1.5">
-              @for (s of sizePreset(); track s) {
-                <button type="button" (click)="toggleSize(s)"
-                        class="px-3 py-1.5 rounded-lg text-xs font-semibold border transition"
-                        [ngClass]="selSizes.includes(s) ? 'bg-ink-950 text-white border-ink-950 dark:bg-white dark:text-ink-950' : 'border-slate-200 dark:border-white/15 text-slate-600 dark:text-white/70'">{{ s }}</button>
-              }
-            </div>
-          }
-          <div class="flex gap-2">
-            <input [(ngModel)]="newSizeText" (keydown.enter)="$event.preventDefault(); addSizeText()" class="eg-input flex-1" placeholder="Otra talla/medida…" autocomplete="off" />
-            <button type="button" class="eg-btn-secondary text-sm" (click)="addSizeText()" [disabled]="!newSizeText.trim()">Añadir</button>
-          </div>
-        </div>
+      <div class="flex items-center justify-between gap-2 flex-wrap">
+        <h3 class="font-bold text-ink-950 dark:text-white flex items-center gap-2"><i class="fa-solid fa-layer-group text-[var(--dash-primary)]"></i> Variantes y cantidad</h3>
+        <!-- Cambio de modo: clásico (por defecto) vs personalizado (avanzado) -->
+        @if (variantMode() === 'classic') {
+          <button type="button" (click)="setVariantMode('custom')" class="text-xs font-semibold text-[var(--dash-primary)] hover:underline inline-flex items-center gap-1.5">
+            <i class="fa-solid fa-sliders"></i> Variantes personalizadas
+          </button>
+        } @else {
+          <button type="button" (click)="setVariantMode('classic')" class="text-xs font-semibold text-slate-500 hover:text-ink-950 dark:hover:text-white inline-flex items-center gap-1.5">
+            <i class="fa-solid fa-arrow-left"></i> Volver a talla y color
+          </button>
+        }
       </div>
 
-      <div>
-        <div class="flex items-center justify-between mb-2 gap-2 flex-wrap">
-          <label class="eg-label !mb-0">{{ useMatrix() ? 'Cantidad por color y talla' : 'Cantidad' }}</label>
-          @if (comboList().length > 1) {
-            <div class="flex items-center gap-1.5">
-              <input type="number" min="0" [(ngModel)]="bulkQty" class="eg-input !h-9 w-20 text-center text-sm" />
-              <button type="button" class="eg-btn-secondary !h-9 text-xs" (click)="applyBulk()"><i class="fa-solid fa-wand-magic-sparkles"></i> Aplicar a todas</button>
-            </div>
-          }
-        </div>
-        @if (useMatrix()) {
-          <div class="rounded-xl border border-slate-200 dark:border-white/10 overflow-x-auto">
-            <table class="text-sm border-collapse min-w-full">
-              <thead class="bg-slate-50 dark:bg-white/5 text-slate-500">
-                <tr>
-                  <th class="sticky left-0 z-10 bg-slate-50 dark:bg-[#161a26] px-3 py-2 text-left font-semibold whitespace-nowrap border-r border-slate-200 dark:border-white/10">Color / Talla</th>
-                  @for (sz of sizesOrDefault(); track sz) { <th class="px-2 py-2 text-center font-semibold min-w-[64px]">{{ sz || '—' }}</th> }
-                </tr>
-              </thead>
-              <tbody>
-                @for (c of colorsOrDefault(); track c) {
-                  <tr class="border-t border-slate-100 dark:border-white/5">
-                    <td class="sticky left-0 z-10 bg-white dark:bg-[#121826] px-3 py-2 font-medium whitespace-nowrap border-r border-slate-200 dark:border-white/10">
-                      <span class="inline-flex items-center gap-1.5"><span class="w-3 h-3 rounded-full border border-black/10 dark:border-white/20" [style.background]="colorHex(c)"></span>{{ c || '—' }}</span>
-                    </td>
-                    @for (sz of sizesOrDefault(); track sz) {
-                      <td class="px-1.5 py-1.5 text-center">
-                        <input type="number" min="0" [ngModel]="getQty(c, sz)" (ngModelChange)="setQty(c, sz, $event)" class="eg-input !h-9 w-16 text-center text-sm" placeholder="0" />
-                      </td>
-                    }
-                  </tr>
-                }
-              </tbody>
-            </table>
-          </div>
-        } @else {
+      <!-- ══════ MODO CLÁSICO: talla + color ══════ -->
+      @if (variantMode() === 'classic') {
+        <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
           <div class="space-y-2">
-            @for (cb of comboList(); track cb.key) {
-              <div class="flex items-center gap-3 rounded-xl border border-slate-200 dark:border-white/10 px-3 h-12">
-                <span class="flex-1 text-sm font-medium truncate inline-flex items-center gap-1.5">
-                  @if (cb.color) { <span class="w-3 h-3 rounded-full border border-black/10 dark:border-white/20 shrink-0" [style.background]="colorHex(cb.color)"></span> }
-                  {{ comboLabel(cb) }}
-                </span>
-                <div class="w-28 shrink-0">
-                  <input type="number" min="0" [ngModel]="getQty(cb.color, cb.size)" (ngModelChange)="setQty(cb.color, cb.size, $event)" class="eg-input !h-9 w-full text-center" placeholder="0" />
-                </div>
+            <label class="eg-label !mb-0">Colores (elige uno o varios)</label>
+            <div class="flex flex-wrap gap-1.5">
+              @for (c of colorPresets; track c) {
+                <button type="button" (click)="toggleColor(c)"
+                        class="px-2.5 py-1 rounded-lg text-xs font-semibold border transition inline-flex items-center gap-1.5"
+                        [ngClass]="selColors.includes(c) ? 'bg-ink-950 text-white border-ink-950 dark:bg-white dark:text-ink-950' : 'border-slate-200 dark:border-white/15 text-slate-600 dark:text-white/70'">
+                  <span class="w-3 h-3 rounded-full border border-black/10 dark:border-white/20" [style.background]="colorHex(c)"></span>{{ c }}
+                </button>
+              }
+            </div>
+            <div class="flex gap-2">
+              <input [(ngModel)]="newColor" (keydown.enter)="$event.preventDefault(); addColorText()" class="eg-input flex-1" placeholder="Otro color…" autocomplete="off" />
+              <button type="button" class="eg-btn-secondary text-sm" (click)="addColorText()" [disabled]="!newColor.trim()">Añadir</button>
+            </div>
+          </div>
+          <div class="space-y-2">
+            <label class="eg-label !mb-0">{{ sizeLabel() }}s (elige una o varias)</label>
+            @if (sizePreset().length) {
+              <div class="flex flex-wrap gap-1.5">
+                @for (s of sizePreset(); track s) {
+                  <button type="button" (click)="toggleSize(s)"
+                          class="px-3 py-1.5 rounded-lg text-xs font-semibold border transition"
+                          [ngClass]="selSizes.includes(s) ? 'bg-ink-950 text-white border-ink-950 dark:bg-white dark:text-ink-950' : 'border-slate-200 dark:border-white/15 text-slate-600 dark:text-white/70'">{{ s }}</button>
+                }
+              </div>
+            }
+            <div class="flex gap-2">
+              <input [(ngModel)]="newSizeText" (keydown.enter)="$event.preventDefault(); addSizeText()" class="eg-input flex-1" placeholder="Otra talla/medida…" autocomplete="off" />
+              <button type="button" class="eg-btn-secondary text-sm" (click)="addSizeText()" [disabled]="!newSizeText.trim()">Añadir</button>
+            </div>
+          </div>
+        </div>
+
+        <div>
+          <div class="flex items-center justify-between mb-2 gap-2 flex-wrap">
+            <label class="eg-label !mb-0">{{ useMatrix() ? 'Cantidad por color y talla' : 'Cantidad' }}</label>
+            @if (comboList().length > 1) {
+              <div class="flex items-center gap-1.5">
+                <input type="number" min="0" [(ngModel)]="bulkQty" class="eg-input !h-9 w-20 text-center text-sm" />
+                <button type="button" class="eg-btn-secondary !h-9 text-xs" (click)="applyBulk()"><i class="fa-solid fa-wand-magic-sparkles"></i> Aplicar a todas</button>
               </div>
             }
           </div>
+          @if (useMatrix()) {
+            <div class="rounded-xl border border-slate-200 dark:border-white/10 overflow-x-auto">
+              <table class="text-sm border-collapse min-w-full">
+                <thead class="bg-slate-50 dark:bg-white/5 text-slate-500">
+                  <tr>
+                    <th class="sticky left-0 z-10 bg-slate-50 dark:bg-[#161a26] px-3 py-2 text-left font-semibold whitespace-nowrap border-r border-slate-200 dark:border-white/10">Color / Talla</th>
+                    @for (sz of sizesOrDefault(); track sz) { <th class="px-2 py-2 text-center font-semibold min-w-[64px]">{{ sz || '—' }}</th> }
+                  </tr>
+                </thead>
+                <tbody>
+                  @for (c of colorsOrDefault(); track c) {
+                    <tr class="border-t border-slate-100 dark:border-white/5">
+                      <td class="sticky left-0 z-10 bg-white dark:bg-[#121826] px-3 py-2 font-medium whitespace-nowrap border-r border-slate-200 dark:border-white/10">
+                        <span class="inline-flex items-center gap-1.5"><span class="w-3 h-3 rounded-full border border-black/10 dark:border-white/20" [style.background]="colorHex(c)"></span>{{ c || '—' }}</span>
+                      </td>
+                      @for (sz of sizesOrDefault(); track sz) {
+                        <td class="px-1.5 py-1.5 text-center">
+                          <input type="number" min="0" [ngModel]="getQty(c, sz)" (ngModelChange)="setQty(c, sz, $event)" class="eg-input !h-9 w-16 text-center text-sm" placeholder="0" />
+                        </td>
+                      }
+                    </tr>
+                  }
+                </tbody>
+              </table>
+            </div>
+          } @else {
+            <div class="space-y-2">
+              @for (cb of comboList(); track cb.key) {
+                <div class="flex items-center gap-3 rounded-xl border border-slate-200 dark:border-white/10 px-3 h-12">
+                  <span class="flex-1 text-sm font-medium truncate inline-flex items-center gap-1.5">
+                    @if (cb.color) { <span class="w-3 h-3 rounded-full border border-black/10 dark:border-white/20 shrink-0" [style.background]="colorHex(cb.color)"></span> }
+                    {{ comboLabel(cb) }}
+                  </span>
+                  <div class="w-28 shrink-0">
+                    <input type="number" min="0" [ngModel]="getQty(cb.color, cb.size)" (ngModelChange)="setQty(cb.color, cb.size, $event)" class="eg-input !h-9 w-full text-center" placeholder="0" />
+                  </div>
+                </div>
+              }
+            </div>
+          }
+          <p class="text-xs text-slate-400 mt-2">Total: <b class="text-ink-950 dark:text-white">{{ totalUnits() }}</b> unidad(es) · <b>{{ comboCount() }}</b> variante(s)</p>
+        </div>
+      }
+
+      <!-- ══════ MODO PERSONALIZADO: dimensiones libres ══════ -->
+      @if (variantMode() === 'custom') {
+        <div class="space-y-3">
+          @for (d of dims; track $index) {
+            <div class="rounded-xl border border-slate-200 dark:border-white/10 p-3">
+              <div class="flex items-center gap-2 mb-2">
+                <input [(ngModel)]="d.name" (ngModelChange)="onDimName()" class="eg-input !h-9 flex-1 font-semibold" placeholder="Nombre de la dimensión (ej. Talla, Color, Material)" autocomplete="off" />
+                @if (dims.length > 1) {
+                  <button type="button" (click)="removeDim($index)" class="w-9 h-9 shrink-0 grid place-items-center rounded-lg text-rose-500 hover:bg-rose-50 dark:hover:bg-rose-500/10" title="Quitar dimensión"><i class="fa-solid fa-trash text-sm"></i></button>
+                }
+              </div>
+              @if (d.values.length) {
+                <div class="flex flex-wrap gap-1.5 mb-2">
+                  @for (v of d.values; track v) {
+                    <span class="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-lg text-xs font-semibold bg-slate-100 dark:bg-white/10 text-slate-700 dark:text-white/80">
+                      {{ v }}
+                      <button type="button" (click)="removeVal($index, v)" class="text-slate-400 hover:text-rose-500"><i class="fa-solid fa-xmark"></i></button>
+                    </span>
+                  }
+                </div>
+              }
+              <div class="flex gap-2">
+                <input [(ngModel)]="newVal[$index]" (keydown.enter)="$event.preventDefault(); addVal($index)" class="eg-input !h-9 flex-1" placeholder="Escribe una opción y Enter (o separa por comas: 38,39,40)" autocomplete="off" />
+                <button type="button" class="eg-btn-secondary !h-9 text-sm" (click)="addVal($index)" [disabled]="!(newVal[$index] || '').trim()">Añadir</button>
+              </div>
+            </div>
+          }
+          <button type="button" (click)="addDim()" [disabled]="dims.length >= 4"
+                  class="w-full rounded-xl border border-dashed border-slate-300 dark:border-white/15 py-2.5 text-sm font-semibold text-slate-500 hover:border-[var(--dash-primary)] hover:text-[var(--dash-primary)] transition disabled:opacity-50 inline-flex items-center justify-center gap-2">
+            <i class="fa-solid fa-plus"></i> Agregar dimensión
+          </button>
+        </div>
+
+        @if (combos().length) {
+          <div>
+            <div class="flex items-center justify-between mb-2 gap-2 flex-wrap">
+              <label class="eg-label !mb-0">Cantidad por variante</label>
+              @if (combos().length > 1) {
+                <div class="flex items-center gap-1.5">
+                  <input type="number" min="0" [(ngModel)]="bulkQty" class="eg-input !h-9 w-20 text-center text-sm" />
+                  <button type="button" class="eg-btn-secondary !h-9 text-xs" (click)="applyBulk()"><i class="fa-solid fa-wand-magic-sparkles"></i> Aplicar a todas</button>
+                </div>
+              }
+            </div>
+            <div class="space-y-2">
+              @for (cb of combos(); track cb.key) {
+                <div class="flex items-center gap-3 rounded-xl border border-slate-200 dark:border-white/10 px-3 h-12">
+                  <span class="flex-1 text-sm font-medium truncate">{{ cb.label }}</span>
+                  <div class="w-28 shrink-0">
+                    <input type="number" min="0" [ngModel]="comboQtyOf(cb.key)" (ngModelChange)="setComboQty(cb.key, $event)" class="eg-input !h-9 w-full text-center" placeholder="0" />
+                  </div>
+                </div>
+              }
+            </div>
+            <p class="text-xs text-slate-400 mt-2">Total: <b class="text-ink-950 dark:text-white">{{ totalUnits() }}</b> unidad(es) · <b>{{ comboCount() }}</b> variante(s)</p>
+          </div>
+        } @else {
+          <p class="text-xs text-slate-400">Agrega al menos una dimensión con sus opciones para generar las variantes.</p>
         }
-        <p class="text-xs text-slate-400 mt-2">Total: <b class="text-ink-950 dark:text-white">{{ totalUnits() }}</b> unidad(es) · <b>{{ comboCount() }}</b> variante(s)</p>
-      </div>
+      }
     </section>
   }
 

@@ -254,7 +254,7 @@
                         <td class="px-4 py-3">
                           <div class="flex items-center gap-2 pl-6">
                             <i class="fa-solid fa-turn-up fa-rotate-90 text-[10px] text-slate-300 dark:text-white/20 shrink-0"></i>
-                            <span class="text-sm font-medium">{{ it.size || '—' }} / {{ it.color || '—' }}</span>
+                            <span class="text-sm font-medium">{{ rowVariantLabel(it) }}</span>
                           </div>
                         </td>
                         <td class="px-4 py-3 text-right">
@@ -393,7 +393,7 @@
                               <i class="fa-solid fa-turn-up fa-rotate-90 text-[10px] shrink-0"></i>
                             </span>
                           </td>
-                          <td class="px-4 py-2.5 text-slate-500">@if (it.size || it.color) { {{ it.size || '—' }} / {{ it.color || '—' }} } @else { — }</td>
+                          <td class="px-4 py-2.5 text-slate-500">{{ rowVariantLabel(it) }}</td>
                           <td class="px-4 py-2.5 text-slate-500 text-xs">{{ rowBranchDisplay(it) || '—' }}</td>
                           <td class="px-4 py-2.5 text-center font-medium">{{ rowUnits(it) }}</td>
                           <td class="px-4 py-2.5 text-right">{{ money(it.unit_cost) }}</td>

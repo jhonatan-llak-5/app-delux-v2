@@ -69,6 +69,11 @@ class Product(TenantOwnedModel):
 
     is_featured = models.BooleanField(default=False)
 
+    # Dimensiones de variante personalizadas (estilo Treinta). Lista de
+    # {"name": "Talla", "values": ["38","39","40"]}. Vacío = producto simple o
+    # con las dimensiones clásicas talla/color.
+    variant_options = models.JSONField(default=list, blank=True)
+
     # Borrado lógico: si tiene fecha, el producto está "eliminado" (oculto en
     # todos lados) pero su registro se conserva para no perder el historial de
     # ventas asociado. None = activo.

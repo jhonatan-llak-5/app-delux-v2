@@ -16,6 +16,10 @@ export interface ManualProduct {
   tax_rate: number | null; compare_at_price: number | null;
   description: string;
   images: string[];
+  /** Atributos de dimensiones personalizadas: {"Talla":"40","Color":"Rojo"}. */
+  attributes?: Record<string, string>;
+  /** Definición de dimensiones del producto (se repite en cada variante). */
+  variant_options?: { name: string; values: string[] }[];
 }
 
 /** Snapshot completo del formulario embebido (para persistir el borrador). */
@@ -26,9 +30,13 @@ export interface ManualDraft {
   onOffer: boolean;
   discount: number;
   hasVariants: boolean;
+  variantMode: 'classic' | 'custom';
   selColors: string[];
   selSizes: string[];
   qtyMap: Record<string, number>;
+  dims: { name: string; values: string[] }[];
+  comboQty: Record<string, number>;
+  simpleQty: number;
 }
 
 /** Datos para prellenar el formulario al EDITAR un producto. */
@@ -128,10 +136,116 @@ export class ManualProductModalComponent implements OnInit, OnDestroy {
   ngOnDestroy(): void { this.stopScan(); }
 
   // ── Variantes ──
+  // Modo por defecto = CLÁSICO (talla + color, como siempre). El modo
+  // PERSONALIZADO (dimensiones libres estilo Treinta) queda como opción avanzada.
   hasVariants = signal(false);
+  variantMode = signal<'classic' | 'custom'>('classic');
+  private readonly SEP = '¦';
+  bulkQty = 1;
+  simpleQty = 1;                       // cantidad cuando el producto NO tiene variantes
+  private dimsV = signal(0);           // fuerza recomputar combos en el template
+
   toggleVariants(v: boolean): void {
     this.hasVariants.set(v);
     if (!v) { this.selColors = []; this.selSizes = []; }
+    this.changed.emit();
+  }
+  setVariantMode(m: 'classic' | 'custom'): void {
+    this.variantMode.set(m);
+    if (m === 'custom' && !this.dims.length) this.dims = [{ name: 'Talla', values: [] }];
+    this.dimsV.update(x => x + 1); this.changed.emit();
+  }
+
+  // ── Modo CLÁSICO: multi-color × multi-talla (matriz) ──
+  selColors: string[] = [];
+  selSizes: string[] = [];
+  newColor = '';
+  newSizeText = '';
+  qtyMap: Record<string, number> = {};
+  colorsOrDefault(): string[] { return this.selColors.length ? this.selColors : ['']; }
+  sizesOrDefault(): string[] { return this.selSizes.length ? this.selSizes : ['']; }
+  private comboKey(c: string, sz: string): string { return c + '|' + sz; }
+  getQty(c: string, sz: string): number { return this.qtyMap[this.comboKey(c, sz)] ?? 0; }
+  setQty(c: string, sz: string, v: any): void { this.qtyMap[this.comboKey(c, sz)] = Math.max(0, +v || 0); this.changed.emit(); }
+  toggleColor(c: string): void { const i = this.selColors.indexOf(c); if (i >= 0) this.selColors.splice(i, 1); else this.selColors.push(c); this.changed.emit(); }
+  addColorText(): void { const v = this.newColor.trim(); if (v && !this.selColors.includes(v)) this.selColors.push(v); this.newColor = ''; this.changed.emit(); }
+  toggleSize(sz: string): void { const i = this.selSizes.indexOf(sz); if (i >= 0) this.selSizes.splice(i, 1); else this.selSizes.push(sz); this.changed.emit(); }
+  addSizeText(): void { const v = this.newSizeText.trim(); if (v && !this.selSizes.includes(v)) this.selSizes.push(v); this.newSizeText = ''; this.changed.emit(); }
+  useMatrix(): boolean { return this.selColors.length > 1 && this.selSizes.length > 1; }
+  comboList(): { key: string; color: string; size: string }[] {
+    const out: { key: string; color: string; size: string }[] = [];
+    for (const c of this.colorsOrDefault()) for (const sz of this.sizesOrDefault()) out.push({ key: c + '|' + sz, color: c, size: sz });
+    return out;
+  }
+  comboLabel(cb: { color: string; size: string }): string {
+    const parts: string[] = [];
+    if (cb.color) parts.push(cb.color);
+    if (cb.size) parts.push(this.sizeLabel() + ' ' + cb.size);
+    return parts.length ? parts.join(' · ') : 'Cantidad';
+  }
+  private classicCombos(): { color: string; size: string; qty: number }[] {
+    const out: { color: string; size: string; qty: number }[] = [];
+    for (const c of this.colorsOrDefault()) for (const sz of this.sizesOrDefault()) {
+      const q = this.getQty(c, sz);
+      if (q > 0) out.push({ color: c, size: sz, qty: q });
+    }
+    return out;
+  }
+
+  // ── Modo PERSONALIZADO: dimensiones libres (Treinta) ──
+  dims: { name: string; values: string[] }[] = [{ name: 'Talla', values: [] }];
+  newVal: Record<number, string> = {};
+  comboQty: Record<string, number> = {};
+  addDim(): void { if (this.dims.length < 4) { this.dims = [...this.dims, { name: '', values: [] }]; this.dimsV.update(x => x + 1); this.changed.emit(); } }
+  removeDim(i: number): void { this.dims = this.dims.filter((_, idx) => idx !== i); this.dimsV.update(x => x + 1); this.changed.emit(); }
+  onDimName(): void { this.dimsV.update(x => x + 1); this.changed.emit(); }
+  addVal(i: number): void {
+    const raw = (this.newVal[i] || '').trim();
+    if (!raw) return;
+    for (const part of raw.split(',').map(s => s.trim()).filter(Boolean)) {
+      if (!this.dims[i].values.includes(part)) this.dims[i].values.push(part);
+    }
+    this.newVal[i] = '';
+    this.dimsV.update(x => x + 1); this.changed.emit();
+  }
+  removeVal(i: number, v: string): void { this.dims[i].values = this.dims[i].values.filter(x => x !== v); this.dimsV.update(x => x + 1); this.changed.emit(); }
+  activeDims(): { name: string; values: string[] }[] { return this.dims.filter(d => d.name.trim() && d.values.length); }
+  combos(): { key: string; attrs: Record<string, string>; label: string }[] {
+    this.dimsV();
+    const ds = this.activeDims();
+    if (!ds.length) return [];
+    let acc: Record<string, string>[] = [{}];
+    for (const d of ds) {
+      const next: Record<string, string>[] = [];
+      for (const combo of acc) for (const val of d.values) next.push({ ...combo, [d.name.trim()]: val });
+      acc = next;
+    }
+    return acc.map(attrs => {
+      const parts = ds.map(d => attrs[d.name.trim()]);
+      return { key: parts.join(this.SEP), attrs, label: parts.join(' · ') };
+    });
+  }
+  comboQtyOf(key: string): number { return this.comboQty[key] ?? 0; }
+  setComboQty(key: string, v: any): void { this.comboQty[key] = Math.max(0, +v || 0); this.dimsV.update(x => x + 1); this.changed.emit(); }
+
+  // ── Compartido (según el modo activo) ──
+  applyBulk(): void {
+    const q = Math.max(0, +this.bulkQty || 0);
+    if (this.variantMode() === 'custom') { for (const c of this.combos()) this.comboQty[c.key] = q; }
+    else { for (const c of this.colorsOrDefault()) for (const sz of this.sizesOrDefault()) this.qtyMap[this.comboKey(c, sz)] = q; }
+    this.dimsV.update(x => x + 1); this.changed.emit();
+  }
+  totalUnits(): number {
+    return this.variantMode() === 'custom'
+      ? this.combos().reduce((a, c) => a + this.comboQtyOf(c.key), 0)
+      : this.classicCombos().reduce((a, x) => a + x.qty, 0);
+  }
+  comboCount(): number {
+    return this.variantMode() === 'custom' ? this.combos().length : this.classicCombos().length;
+  }
+  /** ¿El producto quedará con una sola variante? (para el código de barras). */
+  isSingleVariant(): boolean {
+    return this.variantMode() === 'custom' ? this.combos().length === 1 : this.comboList().length === 1;
   }
 
   // ── Impuesto por producto (null = usa el IVA global de Configuración) ──
@@ -215,7 +329,6 @@ export class ManualProductModalComponent implements OnInit, OnDestroy {
 
   ngOnInit(): void {
     this.nf.barcode = this.barcode || '';
-    if (this.qtyMap['|'] == null) this.qtyMap['|'] = 1;
     if (this.initial) this.prefill(this.initial);
     if (this.embedded && this.draft) this.applyDraft(this.draft);
   }
@@ -229,9 +342,14 @@ export class ManualProductModalComponent implements OnInit, OnDestroy {
       this.onOffer = !!d.onOffer;
       this.discount = +d.discount || 0;
       this.hasVariants.set(!!d.hasVariants);
+      this.variantMode.set(d.variantMode === 'custom' ? 'custom' : 'classic');
       this.selColors = Array.isArray(d.selColors) ? [...d.selColors] : [];
       this.selSizes = Array.isArray(d.selSizes) ? [...d.selSizes] : [];
-      this.qtyMap = d.qtyMap && typeof d.qtyMap === 'object' ? { ...d.qtyMap } : { '|': 1 };
+      this.qtyMap = d.qtyMap && typeof d.qtyMap === 'object' ? { ...d.qtyMap } : {};
+      this.dims = Array.isArray(d.dims) && d.dims.length ? d.dims.map(x => ({ name: x.name, values: [...(x.values || [])] })) : [{ name: 'Talla', values: [] }];
+      this.comboQty = d.comboQty && typeof d.comboQty === 'object' ? { ...d.comboQty } : {};
+      this.simpleQty = +d.simpleQty || 1;
+      this.dimsV.update(x => x + 1);
     } catch { /* borrador corrupto */ }
   }
 
@@ -244,9 +362,13 @@ export class ManualProductModalComponent implements OnInit, OnDestroy {
       onOffer: this.onOffer,
       discount: this.discount,
       hasVariants: this.hasVariants(),
+      variantMode: this.variantMode(),
       selColors: [...this.selColors],
       selSizes: [...this.selSizes],
       qtyMap: { ...this.qtyMap },
+      dims: this.dims.map(d => ({ name: d.name, values: [...d.values] })),
+      comboQty: { ...this.comboQty },
+      simpleQty: this.simpleQty,
     };
   }
 
@@ -257,7 +379,7 @@ export class ManualProductModalComponent implements OnInit, OnDestroy {
         || (n.barcode || '').trim() || (n.description || '').trim()) return true;
     if ((+n.cost || 0) > 0 || (+n.price || 0) > 0) return true;
     if (this.images.length) return true;
-    if (this.selColors.length || this.selSizes.length) return true;
+    if (this.selColors.length || this.selSizes.length || this.activeDims().length) return true;
     if (this.onOffer && +this.discount > 0) return true;
     return false;
   }
@@ -294,9 +416,12 @@ export class ManualProductModalComponent implements OnInit, OnDestroy {
     const keepKind = this.nf.kind;
     this.nf = { product_name: '', brand: '', category: '', kind: keepKind,
       color: '', size: '', barcode: '', cost: 0, price: 0, quantity: 1, description: '' };
-    this.images = []; this.selColors = []; this.selSizes = [];
-    this.newColor = ''; this.newSizeText = ''; this.bulkQty = 1;
-    this.qtyMap = { '|': 1 };
+    this.images = [];
+    this.selColors = []; this.selSizes = []; this.newColor = ''; this.newSizeText = ''; this.qtyMap = {};
+    this.dims = [{ name: 'Talla', values: [] }];
+    this.newVal = {}; this.comboQty = {}; this.bulkQty = 1; this.simpleQty = 1;
+    this.variantMode.set('classic');
+    this.dimsV.update(x => x + 1);
     this.hasVariants.set(false);
     this.onOffer = false; this.discount = 0; this.taxRate = null;
     this.fieldErrors.set({}); this.error.set(null);
@@ -305,51 +430,6 @@ export class ManualProductModalComponent implements OnInit, OnDestroy {
   sizePreset(): string[] { return KIND_PRESETS[this.nf.kind]?.sizes ?? []; }
   sizeLabel(): string { return KIND_PRESETS[this.nf.kind]?.sizeLabel ?? 'Talla'; }
 
-  // ── Multi-color × multi-talla (matriz) ──
-  selColors: string[] = [];
-  selSizes: string[] = [];
-  newColor = '';
-  newSizeText = '';
-  bulkQty = 1;
-  qtyMap: Record<string, number> = {};
-
-  colorsOrDefault(): string[] { return this.selColors.length ? this.selColors : ['']; }
-  sizesOrDefault(): string[] { return this.selSizes.length ? this.selSizes : ['']; }
-  private comboKey(c: string, sz: string): string { return c + '|' + sz; }
-  getQty(c: string, sz: string): number { return this.qtyMap[this.comboKey(c, sz)] ?? 0; }
-  setQty(c: string, sz: string, v: any): void { this.qtyMap[this.comboKey(c, sz)] = Math.max(0, +v || 0); }
-  toggleColor(c: string): void { const i = this.selColors.indexOf(c); if (i >= 0) this.selColors.splice(i, 1); else this.selColors.push(c); }
-  addColorText(): void { const v = this.newColor.trim(); if (v && !this.selColors.includes(v)) this.selColors.push(v); this.newColor = ''; }
-  toggleSize(sz: string): void { const i = this.selSizes.indexOf(sz); if (i >= 0) this.selSizes.splice(i, 1); else this.selSizes.push(sz); }
-  addSizeText(): void { const v = this.newSizeText.trim(); if (v && !this.selSizes.includes(v)) this.selSizes.push(v); this.newSizeText = ''; }
-  applyBulk(): void {
-    const q = Math.max(0, +this.bulkQty || 0);
-    for (const c of this.colorsOrDefault()) for (const sz of this.sizesOrDefault()) this.qtyMap[this.comboKey(c, sz)] = q;
-  }
-  private combos(): { color: string; size: string; qty: number }[] {
-    const out: { color: string; size: string; qty: number }[] = [];
-    for (const c of this.colorsOrDefault()) for (const sz of this.sizesOrDefault()) {
-      const q = this.getQty(c, sz);
-      if (q > 0) out.push({ color: c, size: sz, qty: q });
-    }
-    return out;
-  }
-  totalUnits(): number { return this.combos().reduce((a, x) => a + x.qty, 0); }
-  comboCount(): number { return this.combos().length; }
-  useMatrix(): boolean { return this.selColors.length > 1 && this.selSizes.length > 1; }
-  comboList(): { key: string; color: string; size: string }[] {
-    const out: { key: string; color: string; size: string }[] = [];
-    for (const c of this.colorsOrDefault()) for (const sz of this.sizesOrDefault()) out.push({ key: c + '|' + sz, color: c, size: sz });
-    return out;
-  }
-  isSingleVariant(): boolean { return this.comboList().length === 1; }
-  comboLabel(cb: { color: string; size: string }): string {
-    const parts: string[] = [];
-    if (cb.color) parts.push(cb.color);
-    if (cb.size) parts.push(this.sizeLabel() + ' ' + cb.size);
-    return parts.length ? parts.join(' · ') : 'Cantidad';
-  }
-
   submit(): void {
     this.error.set(null);
     const errs: Record<string, string> = {};
@@ -357,7 +437,7 @@ export class ManualProductModalComponent implements OnInit, OnDestroy {
     if ((+this.nf.price || 0) <= 0) errs['price'] = 'Ingresa un precio válido.';
     if (!this.isEdit()) {
       if ((+this.nf.cost || 0) <= 0) errs['cost'] = 'Ingresa un costo válido.';
-      if (!this.hasVariants() && this.getQty('', '') <= 0) errs['qty'] = 'Ingresa la cantidad.';
+      if (!this.hasVariants() && (+this.simpleQty || 0) <= 0) errs['qty'] = 'Ingresa la cantidad.';
     }
     this.fieldErrors.set(errs);
     if (Object.keys(errs).length) return;
@@ -379,26 +459,59 @@ export class ManualProductModalComponent implements OnInit, OnDestroy {
       return;
     }
 
-    const list = this.combos();
-    if (!list.length) { this.error.set('Pon al menos una cantidad.'); return; }
-    const single = list.length === 1;
-    // El precio de la variante es el que se cobra (con oferta aplicada).
-    const finalUnit = this.finalPrice();
-    this.add.emit(list.map(x => ({
+    const finalUnit = this.finalPrice();  // precio que se cobra (con oferta)
+    const baseItem = {
       product_name: this.nf.product_name.trim(),
       brand: this.nf.brand.trim(),
       category: this.nf.category.trim(),
       kind: this.nf.kind,
-      color: x.color.trim(),
-      size: x.size.trim(),
-      barcode: single ? this.nf.barcode.trim() : '',
       cost: +(this.nf.cost ?? 0),
       price: finalUnit,
-      quantity: x.qty,
       tax_rate: tax,
       compare_at_price: cmp,
       description: (this.nf.description || '').trim(),
       images: imgs,
+    };
+
+    if (!this.hasVariants()) {
+      // Producto simple: una sola "variante" sin atributos.
+      this.add.emit([{
+        ...baseItem, color: '', size: '', barcode: this.nf.barcode.trim(),
+        quantity: Math.max(0, +this.simpleQty || 0),
+      }]);
+      if (this.embedded) this.resetForm();
+      return;
+    }
+
+    if (this.variantMode() === 'custom') {
+      // Modo personalizado: producto cartesiano de las dimensiones libres.
+      const opts = this.activeDims().map(d => ({ name: d.name.trim(), values: [...d.values] }));
+      const combos = this.combos().filter(c => this.comboQtyOf(c.key) > 0);
+      if (!combos.length) { this.error.set('Agrega al menos una cantidad en alguna variante.'); return; }
+      const single = combos.length === 1;
+      this.add.emit(combos.map(c => {
+        const vals = Object.values(c.attrs).map(v => String(v));
+        return {
+          ...baseItem,
+          size: vals[0] || '', color: vals[1] || '',
+          barcode: single ? this.nf.barcode.trim() : '',
+          quantity: this.comboQtyOf(c.key),
+          attributes: c.attrs, variant_options: opts,
+        };
+      }));
+      if (this.embedded) this.resetForm();
+      return;
+    }
+
+    // Modo clásico: talla × color.
+    const list = this.classicCombos();
+    if (!list.length) { this.error.set('Agrega al menos una cantidad.'); return; }
+    const single = list.length === 1;
+    this.add.emit(list.map(x => ({
+      ...baseItem,
+      color: x.color.trim(), size: x.size.trim(),
+      barcode: single ? this.nf.barcode.trim() : '',
+      quantity: x.qty,
     })));
     if (this.embedded) this.resetForm();
   }

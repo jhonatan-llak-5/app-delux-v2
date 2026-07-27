@@ -154,9 +154,13 @@ export class ProductEditComponent implements OnInit {
         const rows: VRow[] = (r.results || []).map((s: Stock) => {
           const price = s.price_override != null ? +s.price_override : (+s.base_price || 0);
           const cost = +(s.cost ?? 0) || 0;
+          const attrs = s.variant_attributes;
+          const label = (attrs && Object.keys(attrs).length)
+            ? Object.values(attrs).join(' · ')
+            : `${s.variant_size || '—'} / ${s.variant_color || '—'}`;
           return {
             stockId: s.id,
-            label: `${s.variant_size || '—'} / ${s.variant_color || '—'}`,
+            label,
             sku: s.variant_sku,
             price, cost, qty: s.quantity,
             origPrice: price, origCost: cost, origQty: s.quantity,

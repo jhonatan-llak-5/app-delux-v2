@@ -7,6 +7,7 @@ class StockSerializer(serializers.ModelSerializer):
     barcode = serializers.CharField(source='variant.barcode', read_only=True, default=None)
     variant_size = serializers.CharField(source='variant.size', read_only=True)
     variant_color = serializers.CharField(source='variant.color', read_only=True)
+    variant_attributes = serializers.JSONField(source='variant.attributes', read_only=True)
     product_id = serializers.IntegerField(source='variant.product.id', read_only=True)
     product_name = serializers.CharField(source='variant.product.name', read_only=True)
     product_status = serializers.CharField(source='variant.product.status', read_only=True)
@@ -25,6 +26,7 @@ class StockSerializer(serializers.ModelSerializer):
         model = Stock
         fields = (
             'id', 'variant', 'variant_sku', 'barcode', 'variant_size', 'variant_color',
+            'variant_attributes',
             'product_id', 'product_name', 'product_status', 'product_main_image',
             'brand_name', 'category_name',
             'branch', 'branch_name', 'branch_code',

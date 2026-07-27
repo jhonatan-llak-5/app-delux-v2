@@ -528,6 +528,8 @@ class AdminReceptionViewSet(viewsets.ModelViewSet):
                             # Impuesto por producto (None = usa el IVA global) y oferta.
                             _tax = raw.get('tax_rate')
                             _cmp = raw.get('compare_at_price') or None
+                            # Dimensiones de variante personalizadas (opcionales).
+                            _vopts = raw.get('variant_options')
                             product = Product.objects.create(
                                 tenant=tenant, name=name, slug=unique_slug(Product, tenant, name),
                                 brand=brand, category=category, kind=kind,
@@ -537,21 +539,37 @@ class AdminReceptionViewSet(viewsets.ModelViewSet):
                                 tag=('SALE' if _cmp else ''),
                                 description=(raw.get('description') or ''),
                                 main_image_url=(imgs[0] if imgs else ''),
+                                variant_options=(_vopts if isinstance(_vopts, list) else []),
                                 status='PUBLISHED',
                             )
                             for idx, u in enumerate(imgs):
                                 ProductImage.objects.create(
                                     product=product, url=u, sort_order=idx, is_main=(idx == 0))
                             created_products[pkey] = product
+                    # Atributos de la variante (dimensiones personalizadas). Si no
+                    # vienen, se arman con talla/color para compatibilidad.
+                    attributes = raw.get('attributes') if isinstance(raw.get('attributes'), dict) else {}
                     size = (raw.get('size') or '').strip()
                     color = (raw.get('color') or '').strip()
-                    variant = Variant.objects.filter(product=product, size=size, color=color).first()
+                    if attributes and not size and not color:
+                        # Puebla talla/color con las dos primeras dimensiones (compat).
+                        vals = list(attributes.values())
+                        size = str(vals[0]).strip() if len(vals) > 0 else ''
+                        color = str(vals[1]).strip() if len(vals) > 1 else ''
+                    # Busca una variante existente por atributos (o por talla/color).
+                    variant = None
+                    for cand in Variant.objects.filter(product=product):
+                        if attributes:
+                            if (cand.attributes or {}) == attributes:
+                                variant = cand; break
+                        elif cand.size == size and cand.color == color:
+                            variant = cand; break
                     if variant is None:
                         sku = f'P{seq:08d}'
                         seq += 1
                         variant = Variant.objects.create(
                             tenant=tenant, product=product, sku=sku,
-                            size=size, color=color,
+                            size=size, color=color, attributes=attributes,
                             barcode=(raw.get('barcode') or '').strip(),
                             cost=cost,
                             # Cada variante puede llegar con su propio precio en

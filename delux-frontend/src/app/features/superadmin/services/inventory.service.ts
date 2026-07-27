@@ -10,6 +10,7 @@ export interface Stock {
   barcode?: string | null;
   variant_size: string;
   variant_color: string;
+  variant_attributes?: Record<string, string>;
   product_id: number;
   product_name: string;
   product_status?: string;
@@ -125,6 +126,8 @@ export interface ReceptionItemIn {
   branch?: number;
   images?: string[];
   description?: string;
+  attributes?: Record<string, string>;
+  variant_options?: { name: string; values: string[] }[];
 }
 
 export interface ReceptionResult {

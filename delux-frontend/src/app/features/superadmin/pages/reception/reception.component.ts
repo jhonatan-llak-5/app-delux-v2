@@ -40,6 +40,8 @@ interface Row {
   branchQty: Record<number, number>;
   branchMemo?: Record<number, number>;
   images?: string[];
+  attributes?: Record<string, string>;
+  variant_options?: { name: string; values: string[] }[];
 }
 
 interface AddDraft {
@@ -262,6 +264,13 @@ export class ReceptionComponent implements OnInit, OnDestroy {
   rowUnits(r: Row): number {
     return Object.values(r.branchQty || {}).reduce((a, q) => a + (+q || 0), 0);
   }
+  /** Etiqueta de la variante: atributos personalizados o talla/color. */
+  rowVariantLabel(r: Row): string {
+    const a = r.attributes;
+    if (a && Object.keys(a).length) return Object.values(a).join(' · ');
+    if (r.size || r.color) return `${r.size || '—'} / ${r.color || '—'}`;
+    return '—';
+  }
   rowBranchOptions(_r: Row): AdminBranch[] {
     // El paso 2 muestra SIEMPRE todas las sucursales de la tienda.
     // Las "activas" (marcadas) son las que el producto tiene asignadas (branchQty),
@@ -477,6 +486,7 @@ export class ReceptionComponent implements OnInit, OnDestroy {
       category_name: p.category, kind: p.kind, color: p.color, size: p.size,
       barcode: p.barcode, unit_cost: p.cost, price: p.price, description: p.description,
       tax_rate: p.tax_rate, compare_at_price: p.compare_at_price,
+      attributes: p.attributes, variant_options: p.variant_options,
       isNew: true, branchQty: (def != null ? { [def]: +p.quantity || 1 } : {}), images: p.images,
     }))]);
     this.showManual.set(false);
@@ -583,6 +593,7 @@ export class ReceptionComponent implements OnInit, OnDestroy {
               brand_name: r.brand_name, category_name: r.category_name,
               color: r.color, size: r.size, price: +(r.price ?? 0),
               tax_rate: r.tax_rate ?? null, compare_at_price: r.compare_at_price ?? null,
+              attributes: r.attributes, variant_options: r.variant_options,
               branch: +bid, images: r.images, description: r.description,
             });
       }

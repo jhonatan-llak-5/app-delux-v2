@@ -32,7 +32,7 @@ class ProductSerializer(serializers.ModelSerializer):
             'id', 'name', 'slug', 'short_description', 'description',
             'brand', 'brand_name', 'category', 'category_name',
             'base_price', 'compare_at_price', 'tax_rate',
-            'gender', 'status', 'tag', 'is_featured',
+            'gender', 'status', 'tag', 'is_featured', 'variant_options',
             'main_image_url',
             'meta_title', 'meta_description',
             'images', 'images_count', 'variants_count', 'variants_detail', 'total_stock',
@@ -69,7 +69,7 @@ class ProductCreateUpdateSerializer(serializers.ModelSerializer):
             'name', 'slug', 'short_description', 'description',
             'brand', 'category', 'brand_name', 'category_name',
             'base_price', 'compare_at_price', 'tax_rate',
-            'gender', 'status', 'tag', 'is_featured',
+            'gender', 'status', 'tag', 'is_featured', 'variant_options',
             'main_image_url', 'meta_title', 'meta_description',
             'images', 'variants', 'initial_stock',
         )

@@ -65,6 +65,12 @@ export class InventoryOverviewComponent implements OnInit {
   isActiveGroup(g: ProductGroup): boolean { return (g.product_status || 'PUBLISHED') === 'PUBLISHED'; }
   /** Precio a mostrar de una variante (override o precio base del producto). */
   variantPrice(s: Stock): number { return s.price_override != null ? +s.price_override : (+s.base_price || 0); }
+  /** Etiqueta de la variante: usa los atributos personalizados o talla/color. */
+  variantLabel(s: Stock): string {
+    const a = s.variant_attributes;
+    if (a && Object.keys(a).length) return Object.values(a).join(' · ');
+    return `${s.variant_size || '—'} / ${s.variant_color || '—'}`;
+  }
   /** Rango "$min – $max" (o un solo valor si son iguales) para la fila de producto. */
   private fmtRange(min: number, max: number): string {
     const lo = +min || 0, hi = +max || 0;
