@@ -33,6 +33,7 @@ class ProductSerializer(serializers.ModelSerializer):
             'brand', 'brand_name', 'category', 'category_name',
             'base_price', 'compare_at_price', 'tax_rate',
             'gender', 'status', 'tag', 'is_featured', 'variant_options',
+            'discount_percent', 'on_offer',
             'main_image_url',
             'meta_title', 'meta_description',
             'images', 'images_count', 'variants_count', 'variants_detail', 'total_stock',
@@ -70,6 +71,7 @@ class ProductCreateUpdateSerializer(serializers.ModelSerializer):
             'brand', 'category', 'brand_name', 'category_name',
             'base_price', 'compare_at_price', 'tax_rate',
             'gender', 'status', 'tag', 'is_featured', 'variant_options',
+            'discount_percent', 'on_offer',
             'main_image_url', 'meta_title', 'meta_description',
             'images', 'variants', 'initial_stock',
         )

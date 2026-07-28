@@ -25,6 +25,8 @@ export interface Product {
   base_price: string;
   compare_at_price: string | null;
   tax_rate?: string | null;
+  discount_percent?: string | null;
+  on_offer?: boolean;
   gender: 'UNISEX' | 'MEN' | 'WOMEN' | 'KIDS';
   status: 'DRAFT' | 'PUBLISHED' | 'PAUSED' | 'ARCHIVED';
   tag: '' | 'NEW' | 'DROP' | 'SALE' | 'EXCLUSIVE';
@@ -53,6 +55,7 @@ export interface ProductPayload {
   base_price: number | string;
   compare_at_price?: number | string | null;
   tax_rate?: number | string | null;
+  discount_percent?: number | string | null;
   gender?: string;
   status?: string;
   tag?: string;

@@ -74,6 +74,23 @@ class Product(TenantOwnedModel):
     # con las dimensiones clásicas talla/color.
     variant_options = models.JSONField(default=list, blank=True)
 
+    # Oferta GLOBAL del producto: % de descuento que se aplica al precio de
+    # CADA variante (POS, tienda, kiosko). 0 = sin oferta.
+    discount_percent = models.DecimalField(max_digits=5, decimal_places=2, default=0)
+
+    @property
+    def on_offer(self) -> bool:
+        return bool(self.discount_percent and self.discount_percent > 0)
+
+    def offer_price(self, base):
+        """Precio final tras aplicar el descuento de la oferta a un precio base."""
+        from decimal import Decimal
+        d = self.discount_percent or 0
+        b = Decimal(str(base or 0))
+        if d and d > 0:
+            return (b * (Decimal('1') - Decimal(str(d)) / Decimal('100'))).quantize(Decimal('0.01'))
+        return b.quantize(Decimal('0.01'))
+
     # Borrado lógico: si tiene fecha, el producto está "eliminado" (oculto en
     # todos lados) pero su registro se conserva para no perder el historial de
     # ventas asociado. None = activo.

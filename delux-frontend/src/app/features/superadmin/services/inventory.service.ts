@@ -14,6 +14,8 @@ export interface Stock {
   product_id: number;
   product_name: string;
   product_status?: string;
+  product_on_offer?: boolean;
+  product_discount_percent?: string | null;
   product_main_image: string;
   brand_name: string;
   category_name: string;
@@ -42,6 +44,8 @@ export interface ProductGroup {
   variants_count: number;
   total_qty: number;
   low_count: number;
+  on_offer?: boolean;
+  discount_percent?: number;
   price_min: number;
   price_max: number;
   cost_min: number;
@@ -123,6 +127,7 @@ export interface ReceptionItemIn {
   category_id?: number; category_name?: string;
   color?: string; size?: string; price?: number;
   tax_rate?: number | null; compare_at_price?: number | null;
+  discount_percent?: number | null;
   branch?: number;
   images?: string[];
   description?: string;

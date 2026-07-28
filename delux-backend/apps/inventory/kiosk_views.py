@@ -33,11 +33,12 @@ def _product_payload(product, matched_variant_id=None):
             if st.branch:
                 stocks.append({'branch': st.branch.name, 'available': av})
         total += vtotal
-        price = v.price_override if v.price_override is not None else product.base_price
+        _base = v.price_override if v.price_override is not None else product.base_price
+        price = product.offer_price(_base)
         variants.append({
             'id': v.id, 'sku': v.sku, 'barcode': v.barcode,
             'size': v.size, 'color': v.color,
-            'price': price, 'available': vtotal, 'stocks': stocks,
+            'price': price, 'compare_at': (_base if product.on_offer else None), 'available': vtotal, 'stocks': stocks,
         })
     gallery = []
     if product.main_image_url:

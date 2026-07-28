@@ -135,7 +135,8 @@ def create_web_order(tenant, data, user=None):
         chosen.reserved += qty
         chosen.save(update_fields=['reserved', 'updated_at'])
 
-        unit_price = variant.price_override or variant.product.base_price
+        _base = variant.price_override or variant.product.base_price
+        unit_price = variant.product.offer_price(_base)
         item_subtotal = unit_price * qty
         OrderItem.objects.create(
             tenant=tenant, order=order, variant=variant,

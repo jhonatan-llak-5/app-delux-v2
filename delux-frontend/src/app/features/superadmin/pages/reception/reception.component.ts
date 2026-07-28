@@ -19,6 +19,7 @@ import { DlxConfirmDialogComponent } from '@shared/ui/confirm-dialog.component';
 import { DlxPriceInputComponent } from '@shared/ui/price-input.component';
 import { AuthService } from '@core/services/auth.service';
 import { SupplierFormModalComponent } from '@features/superadmin/components/supplier-form-modal/supplier-form-modal.component';
+import { ConfirmService } from '@shared/components/confirm/confirm.service';
 
 interface Row {
   key: number;
@@ -35,6 +36,7 @@ interface Row {
   price?: number;
   tax_rate?: number | null;
   compare_at_price?: number | null;
+  discount_percent?: number | null;
   isNew: boolean;
   description?: string;
   branchQty: Record<number, number>;
@@ -72,6 +74,7 @@ export class ReceptionComponent implements OnInit, OnDestroy {
   private auth = inject(AuthService);
   private notify = inject(NotifyService);
   private tour = inject(TourService);
+  private confirmSvc = inject(ConfirmService);
 
   private readonly STORAGE_KEY = 'dlx_reception_draft';
 
@@ -346,8 +349,15 @@ export class ReceptionComponent implements OnInit, OnDestroy {
     n.has(key) ? n.delete(key) : n.add(key);
     this.expandedGroups.set(n);
   }
-  /** Quita todas las variantes de un producto de la lista. */
-  removeGroup(rows: Row[]): void {
+  /** Quita todas las variantes de un producto de la lista (con confirmación). */
+  async removeGroup(rows: Row[]): Promise<void> {
+    const name = (rows[0]?.product_name || 'este producto').trim();
+    const ok = await this.confirmSvc.ask({
+      title: 'Quitar producto',
+      message: `¿Quitar "${name}" y sus ${rows.length} variante(s) de la lista? No se eliminará nada del inventario, solo de esta recepción.`,
+      variant: 'danger', confirmText: 'Quitar',
+    });
+    if (!ok) return;
     const keys = new Set(rows.map(r => r.key));
     this.items.set(this.items().filter(r => !keys.has(r.key)));
     this.saveState();
@@ -485,9 +495,10 @@ export class ReceptionComponent implements OnInit, OnDestroy {
       key: this.keySeq++, product_name: p.product_name, brand_name: p.brand,
       category_name: p.category, kind: p.kind, color: p.color, size: p.size,
       barcode: p.barcode, unit_cost: p.cost, price: p.price, description: p.description,
-      tax_rate: p.tax_rate, compare_at_price: p.compare_at_price,
+      tax_rate: p.tax_rate, compare_at_price: p.compare_at_price, discount_percent: p.discount_percent,
       attributes: p.attributes, variant_options: p.variant_options,
-      isNew: true, branchQty: (def != null ? { [def]: +p.quantity || 1 } : {}), images: p.images,
+      // Se respeta la cantidad recibida (incluida 0) para poder ajustarla aquí en el Paso 2.
+      isNew: true, branchQty: (def != null ? { [def]: Math.max(0, +p.quantity || 0) } : {}), images: p.images,
     }))]);
     this.showManual.set(false);
     this.scanMsg.set('Agregado: ' + list.length + ' variante(s)');
@@ -593,6 +604,7 @@ export class ReceptionComponent implements OnInit, OnDestroy {
               brand_name: r.brand_name, category_name: r.category_name,
               color: r.color, size: r.size, price: +(r.price ?? 0),
               tax_rate: r.tax_rate ?? null, compare_at_price: r.compare_at_price ?? null,
+              discount_percent: r.discount_percent ?? null,
               attributes: r.attributes, variant_options: r.variant_options,
               branch: +bid, images: r.images, description: r.description,
             });

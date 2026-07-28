@@ -14,6 +14,8 @@ export interface ManualProduct {
   color: string; size: string; barcode: string;
   cost: number; price: number; quantity: number;
   tax_rate: number | null; compare_at_price: number | null;
+  /** % de descuento de la oferta GLOBAL del producto (0 = sin oferta). */
+  discount_percent: number;
   description: string;
   images: string[];
   /** Atributos de dimensiones personalizadas: {"Talla":"40","Color":"Rojo"}. */
@@ -22,18 +24,28 @@ export interface ManualProduct {
   variant_options?: { name: string; values: string[] }[];
 }
 
+/** Un "lote" de variantes clásicas: talla×color con su costo, precio y cantidades. */
+export interface Lote {
+  selColors: string[];
+  selSizes: string[];
+  newColor: string;
+  newSizeText: string;
+  cost: number;
+  price: number;
+  qtyMap: Record<string, number>;
+  bulkQty: number;
+}
+
 /** Snapshot completo del formulario embebido (para persistir el borrador). */
 export interface ManualDraft {
-  nf: Omit<ManualProduct, 'images' | 'tax_rate' | 'compare_at_price'>;
+  nf: Omit<ManualProduct, 'images' | 'tax_rate' | 'compare_at_price' | 'discount_percent' | 'attributes' | 'variant_options'>;
   images: DlxImageItem[];
   taxRate: number | null;
   onOffer: boolean;
   discount: number;
   hasVariants: boolean;
   variantMode: 'classic' | 'custom';
-  selColors: string[];
-  selSizes: string[];
-  qtyMap: Record<string, number>;
+  lotes: Lote[];
   dims: { name: string; values: string[] }[];
   comboQty: Record<string, number>;
   simpleQty: number;
@@ -44,6 +56,7 @@ export interface ProductInitial {
   product_name: string; brand: string; category: string; kind: string;
   description: string; barcode: string;
   base_price: number; compare_at_price: number | null; tax_rate: number | null;
+  discount_percent?: number;
   images: string[];
 }
 
@@ -72,6 +85,10 @@ export class ManualProductModalComponent implements OnInit, OnDestroy {
   @Input() embedded = false;
   /** 'create' (recepción, multi + variantes) o 'edit' (solo datos del producto). */
   @Input() mode: 'create' | 'edit' = 'create';
+  /** En edición: mostrar el campo de precio de arriba (solo si el precio es único). */
+  @Input() showPrice = true;
+  /** Mostrar el botón interno de guardar/agregar. El padre puede ponerlo aparte. */
+  @Input() showSubmit = true;
   @Input() initial: ProductInitial | null = null;
   /** Borrador a restaurar (solo en modo embebido). */
   @Input() draft: ManualDraft | null = null;
@@ -147,7 +164,7 @@ export class ManualProductModalComponent implements OnInit, OnDestroy {
 
   toggleVariants(v: boolean): void {
     this.hasVariants.set(v);
-    if (!v) { this.selColors = []; this.selSizes = []; }
+    if (!v) this.lotes = [this.emptyLote()];
     this.changed.emit();
   }
   setVariantMode(m: 'classic' | 'custom'): void {
@@ -156,25 +173,30 @@ export class ManualProductModalComponent implements OnInit, OnDestroy {
     this.dimsV.update(x => x + 1); this.changed.emit();
   }
 
-  // ── Modo CLÁSICO: multi-color × multi-talla (matriz) ──
-  selColors: string[] = [];
-  selSizes: string[] = [];
-  newColor = '';
-  newSizeText = '';
-  qtyMap: Record<string, number> = {};
-  colorsOrDefault(): string[] { return this.selColors.length ? this.selColors : ['']; }
-  sizesOrDefault(): string[] { return this.selSizes.length ? this.selSizes : ['']; }
-  private comboKey(c: string, sz: string): string { return c + '|' + sz; }
-  getQty(c: string, sz: string): number { return this.qtyMap[this.comboKey(c, sz)] ?? 0; }
-  setQty(c: string, sz: string, v: any): void { this.qtyMap[this.comboKey(c, sz)] = Math.max(0, +v || 0); this.changed.emit(); }
-  toggleColor(c: string): void { const i = this.selColors.indexOf(c); if (i >= 0) this.selColors.splice(i, 1); else this.selColors.push(c); this.changed.emit(); }
-  addColorText(): void { const v = this.newColor.trim(); if (v && !this.selColors.includes(v)) this.selColors.push(v); this.newColor = ''; this.changed.emit(); }
-  toggleSize(sz: string): void { const i = this.selSizes.indexOf(sz); if (i >= 0) this.selSizes.splice(i, 1); else this.selSizes.push(sz); this.changed.emit(); }
-  addSizeText(): void { const v = this.newSizeText.trim(); if (v && !this.selSizes.includes(v)) this.selSizes.push(v); this.newSizeText = ''; this.changed.emit(); }
-  useMatrix(): boolean { return this.selColors.length > 1 && this.selSizes.length > 1; }
-  comboList(): { key: string; color: string; size: string }[] {
+  // ── Modo CLÁSICO: lotes (cada lote = talla×color + costo + precio + cantidad) ──
+  lotes: Lote[] = [this.emptyLote()];
+  private emptyLote(): Lote {
+    return { selColors: [], selSizes: [], newColor: '', newSizeText: '', cost: 0, price: 0, qtyMap: {}, bulkQty: 1 };
+  }
+  addLote(): void { this.lotes = [...this.lotes, this.emptyLote()]; this.changed.emit(); }
+  removeLote(i: number): void {
+    this.lotes = this.lotes.filter((_, idx) => idx !== i);
+    if (!this.lotes.length) this.lotes = [this.emptyLote()];
+    this.changed.emit();
+  }
+  loteColorsOrDefault(l: Lote): string[] { return l.selColors.length ? l.selColors : ['']; }
+  loteSizesOrDefault(l: Lote): string[] { return l.selSizes.length ? l.selSizes : ['']; }
+  private lkey(c: string, sz: string): string { return c + '|' + sz; }
+  getLoteQty(l: Lote, c: string, sz: string): number { return l.qtyMap[this.lkey(c, sz)] ?? 0; }
+  setLoteQty(l: Lote, c: string, sz: string, v: any): void { l.qtyMap[this.lkey(c, sz)] = Math.max(0, +v || 0); this.changed.emit(); }
+  toggleLoteColor(l: Lote, c: string): void { const i = l.selColors.indexOf(c); if (i >= 0) l.selColors.splice(i, 1); else l.selColors.push(c); this.changed.emit(); }
+  addLoteColor(l: Lote): void { const v = l.newColor.trim(); if (v && !l.selColors.includes(v)) l.selColors.push(v); l.newColor = ''; this.changed.emit(); }
+  toggleLoteSize(l: Lote, sz: string): void { const i = l.selSizes.indexOf(sz); if (i >= 0) l.selSizes.splice(i, 1); else l.selSizes.push(sz); this.changed.emit(); }
+  addLoteSize(l: Lote): void { const v = l.newSizeText.trim(); if (v && !l.selSizes.includes(v)) l.selSizes.push(v); l.newSizeText = ''; this.changed.emit(); }
+  loteUseMatrix(l: Lote): boolean { return l.selColors.length > 1 && l.selSizes.length > 1; }
+  loteComboList(l: Lote): { key: string; color: string; size: string }[] {
     const out: { key: string; color: string; size: string }[] = [];
-    for (const c of this.colorsOrDefault()) for (const sz of this.sizesOrDefault()) out.push({ key: c + '|' + sz, color: c, size: sz });
+    for (const c of this.loteColorsOrDefault(l)) for (const sz of this.loteSizesOrDefault(l)) out.push({ key: c + '|' + sz, color: c, size: sz });
     return out;
   }
   comboLabel(cb: { color: string; size: string }): string {
@@ -183,11 +205,27 @@ export class ManualProductModalComponent implements OnInit, OnDestroy {
     if (cb.size) parts.push(this.sizeLabel() + ' ' + cb.size);
     return parts.length ? parts.join(' · ') : 'Cantidad';
   }
-  private classicCombos(): { color: string; size: string; qty: number }[] {
-    const out: { color: string; size: string; qty: number }[] = [];
-    for (const c of this.colorsOrDefault()) for (const sz of this.sizesOrDefault()) {
-      const q = this.getQty(c, sz);
-      if (q > 0) out.push({ color: c, size: sz, qty: q });
+  applyLoteBulk(l: Lote): void {
+    const q = Math.max(0, +l.bulkQty || 0);
+    for (const c of this.loteColorsOrDefault(l)) for (const sz of this.loteSizesOrDefault(l)) l.qtyMap[this.lkey(c, sz)] = q;
+    this.changed.emit();
+  }
+  /** Todas las combinaciones del lote (aunque estén en 0). Vacío si el lote no
+   * tiene ninguna talla ni color seleccionados. */
+  private loteAllCombos(l: Lote): { color: string; size: string }[] {
+    if (!l.selColors.length && !l.selSizes.length) return [];
+    const out: { color: string; size: string }[] = [];
+    for (const c of this.loteColorsOrDefault(l)) for (const sz of this.loteSizesOrDefault(l)) out.push({ color: c, size: sz });
+    return out;
+  }
+  loteUnits(l: Lote): number { return this.loteAllCombos(l).reduce((a, x) => a + this.getLoteQty(l, x.color, x.size), 0); }
+  loteComboCount(l: Lote): number { return this.loteAllCombos(l).length; }
+  /** Variantes a emitir: TODAS las seleccionadas, con su cantidad (aunque sea 0,
+   * para poder ajustarla luego en el Paso 2). */
+  private classicItems(): { color: string; size: string; qty: number; cost: number; price: number }[] {
+    const out: { color: string; size: string; qty: number; cost: number; price: number }[] = [];
+    for (const l of this.lotes) for (const x of this.loteAllCombos(l)) {
+      out.push({ color: x.color, size: x.size, qty: this.getLoteQty(l, x.color, x.size), cost: +l.cost || 0, price: +l.price || 0 });
     }
     return out;
   }
@@ -227,25 +265,27 @@ export class ManualProductModalComponent implements OnInit, OnDestroy {
   }
   comboQtyOf(key: string): number { return this.comboQty[key] ?? 0; }
   setComboQty(key: string, v: any): void { this.comboQty[key] = Math.max(0, +v || 0); this.dimsV.update(x => x + 1); this.changed.emit(); }
-
-  // ── Compartido (según el modo activo) ──
+  /** "Aplicar a todas" en modo personalizado. */
   applyBulk(): void {
     const q = Math.max(0, +this.bulkQty || 0);
-    if (this.variantMode() === 'custom') { for (const c of this.combos()) this.comboQty[c.key] = q; }
-    else { for (const c of this.colorsOrDefault()) for (const sz of this.sizesOrDefault()) this.qtyMap[this.comboKey(c, sz)] = q; }
+    for (const c of this.combos()) this.comboQty[c.key] = q;
     this.dimsV.update(x => x + 1); this.changed.emit();
   }
+
+  // ── Totales (según el modo activo) ──
   totalUnits(): number {
     return this.variantMode() === 'custom'
       ? this.combos().reduce((a, c) => a + this.comboQtyOf(c.key), 0)
-      : this.classicCombos().reduce((a, x) => a + x.qty, 0);
+      : this.lotes.reduce((a, l) => a + this.loteUnits(l), 0);
   }
   comboCount(): number {
-    return this.variantMode() === 'custom' ? this.combos().length : this.classicCombos().length;
+    return this.variantMode() === 'custom'
+      ? this.combos().length
+      : this.lotes.reduce((a, l) => a + this.loteComboCount(l), 0);
   }
   /** ¿El producto quedará con una sola variante? (para el código de barras). */
   isSingleVariant(): boolean {
-    return this.variantMode() === 'custom' ? this.combos().length === 1 : this.comboList().length === 1;
+    return this.variantMode() === 'custom' ? this.combos().length === 1 : this.comboCount() === 1;
   }
 
   // ── Impuesto por producto (null = usa el IVA global de Configuración) ──
@@ -272,6 +312,8 @@ export class ManualProductModalComponent implements OnInit, OnDestroy {
   /** Precio que realmente se cobra (base_price a guardar). */
   finalPrice(): number { return this.onOffer && +this.discount > 0 ? this.offerPrice() : (+this.nf.price || 0); }
   compareAtPrice(): number | null { return this.onOffer && +this.discount > 0 ? (+this.nf.price || 0) : null; }
+  /** % de descuento de la oferta global (0 si no está en oferta). */
+  offerDiscount(): number { return this.onOffer && +this.discount > 0 ? Math.min(99, +this.discount) : 0; }
 
   // ── Marca / categoría (combobox autocreable) ──
   brandOpen = signal(false);
@@ -322,7 +364,7 @@ export class ManualProductModalComponent implements OnInit, OnDestroy {
   };
   colorHex(name: string): string { return this.colorHexMap[name] || '#cbd5e1'; }
   readonly kinds = Object.entries(KIND_PRESETS).map(([value, v]) => ({ value, label: v.label }));
-  nf: Omit<ManualProduct, 'images' | 'tax_rate' | 'compare_at_price'> = {
+  nf: Omit<ManualProduct, 'images' | 'tax_rate' | 'compare_at_price' | 'discount_percent' | 'attributes' | 'variant_options'> = {
     product_name: '', brand: '', category: '', kind: 'CALZADO',
     color: '', size: '', barcode: '', cost: 0, price: 0, quantity: 1, description: '',
   };
@@ -343,9 +385,14 @@ export class ManualProductModalComponent implements OnInit, OnDestroy {
       this.discount = +d.discount || 0;
       this.hasVariants.set(!!d.hasVariants);
       this.variantMode.set(d.variantMode === 'custom' ? 'custom' : 'classic');
-      this.selColors = Array.isArray(d.selColors) ? [...d.selColors] : [];
-      this.selSizes = Array.isArray(d.selSizes) ? [...d.selSizes] : [];
-      this.qtyMap = d.qtyMap && typeof d.qtyMap === 'object' ? { ...d.qtyMap } : {};
+      this.lotes = Array.isArray(d.lotes) && d.lotes.length
+        ? d.lotes.map(l => ({
+            selColors: [...(l.selColors || [])], selSizes: [...(l.selSizes || [])],
+            newColor: l.newColor || '', newSizeText: l.newSizeText || '',
+            cost: +l.cost || 0, price: +l.price || 0,
+            qtyMap: { ...(l.qtyMap || {}) }, bulkQty: +l.bulkQty || 1,
+          }))
+        : [this.emptyLote()];
       this.dims = Array.isArray(d.dims) && d.dims.length ? d.dims.map(x => ({ name: x.name, values: [...(x.values || [])] })) : [{ name: 'Talla', values: [] }];
       this.comboQty = d.comboQty && typeof d.comboQty === 'object' ? { ...d.comboQty } : {};
       this.simpleQty = +d.simpleQty || 1;
@@ -363,9 +410,11 @@ export class ManualProductModalComponent implements OnInit, OnDestroy {
       discount: this.discount,
       hasVariants: this.hasVariants(),
       variantMode: this.variantMode(),
-      selColors: [...this.selColors],
-      selSizes: [...this.selSizes],
-      qtyMap: { ...this.qtyMap },
+      lotes: this.lotes.map(l => ({
+        selColors: [...l.selColors], selSizes: [...l.selSizes],
+        newColor: l.newColor, newSizeText: l.newSizeText,
+        cost: l.cost, price: l.price, qtyMap: { ...l.qtyMap }, bulkQty: l.bulkQty,
+      })),
       dims: this.dims.map(d => ({ name: d.name, values: [...d.values] })),
       comboQty: { ...this.comboQty },
       simpleQty: this.simpleQty,
@@ -379,13 +428,17 @@ export class ManualProductModalComponent implements OnInit, OnDestroy {
         || (n.barcode || '').trim() || (n.description || '').trim()) return true;
     if ((+n.cost || 0) > 0 || (+n.price || 0) > 0) return true;
     if (this.images.length) return true;
-    if (this.selColors.length || this.selSizes.length || this.activeDims().length) return true;
+    if (this.lotes.some(l => l.selColors.length || l.selSizes.length) || this.activeDims().length) return true;
     if (this.onOffer && +this.discount > 0) return true;
     return false;
   }
 
   /** Vacía el formulario (uso externo desde el botón «Limpiar formulario»). */
   clearForm(): void { this.resetForm(); this.changed.emit(); }
+
+  /** Reset tras "Agregar a la lista": el producto (con todos sus lotes) ya se
+   * envió, así que se limpia todo para empezar uno nuevo. */
+  private afterAddReset(): void { this.resetForm(); }
 
   /** El uploader avisa cambios de imágenes -> el padre re-persiste. */
   onImagesChange(): void { this.changed.emit(); }
@@ -399,17 +452,11 @@ export class ManualProductModalComponent implements OnInit, OnDestroy {
     this.nf.barcode = p.barcode || '';
     this.taxRate = p.tax_rate != null ? +p.tax_rate : null;
     this.images = (p.images || []).map(u => ({ url: u } as DlxImageItem));
-    // Oferta: si compare_at_price > base_price, está en oferta.
-    const base = +p.base_price || 0;
-    const cmp = p.compare_at_price != null ? +p.compare_at_price : 0;
-    if (cmp > base && cmp > 0) {
-      this.onOffer = true;
-      this.nf.price = cmp;                                    // precio regular
-      this.discount = Math.round((1 - base / cmp) * 100);
-    } else {
-      this.onOffer = false;
-      this.nf.price = base;
-    }
+    this.nf.price = +p.base_price || 0;
+    // Oferta GLOBAL por % de descuento del producto.
+    const disc = +(p.discount_percent ?? 0) || 0;
+    if (disc > 0) { this.onOffer = true; this.discount = disc; }
+    else { this.onOffer = false; this.discount = 0; }
   }
 
   private resetForm(): void {
@@ -417,7 +464,7 @@ export class ManualProductModalComponent implements OnInit, OnDestroy {
     this.nf = { product_name: '', brand: '', category: '', kind: keepKind,
       color: '', size: '', barcode: '', cost: 0, price: 0, quantity: 1, description: '' };
     this.images = [];
-    this.selColors = []; this.selSizes = []; this.newColor = ''; this.newSizeText = ''; this.qtyMap = {};
+    this.lotes = [this.emptyLote()];
     this.dims = [{ name: 'Talla', values: [] }];
     this.newVal = {}; this.comboQty = {}; this.bulkQty = 1; this.simpleQty = 1;
     this.variantMode.set('classic');
@@ -434,11 +481,14 @@ export class ManualProductModalComponent implements OnInit, OnDestroy {
     this.error.set(null);
     const errs: Record<string, string> = {};
     if (!this.nf.product_name.trim()) errs['product_name'] = 'Este campo es obligatorio.';
-    if ((+this.nf.price || 0) <= 0) errs['price'] = 'Ingresa un precio válido.';
-    if (!this.isEdit()) {
-      if ((+this.nf.cost || 0) <= 0) errs['cost'] = 'Ingresa un costo válido.';
-      if (!this.hasVariants() && (+this.simpleQty || 0) <= 0) errs['qty'] = 'Ingresa la cantidad.';
-    }
+    // En modo clásico con variantes el precio/costo van POR LOTE (no en el
+    // formulario); en los demás casos el precio/costo del formulario aplican.
+    const classicVariants = this.hasVariants() && this.variantMode() === 'classic';
+    // En edición con precio por variante (oculto) no se exige el precio de arriba.
+    const priceRequired = !classicVariants && this.showPrice;
+    if (priceRequired && (+this.nf.price || 0) <= 0) errs['price'] = 'Ingresa un precio válido.';
+    if (!classicVariants && !this.isEdit() && (+this.nf.cost || 0) <= 0) errs['cost'] = 'Ingresa un costo válido.';
+    if (!this.isEdit() && !this.hasVariants() && (+this.simpleQty || 0) <= 0) errs['qty'] = 'Ingresa la cantidad.';
     this.fieldErrors.set(errs);
     if (Object.keys(errs).length) return;
 
@@ -453,7 +503,7 @@ export class ManualProductModalComponent implements OnInit, OnDestroy {
         brand: this.nf.brand.trim(), category: this.nf.category.trim(),
         kind: this.nf.kind, color: '', size: '', barcode: this.nf.barcode.trim(),
         cost: +(this.nf.cost ?? 0), price: this.finalPrice(), quantity: 0,
-        tax_rate: tax, compare_at_price: cmp,
+        tax_rate: tax, compare_at_price: cmp, discount_percent: this.offerDiscount(),
         description: (this.nf.description || '').trim(), images: imgs,
       }]);
       return;
@@ -469,6 +519,7 @@ export class ManualProductModalComponent implements OnInit, OnDestroy {
       price: finalUnit,
       tax_rate: tax,
       compare_at_price: cmp,
+      discount_percent: this.offerDiscount(),
       description: (this.nf.description || '').trim(),
       images: imgs,
     };
@@ -479,7 +530,7 @@ export class ManualProductModalComponent implements OnInit, OnDestroy {
         ...baseItem, color: '', size: '', barcode: this.nf.barcode.trim(),
         quantity: Math.max(0, +this.simpleQty || 0),
       }]);
-      if (this.embedded) this.resetForm();
+      if (this.embedded) this.afterAddReset();
       return;
     }
 
@@ -499,20 +550,26 @@ export class ManualProductModalComponent implements OnInit, OnDestroy {
           attributes: c.attrs, variant_options: opts,
         };
       }));
-      if (this.embedded) this.resetForm();
+      if (this.embedded) this.afterAddReset();
       return;
     }
 
-    // Modo clásico: talla × color.
-    const list = this.classicCombos();
-    if (!list.length) { this.error.set('Agrega al menos una cantidad.'); return; }
-    const single = list.length === 1;
-    this.add.emit(list.map(x => ({
-      ...baseItem,
+    // Modo clásico: uno o varios LOTES (talla×color, cada uno con su costo/precio).
+    // Las variantes se agregan aunque estén en 0; la cantidad se ajusta en el Paso 2.
+    const items = this.classicItems();
+    if (!items.length) { this.error.set('Selecciona al menos una talla o color en algún lote.'); return; }
+    if (items.some(x => x.price <= 0)) { this.error.set('Cada lote necesita un precio de venta.'); return; }
+    if (items.some(x => x.cost <= 0)) { this.error.set('Cada lote necesita un costo de compra.'); return; }
+    const single = items.length === 1;
+    this.add.emit(items.map(x => ({
+      product_name: this.nf.product_name.trim(),
+      brand: this.nf.brand.trim(), category: this.nf.category.trim(), kind: this.nf.kind,
       color: x.color.trim(), size: x.size.trim(),
       barcode: single ? this.nf.barcode.trim() : '',
-      quantity: x.qty,
+      cost: x.cost, price: x.price, quantity: x.qty,
+      tax_rate: tax, compare_at_price: null, discount_percent: this.offerDiscount(),
+      description: (this.nf.description || '').trim(), images: imgs,
     })));
-    if (this.embedded) this.resetForm();
+    if (this.embedded) this.afterAddReset();
   }
 }

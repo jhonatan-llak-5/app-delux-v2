@@ -354,7 +354,7 @@
                 <option [ngValue]="15">15%</option>
               </select>
             </div>
-            @if ((+payload.base_price || 0) > 0) {
+            @if ((+(payload.base_price ?? 0) || 0) > 0) {
               <p class="text-[11px] text-slate-400 mt-1">Incluye IVA ({{ ivaRate() }}%): <b class="text-[var(--dash-primary)]">$ {{ ivaAmount() | number:'1.2-2' }}</b> · Base sin IVA: <b>$ {{ netPrice() | number:'1.2-2' }}</b></p>
             }
           </div>

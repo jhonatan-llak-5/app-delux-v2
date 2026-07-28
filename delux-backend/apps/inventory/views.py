@@ -219,6 +219,8 @@ class AdminStockViewSet(viewsets.ReadOnlyModelViewSet):
                     'category_name': p.category.name if p.category_id else '',
                     'product_main_image': p.main_image_url or '',
                     'product_status': p.status,
+                    'on_offer': p.on_offer,
+                    'discount_percent': float(p.discount_percent or 0),
                     'variants_count': 0,
                     'total_qty': 0,
                     'low_count': 0,
@@ -528,6 +530,10 @@ class AdminReceptionViewSet(viewsets.ModelViewSet):
                             # Impuesto por producto (None = usa el IVA global) y oferta.
                             _tax = raw.get('tax_rate')
                             _cmp = raw.get('compare_at_price') or None
+                            try:
+                                _disc = float(raw.get('discount_percent') or 0)
+                            except (TypeError, ValueError):
+                                _disc = 0
                             # Dimensiones de variante personalizadas (opcionales).
                             _vopts = raw.get('variant_options')
                             product = Product.objects.create(
@@ -536,7 +542,8 @@ class AdminReceptionViewSet(viewsets.ModelViewSet):
                                 base_price=raw.get('price') or 0,
                                 compare_at_price=_cmp,
                                 tax_rate=(_tax if _tax not in ('', None) else None),
-                                tag=('SALE' if _cmp else ''),
+                                discount_percent=_disc,
+                                tag=('SALE' if (_cmp or _disc > 0) else ''),
                                 description=(raw.get('description') or ''),
                                 main_image_url=(imgs[0] if imgs else ''),
                                 variant_options=(_vopts if isinstance(_vopts, list) else []),

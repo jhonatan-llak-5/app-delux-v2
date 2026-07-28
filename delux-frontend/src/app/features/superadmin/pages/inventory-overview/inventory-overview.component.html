@@ -169,6 +169,7 @@
                         <p class="font-semibold truncate flex items-center gap-1.5">
                           <span class="truncate">{{ g.product_name }}</span>
                           @if (!isActiveGroup(g)) { <span class="shrink-0 px-1.5 py-0.5 rounded-md text-[10px] font-bold uppercase tracking-wide bg-slate-200 text-slate-500 dark:bg-white/10 dark:text-white/50">Inactivo</span> }
+                          @if (g.on_offer) { <span class="shrink-0 px-1.5 py-0.5 rounded-md text-[10px] font-bold uppercase tracking-wide bg-rose-100 text-rose-700 dark:bg-rose-500/15 dark:text-rose-400"><i class="fa-solid fa-tag mr-0.5"></i>Oferta{{ g.discount_percent ? ' -' + g.discount_percent + '%' : '' }}</span> }
                           @if (g.low_count > 0) { <span class="shrink-0 px-1.5 py-0.5 rounded-md text-[10px] font-bold uppercase tracking-wide bg-amber-100 text-amber-700">Stock bajo</span> }
                         </p>
                         <p class="text-[11px] text-slate-500 truncate">{{ g.category_name }} · {{ g.brand_name }}</p>

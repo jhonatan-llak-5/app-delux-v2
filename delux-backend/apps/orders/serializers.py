@@ -194,7 +194,9 @@ class POSCheckoutSerializer(serializers.Serializer):
 
                 prod = variant.product
                 # base_price / price_override YA es el precio final (IVA incluido).
-                unit_price = (variant.price_override or prod.base_price).quantize(Decimal('0.01'))
+                # Si el producto está en oferta, se aplica el % de descuento global.
+                _base = variant.price_override or prod.base_price
+                unit_price = prod.offer_price(_base)
                 item_subtotal = unit_price * it['quantity']
                 OrderItem.objects.create(
                     tenant=tenant, order=order, variant=variant,

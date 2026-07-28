@@ -36,8 +36,8 @@ export class ProductFormComponent implements OnInit {
   ivaRate(): number { const r = this.payload.tax_rate; return r == null || r === '' ? this.branding.taxRate() : +r; }
   globalIva(): number { return this.branding.taxRate(); }
   // base_price ES el precio final (IVA incluido); derivamos el neto y el IVA contenido.
-  netPrice(): number { const b = +this.payload.base_price || 0; const r = this.ivaRate(); return r ? b / (1 + r / 100) : b; }
-  ivaAmount(): number { return (+this.payload.base_price || 0) - this.netPrice(); }
+  netPrice(): number { const b = +(this.payload.base_price ?? 0) || 0; const r = this.ivaRate(); return r ? b / (1 + r / 100) : b; }
+  ivaAmount(): number { return (+(this.payload.base_price ?? 0) || 0) - this.netPrice(); }
   private auth = inject(AuthService);
   branches = signal<AdminBranch[]>([]);
   branchStock: Record<number, number> = {};

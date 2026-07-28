@@ -142,8 +142,9 @@ class PublicProductsView(APIView):
                 'id': p.id, 'name': p.name, 'slug': p.slug,
                 'brand_id': p.brand_id, 'brand_name': p.brand.name,
                 'category_id': p.category_id, 'category_name': p.category.name,
-                'base_price': str(p.base_price),
-                'compare_at_price': str(p.compare_at_price) if p.compare_at_price else None,
+                'base_price': str(p.offer_price(p.base_price)),
+                'compare_at_price': (str(p.base_price) if p.on_offer
+                                     else (str(p.compare_at_price) if p.compare_at_price else None)),
                 'gender': p.gender, 'tag': p.tag,
                 'main_image_url': p.main_image_url,
                 'thumb_url': thumb_map.get(p.id) or p.main_image_url,
@@ -284,8 +285,9 @@ class PublicProductDetailView(APIView):
             'id': p.id, 'name': p.name, 'slug': p.slug,
             'brand_name': p.brand.name, 'category_name': p.category.name,
             'category_slug': p.category.slug,
-            'base_price': str(p.base_price),
-            'compare_at_price': str(p.compare_at_price) if p.compare_at_price else None,
+            'base_price': str(p.offer_price(p.base_price)),
+            'compare_at_price': (str(p.base_price) if p.on_offer
+                                 else (str(p.compare_at_price) if p.compare_at_price else None)),
             'gender': p.gender, 'tag': p.tag,
             'short_description': p.short_description,
             'description': p.description,
