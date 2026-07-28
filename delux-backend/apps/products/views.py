@@ -194,6 +194,110 @@ class AdminProductViewSet(viewsets.ModelViewSet):
         deleted = qs.update(deleted_at=timezone.now(), status='ARCHIVED')
         return Response({'deleted': deleted, 'skipped': 0})
 
+    @action(detail=True, methods=['post'], url_path='add-variants')
+    def add_variants(self, request, pk=None):
+        """Agrega variantes NUEVAS a un producto existente sin tocar las que ya
+        tiene. Body: { branch, variants: [{size, color, attributes, cost, price, quantity}] }.
+
+        Si llegan cantidades y una sucursal, el ingreso se registra como una
+        COMPRA (Recepción confirmada) y suma al inventario con su movimiento,
+        igual que la recepción de mercadería."""
+        from django.db import transaction
+        from django.utils import timezone
+        from apps.variants.models import Variant
+        from apps.inventory.models import Stock, StockMovement, Reception, ReceptionItem, Supplier
+        from apps.inventory.services import next_sku_number
+        product = self.get_object()
+        tenant = product.tenant
+        branch_id = request.data.get('branch')
+        items = request.data.get('variants') or []
+        note = (request.data.get('note') or '').strip()
+        existing = list(product.variants.all())
+        actor = request.user if request.user.is_authenticated else None
+
+        # Proveedor de la compra: por id o alta rápida por nombre (como en recepción).
+        supplier = None
+        if request.data.get('supplier'):
+            supplier = Supplier.objects.filter(pk=request.data['supplier'], tenant=tenant).first()
+        elif (request.data.get('supplier_name') or '').strip():
+            supplier, _ = Supplier.objects.get_or_create(
+                tenant=tenant, name=request.data['supplier_name'].strip())
+
+        created = 0
+        units = 0
+        reception = None
+
+        with transaction.atomic():
+            seq = next_sku_number(tenant)
+            for raw in items:
+                size = (raw.get('size') or '').strip()
+                color = (raw.get('color') or '').strip()
+                attributes = raw.get('attributes') if isinstance(raw.get('attributes'), dict) else {}
+                # Omitir si la variante ya existe (por atributos o por talla/color).
+                dup = False
+                for v in existing:
+                    if attributes:
+                        if (v.attributes or {}) == attributes:
+                            dup = True
+                            break
+                    elif v.size == size and v.color == color:
+                        dup = True
+                        break
+                if dup:
+                    continue
+                cost = raw.get('cost') or 0
+                sku = f'P{seq:08d}'
+                seq += 1
+                variant = Variant.objects.create(
+                    tenant=tenant, product=product, sku=sku,
+                    size=size, color=color, attributes=attributes,
+                    cost=cost,
+                    price_override=(raw.get('price') or None),
+                )
+                existing.append(variant)
+                try:
+                    qty = max(0, int(raw.get('quantity') or 0))
+                except (TypeError, ValueError):
+                    qty = 0
+                if branch_id and qty:
+                    # Registra la compra la primera vez que hay cantidad real.
+                    if reception is None:
+                        reception = Reception.objects.create(
+                            tenant=tenant, branch_id=branch_id, supplier=supplier,
+                            note=(note or f'Lote agregado a "{product.name}"'),
+                            created_by=actor,
+                            status=Reception.STATUS_COMMITTED,
+                            committed_at=timezone.now(),
+                        )
+                        reception.code = f"REC-{timezone.now():%Y%m%d}-{reception.pk:04d}"
+                        reception.save(update_fields=['code'])
+                    stock, _ = Stock.objects.select_for_update().get_or_create(
+                        tenant=tenant, variant=variant, branch_id=branch_id,
+                        defaults={'quantity': 0})
+                    before = stock.quantity
+                    stock.quantity = before + qty
+                    stock.save(update_fields=['quantity', 'updated_at'])
+                    StockMovement.objects.create(
+                        tenant=tenant, stock=stock, type=StockMovement.TYPE_IN,
+                        quantity=qty, note=f'Compra {reception.code}', actor=actor,
+                        qty_before=before, qty_after=stock.quantity)
+                    ReceptionItem.objects.create(
+                        tenant=tenant, reception=reception, variant=variant,
+                        branch_id=branch_id, quantity=qty, unit_cost=cost or 0)
+                    units += qty
+                elif branch_id:
+                    # Variante nueva sin cantidad: se crea su registro de stock en 0.
+                    Stock.objects.get_or_create(
+                        tenant=tenant, variant=variant, branch_id=branch_id,
+                        defaults={'quantity': 0})
+                created += 1
+
+        return Response({
+            'created': created,
+            'units': units,
+            'reception_code': reception.code if reception else None,
+        })
+
     @action(detail=True, methods=['get', 'post'], url_path='images')
     def manage_images(self, request, pk=None):
         product = self.get_object()

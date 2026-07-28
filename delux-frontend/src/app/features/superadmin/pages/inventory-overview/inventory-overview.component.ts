@@ -1,4 +1,4 @@
-import { ChangeDetectionStrategy, Component, OnInit, computed, effect, inject, signal } from '@angular/core';
+import { ChangeDetectionStrategy, Component, OnInit, computed, effect, inject, signal, untracked } from '@angular/core';
 import { firstValueFrom } from 'rxjs';
 import { DlxExportMenuComponent } from '@shared/ui/export-menu.component';
 import { ExportColumn } from '@shared/utils/export.util';
@@ -7,6 +7,7 @@ import { ImgFallbackDirective } from '@shared/ui/img-fallback.directive';
 import { AuthService } from '@core/services/auth.service';
 import { DlxStatCardComponent } from '@shared/ui';
 import { DlxSearchInputComponent } from '@shared/ui/search-input.component';
+import { DlxScanButtonComponent } from '@shared/ui/scan-button.component';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { Router, RouterLink } from '@angular/router';
@@ -31,7 +32,7 @@ import { parseApiError } from '@shared/utils/api-error.util';
 @Component({
   selector: 'dlx-inventory-overview',
   standalone: true,
-  imports: [DlxEmptyStateComponent, ImgFallbackDirective, DlxStatCardComponent, DlxSearchInputComponent, CommonModule, FormsModule, RouterLink, StockAdjustModalComponent, TransferModalComponent, RowActionsComponent, DlxPaginationComponent, DlxExportMenuComponent, DlxPriceInputComponent],
+  imports: [DlxEmptyStateComponent, ImgFallbackDirective, DlxStatCardComponent, DlxSearchInputComponent, DlxScanButtonComponent, CommonModule, FormsModule, RouterLink, StockAdjustModalComponent, TransferModalComponent, RowActionsComponent, DlxPaginationComponent, DlxExportMenuComponent, DlxPriceInputComponent],
   changeDetection: ChangeDetectionStrategy.OnPush,
   templateUrl: './inventory-overview.component.html',
 })
@@ -136,8 +137,10 @@ export class InventoryOverviewComponent implements OnInit {
       const user = this.auth.user();          // espera a que la sesión esté lista
       const b = this.branchCtx.current();      // y reacciona al selector global
       if (!user) return;
-      this.branchFilter = b;
-      this.reload();
+      // reload() lee otros signals (search, page…); los envolvemos en untracked
+      // para que el efecto SOLO dependa de user y sucursal. Si no, al escribir en
+      // el buscador el efecto se re-dispararía y llamaría a las APIs por duplicado.
+      untracked(() => { this.branchFilter = b; this.reload(); });
     }, { allowSignalWrites: true });
   }
 
@@ -217,6 +220,8 @@ export class InventoryOverviewComponent implements OnInit {
   };
 
   onSearch(v: string) { this.search.set(v); this.page.set(1); this.search$.next(); }
+  /** Código escaneado con la cámara: lo pone en el buscador y recarga al instante. */
+  onScanned(code: string) { this.search.set(code); this.page.set(1); this.reload(); }
   onFilter() { this.page.set(1); this.reload(); }
   onPage(p: number) { this.page.set(p); this.reload(); }
   onSize(s: number) { this.pageSize.set(s); this.page.set(1); this.reload(); }

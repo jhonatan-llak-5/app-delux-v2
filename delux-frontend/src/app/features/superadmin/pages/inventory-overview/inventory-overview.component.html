@@ -86,6 +86,7 @@
     <!-- Filtros -->
     <div class="card p-4 mb-4 flex flex-wrap gap-3 items-center filter-bar">
       <dlx-search-input [fluid]="true" [value]="search()" (valueChange)="onSearch($event)" placeholder="Buscar por código o producto..." class="flex-1 min-w-64" />
+      <dlx-scan-button (scanned)="onScanned($event)" />
       @if (auth.multiBranch()) {
         <select [(ngModel)]="branchFilter" (change)="onFilter()"
                 class="eg-input border-transparent">
@@ -153,7 +154,8 @@
             </thead>
             <tbody>
               @for (g of groups(); track g.product_id) {
-                <!-- Fila del PRODUCTO (una por producto) -->
+                @if (g.stocks.length > 1) {
+                <!-- Fila del PRODUCTO (acordeón, solo con varias variantes/existencias) -->
                 <tr class="border-t border-slate-200 dark:border-white/10"
                     [ngClass]="isSel(g.product_id) ? 'bg-[var(--dash-primary)]/5' : 'bg-slate-50/50 dark:bg-white/[0.02]'">
                   <td class="px-4 py-3">
@@ -196,8 +198,58 @@
                     <dlx-row-actions [actions]="productActions(g)" />
                   </td>
                 </tr>
+                } @else {
+                <!-- Producto SIN variantes: una sola fila, precio/costo/cantidad editables directo -->
+                @for (s of g.stocks; track s.id) {
+                  <tr class="border-t border-slate-200 dark:border-white/10 hover:bg-slate-50/60 dark:hover:bg-white/[0.02]"
+                      [ngClass]="isSel(g.product_id) ? 'bg-[var(--dash-primary)]/5' : ''">
+                    <td class="px-4 py-3">
+                      <input type="checkbox" [checked]="isSel(g.product_id)" (change)="toggleSel(g.product_id)" class="w-4 h-4 accent-[var(--dash-primary)]" />
+                    </td>
+                    <td class="px-5 py-3">
+                      <div class="flex items-center gap-3">
+                        <img [src]="imgSrc(g.product_main_image)" [alt]="g.product_name"
+                             class="w-10 h-10 rounded-lg object-cover bg-slate-100 shrink-0" dlxImgFallback />
+                        <div class="min-w-0">
+                          <p class="font-semibold truncate flex items-center gap-1.5">
+                            <span class="truncate">{{ g.product_name }}</span>
+                            @if (!isActiveGroup(g)) { <span class="shrink-0 px-1.5 py-0.5 rounded-md text-[10px] font-bold uppercase tracking-wide bg-slate-200 text-slate-500 dark:bg-white/10 dark:text-white/50">Inactivo</span> }
+                            @if (g.on_offer) { <span class="shrink-0 px-1.5 py-0.5 rounded-md text-[10px] font-bold uppercase tracking-wide bg-rose-100 text-rose-700 dark:bg-rose-500/15 dark:text-rose-400"><i class="fa-solid fa-tag mr-0.5"></i>Oferta{{ g.discount_percent ? ' -' + g.discount_percent + '%' : '' }}</span> }
+                            @if (g.low_count > 0) { <span class="shrink-0 px-1.5 py-0.5 rounded-md text-[10px] font-bold uppercase tracking-wide bg-amber-100 text-amber-700">Stock bajo</span> }
+                          </p>
+                          <p class="text-[11px] text-slate-500 truncate">{{ g.category_name }} · {{ g.brand_name }}</p>
+                          <p class="text-[11px] text-slate-400 font-mono mt-0.5">{{ s.variant_sku }}</p>
+                        </div>
+                      </div>
+                    </td>
+                    @if (showBranchCol()) {
+                      <td class="px-5 py-3">
+                        <span class="inline-flex items-center gap-1.5 text-xs"><i class="fa-solid fa-location-dot text-slate-400"></i>{{ s.branch_name }}</span>
+                      </td>
+                    }
+                    <td class="px-4 py-3 text-right min-w-[140px]">
+                      <dlx-price-input [(ngModel)]="dr(s).price" (ngModelChange)="onDraftChange()" extraClass="!h-9 w-28 text-right text-sm" />
+                    </td>
+                    <td class="px-4 py-3 text-right min-w-[140px]">
+                      <dlx-price-input [(ngModel)]="dr(s).cost" (ngModelChange)="onDraftChange()" extraClass="!h-9 w-28 text-right text-sm" />
+                    </td>
+                    <td class="px-4 py-3 text-center min-w-[110px]">
+                      <input type="number" min="0" [(ngModel)]="dr(s).qty" (ngModelChange)="onDraftChange()"
+                             class="eg-input !h-9 w-20 text-center text-sm font-bold"
+                             [ngClass]="qtyDelta(s) !== 0 ? '!border-amber-400' : ''" />
+                    </td>
+                    <td class="px-4 py-3 text-right whitespace-nowrap">
+                      <span class="font-semibold text-emerald-600">$ {{ ganancia(s) | number:'1.2-2' }}</span>
+                      <span class="ml-1 text-[10px] px-1.5 py-0.5 rounded-full bg-emerald-50 text-emerald-700">{{ gananciaPct(s) | number:'1.0-0' }}%</span>
+                    </td>
+                    <td class="px-5 py-3 text-right">
+                      <dlx-row-actions [actions]="productActions(g)" />
+                    </td>
+                  </tr>
+                }
+                }
                 <!-- Filas de VARIANTE (al expandir) -->
-                @if (isExpanded(g.product_id)) {
+                @if (g.stocks.length > 1 && isExpanded(g.product_id)) {
                   @for (s of g.stocks; track s.id) {
                     <tr class="border-t border-slate-100 dark:border-white/5 hover:bg-slate-50/60 dark:hover:bg-white/[0.02]">
                       <td class="px-4 py-2.5"></td>

@@ -33,6 +33,7 @@ export interface FinanceDeltas {
 export interface FinanceSummary {
   ventas: string; ventas_web: string; ventas_pos: string;
   compras: string; gastos: string; ganancia: string; orders: number;
+  compras_units?: number;
   gastos_by_cat: { category: string; label: string; total: string }[];
   deltas: FinanceDeltas;
   range: { from: string; to: string };

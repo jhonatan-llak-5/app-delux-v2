@@ -29,7 +29,7 @@ import {
     </div>
 
     <!-- KPIs -->
-    <div class="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-3 2xl:grid-cols-5 gap-4">
+    <div class="grid grid-cols-1 sm:grid-cols-3 gap-4">
       @for (k of kpiCards(); track k.label) {
         <dlx-stat-card [label]="k.label" [value]="k.value" [icon]="k.icon"
                        [iconBg]="k.iconBg" [iconColor]="k.iconColor" [delta]="k.delta" [sub]="k.sub" />
@@ -40,7 +40,10 @@ import {
       <div class="grid grid-cols-1 sm:grid-cols-3 gap-4 mt-4">
         <div class="card p-4 flex items-center gap-3">
           <div class="w-10 h-10 rounded-xl bg-amber-50 dark:bg-amber-500/15 text-amber-600 grid place-items-center"><i class="fa-solid fa-truck-ramp-box"></i></div>
-          <div><p class="text-xs text-slate-400">Compras (30 días)</p><p class="font-bold">{{ money(f.compras) }}</p></div>
+          <div>
+            <p class="text-xs text-slate-400">Recepción de mercadería (30 días)</p>
+            <p class="font-bold">{{ money(f.compras) }} <span class="text-xs font-medium text-slate-400">· {{ (f.compras_units || 0).toLocaleString('es-EC') }} uds</span></p>
+          </div>
         </div>
         <div class="card p-4 flex items-center gap-3">
           <div class="w-10 h-10 rounded-xl bg-rose-50 dark:bg-rose-500/15 text-rose-600 grid place-items-center"><i class="fa-solid fa-wallet"></i></div>
@@ -219,16 +222,10 @@ export class AdminOverviewComponent implements OnInit {
       { label: 'Ganancia', value: this.money(f?.ganancia), icon: 'fa-hand-holding-dollar',
         iconBg: (+(f?.ganancia ?? 0) >= 0 ? 'bg-emerald-50 dark:bg-emerald-500/15' : 'bg-rose-50 dark:bg-rose-500/15'),
         iconColor: (+(f?.ganancia ?? 0) >= 0 ? 'text-emerald-600 dark:text-emerald-400' : 'text-rose-600 dark:text-rose-400'),
-        delta: f?.deltas?.ganancia ?? null, sub: 'Ventas menos costo y gastos' },
-      { label: 'Pedidos', value: (k?.total_orders ?? 0).toLocaleString('es-EC'), icon: 'fa-receipt',
-        iconBg: 'bg-violet-50 dark:bg-violet-500/15', iconColor: 'text-violet-600 dark:text-violet-400',
-        delta: k?.orders_delta_pct ?? null, sub: '' },
+        delta: f?.deltas?.ganancia ?? null, sub: 'Ventas menos gastos' },
       { label: 'Venta promedio', value: this.money(k?.avg_order_value), icon: 'fa-tags',
         iconBg: 'bg-emerald-50 dark:bg-emerald-500/15', iconColor: 'text-emerald-600 dark:text-emerald-400',
-        delta: null, sub: 'Valor medio por pedido' },
-      { label: 'Clientes', value: (k?.unique_customers ?? 0).toLocaleString('es-EC'), icon: 'fa-user-group',
-        iconBg: 'bg-amber-50 dark:bg-amber-500/15', iconColor: 'text-amber-600 dark:text-amber-400',
-        delta: null, sub: (k?.items_sold ?? 0) + ' artículos vendidos' },
+        delta: null, sub: 'Valor medio por venta' },
     ];
   });
 

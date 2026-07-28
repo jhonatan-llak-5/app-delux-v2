@@ -122,6 +122,14 @@ export class ProductService {
     return this.http.post<{ deleted: number; skipped: number }>(`${this.base}/bulk-delete/`, { product_ids });
   }
 
+  /** Agrega variantes NUEVAS a un producto existente (no toca las actuales). */
+  addVariants(id: number, body: { branch?: number | null; supplier_name?: string; note?: string; variants: Array<{
+    size?: string; color?: string; attributes?: Record<string, string>;
+    cost?: number; price?: number; quantity?: number;
+  }> }) {
+    return this.http.post<{ created: number }>(`${this.base}/${id}/add-variants/`, body);
+  }
+
   toggleFeatured(id: number) {
     return this.http.post<{ is_featured: boolean }>(`${this.base}/${id}/toggle_featured/`, {});
   }

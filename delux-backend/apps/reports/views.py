@@ -234,6 +234,60 @@ class ReportsViewSet(ViewSet):
         return Response({'results': list(items)})
 
     @action(detail=False, methods=['get'])
+    def by_supplier(self, request):
+        """Ventas atribuidas al PROVEEDOR de cada variante vendida (según la
+        compra/recepción confirmada más reciente de esa variante). Sirve para
+        decidir a qué proveedor recomprar y qué producto tiene más salida por
+        proveedor (producto estrella)."""
+        from apps.inventory.models import ReceptionItem, Reception
+        qs, _, _ = base_orders_qs(request)
+        items = list(
+            OrderItem.objects.filter(order__in=qs)
+            .values('variant_id', 'variant__product__name')
+            .annotate(
+                revenue=Sum(F('quantity') * F('unit_price'),
+                            output_field=DecimalField(max_digits=12, decimal_places=2)),
+                units=Sum('quantity'),
+            )
+        )
+        variant_ids = [i['variant_id'] for i in items if i['variant_id']]
+        # Proveedor por variante = el de su recepción confirmada más reciente.
+        supplier_by_variant = {}
+        if variant_ids:
+            ris = (ReceptionItem.objects
+                   .filter(variant_id__in=variant_ids,
+                           reception__status=Reception.STATUS_COMMITTED,
+                           reception__supplier__isnull=False)
+                   .values('variant_id', 'reception__supplier__name', 'reception__committed_at')
+                   .order_by('variant_id', '-reception__committed_at'))
+            for r in ris:
+                vid = r['variant_id']
+                if vid not in supplier_by_variant:
+                    supplier_by_variant[vid] = r['reception__supplier__name'] or 'Sin proveedor'
+
+        agg = {}  # nombre -> {revenue, units, products: {producto: revenue}}
+        for i in items:
+            name = supplier_by_variant.get(i['variant_id'], 'Sin proveedor')
+            a = agg.setdefault(name, {'revenue': Decimal('0'), 'units': 0, 'products': {}})
+            rev = i['revenue'] or Decimal('0')
+            a['revenue'] += rev
+            a['units'] += i['units'] or 0
+            pname = i['variant__product__name'] or '—'
+            a['products'][pname] = a['products'].get(pname, Decimal('0')) + rev
+
+        out = []
+        for name, a in agg.items():
+            top_product = max(a['products'].items(), key=lambda kv: kv[1])[0] if a['products'] else None
+            out.append({
+                'supplier': name,
+                'revenue': str(a['revenue'].quantize(Decimal('0.01'))),
+                'units': a['units'],
+                'top_product': top_product,
+            })
+        out.sort(key=lambda r: Decimal(r['revenue']), reverse=True)
+        return Response({'results': out})
+
+    @action(detail=False, methods=['get'])
     def top_sellers(self, request):
         qs, _, _ = base_orders_qs(request)
         items = (

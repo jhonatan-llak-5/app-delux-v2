@@ -8,6 +8,8 @@ import { DlxPriceInputComponent } from '@shared/ui/price-input.component';
 import { inject } from '@angular/core';
 import { BrandingService } from '@core/services/branding.service';
 import { SRI_IVA_OPTIONS } from '@shared/data/taxes';
+import { SupplierSelectComponent } from '@features/superadmin/components/supplier-select/supplier-select.component';
+import { ConfirmService } from '@shared/components/confirm/confirm.service';
 
 export interface ManualProduct {
   product_name: string; brand: string; category: string; kind: string;
@@ -22,6 +24,9 @@ export interface ManualProduct {
   attributes?: Record<string, string>;
   /** Definición de dimensiones del producto (se repite en cada variante). */
   variant_options?: { name: string; values: string[] }[];
+  /** (Solo edición) Proveedor y nota de la compra al agregar lotes nuevos. */
+  supplier_name?: string;
+  note?: string;
 }
 
 /** Un "lote" de variantes clásicas: talla×color con su costo, precio y cantidades. */
@@ -73,7 +78,7 @@ const KIND_PRESETS: Record<string, { label: string; sizeLabel: string; sizes: st
 @Component({
   selector: 'dlx-manual-product-modal',
   standalone: true,
-  imports: [DlxFieldErrorComponent, CommonModule, FormsModule, DlxModalComponent, DlxImageUploaderComponent, DlxPriceInputComponent],
+  imports: [DlxFieldErrorComponent, CommonModule, FormsModule, DlxModalComponent, DlxImageUploaderComponent, DlxPriceInputComponent, SupplierSelectComponent],
   changeDetection: ChangeDetectionStrategy.OnPush,
   templateUrl: './manual-product-modal.component.html',
 })
@@ -99,6 +104,7 @@ export class ManualProductModalComponent implements OnInit, OnDestroy {
   @Output() changed = new EventEmitter<void>();
 
   private branding = inject(BrandingService);
+  private confirmSvc = inject(ConfirmService);
 
   error = signal<string | null>(null);
   fieldErrors = signal<Record<string, string>>({});
@@ -110,6 +116,10 @@ export class ManualProductModalComponent implements OnInit, OnDestroy {
   }
 
   isEdit(): boolean { return this.mode === 'edit'; }
+
+  // (Solo edición) Proveedor y nota de la compra al agregar lotes nuevos.
+  receptionSupplier = '';
+  receptionNote = '';
 
   // ── Escáner de código de barras con cámara ──
   @ViewChild('camVideo') camVideo?: ElementRef<HTMLVideoElement>;
@@ -179,9 +189,28 @@ export class ManualProductModalComponent implements OnInit, OnDestroy {
     return { selColors: [], selSizes: [], newColor: '', newSizeText: '', cost: 0, price: 0, qtyMap: {}, bulkQty: 1 };
   }
   addLote(): void { this.lotes = [...this.lotes, this.emptyLote()]; this.changed.emit(); }
-  removeLote(i: number): void {
+  /** ¿El lote tiene algún dato cargado (colores, tallas, costo, precio o cantidad)? */
+  loteHasContent(l: Lote): boolean {
+    return (l.selColors?.length || 0) > 0 || (l.selSizes?.length || 0) > 0
+      || (+l.cost || 0) > 0 || (+l.price || 0) > 0
+      || Object.values(l.qtyMap || {}).some(v => (+v || 0) > 0)
+      || !!(l.newColor || '').trim() || !!(l.newSizeText || '').trim();
+  }
+  async removeLote(i: number): Promise<void> {
+    const l = this.lotes[i];
+    // Si el lote tiene datos, pide confirmación; si está vacío, se quita directo.
+    if (l && this.loteHasContent(l)) {
+      const ok = await this.confirmSvc.ask({
+        title: 'Quitar lote',
+        message: 'Este lote tiene datos cargados. ¿Seguro que quieres quitarlo?',
+        variant: 'danger', confirmText: 'Quitar',
+      });
+      if (!ok) return;
+    }
     this.lotes = this.lotes.filter((_, idx) => idx !== i);
-    if (!this.lotes.length) this.lotes = [this.emptyLote()];
+    // En edición se permite quedar sin lotes (la card desaparece); al crear
+    // siempre debe quedar al menos un lote.
+    if (!this.lotes.length && !this.isEdit()) this.lotes = [this.emptyLote()];
     this.changed.emit();
   }
   loteColorsOrDefault(l: Lote): string[] { return l.selColors.length ? l.selColors : ['']; }
@@ -457,6 +486,9 @@ export class ManualProductModalComponent implements OnInit, OnDestroy {
     const disc = +(p.discount_percent ?? 0) || 0;
     if (disc > 0) { this.onOffer = true; this.discount = disc; }
     else { this.onOffer = false; this.discount = 0; }
+    // En edición, los lotes empiezan OCULTOS: solo aparece una card al pulsar
+    // "Agregar lote". Así el editar producto no muestra un lote vacío por defecto.
+    if (this.isEdit()) this.lotes = [];
   }
 
   private resetForm(): void {
@@ -497,15 +529,28 @@ export class ManualProductModalComponent implements OnInit, OnDestroy {
     const cmp = this.compareAtPrice();
 
     if (this.isEdit()) {
-      // Edición: un solo producto, sin cantidades ni variantes.
-      this.add.emit([{
+      // Edición: item[0] = datos del producto; items[1..] = variantes NUEVAS
+      // a agregar (opcionales, desde los lotes). Las variantes existentes se
+      // editan en la tabla de inventario, no aquí.
+      const newLotes = this.classicItems();
+      if (newLotes.length) {
+        if (newLotes.some(x => x.price <= 0)) { this.error.set('Cada lote nuevo necesita un precio de venta.'); return; }
+        if (newLotes.some(x => x.cost <= 0)) { this.error.set('Cada lote nuevo necesita un costo de compra.'); return; }
+      }
+      const productItem = {
         product_name: this.nf.product_name.trim(),
         brand: this.nf.brand.trim(), category: this.nf.category.trim(),
         kind: this.nf.kind, color: '', size: '', barcode: this.nf.barcode.trim(),
         cost: +(this.nf.cost ?? 0), price: this.finalPrice(), quantity: 0,
         tax_rate: tax, compare_at_price: cmp, discount_percent: this.offerDiscount(),
         description: (this.nf.description || '').trim(), images: imgs,
-      }]);
+        supplier_name: this.receptionSupplier.trim(), note: this.receptionNote.trim(),
+      };
+      const variantItems = newLotes.map(x => ({
+        ...productItem, color: x.color.trim(), size: x.size.trim(), barcode: '',
+        cost: x.cost, price: x.price, quantity: x.qty,
+      }));
+      this.add.emit([productItem, ...variantItems]);
       return;
     }
 

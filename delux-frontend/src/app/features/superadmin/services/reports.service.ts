@@ -44,6 +44,7 @@ export interface SellerRow {
   commission: number;
 }
 export interface ChannelRow { channel: string; revenue: string; orders: number; }
+export interface SupplierRow { supplier: string; revenue: string; units: number; top_product: string | null; }
 export interface LowStockRow { variant_sku: string; product_id: number; product_name: string; branch_name: string; quantity: number; min_threshold: number; }
 
 export interface MySalesData {
@@ -97,6 +98,9 @@ export class ReportsService {
   }
   byChannel(p: RangeParams = {}): Observable<{ results: ChannelRow[] }> {
     return this.http.get<{ results: ChannelRow[] }>(`${this.base}/by_channel/`, { params: buildParams(p) });
+  }
+  bySupplier(p: RangeParams = {}): Observable<{ results: SupplierRow[] }> {
+    return this.http.get<{ results: SupplierRow[] }>(`${this.base}/by_supplier/`, { params: buildParams(p) });
   }
   lowStock(): Observable<{ results: LowStockRow[] }> {
     return this.http.get<{ results: LowStockRow[] }>(`${this.base}/low_stock/`);

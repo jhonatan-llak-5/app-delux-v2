@@ -71,6 +71,7 @@ class StockMovementSerializer(serializers.ModelSerializer):
     variant_sku = serializers.CharField(source='stock.variant.sku', read_only=True)
     product_id = serializers.IntegerField(source='stock.variant.product.id', read_only=True)
     product_name = serializers.CharField(source='stock.variant.product.name', read_only=True)
+    product_main_image = serializers.CharField(source='stock.variant.product.main_image_url', read_only=True, default='')
     branch_name = serializers.CharField(source='stock.branch.name', read_only=True)
     actor_name = serializers.CharField(source='actor.full_name', read_only=True, default=None)
     type_label = serializers.SerializerMethodField()
@@ -78,8 +79,8 @@ class StockMovementSerializer(serializers.ModelSerializer):
     class Meta:
         model = StockMovement
         fields = (
-            'id', 'stock_id', 'variant_sku', 'product_id', 'product_name', 'branch_name',
-            'type', 'type_label', 'quantity', 'qty_before', 'qty_after',
+            'id', 'stock_id', 'variant_sku', 'product_id', 'product_name', 'product_main_image',
+            'branch_name', 'type', 'type_label', 'quantity', 'qty_before', 'qty_after',
             'note', 'actor', 'actor_name', 'created_at',
         )
         read_only_fields = fields

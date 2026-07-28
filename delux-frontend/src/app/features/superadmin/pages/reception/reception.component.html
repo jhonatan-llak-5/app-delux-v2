@@ -107,28 +107,8 @@
 
           <div data-tour="recv-supplier">
             <label class="eg-label">Proveedor *</label>
-            <div class="flex gap-2">
-              <div class="relative flex-1">
-                <input [(ngModel)]="supplierName" (focus)="supplierOpen.set(true)"
-                       (ngModelChange)="supplierOpen.set(true); saveState()" (blur)="closeSupplierSoon()"
-                       class="eg-input w-full transition" [class.!border-emerald-400]="supplierName.trim()" placeholder="Nombre del proveedor" autocomplete="off" />
-                @if (supplierName.trim()) { <i class="fa-solid fa-circle-check text-emerald-500 text-sm absolute right-3 top-1/2 -translate-y-1/2"></i> }
-                @if (supplierOpen() && filteredSuppliers().length) {
-                  <div class="absolute left-0 right-0 top-full mt-1 z-30 max-h-52 overflow-y-auto rounded-xl py-1
-                              bg-white dark:bg-[#161a26] border border-slate-200 dark:border-white/10 shadow-xl">
-                    @for (sp of filteredSuppliers(); track sp.id) {
-                      <button type="button" (click)="pickSupplier(sp.name)"
-                              class="w-full text-left px-3 py-2.5 text-sm hover:bg-slate-100 dark:hover:bg-white/5 transition flex items-center gap-2">
-                        <i class="fa-solid fa-truck-field text-slate-400 text-xs"></i> {{ sp.name }}
-                      </button>
-                    }
-                  </div>
-                }
-              </div>
-              <button type="button" class="shrink-0 w-11 h-11 grid place-items-center rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white transition" (click)="showSupplierModal.set(true)" title="Agregar proveedor con todos sus datos">
-                <i class="fa-solid fa-plus"></i>
-              </button>
-            </div>
+            <dlx-supplier-select [(ngModel)]="supplierName" (changed)="saveState()"
+                                 placeholder="Nombre del proveedor" />
             <div class="mt-1.5 inline-flex items-center gap-1.5 text-[11px] font-semibold text-amber-800 dark:text-amber-300 bg-amber-50 dark:bg-amber-500/10 border border-amber-200 dark:border-amber-500/30 rounded-lg px-2 py-1">
               <i class="fa-solid fa-circle-info"></i> Se aplica a todos los productos de esta subida.
             </div>
@@ -223,7 +203,8 @@
               </thead>
               <tbody class="divide-y divide-slate-100 dark:divide-white/5 align-middle">
                 @for (g of groupedSummary(); track g.key) {
-                  <!-- Cabecera del producto (acordeón) -->
+                  @if (g.rows.length > 1) {
+                  <!-- Cabecera del producto (acordeón, solo con variantes) -->
                   <tr class="bg-slate-50/70 dark:bg-white/[0.03] cursor-pointer select-none" (click)="toggleGroup(g.key)">
                     <td class="px-4 py-3" colspan="6">
                       <div class="flex items-center gap-3">
@@ -247,15 +228,34 @@
                       </div>
                     </td>
                   </tr>
-                  <!-- Variantes del producto -->
-                  @if (isGroupOpen(g.key)) {
+                  }
+                  <!-- Filas: producto simple = una sola fila (con imagen+nombre);
+                       producto con variantes = filas hijas dentro del acordeón. -->
+                  @if (g.rows.length === 1 || isGroupOpen(g.key)) {
                     @for (it of g.rows; track it.key) {
                       <tr class="hover:bg-slate-50/60 dark:hover:bg-white/[0.02]">
                         <td class="px-4 py-3">
-                          <div class="flex items-center gap-2 pl-6">
-                            <i class="fa-solid fa-turn-up fa-rotate-90 text-[10px] text-slate-300 dark:text-white/20 shrink-0"></i>
-                            <span class="text-sm font-medium">{{ rowVariantLabel(it) }}</span>
-                          </div>
+                          @if (g.rows.length > 1) {
+                            <div class="flex items-center gap-2 pl-6">
+                              <i class="fa-solid fa-turn-up fa-rotate-90 text-[10px] text-slate-300 dark:text-white/20 shrink-0"></i>
+                              <span class="text-sm font-medium">{{ rowVariantLabel(it) }}</span>
+                            </div>
+                          } @else {
+                            <div class="flex items-center gap-3">
+                              @if (groupImage(g.rows); as img) {
+                                <img [src]="img" [alt]="g.name" dlxImgFallback class="w-9 h-9 rounded-lg object-cover border border-slate-200 dark:border-white/10 shrink-0" />
+                              } @else {
+                                <div class="w-9 h-9 rounded-lg grid place-items-center bg-slate-100 dark:bg-white/5 text-slate-300 shrink-0"><i class="fa-solid fa-image"></i></div>
+                              }
+                              <div class="min-w-0">
+                                <p class="font-semibold truncate flex items-center gap-1.5">
+                                  <span class="truncate">{{ g.name }}</span>
+                                  @if (g.isNew) { <span class="shrink-0 px-1.5 py-0.5 rounded-md text-[10px] font-bold uppercase tracking-wide bg-emerald-100 text-emerald-700 dark:bg-emerald-500/15 dark:text-emerald-400">Nuevo</span> }
+                                </p>
+                                <p class="text-[11px] text-slate-400">Sin variante · {{ rowUnits(it) }} uds</p>
+                              </div>
+                            </div>
+                          }
                         </td>
                         <td class="px-4 py-3 text-right">
                           <dlx-price-input [(ngModel)]="it.unit_cost" (ngModelChange)="touchItems()" extraClass="!h-9 w-28 text-right" />
@@ -289,7 +289,11 @@
                         <td class="px-4 py-3">
                           <div class="flex items-center justify-end gap-1">
                             <button class="w-8 h-8 grid place-items-center rounded-lg text-slate-400 hover:text-[var(--dash-primary)] hover:bg-slate-100 dark:hover:bg-white/5" (click)="openDetail(it)" title="Ver detalle"><i class="fa-solid fa-eye text-sm"></i></button>
-                            <button class="w-8 h-8 grid place-items-center rounded-lg text-rose-500 hover:text-rose-700 hover:bg-rose-50 dark:hover:bg-rose-500/10" (click)="removeRow(it.key)" title="Quitar variante"><i class="fa-solid fa-trash text-sm"></i></button>
+                            @if (g.rows.length > 1) {
+                              <button class="w-8 h-8 grid place-items-center rounded-lg text-rose-500 hover:text-rose-700 hover:bg-rose-50 dark:hover:bg-rose-500/10" (click)="removeRow(it.key)" title="Quitar variante"><i class="fa-solid fa-trash text-sm"></i></button>
+                            } @else {
+                              <button class="w-8 h-8 grid place-items-center rounded-lg text-rose-500 hover:text-rose-700 hover:bg-rose-50 dark:hover:bg-rose-500/10" (click)="removeGroup(g.rows)" title="Quitar producto"><i class="fa-solid fa-trash text-sm"></i></button>
+                            }
                           </div>
                         </td>
                       </tr>
@@ -367,7 +371,8 @@
                 </thead>
                 <tbody class="divide-y divide-slate-100 dark:divide-white/5">
                   @for (g of groupedSummary(); track g.key) {
-                    <!-- Cabecera del producto (acordeón) -->
+                    @if (g.rows.length > 1) {
+                    <!-- Cabecera del producto (acordeón, solo con variantes) -->
                     <tr class="bg-slate-50/70 dark:bg-white/[0.03] cursor-pointer select-none" (click)="toggleGroup(g.key)">
                       <td class="px-4 py-2.5" colspan="6">
                         <div class="flex items-center gap-3">
@@ -384,16 +389,27 @@
                         </div>
                       </td>
                     </tr>
-                    <!-- Variantes -->
-                    @if (isGroupOpen(g.key)) {
+                    }
+                    <!-- Filas: producto simple = una sola fila; con variantes = hijas del acordeón -->
+                    @if (g.rows.length === 1 || isGroupOpen(g.key)) {
                       @for (it of g.rows; track it.key) {
                         <tr>
-                          <td class="px-4 py-2.5">
-                            <span class="inline-flex items-center gap-2 pl-6 text-slate-400">
-                              <i class="fa-solid fa-turn-up fa-rotate-90 text-[10px] shrink-0"></i>
-                            </span>
-                          </td>
-                          <td class="px-4 py-2.5 text-slate-500">{{ rowVariantLabel(it) }}</td>
+                          @if (g.rows.length > 1) {
+                            <td class="px-4 py-2.5">
+                              <span class="inline-flex items-center gap-2 pl-6 text-slate-400">
+                                <i class="fa-solid fa-turn-up fa-rotate-90 text-[10px] shrink-0"></i>
+                              </span>
+                            </td>
+                            <td class="px-4 py-2.5 text-slate-500">{{ rowVariantLabel(it) }}</td>
+                          } @else {
+                            <td class="px-4 py-2.5">
+                              <span class="font-semibold inline-flex items-center gap-1.5">
+                                <span class="truncate">{{ g.name }}</span>
+                                @if (g.isNew) { <span class="shrink-0 px-1.5 py-0.5 rounded-md text-[10px] font-bold uppercase tracking-wide bg-emerald-100 text-emerald-700 dark:bg-emerald-500/15 dark:text-emerald-400">Nuevo</span> }
+                              </span>
+                            </td>
+                            <td class="px-4 py-2.5 text-slate-400 text-xs">Sin variante</td>
+                          }
                           <td class="px-4 py-2.5 text-slate-500 text-xs">{{ rowBranchDisplay(it) || '—' }}</td>
                           <td class="px-4 py-2.5 text-center font-medium">{{ rowUnits(it) }}</td>
                           <td class="px-4 py-2.5 text-right">{{ money(it.unit_cost) }}</td>
@@ -427,12 +443,6 @@
         </div>
       }
     </div>
-    }
-
-    <!-- Modal proveedor completo -->
-    @if (showSupplierModal()) {
-      <dlx-supplier-form-modal [initialName]="supplierName"
-                               (saved)="onSupplierCreated($event)" (cancel)="showSupplierModal.set(false)" />
     }
 
     <!-- Popup detalle -->

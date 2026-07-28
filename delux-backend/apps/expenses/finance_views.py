@@ -82,6 +82,7 @@ class FinanceViewSet(viewsets.ViewSet):
         if branch_id: ri = ri.filter(reception__branch_id=branch_id)
         compras = _dec(ri.aggregate(
             t=Sum(F('quantity') * F('unit_cost'), output_field=DecimalField(max_digits=14, decimal_places=2)))['t'])
+        compras_units = ri.aggregate(t=Sum('quantity'))['t'] or 0
 
         eq = Expense.objects.filter(date__gte=from_d, date__lte=to_d)
         if tenant_id: eq = eq.filter(tenant_id=tenant_id)
@@ -94,11 +95,15 @@ class FinanceViewSet(viewsets.ViewSet):
             for r in eq.values('category').annotate(total=Sum('amount')).order_by('-total')
         ]
 
-        ganancia = ventas - compras - gastos
+        # Ganancia = Ventas - Gastos (menú Gastos). Las COMPRAS de mercadería NO
+        # restan la ganancia: son inversión en inventario (ingreso de mercadería),
+        # no un gasto operativo.
+        ganancia = ventas - gastos
         orders = oq.count()
         return {
             'ventas': ventas, 'ventas_web': ventas_web, 'ventas_pos': ventas_pos,
-            'compras': compras, 'gastos': gastos, 'ganancia': ganancia,
+            'compras': compras, 'compras_units': int(compras_units),
+            'gastos': gastos, 'ganancia': ganancia,
             'orders': orders, 'gastos_by_cat': gastos_by_cat,
         }
 
@@ -120,6 +125,7 @@ class FinanceViewSet(viewsets.ViewSet):
         keys = ['ventas', 'ventas_web', 'ventas_pos', 'compras', 'gastos', 'ganancia']
         out = {k: str(cur[k]) for k in keys}
         out['orders'] = cur['orders']
+        out['compras_units'] = cur['compras_units']
         out['gastos_by_cat'] = cur['gastos_by_cat']
         out['deltas'] = {k: delta(cur[k], prev[k]) for k in keys}
         out['range'] = {'from': from_d.isoformat(), 'to': to_d.isoformat()}

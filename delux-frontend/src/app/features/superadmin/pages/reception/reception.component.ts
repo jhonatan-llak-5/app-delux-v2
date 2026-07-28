@@ -18,7 +18,7 @@ import { TourService, TourStep } from '@shared/components/app-tour/tour.service'
 import { DlxConfirmDialogComponent } from '@shared/ui/confirm-dialog.component';
 import { DlxPriceInputComponent } from '@shared/ui/price-input.component';
 import { AuthService } from '@core/services/auth.service';
-import { SupplierFormModalComponent } from '@features/superadmin/components/supplier-form-modal/supplier-form-modal.component';
+import { SupplierSelectComponent } from '@features/superadmin/components/supplier-select/supplier-select.component';
 import { ConfirmService } from '@shared/components/confirm/confirm.service';
 
 interface Row {
@@ -60,7 +60,7 @@ const KIND_LABELS: Record<string, string> = {
 @Component({
   selector: 'dlx-reception',
   standalone: true,
-  imports: [ImgFallbackDirective, CommonModule, FormsModule, ManualProductModalComponent, DlxConfirmDialogComponent, DlxPriceInputComponent, SupplierFormModalComponent],
+  imports: [ImgFallbackDirective, CommonModule, FormsModule, ManualProductModalComponent, DlxConfirmDialogComponent, DlxPriceInputComponent, SupplierSelectComponent],
   changeDetection: ChangeDetectionStrategy.OnPush,
   templateUrl: './reception.component.html',
 })

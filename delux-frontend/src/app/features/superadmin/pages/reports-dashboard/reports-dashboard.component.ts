@@ -14,7 +14,7 @@ import autoTable from 'jspdf-autotable';
 import {
   ReportsService, RangeParams, OverviewKPIs,
   TimelinePoint, BranchRow, CategoryRow, BrandRow,
-  ProductRow, SellerRow, ChannelRow, LowStockRow,
+  ProductRow, SellerRow, ChannelRow, LowStockRow, SupplierRow,
 } from '@features/superadmin/services/reports.service';
 import { AdminService, AdminBranch } from '@features/superadmin/services/admin.service';
 import { ExpenseService, FinanceTimeline } from '@features/superadmin/services/expense.service';
@@ -70,6 +70,7 @@ export class ReportsDashboardComponent implements OnInit {
   byBrand = signal<BrandRow[]>([]);
   byChannel = signal<ChannelRow[]>([]);
   topProducts = signal<ProductRow[]>([]);
+  bySupplier = signal<SupplierRow[]>([]);
   topSellers = signal<SellerRow[]>([]);
   lowStock = signal<LowStockRow[]>([]);
 
@@ -114,6 +115,7 @@ export class ReportsDashboardComponent implements OnInit {
     this.svc.byBrand(p).subscribe(r => this.byBrand.set(r.results));
     this.svc.byChannel(p).subscribe(r => this.byChannel.set(r.results));
     this.svc.topProducts(p).subscribe(r => this.topProducts.set(r.results));
+    this.svc.bySupplier(p).subscribe(r => this.bySupplier.set(r.results));
     this.svc.topSellers(p).subscribe(r => this.topSellers.set(r.results));
     this.svc.lowStock().subscribe(r => this.lowStock.set(r.results));
   }
@@ -232,7 +234,8 @@ export class ReportsDashboardComponent implements OnInit {
   hasAnyData(): boolean {
     return this.timeline().length > 0 || this.byBranch().length > 0 ||
            this.byCategory().length > 0 || this.byBrand().length > 0 ||
-           this.topProducts().length > 0 || this.topSellers().length > 0;
+           this.topProducts().length > 0 || this.topSellers().length > 0 ||
+           this.bySupplier().length > 0;
   }
   noDataMsg(): string {
     return this.branchCtx.current()
@@ -290,10 +293,8 @@ export class ReportsDashboardComponent implements OnInit {
     const k = this.kpis();
     const resumen = [
       { Indicador: 'Ingresos totales', Valor: round(+(k?.total_revenue || 0)) },
-      { Indicador: 'Órdenes', Valor: k?.total_orders || 0 },
+      { Indicador: 'Ventas', Valor: k?.total_orders || 0 },
       { Indicador: 'Venta promedio', Valor: round(+(k?.avg_order_value || 0)) },
-      { Indicador: 'Unidades vendidas', Valor: k?.items_sold || 0 },
-      { Indicador: 'Clientes únicos', Valor: k?.unique_customers || 0 },
     ];
     const bd = this.bestDay(), wd = this.worstDay();
     if (bd) resumen.push({ Indicador: 'Día con más ventas', Valor: `${bd.day} (${this.money(bd.revenue)})` } as any);
@@ -305,10 +306,10 @@ export class ReportsDashboardComponent implements OnInit {
     };
     sheet('Ingresos por dia', this.timeline());
     sheet('Por canal', this.byChannel());
-    sheet('Sucursales', this.byBranch());
     sheet('Categorias', this.byCategory());
     sheet('Marcas', this.byBrand());
     sheet('Top productos', this.topProducts());
+    sheet('Ventas por proveedor', this.bySupplier());
     sheet('Vendedores', this.topSellers());
     sheet('Stock bajo', this.lowStock());
     XLSX.writeFile(wb, `Delux-reportes-${this.from}-${this.to}.xlsx`);
@@ -333,10 +334,8 @@ export class ReportsDashboardComponent implements OnInit {
       head: [['Indicador', 'Valor']],
       body: [
         ['Ingresos totales', this.money(k?.total_revenue)],
-        ['Ordenes', `${k?.total_orders ?? 0}`],
+        ['Ventas', `${k?.total_orders ?? 0}`],
         ['Venta promedio', this.money(k?.avg_order_value)],
-        ['Unidades vendidas', `${k?.items_sold ?? 0}`],
-        ['Clientes unicos', `${k?.unique_customers ?? 0}`],
       ],
       headStyles: { fillColor: BLACK, textColor: 255 },
     });
@@ -369,8 +368,6 @@ export class ReportsDashboardComponent implements OnInit {
     const items = [
       { title: 'Ventas por canal', cfg: this.channelConfig(), head: ['Canal', 'Ingresos'],
         rows: this.byChannel().map(c => [chLabel(c.channel), this.money(c.revenue)]) },
-      { title: 'Por sucursal', cfg: this.branchConfig(), head: ['Sucursal', 'Ingresos'],
-        rows: this.byBranch().map(b => [b.branch__name, this.money(b.revenue)]) },
       { title: 'Por categoria', cfg: this.categoryConfig(), head: ['Categoria', 'Ingresos'],
         rows: this.byCategory().slice(0, 10).map(c => [c.variant__product__category__name || '-', this.money(c.revenue)]) },
       { title: 'Por marca', cfg: this.brandConfig(), head: ['Marca', 'Ingresos'],
@@ -420,8 +417,8 @@ export class ReportsDashboardComponent implements OnInit {
     };
     section('Top productos', ['Producto', 'Marca', 'Unidades', 'Ingresos'],
       this.topProducts().map(pr => [pr.variant__product__name, pr.variant__product__brand__name || '-', pr.units, this.money(pr.revenue)]));
-    section('Por sucursal', ['Sucursal', 'Ordenes', 'Ingresos'],
-      this.byBranch().map(b => [b.branch__name, b.orders, this.money(b.revenue)]));
+    section('Ventas por proveedor', ['Proveedor', 'Unidades', 'Ingresos', 'Producto estrella'],
+      this.bySupplier().map(s => [s.supplier, s.units, this.money(s.revenue), s.top_product || '-']));
     section('Por categoria', ['Categoria', 'Ingresos'],
       this.byCategory().map(c => [c.variant__product__category__name || '-', this.money(c.revenue)]));
     section('Por marca', ['Marca', 'Ingresos'],

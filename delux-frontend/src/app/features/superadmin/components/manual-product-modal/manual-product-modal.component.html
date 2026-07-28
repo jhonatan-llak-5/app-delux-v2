@@ -44,6 +44,17 @@
       }
     }
 
+    <!-- En EDICIÓN: si el producto ya tiene un código de barras, se muestra en
+         solo lectura (no se cambia desde aquí). -->
+    @if (isEdit() && nf.barcode) {
+      <div>
+        <label class="eg-label">Código de barras</label>
+        <input [value]="nf.barcode" readonly
+               class="eg-input w-full font-mono bg-slate-50 dark:bg-white/5 text-slate-500 cursor-not-allowed" />
+        <p class="text-[11px] text-slate-400 mt-1">Código original del producto (solo lectura).</p>
+      </div>
+    }
+
     <div>
       <label class="eg-label">Nombre del producto *</label>
       <input [(ngModel)]="nf.product_name" (ngModelChange)="clearErr('product_name')" class="eg-input w-full" [class.!border-rose-400]="fe('product_name')" placeholder="Ej. Camiseta" />
@@ -209,19 +220,21 @@
 
   <!-- Variantes (ancho completo, solo cuando se activan). Sin card padre:
        cada lote es su propia card para mejor lectura. -->
-  @if (!isEdit() && hasVariants()) {
+  @if ((!isEdit() && hasVariants()) || isEdit()) {
     <section class="space-y-4 lg:col-span-2">
       <div class="flex items-center justify-between gap-3 flex-wrap">
-        <h3 class="font-bold text-ink-950 dark:text-white flex items-center gap-2"><i class="fa-solid fa-layer-group text-[var(--dash-primary)]"></i> Variantes y cantidad</h3>
+        <h3 class="font-bold text-ink-950 dark:text-white flex items-center gap-2"><i class="fa-solid fa-layer-group text-[var(--dash-primary)]"></i> {{ isEdit() ? 'Agregar variantes (opcional)' : 'Variantes y cantidad' }}</h3>
         <div class="flex items-center gap-3">
           @if (variantMode() === 'classic') {
             <button type="button" (click)="addLote()"
                     class="inline-flex items-center gap-1.5 px-3 h-9 rounded-lg text-sm font-semibold bg-emerald-600 hover:bg-emerald-700 text-white transition">
               <i class="fa-solid fa-plus"></i> Agregar lote
             </button>
+            @if (!isEdit()) {
             <button type="button" (click)="setVariantMode('custom')" class="text-xs font-semibold text-[var(--dash-primary)] hover:underline inline-flex items-center gap-1.5">
               <i class="fa-solid fa-sliders"></i> Variantes personalizadas
             </button>
+            }
           } @else {
             <button type="button" (click)="setVariantMode('classic')" class="text-xs font-semibold text-slate-500 hover:text-ink-950 dark:hover:text-white inline-flex items-center gap-1.5">
               <i class="fa-solid fa-arrow-left"></i> Volver a talla y color
@@ -230,15 +243,39 @@
         </div>
       </div>
 
+      <!-- (Edición) Proveedor y nota de la compra: aplican a los lotes que agregues. -->
+      @if (isEdit() && lotes.length) {
+        <div class="card p-4 grid grid-cols-1 md:grid-cols-2 gap-3">
+          <div>
+            <label class="eg-label"><i class="fa-solid fa-truck-field text-amber-500 mr-1"></i> Proveedor <span class="text-slate-400 font-normal">(opcional)</span></label>
+            <dlx-supplier-select [(ngModel)]="receptionSupplier" (changed)="changed.emit()"
+                                 placeholder="¿De qué proveedor es esta compra?" />
+            <p class="text-[11px] text-slate-400 mt-1">Se usa para el reporte de "Ventas por proveedor".</p>
+          </div>
+          <div>
+            <label class="eg-label"><i class="fa-solid fa-note-sticky text-slate-400 mr-1"></i> Nota <span class="text-slate-400 font-normal">(opcional)</span></label>
+            <input type="text" [(ngModel)]="receptionNote" (ngModelChange)="changed.emit()"
+                   placeholder="Ej. Contenedor junio" class="eg-input w-full" />
+          </div>
+        </div>
+      }
+
+      <!-- Estado vacío en edición: los lotes están ocultos hasta pulsar "Agregar lote". -->
+      @if (isEdit() && variantMode() === 'classic' && !lotes.length) {
+        <div class="rounded-xl border border-dashed border-slate-300 dark:border-white/15 p-8 text-center text-sm text-slate-400">
+          <i class="fa-solid fa-layer-group text-2xl mb-2 block opacity-60"></i>
+          Pulsa <b class="text-emerald-600">Agregar lote</b> para cargar variantes nuevas.
+          <p class="text-[11px] mt-1.5">Las cantidades que ingreses se registrarán como una <b>compra</b> y se sumarán al inventario.</p>
+        </div>
+      }
+
       <!-- ══════ MODO CLÁSICO: lotes (talla + color + costo + precio) ══════ -->
       @if (variantMode() === 'classic') {
         @for (l of lotes; track $index) {
           <div class="card p-4 space-y-4">
             <div class="flex items-center justify-between">
               <span class="text-sm font-bold text-ink-950 dark:text-white inline-flex items-center gap-2"><span class="w-6 h-6 rounded-lg grid place-items-center bg-[var(--dash-primary)]/10 text-[var(--dash-primary)] text-xs font-bold">{{ $index + 1 }}</span> Lote {{ $index + 1 }}</span>
-              @if (lotes.length > 1) {
-                <button type="button" (click)="removeLote($index)" class="text-xs font-semibold text-rose-500 hover:text-rose-700 inline-flex items-center gap-1.5"><i class="fa-solid fa-trash"></i> Quitar lote</button>
-              }
+              <button type="button" (click)="removeLote($index)" class="text-xs font-semibold text-rose-500 hover:text-rose-700 inline-flex items-center gap-1.5"><i class="fa-solid fa-trash"></i> Quitar lote</button>
             </div>
 
             <div class="grid grid-cols-1 md:grid-cols-2 gap-4">

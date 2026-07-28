@@ -1,5 +1,6 @@
 import { ChangeDetectionStrategy, Component, OnInit, computed, inject, signal } from '@angular/core';
 import { DlxEmptyStateComponent } from '@shared/ui/empty-state.component';
+import { ImgFallbackDirective } from '@shared/ui/img-fallback.directive';
 import { AuthService } from '@core/services/auth.service';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
@@ -10,7 +11,7 @@ import { AdminService, AdminBranch } from '@features/superadmin/services/admin.s
 @Component({
   selector: 'dlx-inventory-movements',
   standalone: true,
-  imports: [DlxEmptyStateComponent, CommonModule, FormsModule, RouterLink],
+  imports: [DlxEmptyStateComponent, ImgFallbackDirective, CommonModule, FormsModule, RouterLink],
   changeDetection: ChangeDetectionStrategy.OnPush,
   template: `
     <div class="flex items-center gap-2 text-xs text-slate-500 mb-1">
@@ -24,9 +25,14 @@ import { AdminService, AdminBranch } from '@features/superadmin/services/admin.s
     <!-- Encabezado por producto (cuando se abre "Ver historial" de una fila) -->
     @if (productId()) {
       <div class="card p-4 mb-4 flex items-center gap-4">
-        <div class="w-14 h-14 rounded-xl bg-violet-100 text-violet-600 grid place-items-center text-xl font-bold shrink-0">
-          {{ (productName() || 'P').charAt(0) }}
-        </div>
+        @if (productImage()) {
+          <img [src]="productImage()" [alt]="productName()" dlxImgFallback
+               class="w-14 h-14 rounded-xl object-cover bg-slate-100 dark:bg-white/5 shrink-0" />
+        } @else {
+          <div class="w-14 h-14 rounded-xl bg-violet-100 text-violet-600 grid place-items-center text-xl font-bold shrink-0">
+            {{ (productName() || 'P').charAt(0) }}
+          </div>
+        }
         <div>
           <p class="font-bold text-lg leading-tight">{{ productName() || 'Producto' }}</p>
           <p class="text-sm text-slate-500">
@@ -209,6 +215,7 @@ export class InventoryMovementsComponent implements OnInit {
   selected = signal<StockMovement | null>(null);
   productId = signal<number | null>(null);
   productName = signal<string>('');
+  productImage = signal<string>('');
   branchFilter: number | null = null;
   typeFilter = '';
 
@@ -237,8 +244,9 @@ export class InventoryMovementsComponent implements OnInit {
     }).subscribe({
       next: r => {
         this.items.set(r.results);
-        if (!this.productName() && this.productId() && r.results.length) {
-          this.productName.set(r.results[0].product_name);
+        if (this.productId() && r.results.length) {
+          if (!this.productName()) this.productName.set(r.results[0].product_name);
+          this.productImage.set(r.results[0].product_main_image || '');
         }
         this.loading.set(false);
       },

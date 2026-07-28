@@ -59,6 +59,7 @@ export interface StockMovement {
   variant_sku: string;
   product_id: number;
   product_name: string;
+  product_main_image?: string;
   branch_name: string;
   type: string;
   type_label: string;
