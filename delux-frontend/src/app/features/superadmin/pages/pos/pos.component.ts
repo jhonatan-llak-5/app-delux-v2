@@ -12,6 +12,7 @@ import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { RouterLink } from '@angular/router';
 import { debounceTime, Subject } from 'rxjs';
+import { SEARCH_DEBOUNCE_MS } from '@shared/config/search';
 
 import { InventoryService, Stock } from '@features/superadmin/services/inventory.service';
 import { OrderService, Order } from '@features/superadmin/services/order.service';
@@ -237,8 +238,8 @@ export class PosComponent implements OnInit, OnDestroy {
   }
 
   ngOnInit() {
-    this.search$.pipe(debounceTime(300)).subscribe(() => this.reload());
-    this.cust$.pipe(debounceTime(300)).subscribe(v => this.searchCustomers(v));
+    this.search$.pipe(debounceTime(SEARCH_DEBOUNCE_MS)).subscribe(() => this.reload());
+    this.cust$.pipe(debounceTime(SEARCH_DEBOUNCE_MS)).subscribe(v => this.searchCustomers(v));
     this.catSvc.list().subscribe(r => this.categories.set(r.results || []));
     this.storeSet.getStoreOptions().subscribe({ next: o => this.cfEnabled.set(!!o.consumidor_final_enabled), error: () => {} });
     if (this.isManager()) {

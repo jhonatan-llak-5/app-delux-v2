@@ -189,8 +189,9 @@ class AdminStockViewSet(viewsets.ReadOnlyModelViewSet):
         """Inventario agrupado por producto: una entrada por producto con sus
         variantes/stocks anidados. Pagina por PRODUCTO (no por variante), así
         un producto con muchas tallas ocupa una sola fila expandible."""
+        # Orden según fueron ingresados los productos (por fecha de creación).
         qs = self.get_queryset().order_by(
-            'variant__product__name', 'variant__product_id',
+            'variant__product__created_at', 'variant__product_id',
             'variant__size', 'variant__color', 'variant__sku',
         )
         # IDs de producto en orden de aparición, sin repetir.
@@ -472,6 +473,30 @@ class AdminReceptionViewSet(viewsets.ModelViewSet):
         items = data.get('items') or []
         if not items:
             return Response({'detail': 'Agrega al menos un producto.'}, status=400)
+
+        # Validación de código de barras: no permitir registrar un producto NUEVO
+        # con un código que ya exista en la empresa (evita duplicar productos).
+        # Solo aplica a items que crean producto nuevo (sin variant_id/product_id).
+        new_barcodes = []
+        for raw in items:
+            bc = (raw.get('barcode') or '').strip()
+            if bc and not raw.get('variant_id') and not raw.get('product_id'):
+                new_barcodes.append(bc)
+        if new_barcodes:
+            from django.db.models import Q
+            dup = (Variant.objects
+                   .filter(Q(barcode__in=new_barcodes) | Q(sku__in=new_barcodes),
+                           tenant=tenant, product__deleted_at__isnull=True)
+                   .select_related('product').first())
+            if dup:
+                return Response({
+                    'detail': f'El código de barras «{dup.barcode}» ya está asignado al '
+                              f'producto «{dup.product.name}». Usa otro código o edita ese producto.',
+                    'code': 'barcode_exists',
+                    'barcode': dup.barcode,
+                    'product_id': dup.product_id,
+                    'product_name': dup.product.name,
+                }, status=400)
 
         # Proveedor: por id o alta rapida por nombre.
         supplier = None

@@ -122,6 +122,12 @@ export class ProductService {
     return this.http.post<{ deleted: number; skipped: number }>(`${this.base}/bulk-delete/`, { product_ids });
   }
 
+  /** ¿El código de barras ya existe en la empresa? Devuelve el producto dueño. */
+  checkBarcode(code: string) {
+    return this.http.get<{ exists: boolean; product_id?: number; product_name?: string; sku?: string }>(
+      `${this.base}/check-barcode/`, { params: new HttpParams().set('code', code) });
+  }
+
   /** Agrega variantes NUEVAS a un producto existente (no toca las actuales). */
   addVariants(id: number, body: { branch?: number | null; supplier_name?: string; note?: string; variants: Array<{
     size?: string; color?: string; attributes?: Record<string, string>;

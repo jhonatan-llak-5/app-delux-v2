@@ -313,7 +313,8 @@ export class DashboardLayoutComponent implements AfterViewInit, OnDestroy {
       this.router.navigate(['/shop'], { queryParams: { search: q } });
       return;
     }
-    this.router.navigate(['/app/admin/products'], { queryParams: { search: q } });
+    // El buscador global busca productos → lleva al Inventario con la búsqueda.
+    this.router.navigate(['/app/admin/inventory'], { queryParams: { search: q } });
   }
 
   /** En móvil abre el drawer; en desktop colapsa/expande el sidebar fijo. */

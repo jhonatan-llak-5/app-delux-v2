@@ -194,6 +194,34 @@ class AdminProductViewSet(viewsets.ModelViewSet):
         deleted = qs.update(deleted_at=timezone.now(), status='ARCHIVED')
         return Response({'deleted': deleted, 'skipped': 0})
 
+    @action(detail=False, methods=['get'], url_path='check-barcode')
+    def check_barcode(self, request):
+        """¿Existe ya un código de barras en la empresa? Devuelve el producto al
+        que pertenece para avisar y enlazar. { exists, product_id, product_name }."""
+        code = (request.query_params.get('code') or '').strip()
+        if not code:
+            return Response({'exists': False})
+        from django.db.models import Q
+        from apps.variants.models import Variant
+        # El código escrito choca si ya existe como código de proveedor (barcode)
+        # O como código interno (sku) de cualquier variante de la empresa.
+        qs = Variant.objects.filter(
+            Q(barcode__iexact=code) | Q(sku__iexact=code),
+            product__deleted_at__isnull=True)
+        tenant_id = getattr(request.user, 'tenant_id', None)
+        if getattr(request.user, 'role', None) != 'SUPERADMIN' and tenant_id:
+            qs = qs.filter(tenant_id=tenant_id)
+        v = qs.select_related('product').first()
+        if not v:
+            return Response({'exists': False})
+        return Response({
+            'exists': True,
+            'product_id': v.product_id,
+            'product_name': v.product.name,
+            'sku': v.sku,
+            'matched': 'interno' if (v.sku or '').lower() == code.lower() else 'proveedor',
+        })
+
     @action(detail=True, methods=['post'], url_path='add-variants')
     def add_variants(self, request, pk=None):
         """Agrega variantes NUEVAS a un producto existente sin tocar las que ya

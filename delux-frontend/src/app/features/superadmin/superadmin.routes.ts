@@ -24,21 +24,12 @@ export const SUPERADMIN_ROUTES: Routes = [
         loadComponent: () =>
           import('./pages/categories-tree/categories-tree.component').then(m => m.CategoriesTreeComponent),
       },
-      {
-        path: 'products',
-        loadComponent: () =>
-          import('./pages/products-list/products-list.component').then(m => m.ProductsListComponent),
-      },
-      {
-        path: 'products/new',
-        loadComponent: () =>
-          import('./pages/product-form/product-form.component').then(m => m.ProductFormComponent),
-      },
-      {
-        path: 'products/import',
-        loadComponent: () =>
-          import('./pages/products-import/products-import.component').then(m => m.ProductsImportComponent),
-      },
+      // Módulo antiguo de Productos eliminado: el catálogo se gestiona desde
+      // Inventario. Se conserva 'products/:id' (editor usado por Inventario) y
+      // se redirige el listado antiguo a Inventario por compatibilidad de enlaces.
+      { path: 'products', pathMatch: 'full', redirectTo: 'inventory' },
+      { path: 'products/new', pathMatch: 'full', redirectTo: 'inventory' },
+      { path: 'products/import', pathMatch: 'full', redirectTo: 'inventory' },
       {
         path: 'products/:id',
         loadComponent: () =>

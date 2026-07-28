@@ -32,6 +32,10 @@
             </button>
           </div>
           @if (camError()) { <p class="text-[11px] text-amber-600 mt-1">{{ camError() }}</p> }
+          <p class="text-[11px] text-slate-400 mt-1">
+            <i class="fa-solid fa-circle-info mr-0.5"></i>
+            Este es el <b>código del proveedor</b> (opcional). El sistema genera además un <b>código interno único</b> automáticamente.
+          </p>
         </div>
       } @else {
         <div>
@@ -275,7 +279,9 @@
           <div class="card p-4 space-y-4">
             <div class="flex items-center justify-between">
               <span class="text-sm font-bold text-ink-950 dark:text-white inline-flex items-center gap-2"><span class="w-6 h-6 rounded-lg grid place-items-center bg-[var(--dash-primary)]/10 text-[var(--dash-primary)] text-xs font-bold">{{ $index + 1 }}</span> Lote {{ $index + 1 }}</span>
-              <button type="button" (click)="removeLote($index)" class="text-xs font-semibold text-rose-500 hover:text-rose-700 inline-flex items-center gap-1.5"><i class="fa-solid fa-trash"></i> Quitar lote</button>
+              @if (isEdit() || $index > 0) {
+                <button type="button" (click)="removeLote($index)" class="text-xs font-semibold text-rose-500 hover:text-rose-700 inline-flex items-center gap-1.5"><i class="fa-solid fa-trash"></i> Quitar lote</button>
+              }
             </div>
 
             <div class="grid grid-cols-1 md:grid-cols-2 gap-4">

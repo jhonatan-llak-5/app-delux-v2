@@ -10,7 +10,7 @@ import { DlxSearchInputComponent } from '@shared/ui/search-input.component';
 import { DlxScanButtonComponent } from '@shared/ui/scan-button.component';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
-import { Router, RouterLink } from '@angular/router';
+import { ActivatedRoute, Router, RouterLink } from '@angular/router';
 import { debounceTime, Subject, forkJoin } from 'rxjs';
 
 import { Stock, InventorySummary, InventoryService, ProductGroup } from '@features/superadmin/services/inventory.service';
@@ -42,6 +42,7 @@ export class InventoryOverviewComponent implements OnInit {
   private adminSvc = inject(AdminService);
   private branchCtx = inject(BranchContextService);
   private router = inject(Router);
+  private route = inject(ActivatedRoute);
   private branding = inject(BrandingService);
   private notify = inject(NotifyService);
   private productSvc = inject(ProductService);
@@ -171,6 +172,18 @@ export class InventoryOverviewComponent implements OnInit {
 
   ngOnInit(): void {
     this.search$.pipe(debounceTime(300)).subscribe(() => this.reload());
+    // Búsqueda inicial desde la URL (?search=CODIGO), p. ej. al venir del aviso
+    // de "código duplicado". Se aplica antes de la carga del effect.
+    const q = this.route.snapshot.queryParamMap.get('search');
+    if (q) this.search.set(q);
+    // Si ya estás en inventario y cambia el ?search=, reacciona (salta la 1ª
+    // emisión: la carga inicial la hace el effect con el valor del snapshot).
+    let firstQp = true;
+    this.route.queryParamMap.subscribe(pm => {
+      if (firstQp) { firstQp = false; return; }
+      const s = pm.get('search') || '';
+      if (s !== this.search()) { this.search.set(s); this.page.set(1); this.reload(); }
+    });
     this.adminSvc.listBranches().subscribe(r => this.branches.set(r.results || []));
     // La carga inicial la dispara el effect del constructor cuando la sesión y
     // el contexto de sucursal ya están listos (evita quedarse en "Cargando…"

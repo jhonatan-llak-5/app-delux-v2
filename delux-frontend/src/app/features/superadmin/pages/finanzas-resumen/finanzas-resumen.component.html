@@ -44,7 +44,7 @@
   </div>
 
   <!-- KPIs -->
-  <div class="grid grid-cols-1 sm:grid-cols-3 gap-4">
+  <div class="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-4 gap-4">
     <div class="rounded-2xl border border-ink-100 dark:border-white/10 bg-white dark:bg-slate-900 p-5">
       <div class="flex items-center gap-2 text-xs uppercase tracking-wide text-ink-400 dark:text-white/50">
         <i class="fa-solid fa-scale-balanced"></i> Balance
@@ -67,6 +67,13 @@
       </div>
       <p class="mt-1 text-3xl font-bold text-ink-950 dark:text-white">${{ money(data()?.gastos || 0) }}</p>
       <p class="text-[11px] text-ink-400 dark:text-white/50 mt-1">Gastos operativos del periodo</p>
+    </div>
+    <div class="rounded-2xl border border-ink-100 dark:border-white/10 bg-white dark:bg-slate-900 p-5">
+      <div class="flex items-center gap-2 text-xs uppercase tracking-wide text-ink-400 dark:text-white/50">
+        <i class="fa-solid fa-truck-ramp-box text-amber-500"></i> Recepción de mercadería
+      </div>
+      <p class="mt-1 text-3xl font-bold text-ink-950 dark:text-white">${{ money(data()?.compras || 0) }}</p>
+      <p class="text-[11px] text-ink-400 dark:text-white/50 mt-1">{{ data()?.compras_units || 0 }} unidad(es) compradas · no afecta el balance</p>
     </div>
   </div>
 

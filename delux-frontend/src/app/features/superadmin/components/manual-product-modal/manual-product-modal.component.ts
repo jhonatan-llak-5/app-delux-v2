@@ -10,6 +10,9 @@ import { BrandingService } from '@core/services/branding.service';
 import { SRI_IVA_OPTIONS } from '@shared/data/taxes';
 import { SupplierSelectComponent } from '@features/superadmin/components/supplier-select/supplier-select.component';
 import { ConfirmService } from '@shared/components/confirm/confirm.service';
+import { ProductService } from '@features/superadmin/services/product.service';
+import { Router } from '@angular/router';
+import { firstValueFrom } from 'rxjs';
 
 export interface ManualProduct {
   product_name: string; brand: string; category: string; kind: string;
@@ -105,6 +108,8 @@ export class ManualProductModalComponent implements OnInit, OnDestroy {
 
   private branding = inject(BrandingService);
   private confirmSvc = inject(ConfirmService);
+  private productSvc = inject(ProductService);
+  private router = inject(Router);
 
   error = signal<string | null>(null);
   fieldErrors = signal<Record<string, string>>({});
@@ -509,7 +514,7 @@ export class ManualProductModalComponent implements OnInit, OnDestroy {
   sizePreset(): string[] { return KIND_PRESETS[this.nf.kind]?.sizes ?? []; }
   sizeLabel(): string { return KIND_PRESETS[this.nf.kind]?.sizeLabel ?? 'Talla'; }
 
-  submit(): void {
+  async submit(): Promise<void> {
     this.error.set(null);
     const errs: Record<string, string> = {};
     if (!this.nf.product_name.trim()) errs['product_name'] = 'Este campo es obligatorio.';
@@ -571,8 +576,29 @@ export class ManualProductModalComponent implements OnInit, OnDestroy {
 
     if (!this.hasVariants()) {
       // Producto simple: una sola "variante" sin atributos.
+      const bc = this.nf.barcode.trim();
+      // Si escribió un código de barras, verifica que no exista ya en la empresa.
+      if (bc) {
+        try {
+          const r = await firstValueFrom(this.productSvc.checkBarcode(bc));
+          if (r.exists) {
+            const go = await this.confirmSvc.ask({
+              title: 'Código duplicado',
+              message: `El código ${bc} ya está en uso por «${r.product_name || 'un producto'}» (como código de proveedor o interno). Ese producto ya existe.`,
+              variant: 'danger', icon: 'fa-barcode',
+              confirmText: 'Ver producto en inventario', cancelText: 'Cerrar',
+            });
+            if (go) this.router.navigate(['/app/admin/inventory'], { queryParams: { search: bc } });
+            return;
+          }
+        } catch (e) {
+          // Si la verificación falla (p. ej. endpoint no disponible), no bloquea
+          // aquí, pero el backend igual valida al confirmar la recepción.
+          console.warn('No se pudo verificar el código de barras:', e);
+        }
+      }
       this.add.emit([{
-        ...baseItem, color: '', size: '', barcode: this.nf.barcode.trim(),
+        ...baseItem, color: '', size: '', barcode: bc,
         quantity: Math.max(0, +this.simpleQty || 0),
       }]);
       if (this.embedded) this.afterAddReset();

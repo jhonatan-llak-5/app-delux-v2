@@ -351,7 +351,11 @@
                 <input [(ngModel)]="motiveOther[s.id]" placeholder="¿Cuál?" class="eg-input !h-9 text-sm mt-2 w-full" />
               }
               @if (qtyDelta(s) > 0 && motives[s.id] === 'COMPRA') {
-                <p class="text-[11px] text-emerald-600 mt-1.5"><i class="fa-solid fa-circle-info"></i> Se registrará como compra (costo $ {{ dr(s).cost | number:'1.2-2' }}) en Finanzas.</p>
+                <div class="mt-2 rounded-lg border border-emerald-200 dark:border-emerald-500/30 bg-emerald-50 dark:bg-emerald-500/10 px-3 py-2 text-[11px] text-emerald-700 dark:text-emerald-300 flex items-start gap-2">
+                  <i class="fa-solid fa-truck-ramp-box mt-0.5"></i>
+                  <span>Estas <b>{{ qtyDelta(s) }}</b> unidad(es) se registrarán como una <b>recepción de mercadería (compra)</b> por
+                    <b>$ {{ (qtyDelta(s) * (+dr(s).cost || 0)) | number:'1.2-2' }}</b> (costo unitario $ {{ dr(s).cost | number:'1.2-2' }}).</span>
+                </div>
               }
             </div>
           }
