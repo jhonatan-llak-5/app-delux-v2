@@ -56,6 +56,27 @@ class Order(TenantOwnedModel):
     coupon_code = models.CharField(max_length=40, blank=True)
     notes = models.TextField(blank=True)
 
+    # ─── Factura electrónica (emitida en NovaFactura) ───
+    class InvoiceStatus(models.TextChoices):
+        NOT_ISSUED = 'NOT_ISSUED', 'No emitida'
+        PROCESSING = 'PROCESSING', 'Procesando'
+        AUTHORIZED = 'AUTHORIZED', 'Autorizada'
+        REJECTED = 'REJECTED', 'Rechazada'
+        ERROR = 'ERROR', 'Error'
+
+    invoice_status = models.CharField(
+        max_length=12, choices=InvoiceStatus.choices,
+        default=InvoiceStatus.NOT_ISSUED, db_index=True)
+    invoice_id = models.CharField(max_length=64, blank=True, default='',
+                                  help_text='ID de la factura en NovaFactura.')
+    invoice_access_key = models.CharField(max_length=64, blank=True, default='',
+                                          help_text='Clave de acceso del SRI.')
+    invoice_number = models.CharField(max_length=40, blank=True, default='')
+    invoice_pdf_url = models.URLField(blank=True, default='')
+    invoice_xml_url = models.URLField(blank=True, default='')
+    invoice_error = models.CharField(max_length=400, blank=True, default='')
+    invoice_updated_at = models.DateTimeField(null=True, blank=True)
+
     class Meta:
         unique_together = [('tenant', 'code')]
         ordering = ['-created_at']

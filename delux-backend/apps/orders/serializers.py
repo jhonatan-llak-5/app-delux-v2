@@ -38,8 +38,12 @@ class OrderSerializer(serializers.ModelSerializer):
                   'channel', 'fulfillment', 'status',
                   'subtotal', 'discount', 'shipping_fee', 'tax', 'total',
                   'coupon_code', 'notes',
+                  'invoice_status', 'invoice_number', 'invoice_access_key',
+                  'invoice_pdf_url', 'invoice_xml_url', 'invoice_error', 'invoice_updated_at',
                   'items', 'items_count', 'created_at', 'updated_at')
-        read_only_fields = ('id', 'code', 'subtotal', 'total', 'created_at', 'updated_at')
+        read_only_fields = ('id', 'code', 'subtotal', 'total', 'created_at', 'updated_at',
+                            'invoice_status', 'invoice_number', 'invoice_access_key',
+                            'invoice_pdf_url', 'invoice_xml_url', 'invoice_error', 'invoice_updated_at')
 
 
 class POSItemInput(serializers.Serializer):
@@ -231,5 +235,13 @@ class POSCheckoutSerializer(serializers.Serializer):
                 dispatch(send_pos_receipt_email, order.id)
             except Exception as e:
                 print(f'[pos_receipt] {e}')
+
+        # Factura electrónica (NovaFactura), en segundo plano y sin bloquear el
+        # cobro. Solo se dispara si la facturación está activa en la config.
+        try:
+            from apps.orders.einvoice import enqueue_invoice
+            enqueue_invoice(order)
+        except Exception as e:
+            print(f'[einvoice] {e}')
 
         return order

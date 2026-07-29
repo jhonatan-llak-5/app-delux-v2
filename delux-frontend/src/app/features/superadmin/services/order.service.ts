@@ -54,6 +54,13 @@ export interface Order {
   total: string;
   coupon_code: string;
   notes: string;
+  invoice_status?: 'NOT_ISSUED' | 'PROCESSING' | 'AUTHORIZED' | 'REJECTED' | 'ERROR';
+  invoice_number?: string;
+  invoice_access_key?: string;
+  invoice_pdf_url?: string;
+  invoice_xml_url?: string;
+  invoice_error?: string;
+  invoice_updated_at?: string | null;
   items: OrderItem[];
   items_count: number;
   created_at: string;
@@ -110,6 +117,11 @@ export class OrderService {
 
   cancel(id: number) {
     return this.http.post<{ detail: string }>(`${this.base}/${id}/cancel/`, {});
+  }
+
+  /** Reintenta la emisión de la factura electrónica de la venta. */
+  retryInvoice(id: number): Observable<Order> {
+    return this.http.post<Order>(`${this.base}/${id}/retry-invoice/`, {});
   }
 
   posCheckout(payload: POSPayload): Observable<Order> {

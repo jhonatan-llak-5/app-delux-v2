@@ -6,6 +6,8 @@ class PlatformSettingsSerializer(serializers.ModelSerializer):
     smtp_password = serializers.CharField(write_only=True, required=False, allow_blank=True)
     recaptcha_secret_key = serializers.CharField(write_only=True, required=False, allow_blank=True)
     payphone_token = serializers.CharField(required=False, allow_blank=True)
+    einvoice_api_key = serializers.CharField(write_only=True, required=False, allow_blank=True)
+    einvoice_webhook_secret = serializers.CharField(write_only=True, required=False, allow_blank=True)
 
     class Meta:
         model = PlatformSettings
@@ -41,6 +43,10 @@ class PlatformSettingsSerializer(serializers.ModelSerializer):
             'bank_contact_email', 'bank_contact_whatsapp', 'transfer_instructions',
             # DE UNA
             'deuna_enabled', 'deuna_qr', 'deuna_instructions',
+            # Facturación electrónica (NovaFactura)
+            'einvoice_enabled', 'einvoice_base_url', 'einvoice_api_key',
+            'einvoice_company_uuid', 'einvoice_branch_uuid', 'einvoice_emission_point_uuid',
+            'einvoice_environment', 'einvoice_webhook_secret',
             # Audit
             'updated_at',
         )
@@ -53,6 +59,8 @@ class PlatformSettingsSerializer(serializers.ModelSerializer):
         data['recaptcha_secret_configured'] = bool(instance.recaptcha_secret_key)
         token = getattr(instance, 'payphone_token', '')
         data['payphone_token_masked'] = ('••••••••' + token[-4:]) if token else ''
+        data['einvoice_api_key_configured'] = bool(getattr(instance, 'einvoice_api_key', ''))
+        data['einvoice_webhook_secret_configured'] = bool(getattr(instance, 'einvoice_webhook_secret', ''))
         # URLs absolutas de archivos
         for fld in ('site_logo', 'site_favicon', 'deuna_qr'):
             f = getattr(instance, fld, None)
@@ -65,7 +73,8 @@ class PlatformSettingsSerializer(serializers.ModelSerializer):
 
     def update(self, instance, validated_data):
         # Si vienen blanks en campos sensibles, no los sobreescribimos
-        for sensitive in ('smtp_password', 'recaptcha_secret_key', 'payphone_token'):
+        for sensitive in ('smtp_password', 'recaptcha_secret_key', 'payphone_token',
+                          'einvoice_api_key', 'einvoice_webhook_secret'):
             if sensitive in validated_data and not validated_data[sensitive]:
                 validated_data.pop(sensitive)
         return super().update(instance, validated_data)

@@ -156,6 +156,31 @@ class PlatformSettings(models.Model):
         default=False,
         help_text='Asigna "Consumidor Final" a las ventas sin cliente (para facturación).')
 
+    # ─── Facturación electrónica (puente con NovaFactura) ───
+    einvoice_enabled = models.BooleanField(
+        default=False,
+        help_text='Si está activo, cada venta pagada intenta emitir factura electrónica en NovaFactura.')
+    einvoice_base_url = models.URLField(
+        blank=True, default='',
+        help_text='URL base de la API de NovaFactura, ej. https://api.novafactura.com')
+    einvoice_api_key = models.CharField(
+        max_length=200, blank=True, default='',
+        help_text='API key de NovaFactura (Authorization: Api-Key ...). Secreta.')
+    einvoice_company_uuid = models.CharField(max_length=64, blank=True, default='')
+    einvoice_branch_uuid = models.CharField(max_length=64, blank=True, default='')
+    einvoice_emission_point_uuid = models.CharField(max_length=64, blank=True, default='')
+    EINVOICE_ENV_TEST = 'pruebas'
+    EINVOICE_ENV_PROD = 'produccion'
+    EINVOICE_ENV_CHOICES = [
+        (EINVOICE_ENV_TEST, 'Pruebas (sandbox SRI)'),
+        (EINVOICE_ENV_PROD, 'Producción'),
+    ]
+    einvoice_environment = models.CharField(
+        max_length=12, choices=EINVOICE_ENV_CHOICES, default=EINVOICE_ENV_TEST)
+    einvoice_webhook_secret = models.CharField(
+        max_length=200, blank=True, default='',
+        help_text='Secreto compartido para verificar (HMAC) los webhooks de NovaFactura.')
+
     updated_at = models.DateTimeField(auto_now=True)
 
     class Meta:

@@ -129,6 +129,18 @@ export interface PlatformSettings {
   payphone_api_url: string;
   payphone_sandbox: boolean;
 
+  // Facturación electrónica (NovaFactura)
+  einvoice_enabled?: boolean;
+  einvoice_base_url?: string;
+  einvoice_api_key?: string;
+  einvoice_api_key_configured?: boolean;
+  einvoice_company_uuid?: string;
+  einvoice_branch_uuid?: string;
+  einvoice_emission_point_uuid?: string;
+  einvoice_environment?: 'pruebas' | 'produccion';
+  einvoice_webhook_secret?: string;
+  einvoice_webhook_secret_configured?: boolean;
+
   updated_at?: string;
 }
 

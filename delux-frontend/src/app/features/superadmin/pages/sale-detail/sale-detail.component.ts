@@ -221,5 +221,39 @@ export class SaleDetailComponent implements OnInit {
 
   print() { if (this.order()) generateVoucherPDF(this.order()!); }
 
-
+  // ── Factura electrónica ──
+  retryingInvoice = signal(false);
+  invoiceLabel(s?: string): string {
+    return ({
+      NOT_ISSUED: 'No emitida', PROCESSING: 'Procesando',
+      AUTHORIZED: 'Autorizada', REJECTED: 'Rechazada', ERROR: 'Error',
+    } as any)[s || ''] || 'No emitida';
+  }
+  invoiceClass(s?: string): string {
+    return ({
+      PROCESSING: 'bg-amber-100 text-amber-700',
+      AUTHORIZED: 'bg-emerald-100 text-emerald-700',
+      REJECTED: 'bg-rose-100 text-rose-700',
+      ERROR: 'bg-rose-100 text-rose-700',
+    } as any)[s || ''] || 'bg-slate-100 text-slate-600';
+  }
+  canRetryInvoice(): boolean {
+    const s = this.order()?.invoice_status;
+    return s === 'ERROR' || s === 'REJECTED' || s === 'NOT_ISSUED';
+  }
+  async retryInvoice() {
+    const o = this.order();
+    if (!o) return;
+    const ok = await this.confirm.ask({
+      title: 'Reintentar factura',
+      message: 'Se volverá a intentar emitir la factura electrónica de esta venta en NovaFactura. ¿Continuar?',
+      confirmText: 'Reintentar',
+    });
+    if (!ok) return;
+    this.retryingInvoice.set(true);
+    this.svc.retryInvoice(o.id).subscribe({
+      next: updated => { this.order.set(updated); this.retryingInvoice.set(false); this.notify.success('Reintento en proceso.'); },
+      error: e => { this.retryingInvoice.set(false); this.notify.fromServerError(e, 'No se pudo reintentar la factura.'); },
+    });
+  }
 }

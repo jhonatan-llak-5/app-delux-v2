@@ -98,6 +98,28 @@ class AdminOrderViewSet(viewsets.ReadOnlyModelViewSet):
 
         return Response(OrderSerializer(order).data)
 
+    @action(detail=True, methods=['post'], url_path='retry-invoice')
+    def retry_invoice(self, request, pk=None):
+        """Reintenta la emisión de la factura electrónica de esta venta."""
+        if request.user.role == 'SALESPERSON':
+            return Response({'detail': 'No autorizado.'}, status=status.HTTP_403_FORBIDDEN)
+        order = self.get_object()
+        from apps.settings.models import PlatformSettings
+        if not PlatformSettings.load().einvoice_enabled:
+            return Response({'detail': 'La facturación electrónica no está activa.'}, status=400)
+        if order.invoice_status == Order.InvoiceStatus.AUTHORIZED:
+            return Response({'detail': 'La factura ya está autorizada.'}, status=400)
+        order.invoice_status = Order.InvoiceStatus.PROCESSING
+        order.invoice_error = ''
+        order.invoice_updated_at = timezone.now()
+        order.save(update_fields=['invoice_status', 'invoice_error', 'invoice_updated_at'])
+        try:
+            from apps.orders.einvoice import enqueue_invoice
+            enqueue_invoice(order)
+        except Exception as e:
+            return Response({'detail': f'No se pudo reintentar: {e}'}, status=500)
+        return Response(OrderSerializer(order).data)
+
     @action(detail=False, methods=['get'])
     def summary(self, request):
         params = request.query_params

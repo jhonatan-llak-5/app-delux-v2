@@ -107,6 +107,7 @@ import { DlxPaginationComponent } from '@shared/ui/pagination.component';
               <th class="px-5 py-3 font-semibold text-center">Items</th>
               <th class="px-5 py-3 font-semibold text-right">Total</th>
               <th class="px-5 py-3 font-semibold text-center">Estado</th>
+              <th class="px-5 py-3 font-semibold text-center">Factura</th>
               <th class="px-5 py-3 font-semibold text-right">Acciones</th>
             </tr>
           </thead>
@@ -152,6 +153,16 @@ import { DlxPaginationComponent } from '@shared/ui/pagination.component';
                         [ngClass]="o.status | orderStatusClass">
                     {{ o.status | orderStatusLabel }}
                   </span>
+                </td>
+                <td class="px-5 py-3 text-center">
+                  @if (o.invoice_status && o.invoice_status !== 'NOT_ISSUED') {
+                    <span class="inline-flex items-center px-2 py-0.5 rounded-md text-[11px] font-bold uppercase"
+                          [ngClass]="invoiceClass(o.invoice_status)" [title]="o.invoice_number || ''">
+                      {{ invoiceLabel(o.invoice_status) }}
+                    </span>
+                  } @else {
+                    <span class="text-slate-300 text-xs">—</span>
+                  }
                 </td>
                 <td class="px-5 py-3 text-right">
                   <dlx-row-actions [actions]="rowActions(o)" />
@@ -264,6 +275,18 @@ export class SalesListComponent implements OnInit {
   onPage(p: number) { this.page.set(p); this.reload(); }
   onSize(s: number) { this.pageSize.set(s); this.page.set(1); this.reload(); }
   waLink(phone: string) { return 'https://wa.me/' + (phone || '').replace(/[^0-9]/g, ''); }
+
+  invoiceLabel(s?: string): string {
+    return ({ PROCESSING: 'Procesando', AUTHORIZED: 'Autorizada', REJECTED: 'Rechazada', ERROR: 'Error' } as any)[s || ''] || 'No emitida';
+  }
+  invoiceClass(s?: string): string {
+    return ({
+      PROCESSING: 'bg-amber-100 text-amber-700',
+      AUTHORIZED: 'bg-emerald-100 text-emerald-700',
+      REJECTED: 'bg-rose-100 text-rose-700',
+      ERROR: 'bg-rose-100 text-rose-700',
+    } as any)[s || ''] || 'bg-slate-100 text-slate-600';
+  }
 
 
   rowActions(o: Order): RowAction[] {

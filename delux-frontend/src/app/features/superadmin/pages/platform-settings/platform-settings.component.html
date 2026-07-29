@@ -545,6 +545,72 @@
           </section>
         }
 
+        <!-- ═════ FACTURACIÓN ELECTRÓNICA (NovaFactura) ═════ -->
+        @if (tab() === 'einvoice') {
+          <section class="eg-card-padded space-y-5">
+            <div>
+              <h2 class="text-base font-bold text-slate-900 dark:text-slate-50">Facturación electrónica</h2>
+              <p class="text-sm text-slate-500 dark:text-slate-400">
+                Conexión con NovaFactura. Al activarla, cada venta pagada emite su factura electrónica en segundo plano.
+              </p>
+            </div>
+
+            <dlx-toggle formControlName="einvoice_enabled" label="Emitir factura al vender" />
+
+            <label class="block"><span class="eg-label">URL de NovaFactura</span>
+              <input class="eg-input font-mono text-[13px]" formControlName="einvoice_base_url"
+                     placeholder="https://api.novafactura.com" />
+            </label>
+
+            <label class="block">
+              <span class="eg-label">
+                API key
+                @if (settings()?.einvoice_api_key_configured) {
+                  <span class="eg-badge eg-badge-success ml-2">Configurada</span>
+                }
+              </span>
+              <input class="eg-input font-mono text-[13px]" type="password" formControlName="einvoice_api_key"
+                     [placeholder]="settings()?.einvoice_api_key_configured ? '••••••••  (deja vacío para no cambiar)' : 'nf_xxxx.xxxx'" />
+            </label>
+
+            <div class="grid gap-4 md:grid-cols-3">
+              <label class="block"><span class="eg-label">Company UUID</span>
+                <input class="eg-input font-mono text-[12px]" formControlName="einvoice_company_uuid" placeholder="uuid" />
+              </label>
+              <label class="block"><span class="eg-label">Branch UUID</span>
+                <input class="eg-input font-mono text-[12px]" formControlName="einvoice_branch_uuid" placeholder="uuid" />
+              </label>
+              <label class="block"><span class="eg-label">Emission point UUID</span>
+                <input class="eg-input font-mono text-[12px]" formControlName="einvoice_emission_point_uuid" placeholder="uuid" />
+              </label>
+            </div>
+
+            <label class="block"><span class="eg-label">Ambiente</span>
+              <select class="eg-input" formControlName="einvoice_environment">
+                <option value="pruebas">Pruebas (sandbox SRI)</option>
+                <option value="produccion">Producción</option>
+              </select>
+            </label>
+
+            <label class="block">
+              <span class="eg-label">
+                Secreto del webhook (HMAC)
+                @if (settings()?.einvoice_webhook_secret_configured) {
+                  <span class="eg-badge eg-badge-success ml-2">Configurado</span>
+                }
+              </span>
+              <input class="eg-input font-mono text-[13px]" type="password" formControlName="einvoice_webhook_secret"
+                     [placeholder]="settings()?.einvoice_webhook_secret_configured ? '••••••••  (deja vacío para no cambiar)' : 'mismo secreto que en NovaFactura'" />
+            </label>
+
+            <div class="rounded-xl border border-slate-200 dark:border-white/10 bg-slate-50 dark:bg-white/5 p-3 text-[12px] text-slate-500 dark:text-slate-400">
+              <i class="fa-solid fa-circle-info mr-1"></i>
+              En NovaFactura, configura el webhook de este emisor apuntando a
+              <code class="font-mono">/api/v1/invoicing/webhook/</code> de DLUX, con <b>el mismo secreto</b> de arriba.
+            </div>
+          </section>
+        }
+
         <!-- ═════ RESPALDO DE BASE DE DATOS ═════ -->
         @if (tab() === 'backup') {
           <section class="space-y-5">

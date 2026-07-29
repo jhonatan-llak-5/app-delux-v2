@@ -9,7 +9,7 @@ import { BrandingService } from '@core/services/branding.service';
 import { DlxToggleComponent } from '@shared/ui/toggle.component';
 import { DlxPriceInputComponent } from '@shared/ui/price-input.component';
 
-type TabId = 'email' | 'recaptcha' | 'brand' | 'uploads' | 'payments' | 'backup';
+type TabId = 'email' | 'recaptcha' | 'brand' | 'uploads' | 'payments' | 'einvoice' | 'backup';
 type ExtControl = 'allowed_image_extensions' | 'allowed_file_extensions' | 'allowed_video_extensions';
 interface ExtensionOption { ext: string; label: string; }
 
@@ -64,6 +64,7 @@ export class PlatformSettingsComponent implements OnInit {
     { id: 'brand',     label: 'Marca',       icon: 'fa-palette' },
     { id: 'uploads',   label: 'Subidas',     icon: 'fa-upload' },
     { id: 'payments',  label: 'Pagos',       icon: 'fa-credit-card' },
+    { id: 'einvoice',  label: 'Facturación', icon: 'fa-file-invoice' },
     { id: 'backup',    label: 'Respaldo',    icon: 'fa-database' },
   ];
   tab = signal<TabId>('email');
@@ -134,6 +135,15 @@ export class PlatformSettingsComponent implements OnInit {
     // DE UNA
     deuna_enabled: [false],
     deuna_instructions: [''],
+    // Facturación electrónica (NovaFactura)
+    einvoice_enabled: [false],
+    einvoice_base_url: [''],
+    einvoice_api_key: [''],
+    einvoice_company_uuid: [''],
+    einvoice_branch_uuid: [''],
+    einvoice_emission_point_uuid: [''],
+    einvoice_environment: ['pruebas'],
+    einvoice_webhook_secret: [''],
   });
 
   ngOnInit() { this.loadSettings(); }
@@ -211,6 +221,8 @@ export class PlatformSettingsComponent implements OnInit {
         delete patch.smtp_password;
         delete patch.recaptcha_secret_key;
         delete patch.payphone_token;
+        delete patch.einvoice_api_key;
+        delete patch.einvoice_webhook_secret;
         this.form.patchValue(patch, { emitEvent: false });
         this.form.markAsPristine();
         this.validator.setConfig(s);

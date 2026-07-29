@@ -209,6 +209,54 @@
             </div>
           }
 
+          <!-- Factura electrónica -->
+          @if (order(); as o) {
+            @if (o.invoice_status && o.invoice_status !== 'NOT_ISSUED') {
+              <div class="card p-5 space-y-3">
+                <div class="flex items-center justify-between">
+                  <h3 class="font-bold tracking-tight flex items-center gap-2">
+                    <i class="fa-solid fa-file-invoice text-slate-400"></i> Factura electrónica
+                  </h3>
+                  <span class="inline-flex items-center px-2 py-0.5 rounded-md text-xs font-bold uppercase"
+                        [ngClass]="invoiceClass(o.invoice_status)">{{ invoiceLabel(o.invoice_status) }}</span>
+                </div>
+                @if (o.invoice_number) {
+                  <p class="text-xs text-slate-500">Número: <span class="font-semibold text-slate-700 font-mono">{{ o.invoice_number }}</span></p>
+                }
+                @if (o.invoice_access_key) {
+                  <p class="text-[11px] text-slate-400 break-all">Clave de acceso: {{ o.invoice_access_key }}</p>
+                }
+                @if (o.invoice_status === 'REJECTED' && o.invoice_error) {
+                  <p class="text-xs text-rose-600">{{ o.invoice_error }}</p>
+                }
+                <div class="flex flex-wrap items-center gap-2 pt-1">
+                  @if (o.invoice_pdf_url) {
+                    <a [href]="o.invoice_pdf_url" target="_blank" rel="noopener"
+                       class="inline-flex items-center gap-1.5 text-xs font-semibold text-rose-600 hover:underline">
+                      <i class="fa-solid fa-file-pdf"></i> PDF (RIDE)
+                    </a>
+                  }
+                  @if (o.invoice_xml_url) {
+                    <a [href]="o.invoice_xml_url" target="_blank" rel="noopener"
+                       class="inline-flex items-center gap-1.5 text-xs font-semibold text-slate-500 hover:underline">
+                      <i class="fa-solid fa-file-code"></i> XML
+                    </a>
+                  }
+                  @if (canRetryInvoice()) {
+                    <button type="button" (click)="retryInvoice()" [disabled]="retryingInvoice()"
+                            class="ml-auto inline-flex items-center gap-1.5 text-xs font-semibold px-3 h-8 rounded-lg border border-slate-200 dark:border-white/10 hover:bg-slate-50 dark:hover:bg-white/5 disabled:opacity-70">
+                      <i class="fa-solid" [ngClass]="retryingInvoice() ? 'fa-spinner fa-spin' : 'fa-rotate-right'"></i>
+                      Reintentar
+                    </button>
+                  }
+                </div>
+                @if (o.invoice_status === 'PROCESSING') {
+                  <p class="text-[11px] text-amber-600"><i class="fa-solid fa-clock"></i> Enviada al SRI. El resultado final llegará en unos momentos.</p>
+                }
+              </div>
+            }
+          }
+
           <!-- Pago / comprobante -->
           @if (payments().length) {
             <div class="card p-5 space-y-3">
