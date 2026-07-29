@@ -241,6 +241,25 @@ export class SaleDetailComponent implements OnInit {
     const s = this.order()?.invoice_status;
     return s === 'ERROR' || s === 'REJECTED' || s === 'NOT_ISSUED';
   }
+  downloadingFile = signal<'pdf' | 'xml' | null>(null);
+  /** Abre el RIDE/XML vía proxy autenticado (no expone la URL pública). */
+  openInvoiceFile(kind: 'pdf' | 'xml') {
+    const o = this.order();
+    if (!o || this.downloadingFile()) return;
+    this.downloadingFile.set(kind);
+    this.svc.invoiceFile(o.id, kind).subscribe({
+      next: blob => {
+        this.downloadingFile.set(null);
+        const url = URL.createObjectURL(blob);
+        window.open(url, '_blank');
+        setTimeout(() => URL.revokeObjectURL(url), 60000);
+      },
+      error: e => {
+        this.downloadingFile.set(null);
+        this.notify.fromServerError(e, 'No se pudo abrir el documento.');
+      },
+    });
+  }
   async retryInvoice() {
     const o = this.order();
     if (!o) return;

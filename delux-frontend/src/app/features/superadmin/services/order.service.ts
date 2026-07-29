@@ -124,6 +124,12 @@ export class OrderService {
     return this.http.post<Order>(`${this.base}/${id}/retry-invoice/`, {});
   }
 
+  /** Descarga el RIDE (pdf) o XML de la factura vía proxy autenticado de DLUX. */
+  invoiceFile(id: number, kind: 'pdf' | 'xml'): Observable<Blob> {
+    const p = new HttpParams().set('kind', kind);
+    return this.http.get(`${this.base}/${id}/invoice-file/`, { params: p, responseType: 'blob' });
+  }
+
   posCheckout(payload: POSPayload): Observable<Order> {
     return this.http.post<Order>(`${this.base}/pos-checkout/`, payload);
   }

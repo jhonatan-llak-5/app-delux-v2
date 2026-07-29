@@ -120,6 +120,48 @@ class AdminOrderViewSet(viewsets.ReadOnlyModelViewSet):
             return Response({'detail': f'No se pudo reintentar: {e}'}, status=500)
         return Response(OrderSerializer(order).data)
 
+    @action(detail=True, methods=['get'], url_path='invoice-file')
+    def invoice_file(self, request, pk=None):
+        """Proxy autenticado del RIDE/XML. Descarga el archivo desde NovaFactura
+        con la API key (servidor a servidor) y lo entrega al usuario logueado en
+        DLUX. Los documentos NO son públicos en NovaFactura; solo se acceden por
+        aquí, con sesión válida.  ?kind=pdf|xml
+        """
+        order = self.get_object()
+        kind = (request.query_params.get('kind') or 'pdf').lower()
+        if kind not in ('pdf', 'xml'):
+            return Response({'detail': 'Tipo inválido.'}, status=400)
+        if not order.invoice_id:
+            return Response({'detail': 'Esta venta no tiene factura emitida.'}, status=404)
+
+        from apps.settings.models import PlatformSettings
+        cfg = PlatformSettings.load()
+        if not (cfg.einvoice_base_url and cfg.einvoice_api_key):
+            return Response({'detail': 'Facturación no configurada.'}, status=400)
+
+        import requests
+        from django.http import StreamingHttpResponse
+        remote = 'ride' if kind == 'pdf' else 'xml'
+        url = cfg.einvoice_base_url.rstrip('/') + f'/api/v1/invoices/{order.invoice_id}/{remote}/'
+        try:
+            r = requests.get(
+                url, headers={'Authorization': f'Api-Key {cfg.einvoice_api_key}'},
+                timeout=30, stream=True,
+            )
+        except requests.RequestException as e:
+            return Response({'detail': f'No se pudo obtener el archivo: {e}'}, status=502)
+        if r.status_code == 404:
+            return Response({'detail': 'El archivo aún no está disponible.'}, status=404)
+        if r.status_code != 200:
+            return Response({'detail': 'No se pudo obtener el archivo de NovaFactura.'}, status=502)
+
+        content_type = 'application/pdf' if kind == 'pdf' else 'application/xml'
+        ext = 'pdf' if kind == 'pdf' else 'xml'
+        filename = f'{order.invoice_access_key or order.code}.{ext}'
+        resp = StreamingHttpResponse(r.iter_content(chunk_size=8192), content_type=content_type)
+        resp['Content-Disposition'] = f'inline; filename="{filename}"'
+        return resp
+
     @action(detail=False, methods=['get'])
     def summary(self, request):
         params = request.query_params
