@@ -211,7 +211,7 @@
 
           <!-- Factura electrónica -->
           @if (order(); as o) {
-            @if (o.invoice_status && o.invoice_status !== 'NOT_ISSUED') {
+            @if (o.channel === 'POS') {
               <div class="card p-5 space-y-3">
                 <div class="flex items-center justify-between">
                   <h3 class="font-bold tracking-tight flex items-center gap-2">
@@ -226,7 +226,7 @@
                 @if (o.invoice_access_key) {
                   <p class="text-[11px] text-slate-400 break-all">Clave de acceso: {{ o.invoice_access_key }}</p>
                 }
-                @if (o.invoice_status === 'REJECTED' && o.invoice_error) {
+                @if ((o.invoice_status === 'REJECTED' || o.invoice_status === 'ERROR') && o.invoice_error) {
                   <p class="text-xs text-rose-600">{{ o.invoice_error }}</p>
                 }
                 <div class="flex flex-wrap items-center gap-2 pt-1">

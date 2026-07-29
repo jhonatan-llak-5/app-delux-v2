@@ -1,5 +1,6 @@
 import { ChangeDetectionStrategy, Component, OnInit, effect, inject, signal } from '@angular/core';
 import { CommonModule } from '@angular/common';
+import { Router } from '@angular/router';
 import { WebSocketService, AppNotification } from '@core/services/websocket.service';
 
 interface ToastItem extends AppNotification {
@@ -16,7 +17,9 @@ interface ToastItem extends AppNotification {
     <div class="fixed top-20 right-4 z-[100] flex flex-col gap-2 max-w-sm w-full pointer-events-none">
       @for (t of visible(); track t.id) {
         <div class="pointer-events-auto bg-white dark:bg-ink-900 border border-ink-200 dark:border-white/10 rounded-xl shadow-2xl p-4 flex gap-3 animate-slide-down"
-             [class.opacity-0]="t.exiting">
+             [class.opacity-0]="t.exiting"
+             [class.cursor-pointer]="!!t.link"
+             (click)="onToastClick(t)">
           <div class="w-10 h-10 rounded-lg grid place-items-center text-white shrink-0"
                [ngClass]="iconBg(t.type)">
             <i class="fa-solid {{ icon(t.type) }}"></i>
@@ -26,7 +29,7 @@ interface ToastItem extends AppNotification {
             <p class="text-xs text-ink-700 dark:text-white/60 mt-0.5">{{ t.message }}</p>
             <p class="text-[10px] text-ink-400 dark:text-white/40 mt-1">{{ t.receivedAt | date:'shortTime' }}</p>
           </div>
-          <button (click)="dismiss(t.id)" class="text-ink-400 dark:text-white/40 hover:text-ink-700 dark:hover:text-white">
+          <button (click)="$event.stopPropagation(); dismiss(t.id)" class="text-ink-400 dark:text-white/40 hover:text-ink-700 dark:hover:text-white">
             <i class="fa-solid fa-xmark text-xs"></i>
           </button>
         </div>
@@ -36,8 +39,14 @@ interface ToastItem extends AppNotification {
 })
 export class ToastHostComponent implements OnInit {
   private ws = inject(WebSocketService);
+  private router = inject(Router);
   visible = signal<ToastItem[]>([]);
   private seenIds = new Set<number>();
+
+  /** Al tocar el toast, si trae enlace, navega (p. ej. al detalle de la venta). */
+  onToastClick(t: ToastItem) {
+    if (t.link) { this.router.navigateByUrl(t.link); this.dismiss(t.id); }
+  }
 
   ngOnInit() {
     this.ws.connect();

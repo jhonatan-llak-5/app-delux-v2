@@ -18,16 +18,11 @@ def broadcast_admin(payload: dict):
 
 
 def notify_new_sale(order):
-    broadcast_admin({
-        'type': 'new_sale',
-        'title': '💰 Nueva venta',
-        'message': f'Orden {order.code} - ${order.total} ({order.branch.name})',
-        'order_id': order.id,
-        'order_code': order.code,
-        'order_total': str(order.total),
-        'branch_name': order.branch.name,
-        'channel': order.channel,
-    })
+    """La notificación de venta ahora la emite la señal `_on_order_created`
+    (apps.notifications.signals) al crearse la orden: persiste, enlaza al detalle
+    y usa el total ya calculado. Esta función se conserva como no-op para no
+    romper a quienes la llamen, evitando notificaciones duplicadas."""
+    return
 
 
 def notify_low_stock(stock):

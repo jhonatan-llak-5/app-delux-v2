@@ -137,9 +137,9 @@ export interface PlatformSettings {
   einvoice_company_uuid?: string;
   einvoice_branch_uuid?: string;
   einvoice_emission_point_uuid?: string;
-  einvoice_environment?: 'pruebas' | 'produccion';
   einvoice_webhook_secret?: string;
   einvoice_webhook_secret_configured?: boolean;
+  einvoice_consumidor_final_max?: number;
 
   updated_at?: string;
 }

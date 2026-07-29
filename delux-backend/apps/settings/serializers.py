@@ -47,6 +47,7 @@ class PlatformSettingsSerializer(serializers.ModelSerializer):
             'einvoice_enabled', 'einvoice_base_url', 'einvoice_api_key',
             'einvoice_company_uuid', 'einvoice_branch_uuid', 'einvoice_emission_point_uuid',
             'einvoice_environment', 'einvoice_webhook_secret',
+            'einvoice_consumidor_final_max',
             # Audit
             'updated_at',
         )

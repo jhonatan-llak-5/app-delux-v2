@@ -585,13 +585,6 @@
               </label>
             </div>
 
-            <label class="block"><span class="eg-label">Ambiente</span>
-              <select class="eg-input" formControlName="einvoice_environment">
-                <option value="pruebas">Pruebas (sandbox SRI)</option>
-                <option value="produccion">Producción</option>
-              </select>
-            </label>
-
             <label class="block">
               <span class="eg-label">
                 Secreto del webhook (HMAC)
@@ -601,6 +594,16 @@
               </span>
               <input class="eg-input font-mono text-[13px]" type="password" formControlName="einvoice_webhook_secret"
                      [placeholder]="settings()?.einvoice_webhook_secret_configured ? '••••••••  (deja vacío para no cambiar)' : 'mismo secreto que en NovaFactura'" />
+            </label>
+
+            <label class="block max-w-xs">
+              <span class="eg-label">Tope Consumidor Final ($)</span>
+              <input class="eg-input" type="number" min="0" step="0.01"
+                     formControlName="einvoice_consumidor_final_max" placeholder="50.00" />
+              <span class="mt-1 block text-[12px] text-slate-500 dark:text-slate-400">
+                Ventas por debajo de este monto pueden facturarse como Consumidor Final.
+                De este valor en adelante, el SRI exige cédula o RUC del cliente.
+              </span>
             </label>
 
             <div class="rounded-xl border border-slate-200 dark:border-white/10 bg-slate-50 dark:bg-white/5 p-3 text-[12px] text-slate-500 dark:text-slate-400">

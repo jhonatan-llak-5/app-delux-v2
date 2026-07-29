@@ -39,11 +39,14 @@ def _on_order_created(sender, instance, created, **kwargs):
     branch = getattr(order, 'branch', None)
     tenant = getattr(order, 'tenant', None)
     code = getattr(order, 'code', None) or f'#{order.pk}'
-    total = getattr(order, 'total', '')
     branch_name = getattr(branch, 'name', '') if branch else ''
     is_pos = getattr(order, 'channel', '') == 'POS'
 
     def _send():
+        # El total se lee aquí (en on_commit), no al crearse la orden: en el POS
+        # la orden nace con total 0 y se calcula después, dentro de la misma
+        # transacción. Al commit ya tiene el valor real.
+        total = getattr(order, 'total', '')
         push_notification(
             type='sale' if is_pos else 'order',
             priority='P1',

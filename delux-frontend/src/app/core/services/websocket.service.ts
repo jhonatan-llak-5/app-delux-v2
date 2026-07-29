@@ -6,6 +6,7 @@ export interface AppNotification {
   type: string;
   title: string;
   message: string;
+  link?: string;
   data?: any;
   receivedAt: Date;
   read: boolean;
@@ -67,6 +68,7 @@ export class WebSocketService {
         type: data.type,
         title: data.title || 'Notificación',
         message: data.message || '',
+        link: data.link || '',
         data,
         receivedAt: new Date(),
         read: false,

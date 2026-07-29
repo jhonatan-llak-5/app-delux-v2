@@ -145,11 +145,29 @@ def emit_invoice(order) -> None:
 
 
 def enqueue_invoice(order) -> None:
-    """Encola la emisión (async, no bloquea la venta). Si la facturación no está
-    activa, no hace nada."""
+    """Encola la emisión en Celery/Redis (async). Nunca bloquea ni rompe el cobro
+    del POS: si la facturación está apagada, no hace nada; si el broker está caído,
+    se registra y la factura queda para reintento manual desde el detalle de venta.
+
+    A diferencia de otros dispatch de la app, aquí NO se ejecuta en línea como
+    fallback: emitir contra el SRI puede tardar y no debe frenar la venta.
+    """
     from apps.settings.models import PlatformSettings
     if not PlatformSettings.load().einvoice_enabled:
         return
-    from apps.accounts.tasks import dispatch
     from apps.orders.tasks import emit_invoice_task
-    dispatch(emit_invoice_task, str(order.id))
+    try:
+        emit_invoice_task.delay(str(order.id))
+    except Exception as exc:
+        # El broker (Redis) no está disponible. No bloqueamos la venta, pero la
+        # dejamos marcada como ERROR (no en silencio) para que se vea el estado y
+        # el botón de reintentar en el detalle de la venta.
+        logger.warning(
+            'einvoice: no se pudo encolar la factura de %s (¿broker caído?): %s',
+            order.code, exc,
+        )
+        from apps.orders.models import Order
+        _mark(
+            order, status=Order.InvoiceStatus.ERROR,
+            error='No se pudo encolar la emisión (servicio de tareas no disponible). Reintenta.',
+        )

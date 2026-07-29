@@ -180,6 +180,10 @@ class PlatformSettings(models.Model):
     einvoice_webhook_secret = models.CharField(
         max_length=200, blank=True, default='',
         help_text='Secreto compartido para verificar (HMAC) los webhooks de NovaFactura.')
+    einvoice_consumidor_final_max = models.DecimalField(
+        max_digits=10, decimal_places=2, default=50,
+        help_text='Monto máximo permitido para facturar como Consumidor Final. '
+                  'Ventas de este valor o más exigen cédula/RUC del cliente (regla SRI).')
 
     updated_at = models.DateTimeField(auto_now=True)
 

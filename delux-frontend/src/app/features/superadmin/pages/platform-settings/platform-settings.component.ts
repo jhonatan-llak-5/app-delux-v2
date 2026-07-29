@@ -142,8 +142,8 @@ export class PlatformSettingsComponent implements OnInit {
     einvoice_company_uuid: [''],
     einvoice_branch_uuid: [''],
     einvoice_emission_point_uuid: [''],
-    einvoice_environment: ['pruebas'],
     einvoice_webhook_secret: [''],
+    einvoice_consumidor_final_max: [50],
   });
 
   ngOnInit() { this.loadSettings(); }

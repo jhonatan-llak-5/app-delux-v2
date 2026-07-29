@@ -221,6 +221,26 @@ class POSCheckoutSerializer(serializers.Serializer):
             order.total = subtotal - Decimal(str(validated_data.get('discount', 0)))
             order.save(update_fields=['subtotal', 'tax', 'total', 'updated_at'])
 
+            # Regla SRI: Consumidor Final solo para ventas por debajo del umbral
+            # (por defecto $50). De ese monto en adelante, se exige cliente con
+            # cedula/RUC real. Solo aplica si la facturacion electronica esta
+            # activa. Se valida dentro de la transaccion: al lanzar el error se
+            # revierte el pedido y el descuento de stock.
+            from apps.settings.models import PlatformSettings as _PScf
+            _cfg = _PScf.load()
+            if getattr(_cfg, 'einvoice_enabled', False):
+                _ident = (getattr(customer, 'document_id', '') or '').strip() if customer else ''
+                _is_cf = (not _ident) or _ident == '9999999999999'
+                _limit = Decimal(str(getattr(_cfg, 'einvoice_consumidor_final_max', 50) or 50))
+                if _is_cf and order.total >= _limit:
+                    raise serializers.ValidationError({
+                        'customer': (
+                            f'Las ventas de ${_limit:.2f} o más no pueden facturarse '
+                            f'como Consumidor Final. Selecciona o crea un cliente con '
+                            f'cédula o RUC para continuar.'
+                        )
+                    })
+
         try: _safe_broadcast(order)
         except Exception as e: print(f'[broadcast_pos] {e}')
 

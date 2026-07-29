@@ -24,12 +24,16 @@ export type AlertVariant = 'info' | 'success' | 'warning' | 'error';
   changeDetection: ChangeDetectionStrategy.OnPush,
   template: `
     <div role="alert"
-         class="flex items-start gap-3 p-4 rounded-2xl border"
+         class="flex items-start gap-3 p-4 rounded-2xl"
+         [class.border]="!emphasis"
+         [class.border-2]="emphasis"
          [ngClass]="{
            'bg-[#0095f6]/8 border-[#0095f6]/25 text-[#0066b3] dark:text-[#7ec5f2]': variant === 'info',
            'bg-emerald-50 dark:bg-emerald-500/10 border-emerald-200 dark:border-emerald-500/25 text-emerald-700 dark:text-emerald-300': variant === 'success',
            'bg-amber-50 dark:bg-amber-500/10 border-amber-200 dark:border-amber-500/25 text-amber-700 dark:text-amber-300': variant === 'warning',
-           'bg-rose-50 dark:bg-rose-500/10 border-rose-200 dark:border-rose-500/25 text-rose-700 dark:text-rose-300': variant === 'error'
+           'bg-rose-50 dark:bg-rose-500/10 text-rose-700 dark:text-rose-300': variant === 'error' && !emphasis,
+           'bg-rose-50 dark:bg-rose-500/10 border-rose-400 dark:border-rose-500 text-rose-700 dark:text-rose-300': variant === 'error' && emphasis,
+           'border-rose-200 dark:border-rose-500/25': variant === 'error' && !emphasis
          }">
 
       <!-- Icono -->
@@ -77,5 +81,7 @@ export class AlertComponent {
   @Input() title = '';
   @Input() message = '';
   @Input() dismissible = false;
+  /** Borde más grueso y marcado (para avisos que deben resaltar). */
+  @Input() emphasis = false;
   @Output() closed = new EventEmitter<void>();
 }

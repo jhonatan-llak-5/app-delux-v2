@@ -5,6 +5,7 @@ import { DlxSearchInputComponent } from '@shared/ui/search-input.component';
 import { DlxProvinceSelectComponent } from '@shared/ui/province-select.component';
 import { DlxPhoneInputComponent } from '@shared/ui/phone-input.component';
 import { DlxPriceInputComponent } from '@shared/ui/price-input.component';
+import { AlertComponent } from '@shared/components/alert/alert.component';
 import { AuthService } from '@core/services/auth.service';
 import { BranchContextService } from '@core/services/branch-context.service';
 import { BrandingService } from '@core/services/branding.service';
@@ -42,7 +43,7 @@ interface CartItem {
 @Component({
   selector: 'dlx-pos',
   standalone: true,
-  imports: [DlxEmptyStateComponent, ImgFallbackDirective, DlxSearchInputComponent, CommonModule, FormsModule, RouterLink, DlxProvinceSelectComponent, DlxPhoneInputComponent, DlxPriceInputComponent],
+  imports: [DlxEmptyStateComponent, ImgFallbackDirective, DlxSearchInputComponent, CommonModule, FormsModule, RouterLink, DlxProvinceSelectComponent, DlxPhoneInputComponent, DlxPriceInputComponent, AlertComponent],
   changeDetection: ChangeDetectionStrategy.OnPush,
   templateUrl: './pos.component.html',
 })
@@ -55,6 +56,8 @@ export class PosComponent implements OnInit, OnDestroy {
   private custSvc = inject(CustomerService);
   private storeSet = inject(StoreSettingsService);
   cfEnabled = signal(false);   // "Consumidor Final" activado por la tienda
+  einvoiceEnabled = signal(false);  // facturación electrónica activa
+  cfMax = signal(50);          // tope $ para facturar como Consumidor Final
   private auth = inject(AuthService);
   branchCtx = inject(BranchContextService);
   private branding = inject(BrandingService);
@@ -129,6 +132,16 @@ export class PosComponent implements OnInit, OnDestroy {
   /** Precio unitario (ya incluye IVA). */
   unitWithTax(i: CartItem): number { return i.unit_price; }
   canCheckout = computed(() => this.cart().length > 0 && !!this.branchId());
+
+  /** Regla SRI: si la facturación está activa y la venta va como Consumidor
+   *  Final (sin cédula/RUC), no se puede facturar desde el tope (def. $50).
+   *  Se evalúa como método para reaccionar a los cambios del cliente en vivo. */
+  cfBlock(): boolean {
+    if (!this.einvoiceEnabled()) return false;
+    const doc = (this.customerData?.['document_id'] || '').trim();
+    const isCF = !doc || doc === '9999999999999';
+    return isCF && this.total() >= this.cfMax();
+  }
 
   constructor() {
     // Restaura el carrito y los datos del cliente guardados (por cuenta).
@@ -241,7 +254,11 @@ export class PosComponent implements OnInit, OnDestroy {
     this.search$.pipe(debounceTime(SEARCH_DEBOUNCE_MS)).subscribe(() => this.reload());
     this.cust$.pipe(debounceTime(SEARCH_DEBOUNCE_MS)).subscribe(v => this.searchCustomers(v));
     this.catSvc.list().subscribe(r => this.categories.set(r.results || []));
-    this.storeSet.getStoreOptions().subscribe({ next: o => this.cfEnabled.set(!!o.consumidor_final_enabled), error: () => {} });
+    this.storeSet.getStoreOptions().subscribe({ next: o => {
+      this.cfEnabled.set(!!o.consumidor_final_enabled);
+      this.einvoiceEnabled.set(!!o.einvoice_enabled);
+      this.cfMax.set(Number(o.einvoice_consumidor_final_max) || 50);
+    }, error: () => {} });
     if (this.isManager()) {
       this.adminSvc.listUsers({ role: 'SALESPERSON' }).subscribe(r => this.sellers.set(r.results || []));
     }
@@ -395,6 +412,13 @@ export class PosComponent implements OnInit, OnDestroy {
 
   checkout() {
     if (!this.canCheckout() || !this.branchId()) return;
+    if (this.cfBlock()) {
+      this.error.set(
+        `Las ventas de $${this.cfMax().toFixed(2)} o más no pueden facturarse como ` +
+        `Consumidor Final. Selecciona o crea un cliente con cédula o RUC para continuar.`,
+      );
+      return;
+    }
     this.saving.set(true);
     this.error.set(null);
     const payload = {
@@ -415,7 +439,9 @@ export class PosComponent implements OnInit, OnDestroy {
       },
       error: e => {
         this.saving.set(false);
-        const detail = parseApiError(e).message
+        const parsed = parseApiError(e);
+        const fieldMsg = Object.values(parsed.fieldErrors)[0];
+        const detail = parsed.message || fieldMsg
           || (e?.error?.items ? JSON.stringify(e.error.items) : null)
           || 'Error al procesar venta';
         this.error.set(detail);

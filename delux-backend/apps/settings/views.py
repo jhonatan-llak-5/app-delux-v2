@@ -76,6 +76,8 @@ class StoreOptionsView(APIView):
             'delivery_enabled': bool(c.delivery_enabled),
             'out_of_stock_display': c.out_of_stock_display or 'SHOW',
             'consumidor_final_enabled': bool(c.consumidor_final_enabled),
+            'einvoice_enabled': bool(c.einvoice_enabled),
+            'einvoice_consumidor_final_max': float(c.einvoice_consumidor_final_max or 0),
         })
 
     def patch(self, request):
