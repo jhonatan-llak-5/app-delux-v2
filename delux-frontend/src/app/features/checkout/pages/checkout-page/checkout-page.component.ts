@@ -47,13 +47,13 @@ export class CheckoutPageComponent implements OnInit, AfterViewInit, OnDestroy {
     // El paso 2 (sucursales) reacciona a la ciudad de la zona: si cambia
     // (chip del navbar o ubicación del mapa), recarga las sucursales.
     effect(() => {
-      const city = this.zone.city() || undefined;
-      this.loadBranches(city);
+      const province = this.zone.province() || undefined;
+      this.loadBranches(province);
     });
   }
 
-  private loadBranches(city?: string) {
-    this.branchSvc.list(city).subscribe(r => {
+  private loadBranches(province?: string) {
+    this.branchSvc.list(undefined, province).subscribe(r => {
       const list = r.results || [];
       this.branches.set(list);
       this.branchId = list.length ? list[0].id : null;
@@ -82,16 +82,23 @@ export class CheckoutPageComponent implements OnInit, AfterViewInit, OnDestroy {
   customer = { full_name: '', email: '', phone: '', document_id: '' };
   // El email se bloquea si es un cliente con sesion (el pedido va a su perfil).
   emailLocked = () => this.auth.role() === 'CUSTOMER';
-  /** La sucursal de envío seleccionada ofrece envío a domicilio gratis. */
+  /** Sucursal principal del pedido = la del primer ítem del carrito (fallback opcional). */
+  private primaryBranchId(): number | null {
+    return this.cart.lines()[0]?.branch_id ?? null;
+  }
+  /** Envío gratis solo cuando la compra es de UNA sucursal y esa sucursal lo ofrece. */
   freeShipping(): boolean {
     if (this.fulfillment !== 'SHIPPING') return false;
-    const b = this.branches().find(x => x.id === this.branchId);
+    if (this.cart.branchCount() !== 1) return false;
+    const b = this.branches().find(x => x.id === this.primaryBranchId());
     return !!b?.free_shipping;
   }
   freeShippingLabel(): string {
-    const b = this.branches().find(x => x.id === this.branchId);
+    const b = this.branches().find(x => x.id === this.primaryBranchId());
     return (b?.free_shipping_label || '').trim() || 'Envío a domicilio gratis';
   }
+  /** PayPhone no soporta compras de varias sucursales. */
+  payphoneBlocked(): boolean { return this.cart.branchCount() > 1; }
 
   couponInput = '';
   appliedCoupon = signal<CouponValidation | null>(null);
@@ -105,7 +112,7 @@ export class CheckoutPageComponent implements OnInit, AfterViewInit, OnDestroy {
    *  así reacciona a los campos de cliente/sucursal que no son signals. */
   canPay(): boolean {
     const needsVoucher = this.paymentMethod() === 'TRANSFER' || this.paymentMethod() === 'DEUNA';
-    return this.cart.lines().length > 0 && this.branchId !== null &&
+    return this.cart.lines().length > 0 &&
       !!this.customer.full_name.trim() && !!this.customer.email.trim() &&
       !!this.customer.phone.trim() &&
       (this.fulfillment !== 'SHIPPING' || !!this.shippingAddress.trim()) &&
@@ -354,8 +361,13 @@ export class CheckoutPageComponent implements OnInit, AfterViewInit, OnDestroy {
   }
 
   async payNow() {
-    if (!this.canPay() || !this.branchId) return;
+    if (!this.canPay()) return;
     const m = this.paymentMethod();
+    // PayPhone no admite compras de varias sucursales.
+    if (m === 'PAYPHONE' && this.payphoneBlocked()) {
+      this.notify.warning('PayPhone no disponible para compras de varias sucursales; usa transferencia o contra entrega');
+      return;
+    }
     const ok = await this.confirm.ask({
       title: 'Confirmar pedido',
       message: this.confirmMessage(),
@@ -369,10 +381,10 @@ export class CheckoutPageComponent implements OnInit, AfterViewInit, OnDestroy {
     this.fieldErrors.set({});
     const returnUrl = `${window.location.origin}/checkout/result`;
     this.checkout.initPayPhone({
-      branch_id: this.branchId,
+      branch_id: this.primaryBranchId() ?? undefined,
       fulfillment: this.fulfillment,
       customer_data: this.customer,
-      items: this.cart.lines().map(l => ({ variant_id: l.variant_id, quantity: l.quantity })),
+      items: this.cart.lines().map(l => ({ variant_id: l.variant_id, quantity: l.quantity, branch_id: l.branch_id })),
       discount: this.discount(),
       coupon_code: this.appliedCoupon()?.code,
       affiliate_ref: this.ref.currentRef() || undefined,
@@ -386,11 +398,12 @@ export class CheckoutPageComponent implements OnInit, AfterViewInit, OnDestroy {
           this.notify.error(r.error);
           return;
         }
+        const first = r.orders?.[0];
         // Guardar referencia para confirmación tras volver
         sessionStorage.setItem('dlx_pending_payment', JSON.stringify({
           payment_id: r.payment_id,
-          order_code: r.order_code,
-          order_total: r.order_total,
+          order_code: first?.order_code,
+          order_total: first?.order_total,
         }));
         if (r.payment_url) {
           if (r.payment_url.startsWith('/')) {
@@ -415,10 +428,10 @@ export class CheckoutPageComponent implements OnInit, AfterViewInit, OnDestroy {
     this.error.set(null);
     this.fieldErrors.set({});
     this.checkout.placeCOD({
-      branch_id: this.branchId!,
+      branch_id: this.primaryBranchId() ?? undefined,
       fulfillment: this.fulfillment,
       customer_data: this.customer,
-      items: this.cart.lines().map(l => ({ variant_id: l.variant_id, quantity: l.quantity })),
+      items: this.cart.lines().map(l => ({ variant_id: l.variant_id, quantity: l.quantity, branch_id: l.branch_id })),
       discount: this.discount(),
       coupon_code: this.appliedCoupon()?.code,
       affiliate_ref: this.ref.currentRef() || undefined,
@@ -427,9 +440,19 @@ export class CheckoutPageComponent implements OnInit, AfterViewInit, OnDestroy {
       next: r => {
         this.saving.set(false);
         if (r.error) { this.error.set(r.error); this.notify.error(r.error); return; }
-        this.notify.success('¡Pedido registrado!');
+        const orders = r.orders || [];
+        const first = orders[0];
+        if (orders.length > 1) {
+          this.notify.success(`Tu compra se dividió en ${orders.length} pedidos (uno por sucursal).`);
+        } else {
+          this.notify.success('¡Pedido registrado!');
+        }
         this.router.navigate(['/checkout/result'], {
-          queryParams: { success: 'true', code: r.order_code, cod: 'true', track: r.tracking_code || '' },
+          queryParams: {
+            success: 'true', code: first?.order_code || '', cod: 'true',
+            track: first?.tracking_code || '',
+            group: r.group_code || '', count: orders.length,
+          },
         });
       },
       error: e => {
@@ -453,10 +476,10 @@ export class CheckoutPageComponent implements OnInit, AfterViewInit, OnDestroy {
     this.fieldErrors.set({});
     this.checkout.placeTransfer({
       method,
-      branch_id: this.branchId!,
+      branch_id: this.primaryBranchId() ?? undefined,
       fulfillment: this.fulfillment,
       customer_data: this.customer,
-      items: this.cart.lines().map(l => ({ variant_id: l.variant_id, quantity: l.quantity })),
+      items: this.cart.lines().map(l => ({ variant_id: l.variant_id, quantity: l.quantity, branch_id: l.branch_id })),
       discount: this.discount(),
       coupon_code: this.appliedCoupon()?.code,
       affiliate_ref: this.ref.currentRef() || undefined,
@@ -465,9 +488,18 @@ export class CheckoutPageComponent implements OnInit, AfterViewInit, OnDestroy {
       next: r => {
         this.saving.set(false);
         if (r.error) { this.error.set(r.error); this.notify.error(r.error); return; }
-        this.notify.success('¡Pedido registrado! Validaremos tu comprobante.');
+        const orders = r.orders || [];
+        const first = orders[0];
+        if (orders.length > 1) {
+          this.notify.success(`Tu compra se dividió en ${orders.length} pedidos (uno por sucursal). Validaremos tu comprobante.`);
+        } else {
+          this.notify.success('¡Pedido registrado! Validaremos tu comprobante.');
+        }
         this.router.navigate(['/checkout/result'], {
-          queryParams: { success: 'true', code: r.order_code, pending: 'true' },
+          queryParams: {
+            success: 'true', code: first?.order_code || '', pending: 'true',
+            group: r.group_code || '', count: orders.length,
+          },
         });
       },
       error: e => {

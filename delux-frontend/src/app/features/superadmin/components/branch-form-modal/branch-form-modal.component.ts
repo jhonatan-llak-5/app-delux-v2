@@ -1,5 +1,6 @@
 import { ChangeDetectionStrategy, Component, EventEmitter, Input, Output, signal } from '@angular/core';
 import { DlxToggleComponent } from '@shared/ui/toggle.component';
+import { DlxProvinceSelectComponent } from '@shared/ui/province-select.component';
 import { DlxFieldErrorComponent } from '@shared/ui/field-error.component';
 import { CommonModule } from '@angular/common';
 import { DlxModalComponent } from '@shared/ui/modal.component';
@@ -42,6 +43,7 @@ export interface BranchPayload {
   code: string;
   name: string;
   city: string;
+  province: string;
   address: string;
   phone: string;
   email: string;
@@ -59,7 +61,7 @@ export interface BranchPayload {
 @Component({
   selector: 'dlx-branch-form-modal',
   standalone: true,
-  imports: [DlxFieldErrorComponent, CommonModule, FormsModule, DlxModalComponent, DlxToggleComponent],
+  imports: [DlxFieldErrorComponent, CommonModule, FormsModule, DlxModalComponent, DlxToggleComponent, DlxProvinceSelectComponent],
   changeDetection: ChangeDetectionStrategy.OnPush,
   template: `
     <dlx-modal [open]="true" [maxWidth]="680"
@@ -83,10 +85,10 @@ export interface BranchPayload {
 
           <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
             <div>
-              <label class="eg-label">Ciudad *</label>
-              <input [(ngModel)]="form.city" name="city" required maxlength="80"
-                     class="eg-input" [class.!border-rose-400]="fe('city')" placeholder="Quito" />
-              <dlx-field-error [error]="fe(\'city\')" />
+              <label class="eg-label">Provincia *</label>
+              <dlx-province-select [(ngModel)]="form.province" name="province"
+                                   placeholder="Selecciona la provincia" />
+              <dlx-field-error [error]="fe(\'province\')" />
             </div>
             <div>
               <label class="eg-label">Teléfono</label>
@@ -217,7 +219,7 @@ export class BranchFormModalComponent {
   dayLabel(wd: number): string { return DAY_LABELS[wd] || ''; }
 
   form: BranchPayload = {
-    code: '', name: '', city: '', address: '', phone: '', email: '',
+    code: '', name: '', city: '', province: '', address: '', phone: '', email: '',
     latitude: null, longitude: null, opening_hours: '',
     allows_pickup: true, free_shipping: false, free_shipping_label: 'Envío a domicilio gratis', is_active: true, kiosk_pin: '',
     schedules: defaultSchedules(),
@@ -227,7 +229,7 @@ export class BranchFormModalComponent {
     if (this.branch) {
       const b = this.branch as any;
       this.form = {
-        code: b.code, name: b.name, city: b.city, address: b.address,
+        code: b.code, name: b.name, city: b.city, province: b.province || '', address: b.address,
         phone: b.phone || '', email: b.email || '',
         latitude: b.latitude ?? null, longitude: b.longitude ?? null,
         opening_hours: b.opening_hours || '',
@@ -251,7 +253,7 @@ export class BranchFormModalComponent {
     const errs: Record<string, string> = {};
     if (!this.form.code?.trim()) errs['code'] = 'Este campo es obligatorio.';
     if (!this.form.name?.trim()) errs['name'] = 'Este campo es obligatorio.';
-    if (!this.form.city?.trim()) errs['city'] = 'Este campo es obligatorio.';
+    if (!this.form.province?.trim()) errs['province'] = 'Selecciona la provincia.';
     if (!this.form.address?.trim()) errs['address'] = 'Este campo es obligatorio.';
     this.fieldErrors.set(errs);
     if (Object.keys(errs).length) return;

@@ -25,6 +25,7 @@ export interface PublicProduct {
   colors?: string[];
   out_of_stock_display?: 'SHOW' | 'HIDE' | 'SOLD_OUT';
   thumb_url?: string | null;
+  branches?: { id: number; name: string; province: string; stock: number }[];
 }
 
 export interface PublicProductColor { name: string; hex: string; image: string; }
@@ -40,6 +41,7 @@ export interface PublicProductDetail {
   rating: number; reviews_count: number;
   in_stock?: boolean;
   out_of_stock_display?: 'SHOW' | 'HIDE' | 'SOLD_OUT';
+  branches?: { id: number; name: string; province: string; stock: number }[];
 }
 
 export interface PublicCategory { id: number; name: string; slug: string; parent_id: number | null; }
@@ -54,7 +56,7 @@ export class PublicCatalogService {
     q?: string; brand?: string; category?: string; gender?: string;
     sort?: 'new' | 'featured' | 'price-asc' | 'price-desc';
     price_min?: number; price_max?: number; size?: string; color?: string;
-    city?: string; branch?: number;
+    city?: string; province?: string; branch?: number;
     page?: number; page_size?: number;
   } = {}): Observable<{ count: number; results: PublicProduct[] }> {
     let p = new HttpParams();

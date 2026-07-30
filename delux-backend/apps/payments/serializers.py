@@ -23,11 +23,15 @@ class PaymentSerializer(serializers.ModelSerializer):
 
 class PayPhoneInitOrderSerializer(serializers.Serializer):
     """Crea orden WEB+PENDING + inicia pago PayPhone en un solo paso."""
-    branch_id = serializers.IntegerField()
+    # branch_id de nivel superior OPCIONAL: se usa como fallback cuando un item
+    # no trae su propia sucursal (compra multi-sucursal, FASE 2).
+    branch_id = serializers.IntegerField(required=False, default=None)
     fulfillment = serializers.ChoiceField(
         choices=['SHIPPING', 'PICKUP'], required=False, default='SHIPPING'
     )
     customer_data = serializers.DictField()
+    # Cada item puede ser {variant_id, quantity, branch_id?}: la sucursal por
+    # item permite pedidos separados por sucursal (un sub-pedido por sucursal).
     items = serializers.ListField(child=serializers.DictField(), allow_empty=False)
     discount = serializers.DecimalField(max_digits=10, decimal_places=2, default=0)
     coupon_code = serializers.CharField(required=False, allow_blank=True)
@@ -47,11 +51,14 @@ class PayPhoneConfirmSerializer(serializers.Serializer):
 
 class CheckoutCODSerializer(serializers.Serializer):
     """Crea pedido WEB con pago contra entrega (sin pasarela)."""
-    branch_id = serializers.IntegerField()
+    # branch_id de nivel superior OPCIONAL: fallback cuando un item no trae su
+    # propia sucursal (compra multi-sucursal, FASE 2).
+    branch_id = serializers.IntegerField(required=False, default=None)
     fulfillment = serializers.ChoiceField(
         choices=['SHIPPING', 'PICKUP'], required=False, default='SHIPPING'
     )
     customer_data = serializers.DictField()
+    # Cada item puede ser {variant_id, quantity, branch_id?}.
     items = serializers.ListField(child=serializers.DictField(), allow_empty=False)
     discount = serializers.DecimalField(max_digits=10, decimal_places=2, default=0)
     coupon_code = serializers.CharField(required=False, allow_blank=True)
@@ -62,12 +69,15 @@ class CheckoutCODSerializer(serializers.Serializer):
 
 class CheckoutTransferSerializer(serializers.Serializer):
     """Pedido WEB con pago por Transferencia o DE UNA (comprobante aparte)."""
-    branch_id = serializers.IntegerField()
+    # branch_id de nivel superior OPCIONAL: fallback cuando un item no trae su
+    # propia sucursal (compra multi-sucursal, FASE 2).
+    branch_id = serializers.IntegerField(required=False, default=None)
     fulfillment = serializers.ChoiceField(
         choices=['SHIPPING', 'PICKUP'], required=False, default='SHIPPING'
     )
     method = serializers.ChoiceField(choices=['TRANSFER', 'DEUNA'], default='TRANSFER')
     customer_data = serializers.DictField()
+    # Cada item puede ser {variant_id, quantity, branch_id?}.
     items = serializers.ListField(child=serializers.DictField(), allow_empty=False)
     discount = serializers.DecimalField(max_digits=10, decimal_places=2, default=0)
     coupon_code = serializers.CharField(required=False, allow_blank=True)

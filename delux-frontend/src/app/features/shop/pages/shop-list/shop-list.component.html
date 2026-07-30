@@ -196,10 +196,10 @@
               </button>
             </dlx-empty-state>
           } @else {
-            @if (zone.city()) {
+            @if (zone.province()) {
               <div class="flex items-center gap-2 mb-5 text-[13px]">
                 <i class="fa-solid fa-location-dot text-[#e4002b]"></i>
-                <span class="font-semibold text-emerald-600">{{ availableCount() }} disponibles en {{ zone.city() }}</span>
+                <span class="font-semibold text-emerald-600">{{ availableCount() }} disponibles en {{ zone.province() }}</span>
                 @if (unavailableCount() > 0) {
                   <span class="text-ink-500 dark:text-white/45">· {{ unavailableCount() }} solo por envío</span>
                 }
@@ -207,10 +207,10 @@
             }
             <div class="grid grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-5">
               @for (p of filtered(); track p.id) {
-                @if (zone.city() && p.id === firstUnavailableId()) {
+                @if (zone.province() && p.id === firstUnavailableId()) {
                   <div class="col-span-full flex items-center gap-3 mt-6 mb-1">
                     <span class="text-[12px] font-bold uppercase tracking-wider text-ink-500 dark:text-white/50">
-                      Solo por envío a {{ zone.city() }}
+                      Solo por envío a {{ zone.province() }}
                     </span>
                     <div class="flex-1 h-px bg-ink-200 dark:bg-white/10"></div>
                   </div>
@@ -275,6 +275,13 @@
                         <span class="text-[13px] text-ink-400 dark:text-white/35 line-through">${{ p.oldPrice }}</span>
                       }
                     </div>
+
+                    @if (p.branches?.length) {
+                      <p class="flex items-center gap-1.5 mt-2.5 text-[11px] text-ink-500 dark:text-white/45 truncate">
+                        <i class="fa-solid fa-store text-[10px] text-[#e4002b]"></i>
+                        <span class="truncate">Disponible en: {{ branchLabel(p) }}</span>
+                      </p>
+                    }
                   </div>
                 </a>
               }

@@ -7,6 +7,7 @@ import { RevealOnScrollDirective } from '@shared/directives/reveal-on-scroll.dir
 import { CountUpDirective } from '@shared/directives/count-up.directive';
 import { PublicBranchesService } from '@shared/services/public-branches.service';
 import { PublicCatalogService, PublicProduct } from '@shared/services/public-catalog.service';
+import { ZoneService } from '@shared/services/zone.service';
 import { BrandingService } from '@core/services/branding.service';
 
 type Section = 'inicio' | 'nosotros' | 'ventas';
@@ -35,6 +36,7 @@ const FALLBACK_BRANCHES: BranchCard[] = [
 export class LandingHomeComponent implements OnInit {
   private branchSvc = inject(PublicBranchesService);
   private catalog = inject(PublicCatalogService);
+  private zone = inject(ZoneService);
   private route = inject(ActivatedRoute);
   private san = inject(DomSanitizer);
   branding = inject(BrandingService);
@@ -177,7 +179,7 @@ export class LandingHomeComponent implements OnInit {
   }
 
   private loadHeroShoe(): void {
-    this.catalog.listProducts({ sort: 'featured', page_size: 8 }).subscribe({
+    this.catalog.listProducts({ sort: 'featured', page_size: 8, province: this.zone.province() || undefined }).subscribe({
       next: r => {
         const list = r.results || [];
         this.featured.set(list.slice(0, 5));

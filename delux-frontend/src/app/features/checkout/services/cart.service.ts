@@ -13,7 +13,18 @@ export interface CartLine {
   unit_price: number;
   quantity: number;
   max_stock: number;
+  branch_id: number;
+  branch_name: string;
   brand_name?: string;
+}
+
+/** Líneas del carrito agrupadas por la sucursal que las despacha. Cada línea
+ *  conserva su índice original en `lines()` para poder editar cantidad/eliminar. */
+export interface CartGroup {
+  branch_id: number;
+  branch_name: string;
+  lines: { item: CartLine; index: number }[];
+  subtotal: number;
 }
 
 const BASE_KEY = 'dlx_cart_v1';
@@ -30,6 +41,26 @@ export class CartService {
     this.lines().reduce((s, l) => s + l.unit_price * l.quantity, 0)
   );
   itemCount = computed(() => this.lines().reduce((s, l) => s + l.quantity, 0));
+
+  /** Carrito agrupado por sucursal (para carrito multi-sucursal). */
+  groups = computed<CartGroup[]>(() => {
+    const out: CartGroup[] = [];
+    const map = new Map<number, CartGroup>();
+    this.lines().forEach((item, index) => {
+      let g = map.get(item.branch_id);
+      if (!g) {
+        g = { branch_id: item.branch_id, branch_name: item.branch_name, lines: [], subtotal: 0 };
+        map.set(item.branch_id, g);
+        out.push(g);
+      }
+      g.lines.push({ item, index });
+      g.subtotal += item.unit_price * item.quantity;
+    });
+    return out;
+  });
+
+  /** Número de sucursales distintas presentes en el carrito. */
+  branchCount = computed(() => new Set(this.lines().map(l => l.branch_id)).size);
 
   constructor() {
     // Al cambiar de identidad (login / logout / cambio de cuenta) se recarga el
@@ -52,7 +83,10 @@ export class CartService {
   private loadFromStorage(key: string): CartLine[] {
     try {
       const raw = localStorage.getItem(key);
-      return raw ? JSON.parse(raw) : [];
+      const list: CartLine[] = raw ? JSON.parse(raw) : [];
+      // Descarta líneas de carritos previos al multi-sucursal (sin branch_id),
+      // que quedarían mostrando la sucursal como "undefined".
+      return Array.isArray(list) ? list.filter(l => l && l.branch_id != null) : [];
     } catch { return []; }
   }
 
@@ -61,7 +95,8 @@ export class CartService {
   }
 
   add(line: Omit<CartLine, 'quantity'>, qty = 1) {
-    const idx = this.lines().findIndex(l => l.variant_id === line.variant_id);
+    const idx = this.lines().findIndex(
+      l => l.variant_id === line.variant_id && l.branch_id === line.branch_id);
     if (idx >= 0) {
       const next = [...this.lines()];
       next[idx] = { ...next[idx], quantity: Math.min(next[idx].quantity + qty, next[idx].max_stock) };

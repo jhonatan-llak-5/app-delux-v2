@@ -24,9 +24,21 @@ import { environment } from '@env/environment';
               ? 'Tu pedido fue registrado. Te contactaremos para coordinar la entrega y el pago contra entrega.'
               : 'Tu orden ha sido procesada exitosamente.' }}
           </p>
+          @if (orderCount() > 1) {
+            <div class="mb-6 rounded-xl border border-sky-200 dark:border-sky-500/30 bg-sky-50 dark:bg-sky-500/10 px-4 py-3">
+              <p class="text-sm text-sky-800 dark:text-sky-200 font-semibold">
+                <i class="fa-solid fa-boxes-stacked"></i>
+                Tu compra se dividió en {{ orderCount() }} pedidos (uno por sucursal).
+              </p>
+              @if (groupCode()) {
+                <p class="text-xs font-mono text-sky-700 dark:text-sky-300 mt-1">Compra {{ groupCode() }}</p>
+              }
+            </div>
+          }
           @if (orderCode()) {
             <p class="text-sm font-mono text-ink-500 dark:text-white/50 mb-8">
-              Voucher: <span class="font-bold text-ink-950 dark:text-white">{{ orderCode() }}</span>
+              {{ orderCount() > 1 ? 'Primer voucher' : 'Voucher' }}:
+              <span class="font-bold text-ink-950 dark:text-white">{{ orderCode() }}</span>
             </p>
           }
           @if (trackCode()) {
@@ -84,6 +96,8 @@ export class CheckoutResultComponent implements OnInit {
   isCod = signal(false);
   receiptUrl = computed(() => `${environment.apiUrl}/admin/checkout/receipt/${this.orderCode()}/`);
   trackCode = signal<string | null>(null);
+  groupCode = signal<string | null>(null);
+  orderCount = signal<number>(1);
 
   ngOnInit() {
     const s = this.route.snapshot.queryParamMap.get('success');
@@ -92,6 +106,9 @@ export class CheckoutResultComponent implements OnInit {
     this.isCod.set(this.route.snapshot.queryParamMap.get('cod') === 'true');
     const tc = this.route.snapshot.queryParamMap.get('track');
     this.trackCode.set(tc && tc.length ? tc : null);
+    const gc = this.route.snapshot.queryParamMap.get('group');
+    this.groupCode.set(gc && gc.length ? gc : null);
+    this.orderCount.set(Number(this.route.snapshot.queryParamMap.get('count')) || 1);
     // Limpiar carrito si fue exitoso
     if (this.success()) {
       this.cart.clear();

@@ -53,6 +53,15 @@ def filter_products(request):
             variants__stocks__quantity__gt=0,
         ).distinct()
 
+    # Filtro ESTRICTO por provincia: solo productos con stock (>0) en alguna
+    # sucursal de esa provincia. Si vienen branch y province, se combinan ambos.
+    province = params.get('province')
+    if province:
+        qs = qs.filter(
+            variants__stocks__branch__province__iexact=province,
+            variants__stocks__quantity__gt=0,
+        ).distinct()
+
     sort = params.get('sort', 'new')
     if sort == 'price-asc': qs = qs.order_by('base_price')
     elif sort == 'price-desc': qs = qs.order_by('-base_price')
@@ -136,6 +145,29 @@ class PublicProductsView(APIView):
                     .values('variant__product_id').annotate(total=Sum('quantity')))
             stock_map = {r['variant__product_id']: r['total'] or 0 for r in rows}
 
+        # Sucursales donde CADA producto tiene stock (>0), para la UI
+        # "disponible en sucursal X". Si viene ?province= se limita a esa
+        # provincia; si no, se listan todas. UNA sola consulta agregada
+        # (product + branch) para evitar N+1.
+        prov = params.get('province')
+        branches_rows_qs = (
+            Stock.objects
+            .filter(variant__product_id__in=pids, quantity__gt=0)
+            .values('variant__product_id', 'branch_id',
+                    'branch__name', 'branch__province')
+            .annotate(stock=Sum('quantity'))
+        )
+        if prov:
+            branches_rows_qs = branches_rows_qs.filter(branch__province__iexact=prov)
+        branches_map: dict = {}
+        for r in branches_rows_qs:
+            branches_map.setdefault(r['variant__product_id'], []).append({
+                'id': r['branch_id'],
+                'name': r['branch__name'],
+                'province': r['branch__province'],
+                'stock': r['stock'] or 0,
+            })
+
         def serialize(p):
             stock = stock_map.get(p.id, 0)
             return {
@@ -155,6 +187,7 @@ class PublicProductsView(APIView):
                 'total_stock': total_stock_map.get(p.id, 0),
                 'sizes': sizes_map.get(p.id, []),
                 'colors': colors_map.get(p.id, []),
+                'branches': branches_map.get(p.id, []),
                 'out_of_stock_display': oos,
             }
 
@@ -281,6 +314,22 @@ class PublicProductDetailView(APIView):
         _in_stock = _tot > 0
         _oos = _PS.load().out_of_stock_display or 'SHOW'
 
+        # Sucursales donde este producto tiene stock (para elegir sucursal al
+        # comprar). Se limita a la provincia si viene ?province=.
+        _prov = request.query_params.get('province')
+        _brows = (_Stock.objects
+                  .filter(variant__product_id=p.id, quantity__gt=0)
+                  .values('branch_id', 'branch__name', 'branch__province')
+                  .annotate(stock=_Sum('quantity')))
+        if _prov:
+            _brows = _brows.filter(branch__province__iexact=_prov)
+        branches = [{
+            'id': r['branch_id'],
+            'name': r['branch__name'],
+            'province': r['branch__province'],
+            'stock': r['stock'] or 0,
+        } for r in _brows if (r['stock'] or 0) > 0]
+
         return Response({
             'id': p.id, 'name': p.name, 'slug': p.slug,
             'brand_name': p.brand.name, 'category_name': p.category.name,
@@ -303,4 +352,5 @@ class PublicProductDetailView(APIView):
             'reviews_count': agg['n'] or 0,
             'in_stock': _in_stock,
             'out_of_stock_display': _oos,
+            'branches': branches,
         })

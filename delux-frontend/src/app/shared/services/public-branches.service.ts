@@ -8,6 +8,7 @@ export interface PublicBranch {
   code: string;
   name: string;
   city: string;
+  province: string;
   address: string;
   latitude: number | null;
   longitude: number | null;
@@ -29,9 +30,10 @@ export class PublicBranchesService {
   private base = environment.apiUrl;
 
   /** Sucursales activas del tenant actual (registradas en superadmin). */
-  list(city?: string): Observable<BranchesResp> {
+  list(city?: string, province?: string): Observable<BranchesResp> {
     const params: Record<string, string> = { slug: environment.tenant };
     if (city) params['city'] = city;
+    if (province) params['province'] = province;
     return this.http.get<BranchesResp>(`${this.base}/branches/`, { params });
   }
 }

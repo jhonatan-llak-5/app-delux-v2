@@ -9,6 +9,7 @@ class Branch(TenantOwnedModel):
     code = models.CharField(max_length=10)
     name = models.CharField(max_length=80)
     city = models.CharField(max_length=80)
+    province = models.CharField(max_length=80, blank=True, default='')
     address = models.CharField(max_length=200)
     latitude = models.DecimalField(max_digits=12, decimal_places=8, null=True, blank=True)
     longitude = models.DecimalField(max_digits=12, decimal_places=8, null=True, blank=True)

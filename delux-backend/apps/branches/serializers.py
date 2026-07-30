@@ -13,13 +13,18 @@ class BranchSerializer(serializers.ModelSerializer):
     manager_name = serializers.CharField(source='manager.full_name',
                                          read_only=True, default=None)
     kiosk_pin = serializers.CharField(max_length=8, required=False, allow_blank=True)
+    # La ciudad se conserva (para no perder el dato) pero ya NO es obligatoria;
+    # la provincia pasa a ser el campo requerido del catálogo.
+    city = serializers.CharField(max_length=80, required=False, allow_blank=True)
+    # Provincia OBLIGATORIA al crear/editar (base del catálogo por provincia).
+    province = serializers.CharField(max_length=80, required=True, allow_blank=False)
     schedules = serializers.SerializerMethodField()
 
     class Meta:
         model = Branch
         fields = (
             'id', 'tenant_id', 'tenant_slug',
-            'code', 'name', 'city', 'address',
+            'code', 'name', 'city', 'province', 'address',
             'latitude', 'longitude', 'phone', 'email',
             'opening_hours', 'manager', 'manager_name',
             'allows_pickup', 'free_shipping', 'free_shipping_label', 'is_active', 'created_at',
@@ -28,6 +33,11 @@ class BranchSerializer(serializers.ModelSerializer):
             'schedules',
         )
         read_only_fields = ('kiosk_token',)
+
+    def validate_province(self, value):
+        if not (value or '').strip():
+            raise serializers.ValidationError('La provincia es obligatoria.')
+        return value.strip()
 
     def get_schedules(self, obj):
         return [{

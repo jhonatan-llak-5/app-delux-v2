@@ -54,9 +54,9 @@
             <div class="editorial-card p-6">
               <div class="flex items-center gap-3 mb-4">
                 <span class="w-7 h-7 rounded-full bg-ink-950 dark:bg-white text-white dark:text-ink-950 grid place-items-center font-bold text-sm">2</span>
-                <h2 class="font-display font-bold text-xl text-ink-950 dark:text-white">Sucursal de despacho</h2>
+                <h2 class="font-display font-bold text-xl text-ink-950 dark:text-white">Entrega y despacho</h2>
               </div>
-              <p class="text-sm text-ink-700 dark:text-white/70 mb-4">El stock se reserva en la sucursal seleccionada.</p>
+              <p class="text-sm text-ink-700 dark:text-white/70 mb-4">Cada producto se despacha desde la sucursal donde tiene stock.</p>
 
               <!-- Tipo de entrega -->
               <div class="grid grid-cols-2 gap-3 mb-4">
@@ -92,20 +92,28 @@
                 }
               </div>
 
-              <div class="grid grid-cols-1 md:grid-cols-3 gap-3">
-                @for (b of branches(); track b.id) {
-                  <button type="button" (click)="branchId = b.id"
-                          class="p-4 rounded-xl border-2 text-left transition"
-                          [class.border-accent-500]="branchId === b.id"
-                          [class.bg-accent-50]="branchId === b.id"
-                          [class.dark:bg-white/10]="branchId === b.id"
-                          [class.border-ink-200]="branchId !== b.id"
-                          [class.dark:border-white/10]="branchId !== b.id">
-                    <p class="font-mono text-[10px] uppercase tracking-widest text-ink-500 dark:text-white/50">{{ b.code }}</p>
-                    <p class="font-semibold text-ink-950 dark:text-white mt-0.5">{{ b.name }}</p>
-                    <p class="text-xs text-ink-700 dark:text-white/60 mt-0.5">{{ b.city }}</p>
-                  </button>
-                }
+              <!-- Se despachará desde (read-only, agrupado por sucursal) -->
+              @if (cart.branchCount() > 1) {
+                <div class="mb-4 flex items-start gap-2.5 rounded-xl border border-sky-200 dark:border-sky-500/30 bg-sky-50 dark:bg-sky-500/10 px-3.5 py-3">
+                  <i class="fa-solid fa-circle-info text-sky-600 dark:text-sky-400 mt-0.5"></i>
+                  <p class="text-[13px] text-ink-700 dark:text-white/75 leading-snug">
+                    Tu pedido contiene productos de <strong>diferentes sucursales</strong>. Se procesará en paquetes separados.
+                  </p>
+                </div>
+              }
+              <div>
+                <p class="text-xs font-semibold uppercase tracking-wider text-ink-500 dark:text-white/50 mb-2">Se despachará desde:</p>
+                <ul class="space-y-2">
+                  @for (g of cart.groups(); track g.branch_id) {
+                    <li class="flex items-center justify-between gap-3 px-4 py-3 rounded-xl border border-ink-200 dark:border-white/10 bg-ink-50 dark:bg-white/[0.03]">
+                      <span class="flex items-center gap-2 min-w-0">
+                        <i class="fa-solid fa-store text-accent-600 dark:text-accent-400"></i>
+                        <span class="font-semibold text-ink-950 dark:text-white truncate">{{ g.branch_name }}</span>
+                      </span>
+                      <span class="text-xs text-ink-600 dark:text-white/60 shrink-0">{{ g.lines.length }} producto(s)</span>
+                    </li>
+                  }
+                </ul>
               </div>
 
               @if (fulfillment === 'SHIPPING') {
@@ -303,7 +311,7 @@
               <h2 class="font-display font-bold text-xl mb-4 text-ink-950 dark:text-white">Tu orden</h2>
 
               <ul class="space-y-3 max-h-72 overflow-y-auto pb-3 border-b border-ink-200 dark:border-white/10">
-                @for (l of cart.lines(); track l.variant_id) {
+                @for (l of cart.lines(); track l.variant_id + '_' + l.branch_id) {
                   <li class="flex gap-2.5">
                     <div class="relative w-14 h-14 rounded-lg bg-ink-100 dark:bg-white/5 overflow-hidden shrink-0">
                       <img [src]="l.product_image" [alt]="l.product_name"
@@ -316,6 +324,7 @@
                     <div class="flex-1 min-w-0">
                       <p class="text-xs font-semibold truncate text-ink-950 dark:text-white">{{ l.product_name }}</p>
                       <p class="text-[10px] text-ink-500 dark:text-white/50 font-mono truncate">{{ l.size }} · {{ l.color }}</p>
+                      <p class="text-[10px] text-ink-400 dark:text-white/40 truncate"><i class="fa-solid fa-store"></i> {{ l.branch_name }}</p>
                     </div>
                     <span class="text-xs font-bold text-ink-950 dark:text-white">${{ (l.unit_price * l.quantity).toFixed(2) }}</span>
                   </li>

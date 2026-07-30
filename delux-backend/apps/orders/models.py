@@ -54,6 +54,9 @@ class Order(TenantOwnedModel):
     total = models.DecimalField(max_digits=10, decimal_places=2, default=0)
 
     coupon_code = models.CharField(max_length=40, blank=True)
+    # Agrupa los sub-pedidos de una misma compra web multi-sucursal (un pedido
+    # por sucursal). Vacío en compras normales de una sola sucursal.
+    group_code = models.CharField(max_length=40, blank=True, default='', db_index=True)
     notes = models.TextField(blank=True)
     # Motivo al cancelar/anular la venta (Devolución, Defectuoso, Error, ...).
     cancel_reason = models.CharField(max_length=200, blank=True, default='')

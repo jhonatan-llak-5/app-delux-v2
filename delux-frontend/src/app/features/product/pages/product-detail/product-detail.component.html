@@ -192,19 +192,56 @@
               }
             </div>
 
+            <!-- SUCURSAL / DISPONIBILIDAD -->
+            @if (branches().length) {
+              <div class="mt-7">
+                @if (branches().length === 1) {
+                  <p class="text-[13px] text-ink-700 dark:text-white/70 flex items-center gap-2">
+                    <i class="fa-solid fa-store text-[#0095f6]"></i>
+                    Disponible en:
+                    <span class="font-semibold text-ink-950 dark:text-white">{{ branches()[0].name }}</span>
+                    <span class="text-ink-500 dark:text-white/50">· {{ branches()[0].stock }} en stock</span>
+                  </p>
+                } @else {
+                  <h3 class="text-[13px] font-bold text-ink-950 dark:text-white mb-3.5">Elige la sucursal</h3>
+                  <div class="space-y-2">
+                    @for (b of branches(); track b.id) {
+                      <button type="button" (click)="selectBranch(b.id)"
+                              class="w-full flex items-center justify-between gap-3 px-4 py-3 rounded-xl border-2 text-left transition"
+                              [ngClass]="activeBranchId() === b.id
+                                ? 'border-[#0095f6] bg-[#0095f6]/5'
+                                : 'border-ink-200 dark:border-white/15 hover:border-[#0095f6]'">
+                        <span class="flex items-center gap-2">
+                          <i class="fa-solid text-[13px]"
+                             [ngClass]="activeBranchId() === b.id ? 'fa-circle-dot text-[#0095f6]' : 'fa-circle text-ink-300 dark:text-white/30'"></i>
+                          <span class="font-semibold text-ink-950 dark:text-white text-[14px]">{{ b.name }}</span>
+                        </span>
+                        <span class="text-[13px] text-ink-600 dark:text-white/55 tabular-nums">{{ b.stock }} en stock</span>
+                      </button>
+                    }
+                  </div>
+                }
+              </div>
+            } @else {
+              <div class="mt-7 flex items-center gap-2.5 rounded-xl border border-amber-200 dark:border-amber-500/30 bg-amber-50 dark:bg-amber-500/10 px-3.5 py-3">
+                <i class="fa-solid fa-triangle-exclamation text-amber-600 dark:text-amber-400"></i>
+                <p class="text-[13px] text-ink-700 dark:text-white/75">Sin stock en tu provincia.</p>
+              </div>
+            }
+
             <!-- CTAs -->
             <div class="space-y-3 mt-8">
-              <button type="button" (click)="addToCart()" [disabled]="buyBlocked()"
+              <button type="button" (click)="addToCart()" [disabled]="!canAdd()"
                       class="w-full h-14 rounded-full
                              text-white font-semibold text-[15px]
                              inline-flex items-center justify-center gap-2
                              transition-colors"
-                      [class.bg-[#0095f6]]="!buyBlocked()"
-                      [class.hover:bg-[#1877f2]]="!buyBlocked()"
-                      [class.bg-ink-400]="buyBlocked()"
-                      [class.cursor-not-allowed]="buyBlocked()">
-                <i class="fa-solid" [class.fa-bag-shopping]="!buyBlocked()" [class.fa-ban]="buyBlocked()"></i>
-                {{ buyBlocked() ? 'Agotado' : 'Agregar al carrito' }}
+                      [class.bg-[#0095f6]]="canAdd()"
+                      [class.hover:bg-[#1877f2]]="canAdd()"
+                      [class.bg-ink-400]="!canAdd()"
+                      [class.cursor-not-allowed]="!canAdd()">
+                <i class="fa-solid" [class.fa-bag-shopping]="canAdd()" [class.fa-ban]="!canAdd()"></i>
+                {{ buyBlocked() ? 'Agotado' : (branches().length ? 'Agregar al carrito' : 'Sin stock en tu provincia') }}
               </button>
               <button type="button" (click)="toggleWishlistWithToast()"
                       class="w-full h-14 rounded-full

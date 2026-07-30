@@ -16,6 +16,7 @@ interface Product {
   price: number; oldPrice?: number; colors: string[]; sizes: string[];
   image: string; tag?: 'Nuevo' | 'Drop' | 'Oferta' | 'Exclusivo';
   gender: 'men' | 'women' | 'unisex'; available: boolean; soldOut?: boolean;
+  branches: { id: number; name: string; province: string; stock: number }[];
 }
 interface Filter { categories: string[]; brands: string[]; sizes: string[]; priceMin: number; priceMax: number; }
 
@@ -57,7 +58,7 @@ products = signal<Product[]>([]);
   total = signal(0);
   private page = 1;
   private readonly pageSize = 40;
-  private currentCity: string | null = null;
+  private currentProvince: string | null = null;
   hasMore = computed(() => this.products().length < this.total());
   private io?: IntersectionObserver;
   @ViewChild('loadSentinel') set sentinel(ref: ElementRef<HTMLElement> | undefined) {
@@ -71,8 +72,8 @@ products = signal<Product[]>([]);
   }
 
   constructor() {
-    // Recarga el catálogo segun la ciudad elegida por el cliente.
-    effect(() => { const c = this.zone.city(); this.loadProducts(c); });
+    // Recarga el catálogo segun la provincia elegida por el cliente.
+    effect(() => { const p = this.zone.province(); this.loadProducts(p); });
   }
 
   private mapProduct = (pp: any): Product => ({
@@ -89,13 +90,14 @@ products = signal<Product[]>([]);
     gender: this.mapGender(pp.gender),
     available: pp.available_in_city !== false,
     soldOut: pp.in_stock === false,
+    branches: pp.branches || [],
   });
 
-  private loadProducts(city: string | null): void {
-    this.currentCity = city;
+  private loadProducts(province: string | null): void {
+    this.currentProvince = province;
     this.page = 1;
     this.loadingProducts.set(true);
-    this.catalog.listProducts({ city: city || undefined, sort: 'new', page: 1, page_size: this.pageSize }).subscribe({
+    this.catalog.listProducts({ province: province || undefined, sort: 'new', page: 1, page_size: this.pageSize }).subscribe({
       next: r => {
         this.products.set((r.results || []).map(this.mapProduct));
         this.total.set(r.count || 0);
@@ -109,7 +111,7 @@ products = signal<Product[]>([]);
     if (this.loadingMore() || this.loadingProducts() || !this.hasMore()) return;
     this.loadingMore.set(true);
     this.page += 1;
-    this.catalog.listProducts({ city: this.currentCity || undefined, sort: 'new', page: this.page, page_size: this.pageSize }).subscribe({
+    this.catalog.listProducts({ province: this.currentProvince || undefined, sort: 'new', page: this.page, page_size: this.pageSize }).subscribe({
       next: r => {
         this.products.set([...this.products(), ...(r.results || []).map(this.mapProduct)]);
         this.total.set(r.count || 0);
@@ -117,6 +119,14 @@ products = signal<Product[]>([]);
       },
       error: () => { this.page -= 1; this.loadingMore.set(false); },
     });
+  }
+
+  /** "Sucursal Norte" o "Sucursal Norte +2" cuando hay varias. */
+  branchLabel(p: Product): string {
+    const bs = p.branches || [];
+    if (!bs.length) return '';
+    const first = bs[0].name;
+    return bs.length > 1 ? `${first} +${bs.length - 1}` : first;
   }
 
   private mapTag(t: string): Product['tag'] {

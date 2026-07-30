@@ -55,5 +55,9 @@ class PublicBranchesView(APIView):
         if city:
             qs = qs.filter(city__iexact=city)
 
+        province = request.query_params.get('province')
+        if province:
+            qs = qs.filter(province__iexact=province)
+
         data = BranchSerializer(qs, many=True).data
         return Response({'count': len(data), 'results': data})

@@ -18,6 +18,7 @@ interface ProductVM {
   slug: string; price: number; oldPrice?: number; rating: number; reviewsCount: number;
   tag: string; gallery: string[]; colors: ColorOption[]; sizes: string[]; description: string;
   variants: { id: number; size: string; color: string }[];
+  branches: { id: number; name: string; province: string; stock: number }[];
   soldOut?: boolean;
 }
 
@@ -31,7 +32,7 @@ const EMPTY_PRODUCT: ProductVM = {
   id: 0, name: '', subtitle: '', brand: '', category: '', slug: '',
   price: 0, oldPrice: undefined, rating: 0, reviewsCount: 0, tag: '',
   gallery: [IMG_PLACEHOLDER],
-  colors: [], sizes: [], description: '', variants: [],
+  colors: [], sizes: [], description: '', variants: [], branches: [],
 };
 
 @Component({
@@ -61,6 +62,8 @@ export class ProductDetailComponent implements OnInit {
   activeImg = signal(0);
   activeColorIdx = signal(0);
   activeSize = signal<string | null>(null);
+  /** Sucursal elegida para despachar este producto (multi-sucursal). */
+  activeBranchId = signal<number | null>(null);
   sizeError = signal(false);
   zoomed = signal(false);
   zoomOrigin = signal('center');
@@ -68,6 +71,20 @@ export class ProductDetailComponent implements OnInit {
   addedFeedback = signal(false);
 
   product = signal<ProductVM>(EMPTY_PRODUCT);
+
+  /** Sucursales (de la provincia activa) donde el producto tiene stock. */
+  branches = computed(() => this.product().branches || []);
+  /** Sucursal seleccionada (o la de mayor stock / primera por defecto). */
+  selectedBranch = computed(() => {
+    const list = this.branches();
+    if (!list.length) return null;
+    const id = this.activeBranchId();
+    return list.find(b => b.id === id) || list[0];
+  });
+  /** Se puede agregar al carrito: no bloqueado por agotado y hay sucursal con stock. */
+  canAdd = computed(() => !this.buyBlocked() && this.branches().length > 0);
+
+  selectBranch(id: number) { this.activeBranchId.set(id); }
 
   ngOnInit(): void {
     if (this.auth.isLogged()) this.me.wishlist().subscribe({ error: () => {} });
@@ -92,10 +109,18 @@ export class ProductDetailComponent implements OnInit {
           sizes: d.sizes || [],
           description: d.description || '',
           variants: d.variants || [],
+          branches: d.branches || [],
           soldOut: d.in_stock === false,
         });
         this.activeColorIdx.set(0);
         this.activeImg.set(0);
+        // Sucursal por defecto: la de mayor stock (o la primera).
+        const branches = d.branches || [];
+        let best = branches.length ? branches[0] : null;
+        for (const b of branches) {
+          if (!best || b.stock > best.stock) best = b;
+        }
+        this.activeBranchId.set(best ? best.id : null);
         this.loading.set(false);
       },
       error: () => { this.loading.set(false); this.notify.error('No se pudo cargar el producto.'); },
@@ -188,6 +213,13 @@ export class ProductDetailComponent implements OnInit {
       this.notify.warning('Producto agotado', { description: 'Este producto no está disponible por ahora.' });
       return;
     }
+    const branch = this.selectedBranch();
+    if (!branch) {
+      this.notify.warning('Sin stock en tu provincia', {
+        description: 'Este producto no tiene stock disponible en tu provincia por ahora.',
+      });
+      return;
+    }
     if (!this.activeSize()) {
       this.sizeError.set(true);
       this.notify.warning('Selecciona una talla', {
@@ -220,12 +252,14 @@ export class ProductDetailComponent implements OnInit {
       size,
       color: color.name,
       unit_price: this.product().price,
-      max_stock: 99,
+      max_stock: branch.stock,
+      branch_id: branch.id,
+      branch_name: branch.name,
       brand_name: this.product().brand,
     }, 1);
 
     this.notify.success('Agregado al carrito', {
-      description: `${this.product().name} · Talla ${size} · ${color.name}`,
+      description: `${this.product().name} · Talla ${size} · ${color.name} · ${branch.name}`,
       action: {
         label: 'Ver carrito',
         onClick: () => this.router.navigate(['/cart']),

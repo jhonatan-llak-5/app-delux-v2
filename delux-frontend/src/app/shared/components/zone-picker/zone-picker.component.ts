@@ -24,12 +24,12 @@ import { ZoneService } from '@shared/services/zone.service';
                 <div class="w-11 h-11 rounded-2xl bg-[#0095f6]/10 grid place-items-center mb-3">
                   <i class="fa-solid fa-location-dot text-[#0095f6] text-lg"></i>
                 </div>
-                <h2 class="font-bold text-xl text-ink-950 dark:text-white">Elige tu ciudad</h2>
+                <h2 class="font-bold text-xl text-ink-950 dark:text-white">Elige tu provincia</h2>
                 <p class="text-sm text-ink-500 dark:text-white/55 mt-1">
-                  Te mostramos solo los productos disponibles en tu zona.
+                  Te mostramos solo los productos disponibles en tu provincia.
                 </p>
               </div>
-              @if (zone.hasCity()) {
+              @if (zone.hasProvince()) {
                 <button (click)="zone.closePicker()" aria-label="Cerrar"
                         class="w-8 h-8 grid place-items-center rounded-lg text-ink-400
                                hover:bg-ink-100 dark:hover:bg-white/10 transition">
@@ -55,26 +55,26 @@ import { ZoneService } from '@shared/services/zone.service';
           </div>
 
           <div class="p-4 max-h-[50vh] overflow-y-auto">
-            @if (zone.cities().length === 0) {
-              <p class="text-center text-ink-400 py-8 text-sm">No hay ciudades disponibles.</p>
+            @if (zone.provinces().length === 0) {
+              <p class="text-center text-ink-400 py-8 text-sm">No hay provincias disponibles.</p>
             } @else {
               <div class="grid grid-cols-1 sm:grid-cols-2 gap-2.5">
-                @for (c of zone.cities(); track c.city) {
-                  <button (click)="zone.setCity(c.city)"
+                @for (p of zone.provinces(); track p.province) {
+                  <button (click)="zone.setProvince(p.province)"
                           class="text-left p-4 rounded-2xl border transition group"
-                          [class.border-ink-200]="zone.city() !== c.city"
-                          [class.dark:border-white/10]="zone.city() !== c.city"
-                          [class.hover:border-[#0095f6]]="zone.city() !== c.city"
-                          [style.border-color]="zone.city() === c.city ? '#0095f6' : ''"
-                          [style.background]="zone.city() === c.city ? 'rgba(0,149,246,0.12)' : ''">
+                          [class.border-ink-200]="zone.province() !== p.province"
+                          [class.dark:border-white/10]="zone.province() !== p.province"
+                          [class.hover:border-[#0095f6]]="zone.province() !== p.province"
+                          [style.border-color]="zone.province() === p.province ? '#0095f6' : ''"
+                          [style.background]="zone.province() === p.province ? 'rgba(0,149,246,0.12)' : ''">
                     <div class="flex items-center justify-between">
-                      <span class="font-bold text-ink-950 dark:text-white">{{ c.city }}</span>
+                      <span class="font-bold text-ink-950 dark:text-white">{{ p.province }}</span>
                       <i class="fa-solid fa-arrow-right text-[#0095f6] text-xs
                                 opacity-0 group-hover:opacity-100 transition"></i>
                     </div>
                     <p class="text-xs text-ink-500 dark:text-white/50 mt-1">
-                      {{ c.branches.length }} sucursal{{ c.branches.length === 1 ? '' : 'es' }}
-                      @if (c.count > 0) { · {{ c.count }} productos }
+                      {{ p.branches.length }} sucursal{{ p.branches.length === 1 ? '' : 'es' }}
+                      @if (p.count > 0) { · {{ p.count }} productos }
                     </p>
                   </button>
                 }
@@ -92,15 +92,15 @@ export class ZonePickerComponent {
   geoError = signal<string | null>(null);
 
   onBackdrop(): void {
-    // Solo permite cerrar tocando fuera si ya hay una ciudad elegida.
-    if (this.zone.hasCity()) this.zone.closePicker();
+    // Solo permite cerrar tocando fuera si ya hay una provincia elegida.
+    if (this.zone.hasProvince()) this.zone.closePicker();
   }
 
   async locate(): Promise<void> {
     this.geoError.set(null);
     this.locating.set(true);
-    const city = await this.zone.useGeolocation();
+    const province = await this.zone.useGeolocation();
     this.locating.set(false);
-    if (!city) this.geoError.set('No pudimos detectar tu ciudad. Elígela manualmente.');
+    if (!province) this.geoError.set('No pudimos detectar tu provincia. Elígela manualmente.');
   }
 }

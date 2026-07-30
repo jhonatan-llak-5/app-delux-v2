@@ -1,3 +1,4 @@
+import secrets
 from decimal import Decimal
 from django.db import transaction
 from django.db.models import F
@@ -9,6 +10,7 @@ from rest_framework.response import Response
 from rest_framework.views import APIView
 
 from apps.accounts.permissions import IsBranchManager
+from apps.branches.models import Branch
 from apps.orders.models import Order, OrderItem, OrderStatus, OrderChannel, FulfillmentType
 from apps.customers.models import Customer
 from apps.variants.models import Variant
@@ -28,11 +30,10 @@ def _active_tenant():
     return Tenant.objects.filter(is_active=True).first()
 
 
-def create_web_order(tenant, data, user=None):
-    """Crea un pedido WEB (PENDING) con sus ítems y RESERVA el stock.
+def _resolve_web_customer(tenant, data, user=None):
+    """Resuelve/vincula el cliente de una compra web por email/usuario.
 
-    Reutilizado por el checkout PayPhone y por el de contra entrega.
-    Lanza ValidationError (-> 400) si falta el cliente, una variante o el stock.
+    Reutilizado por create_web_orders. Lanza ValidationError si falta el email.
     """
     cd = data['customer_data']
     if not cd.get('email'):
@@ -69,12 +70,34 @@ def create_web_order(tenant, data, user=None):
             )
         from apps.customers.utils import link_customer_to_user
         link_customer_to_user(customer)
+    return customer
 
-    today = timezone.now().strftime('%Y%m%d')
-    seq = Order.objects.filter(
-        tenant=tenant, code__startswith=f'WEB-{today}-'
-    ).count() + 1
-    code = f'WEB-{today}-{seq:04d}'
+
+def create_web_orders(tenant, data, user=None):
+    """Crea N pedidos WEB (uno por sucursal) que comparten un group_code.
+
+    FASE 2 multi-sucursal: cada item puede traer su propia `branch_id`; los
+    items se agrupan por sucursal y se crea un Order (PENDING) independiente por
+    cada una, con sus OrderItem y su reserva de stock EN ESA sucursal (SIN
+    fallback a otra sucursal). Devuelve la LISTA de Order creados.
+
+    Las compras WEB NO emiten factura electrónica: son channel WEB y no
+    disparan facturación.
+    """
+    customer = _resolve_web_customer(tenant, data, user)
+
+    fallback_branch = data.get('branch_id')
+    # Agrupa los items por sucursal (branch_id del item o, si no trae, el de
+    # nivel superior como fallback). Preserva el orden de aparición.
+    groups = {}
+    for it in data['items']:
+        bid = it.get('branch_id') or fallback_branch
+        if not bid:
+            raise ValidationError(
+                {'detail': f"El producto (variante {it.get('variant_id')}) no "
+                           f"tiene sucursal asignada."}
+            )
+        groups.setdefault(bid, []).append(it)
 
     fulfillment = data.get('fulfillment', 'SHIPPING')
     addr = data.get('shipping_address') or {}
@@ -85,80 +108,103 @@ def create_web_order(tenant, data, user=None):
         from apps.accounts.models import User, Role
         affiliate = User.objects.filter(
             ref_code=ref, role=Role.AFFILIATE, is_active=True).first()
-    order = Order.objects.create(
-        tenant=tenant, code=code, branch_id=data['branch_id'],
-        customer=customer,
-        affiliate=affiliate,
-        affiliate_ref=(ref if affiliate else ''),
-        channel=OrderChannel.WEB,
-        fulfillment=(FulfillmentType.PICKUP if fulfillment == 'PICKUP'
-                     else FulfillmentType.SHIPPING),
-        status=OrderStatus.PENDING,
-        discount=data.get('discount', 0),
-        coupon_code=data.get('coupon_code', ''),
-        notes=notes_val,
-    )
 
-    subtotal = Decimal('0')
-    for it in data['items']:
-        variant = Variant.objects.select_related('product').filter(
-            pk=it['variant_id'], product__deleted_at__isnull=True
-        ).first()
-        if not variant:
-            raise ValidationError({'detail': f"Variante {it['variant_id']} no existe."})
+    multi = len(groups) > 1
+    today = timezone.now().strftime('%Y%m%d')
+    # group_code común: solo se marca cuando la compra abarca varias sucursales.
+    # En una sola sucursal se deja '' para no tratarla como multi-paquete.
+    group_code = f'G-{today}-{secrets.token_hex(3).upper()}' if multi else ''
 
-        qty = it['quantity']
-        stock = Stock.objects.filter(
-            variant=variant, branch_id=data['branch_id']
-        ).first()
-        has_local = stock and (stock.quantity - stock.reserved) >= qty
-        if has_local:
-            chosen = stock
-        elif fulfillment == 'PICKUP':
-            raise ValidationError(
-                {'detail': f'Sin stock para retiro de {variant.product.name} '
-                           f'({variant.size}/{variant.color}) en la sucursal elegida. '
-                           f'Prueba con envío a domicilio.'}
-            )
-        else:
-            chosen = (Stock.objects
-                      .filter(variant=variant, tenant=tenant)
-                      .annotate(avail=F('quantity') - F('reserved'))
-                      .filter(avail__gte=qty)
-                      .order_by('-avail')
-                      .first())
-            if not chosen:
-                raise ValidationError(
-                    {'detail': f'Sin stock disponible para {variant.product.name} '
-                               f'({variant.size}/{variant.color}) en ninguna sucursal.'}
-                )
-        chosen.reserved += qty
-        chosen.save(update_fields=['reserved', 'updated_at'])
+    # Secuencia base de códigos WEB del día: se incrementa por cada pedido para
+    # que no colisionen al crear varios seguidos en la misma compra.
+    base_seq = Order.objects.filter(
+        tenant=tenant, code__startswith=f'WEB-{today}-'
+    ).count()
 
-        _base = variant.price_override or variant.product.base_price
-        unit_price = variant.product.offer_price(_base)
-        item_subtotal = unit_price * qty
-        OrderItem.objects.create(
-            tenant=tenant, order=order, variant=variant,
-            branch=chosen.branch,
-            product_name=variant.product.name,
-            sku=variant.sku, size=variant.size, color=variant.color,
-            quantity=qty, unit_price=unit_price,
-            subtotal=item_subtotal,
+    orders = []
+    for offset, (branch_id, items) in enumerate(groups.items(), start=1):
+        code = f'WEB-{today}-{base_seq + offset:04d}'
+
+        # discount: solo se aplica en compra de UNA sola sucursal. En multi-
+        # sucursal se ignora para no descontar de más en cada sub-pedido.
+        # TODO: repartir el descuento proporcionalmente entre sub-pedidos.
+        order_discount = (Decimal(str(data.get('discount', 0)))
+                          if not multi else Decimal('0'))
+
+        order = Order.objects.create(
+            tenant=tenant, code=code, branch_id=branch_id,
+            customer=customer,
+            affiliate=affiliate,
+            affiliate_ref=(ref if affiliate else ''),
+            channel=OrderChannel.WEB,
+            fulfillment=(FulfillmentType.PICKUP if fulfillment == 'PICKUP'
+                         else FulfillmentType.SHIPPING),
+            status=OrderStatus.PENDING,
+            discount=order_discount,
+            coupon_code=data.get('coupon_code', ''),
+            group_code=group_code,
+            notes=notes_val,
         )
-        subtotal += item_subtotal
 
-    order.subtotal = subtotal
-    order.total = subtotal - Decimal(str(data.get('discount', 0)))
-    order.save(update_fields=['subtotal', 'total', 'updated_at'])
+        subtotal = Decimal('0')
+        for it in items:
+            variant = Variant.objects.select_related('product').filter(
+                pk=it['variant_id'], product__deleted_at__isnull=True
+            ).first()
+            if not variant:
+                raise ValidationError({'detail': f"Variante {it['variant_id']} no existe."})
 
-    if fulfillment == 'SHIPPING':
-        try:
-            from apps.shipping.views import auto_create_shipment
-            auto_create_shipment(order, addr)
-        except Exception as e:
-            print(f'[create_web_order shipment] {e}')
-    return order
+            qty = it['quantity']
+            # Sucursal EXPLÍCITA por item: sin fallback a otra sucursal. Si esa
+            # sucursal no tiene stock suficiente, error claro.
+            stock = Stock.objects.filter(
+                variant=variant, branch_id=branch_id
+            ).first()
+            if not stock or (stock.quantity - stock.reserved) < qty:
+                raise ValidationError(
+                    {'detail': f'Sin stock suficiente para {variant.product.name} '
+                               f'({variant.size}/{variant.color}) en la sucursal '
+                               f'elegida.'}
+                )
+            stock.reserved += qty
+            stock.save(update_fields=['reserved', 'updated_at'])
+
+            _base = variant.price_override or variant.product.base_price
+            unit_price = variant.product.offer_price(_base)
+            item_subtotal = unit_price * qty
+            OrderItem.objects.create(
+                tenant=tenant, order=order, variant=variant,
+                branch_id=branch_id,
+                product_name=variant.product.name,
+                sku=variant.sku, size=variant.size, color=variant.color,
+                quantity=qty, unit_price=unit_price,
+                subtotal=item_subtotal,
+            )
+            subtotal += item_subtotal
+
+        order.subtotal = subtotal
+        order.total = subtotal - order_discount
+        order.save(update_fields=['subtotal', 'total', 'updated_at'])
+
+        if fulfillment == 'SHIPPING':
+            try:
+                from apps.shipping.views import auto_create_shipment
+                auto_create_shipment(order, addr)
+            except Exception as e:
+                print(f'[create_web_orders shipment] {e}')
+
+        orders.append(order)
+
+    return orders
+
+
+def create_web_order(tenant, data, user=None):
+    """Wrapper de compatibilidad: crea los pedidos web y devuelve el PRIMERO.
+
+    Se mantiene para llamadores que esperan un solo Order. Las vistas de
+    checkout usan create_web_orders (multi-sucursal).
+    """
+    return create_web_orders(tenant, data, user)[0]
 
 
 def _broadcast_new_order(order):
@@ -264,13 +310,31 @@ class CheckoutPayPhoneInitView(APIView):
 
         tenant = _active_tenant()
         with transaction.atomic():
-            order = create_web_order(tenant, data, user=request.user)
+            orders = create_web_orders(tenant, data, user=request.user)
+            # PayPhone (sandbox/bloqueado) NO soporta confirmación multi-pedido:
+            # PayPhoneConfirmView opera sobre un único Payment/pedido. Opción más
+            # segura: PayPhone solo para compras de UNA sola sucursal; si la compra
+            # abarca varias, se exige otro método. Al lanzar el error dentro de la
+            # transacción se revierten los pedidos creados y sus reservas de stock.
+            if len(orders) > 1:
+                raise ValidationError({'detail':
+                    'PayPhone no está disponible para compras de varias sucursales. '
+                    'Usa transferencia o contra entrega.'})
+            order = orders[0]
             init_resp = init_payphone_transaction(order, data['return_url'])
 
         return Response({
+            'group_code': order.group_code,
             'order_id': order.id,
             'order_code': order.code,
             'order_total': str(order.total),
+            'orders': [{
+                'order_id': order.id,
+                'order_code': order.code,
+                'order_total': str(order.total),
+                'branch_id': order.branch_id,
+                'branch_name': order.branch.name,
+            }],
             **init_resp,
         }, status=status.HTTP_201_CREATED)
 
@@ -289,52 +353,64 @@ class CheckoutCODView(APIView):
         data = s.validated_data
 
         tenant = _active_tenant()
+        results = []
         with transaction.atomic():
-            order = create_web_order(tenant, data, user=request.user)
+            orders = create_web_orders(tenant, data, user=request.user)
 
-            # Convierte la reserva en salida real (stock correcto desde ya).
-            for item in order.items.all():
-                item_branch = item.branch_id or order.branch_id
-                stock = Stock.objects.select_for_update().filter(
-                    variant=item.variant, branch_id=item_branch
-                ).first()
-                if stock:
-                    web_before = stock.quantity
-                    stock.reserved = max(0, stock.reserved - item.quantity)
-                    stock.quantity = max(0, stock.quantity - item.quantity)
-                    stock.save(update_fields=['reserved', 'quantity', 'updated_at'])
-                    StockMovement.objects.create(
-                        tenant=tenant, stock=stock,
-                        type=StockMovement.TYPE_OUT,
-                        quantity=-item.quantity,
-                        note=f'Venta WEB contra entrega {order.code}',
-                        qty_before=web_before, qty_after=stock.quantity,
-                    )
+            for order in orders:
+                # Convierte la reserva en salida real (stock correcto desde ya)
+                # en la sucursal de cada sub-pedido.
+                for item in order.items.all():
+                    item_branch = item.branch_id or order.branch_id
+                    stock = Stock.objects.select_for_update().filter(
+                        variant=item.variant, branch_id=item_branch
+                    ).first()
+                    if stock:
+                        web_before = stock.quantity
+                        stock.reserved = max(0, stock.reserved - item.quantity)
+                        stock.quantity = max(0, stock.quantity - item.quantity)
+                        stock.save(update_fields=['reserved', 'quantity', 'updated_at'])
+                        StockMovement.objects.create(
+                            tenant=tenant, stock=stock,
+                            type=StockMovement.TYPE_OUT,
+                            quantity=-item.quantity,
+                            note=f'Venta WEB contra entrega {order.code}',
+                            qty_before=web_before, qty_after=stock.quantity,
+                        )
 
-            order.status = OrderStatus.PREPARING
-            order.save(update_fields=['status', 'updated_at'])
+                order.status = OrderStatus.PREPARING
+                order.save(update_fields=['status', 'updated_at'])
 
-            Payment.objects.create(
-                tenant=tenant, order=order,
-                method=PaymentMethod.CASH,
-                status=PaymentStatus.PENDING,
-                amount=order.total,
-                raw_payload={'cod': True},
-            )
+                # Cada sucursal cobra su total por separado: un Payment por pedido.
+                Payment.objects.create(
+                    tenant=tenant, order=order,
+                    method=PaymentMethod.CASH,
+                    status=PaymentStatus.PENDING,
+                    amount=order.total,
+                    raw_payload={'cod': True},
+                )
 
-            # Envío a domicilio: genera el seguimiento del pedido.
-            shipment = _maybe_create_shipment(order)
+                # Envío a domicilio: genera el seguimiento del pedido.
+                shipment = _maybe_create_shipment(order)
+                results.append((order, shipment))
 
-        _broadcast_new_order(order)
-        _email_receipt(order)
+        for order, _shipment in results:
+            _broadcast_new_order(order)
+            _email_receipt(order)
 
+        group_code = orders[0].group_code if orders else ''
         return Response({
-            'order_id': order.id,
-            'order_code': order.code,
-            'order_total': str(order.total),
+            'group_code': group_code,
             'method': 'CASH',
-            'order_status': order.status,
-            'tracking_code': shipment.tracking_code if shipment else None,
+            'orders': [{
+                'order_id': order.id,
+                'order_code': order.code,
+                'order_total': str(order.total),
+                'order_status': order.status,
+                'branch_id': order.branch_id,
+                'branch_name': order.branch.name,
+                'tracking_code': shipment.tracking_code if shipment else None,
+            } for order, shipment in results],
         }, status=status.HTTP_201_CREATED)
 
 
@@ -374,26 +450,37 @@ class CheckoutTransferView(APIView):
 
         tenant = _active_tenant()
         with transaction.atomic():
-            order = create_web_order(tenant, data, user=request.user)
-            Payment.objects.create(
-                tenant=tenant, order=order,
-                method=(PaymentMethod.DEUNA if method == 'DEUNA'
-                        else PaymentMethod.TRANSFER),
-                status=PaymentStatus.PENDING,
-                amount=order.total,
-                voucher=voucher,
-                raw_payload={'awaiting_validation': True, 'method': method},
-            )
+            orders = create_web_orders(tenant, data, user=request.user)
+            # El MISMO comprobante subido se adjunta al Payment de CADA sub-pedido
+            # (un solo comprobante por el total): cada sucursal lo valida en su
+            # panel por separado.
+            for order in orders:
+                Payment.objects.create(
+                    tenant=tenant, order=order,
+                    method=(PaymentMethod.DEUNA if method == 'DEUNA'
+                            else PaymentMethod.TRANSFER),
+                    status=PaymentStatus.PENDING,
+                    amount=order.total,
+                    voucher=voucher,
+                    raw_payload={'awaiting_validation': True, 'method': method},
+                )
 
-        _broadcast_new_order(order)
-        _email_receipt(order)
+        for order in orders:
+            _broadcast_new_order(order)
+            _email_receipt(order)
 
+        group_code = orders[0].group_code if orders else ''
         return Response({
-            'order_id': order.id,
-            'order_code': order.code,
-            'order_total': str(order.total),
+            'group_code': group_code,
             'method': method,
-            'order_status': order.status,
+            'orders': [{
+                'order_id': order.id,
+                'order_code': order.code,
+                'order_total': str(order.total),
+                'order_status': order.status,
+                'branch_id': order.branch_id,
+                'branch_name': order.branch.name,
+            } for order in orders],
         }, status=status.HTTP_201_CREATED)
 
 

@@ -142,6 +142,24 @@ import {
                 {{ (p.total_stock ?? 0) > 0 ? (p.total_stock + ' disponibles') : 'Sin stock' }}
               </p>
 
+              <!-- Disponibilidad por sucursal -->
+              @if (p.branches?.length) {
+                <div>
+                  <p class="text-xs font-semibold text-slate-600 dark:text-slate-300 mb-1.5">Disponible en</p>
+                  <ul class="flex flex-col gap-1.5">
+                    @for (b of p.branches!; track b.id) {
+                      <li class="flex items-center justify-between gap-3 text-sm px-3 py-2 rounded-lg border border-slate-200 bg-slate-50 text-slate-700 dark:bg-[#1e293b] dark:border-[#334155] dark:text-slate-200">
+                        <span class="flex items-center gap-2 truncate">
+                          <i class="fa-solid fa-store text-xs text-emerald-500"></i>
+                          <span class="truncate">{{ b.name }}</span>
+                        </span>
+                        <span class="shrink-0 font-semibold tabular-nums">{{ b.stock }}</span>
+                      </li>
+                    }
+                  </ul>
+                </div>
+              }
+
               <!-- Tallas -->
               @if (p.sizes?.length) {
                 <div>

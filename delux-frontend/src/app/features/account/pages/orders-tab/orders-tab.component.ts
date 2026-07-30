@@ -1,10 +1,31 @@
-import { ChangeDetectionStrategy, Component, OnInit, inject, signal } from '@angular/core';
+import { ChangeDetectionStrategy, Component, OnInit, computed, inject, signal } from '@angular/core';
 import { DlxEmptyStateComponent } from '@shared/ui/empty-state.component';
 import { OrderStatusLabelPipe, OrderStatusClassPipe } from '@shared/ui/order-status.pipe';
 import { ImgFallbackDirective } from '@shared/ui/img-fallback.directive';
 import { CommonModule } from '@angular/common';
 import { RouterLink } from '@angular/router';
 import { MeService } from '@features/account/services/me.service';
+
+/** Un pedido individual del perfil (incluye group_code para agrupar compras multi-sucursal). */
+export interface ProfileOrder {
+  id: number;
+  code: string;
+  group_code?: string;
+  created_at: string;
+  branch_name: string;
+  status: string;
+  fulfillment: string;
+  items: { id: number; product_image: string; product_name: string }[];
+  items_count: number;
+  total: string;
+}
+
+/** Compra agrupada: los pedidos con el mismo group_code no vacío van juntos. */
+export interface OrderGroup {
+  key: string;
+  group_code: string;
+  orders: ProfileOrder[];
+}
 
 @Component({
   selector: 'dlx-orders-tab',
@@ -27,9 +48,20 @@ import { MeService } from '@features/account/services/me.service';
           </a>
         </dlx-empty-state>
       } @else {
-        <ul class="space-y-4">
-          @for (o of orders(); track o.id) {
-            <li class="p-5 rounded-xl border border-ink-200 dark:border-white/10">
+        <div class="space-y-6">
+          @for (grp of grouped(); track grp.key) {
+          <div [ngClass]="grp.group_code ? 'rounded-2xl border border-accent-500/30 bg-accent-50/40 dark:bg-accent-500/[0.06] p-4' : ''">
+            @if (grp.group_code) {
+              <div class="flex items-center gap-2 mb-3 px-1">
+                <i class="fa-solid fa-boxes-stacked text-accent-600 dark:text-accent-400"></i>
+                <h3 class="font-semibold text-ink-950 dark:text-white text-sm">
+                  Compra {{ grp.group_code }} · {{ grp.orders.length }} paquetes
+                </h3>
+              </div>
+            }
+            <ul class="space-y-4">
+          @for (o of grp.orders; track o.id) {
+            <li class="p-5 rounded-xl border border-ink-200 dark:border-white/10 bg-white dark:bg-ink-950">
               <div class="flex flex-wrap items-center justify-between gap-3 mb-3 pb-3 border-b border-ink-100 dark:border-white/10">
                 <div>
                   <p class="font-mono text-xs uppercase tracking-widest text-ink-500 dark:text-white/50">Voucher</p>
@@ -79,15 +111,35 @@ import { MeService } from '@features/account/services/me.service';
               }
             </li>
           }
-        </ul>
+            </ul>
+          </div>
+          }
+        </div>
       }
     </div>
   `,
 })
 export class OrdersTabComponent implements OnInit {
   private me = inject(MeService);
-  orders = signal<any[]>([]);
+  orders = signal<ProfileOrder[]>([]);
   loading = signal(true);
+
+  /** Agrupa los pedidos por group_code (los vacíos quedan como compras individuales). */
+  grouped = computed<OrderGroup[]>(() => {
+    const out: OrderGroup[] = [];
+    const map = new Map<string, OrderGroup>();
+    for (const o of this.orders()) {
+      const gc = (o.group_code || '').trim();
+      if (gc) {
+        let g = map.get(gc);
+        if (!g) { g = { key: gc, group_code: gc, orders: [] }; map.set(gc, g); out.push(g); }
+        g.orders.push(o);
+      } else {
+        out.push({ key: 'single-' + o.id, group_code: '', orders: [o] });
+      }
+    }
+    return out;
+  });
 
   ngOnInit() {
     this.me.orders().subscribe({

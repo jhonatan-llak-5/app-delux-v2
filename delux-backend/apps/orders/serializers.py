@@ -32,7 +32,7 @@ class OrderSerializer(serializers.ModelSerializer):
 
     class Meta:
         model = Order
-        fields = ('id', 'code', 'branch', 'branch_name',
+        fields = ('id', 'code', 'group_code', 'branch', 'branch_name',
                   'customer', 'customer_name', 'customer_email', 'customer_phone', 'customer_document',
                   'seller', 'seller_name',
                   'channel', 'fulfillment', 'status', 'cancel_reason',
@@ -41,7 +41,7 @@ class OrderSerializer(serializers.ModelSerializer):
                   'invoice_status', 'invoice_number', 'invoice_access_key',
                   'invoice_pdf_url', 'invoice_xml_url', 'invoice_error', 'invoice_updated_at',
                   'items', 'items_count', 'created_at', 'updated_at')
-        read_only_fields = ('id', 'code', 'subtotal', 'total', 'created_at', 'updated_at',
+        read_only_fields = ('id', 'code', 'group_code', 'subtotal', 'total', 'created_at', 'updated_at',
                             'invoice_status', 'invoice_number', 'invoice_access_key',
                             'invoice_pdf_url', 'invoice_xml_url', 'invoice_error', 'invoice_updated_at')
 
