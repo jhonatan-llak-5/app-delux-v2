@@ -127,10 +127,6 @@
                   </span>
                 }
               </div>
-              <p class="text-[13px] text-ink-500 dark:text-white/45 mt-2">
-                o 3 pagos sin interés de
-                <span class="font-semibold text-ink-950 dark:text-white">${{ (product().price/3).toFixed(2) }}</span>
-              </p>
             </div>
 
             <!-- COLORES -->
@@ -219,7 +215,7 @@
                              hover:border-[#0095f6] hover:text-[#0095f6] transition">
                 <i class="fa-{{ inWishlist() ? 'solid' : 'regular' }} fa-heart"
                    [class.text-rose-500]="inWishlist()"></i>
-                {{ inWishlist() ? 'En tu wishlist' : 'Agregar a wishlist' }}
+                {{ inWishlist() ? 'En tus favoritos' : 'Agregar a favoritos' }}
               </button>
 
               @if (isAffiliate()) {

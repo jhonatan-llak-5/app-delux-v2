@@ -394,12 +394,12 @@
       @if (variantMode() === 'custom') {
         <div class="card p-5 space-y-4">
         <div class="space-y-3">
-          @for (d of dims; track $index) {
+          @for (d of dims; track $index; let di = $index) {
             <div class="rounded-xl border border-slate-200 dark:border-white/10 p-3">
               <div class="flex items-center gap-2 mb-2">
                 <input [(ngModel)]="d.name" (ngModelChange)="onDimName()" class="eg-input !h-9 flex-1 font-semibold" placeholder="Nombre de la dimensión (ej. Talla, Color, Material)" autocomplete="off" />
                 @if (dims.length > 1) {
-                  <button type="button" (click)="removeDim($index)" class="w-9 h-9 shrink-0 grid place-items-center rounded-lg text-rose-500 hover:bg-rose-50 dark:hover:bg-rose-500/10" title="Quitar dimensión"><i class="fa-solid fa-trash text-sm"></i></button>
+                  <button type="button" (click)="removeDim(di)" class="w-9 h-9 shrink-0 grid place-items-center rounded-lg text-rose-500 hover:bg-rose-50 dark:hover:bg-rose-500/10" title="Quitar dimensión"><i class="fa-solid fa-trash text-sm"></i></button>
                 }
               </div>
               @if (d.values.length) {
@@ -407,14 +407,14 @@
                   @for (v of d.values; track v) {
                     <span class="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-lg text-xs font-semibold bg-slate-100 dark:bg-white/10 text-slate-700 dark:text-white/80">
                       {{ v }}
-                      <button type="button" (click)="removeVal($index, v)" class="text-slate-400 hover:text-rose-500"><i class="fa-solid fa-xmark"></i></button>
+                      <button type="button" (click)="removeVal(di, v)" class="text-slate-400 hover:text-rose-500"><i class="fa-solid fa-xmark"></i></button>
                     </span>
                   }
                 </div>
               }
               <div class="flex gap-2">
-                <input [(ngModel)]="newVal[$index]" (keydown.enter)="$event.preventDefault(); addVal($index)" class="eg-input !h-9 flex-1" placeholder="Escribe una opción y Enter (o separa por comas: 38,39,40)" autocomplete="off" />
-                <button type="button" class="eg-btn-secondary !h-9 text-sm" (click)="addVal($index)" [disabled]="!(newVal[$index] || '').trim()">Añadir</button>
+                <input [(ngModel)]="newVal[di]" (keydown.enter)="$event.preventDefault(); addVal(di)" class="eg-input !h-9 flex-1" placeholder="Escribe una opción y Enter (o separa por comas: 38,39,40)" autocomplete="off" />
+                <button type="button" class="eg-btn-secondary !h-9 text-sm" (click)="addVal(di)" [disabled]="!(newVal[di] || '').trim()">Añadir</button>
               </div>
             </div>
           }

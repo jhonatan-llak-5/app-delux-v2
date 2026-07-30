@@ -81,8 +81,8 @@ export class TourService {
     },
     {
       target: '[data-tour="nav-pos"]', placement: 'right', icon: 'fa-cash-register',
-      title: 'Punto de venta (POS)',
-      body: 'Registra ventas en mostrador. Descuenta el stock de la sucursal en tiempo real.',
+      title: 'Ventas',
+      body: 'Registra ventas en mostrador y consulta el historial. Descuenta el stock de la sucursal en tiempo real.',
     },
     {
       target: '[data-tour="nav-sales"]', placement: 'right', icon: 'fa-receipt',
@@ -133,6 +133,31 @@ export class TourService {
       target: '[data-tour="nav-settings"]', placement: 'right', icon: 'fa-gear',
       title: 'Configuración',
       body: 'Ajustes de la plataforma: branding, parámetros generales y preferencias.',
+    },
+    {
+      target: '[data-tour="nav-store-config"]', placement: 'right', icon: 'fa-gear',
+      title: 'Configuración',
+      body: 'Ajustes de tu tienda: datos, impuestos, pagos, horarios y preferencias de venta.',
+    },
+    {
+      target: '[data-tour="nav-labels"]', placement: 'right', icon: 'fa-barcode',
+      title: 'Etiquetas',
+      body: 'Genera e imprime etiquetas con código de barras y QR de tus productos, en lote.',
+    },
+    {
+      target: '[data-tour="nav-customers"]', placement: 'right', icon: 'fa-user-group',
+      title: 'Clientes',
+      body: 'La base de clientes de la tienda: datos de contacto, historial y activación.',
+    },
+    {
+      target: '[data-tour="nav-finanzas"]', placement: 'right', icon: 'fa-scale-balanced',
+      title: 'Balance general',
+      body: 'Tu resumen financiero: ingresos, egresos y ganancia, con filtro por fechas.',
+    },
+    {
+      target: '[data-tour="nav-gastos"]', placement: 'right', icon: 'fa-wallet',
+      title: 'Gastos',
+      body: 'Registra y controla los gastos del negocio para tener la ganancia real.',
     },
     {
       target: '[data-tour="nav-reception"]', placement: 'right', icon: 'fa-truck-ramp-box',
@@ -284,12 +309,16 @@ export class TourService {
   private orderByMenu(steps: TourStep[]): TourStep[] {
     if (typeof document === 'undefined') return steps;
     const isNav = (s: TourStep) => !!s.target && s.target.includes('"nav-');
-    // Todos los items de navegación en orden de documento (escritorio primero).
+    // SOLO los items de navegación VISIBLES, en orden de documento. El sidebar
+    // móvil (oculto) duplica los data-tour; si se cuela, descuadra el orden.
+    // Usamos la MISMA resolución de elemento visible que el filtrado, para que
+    // el orden coincida siempre con el menú que el usuario realmente ve.
     const allNav = Array.from(
-      document.querySelectorAll<HTMLElement>('[data-tour^="nav-"]'));
+      document.querySelectorAll<HTMLElement>('[data-tour^="nav-"]'))
+      .filter(e => e.offsetParent !== null && e.getBoundingClientRect().height > 0);
     const orderOf = (sel: string | null): number => {
       if (!sel) return Number.MAX_SAFE_INTEGER;
-      const el = document.querySelector<HTMLElement>(sel);
+      const el = resolveTourEl(sel);
       const i = el ? allNav.indexOf(el) : -1;
       return i === -1 ? Number.MAX_SAFE_INTEGER : i;
     };

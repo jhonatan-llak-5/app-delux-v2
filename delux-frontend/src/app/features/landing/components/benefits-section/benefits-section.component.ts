@@ -54,7 +54,7 @@ export class BenefitsSectionComponent {
   readonly benefits: Benefit[] = [
     { number: '01', icon: 'fa-truck-fast',  title: 'Envío express',     desc: 'Recibe tu pedido en 24 a 72 horas en todo Ecuador con seguimiento en tiempo real.' },
     { number: '02', icon: 'fa-store',       title: 'Retiro en tienda',  desc: 'Recoge gratis en cualquiera de nuestras 6 sucursales y obtén tu drop el mismo día.' },
-    { number: '03', icon: 'fa-rotate-left', title: 'Cambios fáciles',   desc: 'Tienes 14 días para cambiar tu producto sin preguntas ni costos adicionales.' },
+    { number: '03', icon: 'fa-rotate-left', title: 'Cambios fáciles',   desc: 'Tienes 10 días para cambiar tu producto sin preguntas ni costos adicionales.' },
     { number: '04', icon: 'fa-shield-halved', title: '100% originales', desc: 'Solo productos auténticos con garantía oficial de marca y certificado de autenticidad.' },
   ];
 }

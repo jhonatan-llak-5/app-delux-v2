@@ -120,20 +120,17 @@ export class ProductDetailComponent implements OnInit {
 
   readonly features = [
     { icon: 'fa-truck-fast', label: 'Envío 24-72h' },
-    { icon: 'fa-rotate-left', label: 'Cambios en 14 días' },
+    { icon: 'fa-rotate-left', label: 'Cambios en 10 días' },
     { icon: 'fa-shield-halved', label: '100% original' },
     { icon: 'fa-store', label: 'Retiro en tienda' },
   ];
 
-  accordions = computed(() => [
-    { id: 'desc', title: 'Descripción',
-      body: this.product().description
-            || `${this.product().name} de ${this.product().brand}. Producto original disponible en Delux.` },
-    { id: 'mat', title: 'Materiales y cuidado',
-      body: 'Capellada de cuero genuino curtido al cromo. Suela exterior de caucho con patrón de pivot. Plantilla acolchada con espuma de memoria. Limpia con paño húmedo, evita la lavadora.' },
-    { id: 'env', title: 'Envío y devoluciones',
-      body: 'Envío gratis a todo el país en pedidos sobre $50. Recibe en 24-72 horas en Quito y Guayaquil. Cambios sin costo durante los primeros 14 días, sin preguntas.' },
-  ]);
+  // Solo la descripción real del producto (del backend). Si no tiene, no se
+  // muestra el acordeón (no inventamos materiales, envíos ni políticas).
+  accordions = computed(() => {
+    const desc = (this.product().description || '').trim();
+    return desc ? [{ id: 'desc', title: 'Descripción', body: desc }] : [];
+  });
 
 
   isDarkColor(hex: string): boolean {
@@ -238,17 +235,25 @@ export class ProductDetailComponent implements OnInit {
 
   toggleWishlistWithToast() {
     if (!this.auth.isLogged()) {
-      this.notify.warning('Inicia sesión', { description: 'Crea una cuenta para guardar favoritos.' });
+      this.notify.warning('Inicia sesión', { description: 'Crea una cuenta para guardar tus favoritos.' });
       this.router.navigate(['/auth/login']);
+      return;
+    }
+    // Los favoritos son una función de la tienda para clientes: el staff
+    // (gerentes, vendedores, admins, afiliados) no puede guardarlos.
+    if (this.auth.user()?.role !== 'CUSTOMER') {
+      this.notify.warning('Solo para clientes', {
+        description: 'Los favoritos están disponibles únicamente para perfiles de clientes.',
+      });
       return;
     }
     const wasIn = this.inWishlist();
     this.me.toggleWishlist(this.product().id).subscribe({
       next: () => {
-        if (!wasIn) this.notify.success('Añadido a tu wishlist', { description: this.product().name });
-        else this.notify.message('Eliminado de tu wishlist');
+        if (!wasIn) this.notify.success('Añadido a tus favoritos', { description: this.product().name });
+        else this.notify.message('Quitado de tus favoritos');
       },
-      error: () => this.notify.error('No se pudo actualizar tu wishlist.'),
+      error: () => this.notify.error('No se pudo actualizar tus favoritos.'),
     });
   }
 

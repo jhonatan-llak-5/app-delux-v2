@@ -189,9 +189,9 @@ class AdminStockViewSet(viewsets.ReadOnlyModelViewSet):
         """Inventario agrupado por producto: una entrada por producto con sus
         variantes/stocks anidados. Pagina por PRODUCTO (no por variante), así
         un producto con muchas tallas ocupa una sola fila expandible."""
-        # Orden según fueron ingresados los productos (por fecha de creación).
+        # Del último ingresado al primero (fecha de creación del producto, desc).
         qs = self.get_queryset().order_by(
-            'variant__product__created_at', 'variant__product_id',
+            '-variant__product__created_at', '-variant__product_id',
             'variant__size', 'variant__color', 'variant__sku',
         )
         # IDs de producto en orden de aparición, sin repetir.

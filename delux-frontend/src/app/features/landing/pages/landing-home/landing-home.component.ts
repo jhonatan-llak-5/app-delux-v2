@@ -115,14 +115,14 @@ export class LandingHomeComponent implements OnInit {
     { icon: 'fa-shield-halved', title: 'Original garantizado',  desc: 'Cada producto es auténtico y verificado.' },
     { icon: 'fa-truck-fast',    title: 'Envíos a todo Ecuador', desc: 'Recíbelo en casa, rápido y seguro.' },
     { icon: 'fa-credit-card',   title: 'Pagos flexibles',       desc: 'Transferencia, DE UNA y pago contra entrega.' },
-    { icon: 'fa-rotate-left',   title: 'Cambios sencillos',     desc: 'Cambios y devoluciones sin complicaciones.' },
+    { icon: 'fa-rotate-left',   title: 'Cambios sencillos',     desc: 'Cambios hasta 10 días, sin complicaciones.' },
   ];
 
   // ── Información general: servicios ──
   readonly servicios = [
     { icon: 'fa-truck-fast',      title: 'Envíos nacionales',  desc: 'Despachamos a todo el Ecuador. Envío gratis en compras seleccionadas.' },
     { icon: 'fa-money-bill-wave', title: 'Métodos de pago',    desc: 'Transferencia bancaria, DE UNA y pago contra entrega.' },
-    { icon: 'fa-rotate-left',     title: 'Garantía y cambios', desc: 'Política clara de cambios y devoluciones para tu tranquilidad.' },
+    { icon: 'fa-rotate-left',     title: 'Garantía y cambios', desc: 'Política clara de cambios hasta 10 días para tu tranquilidad.' },
     { icon: 'fa-headset',         title: 'Soporte cercano',    desc: 'Te acompañamos por WhatsApp y correo en cada paso.' },
   ];
 
@@ -152,7 +152,7 @@ export class LandingHomeComponent implements OnInit {
     { icon: 'fa-certificate',    title: 'Producto original',  sub: '100% auténtico, sin réplicas' },
     { icon: 'fa-lock',           title: 'Pago seguro',        sub: 'Tus datos siempre protegidos' },
     { icon: 'fa-shield-halved',  title: 'Compra protegida',   sub: 'Respaldo en cada pedido' },
-    { icon: 'fa-rotate-left',    title: 'Garantía de cambios', sub: 'Cambios y devoluciones fáciles' },
+    { icon: 'fa-rotate-left',    title: 'Garantía de cambios', sub: 'Cambios fáciles hasta 10 días' },
   ];
 
   // ── Nuestro equipo ──
