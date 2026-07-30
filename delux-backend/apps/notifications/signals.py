@@ -102,6 +102,9 @@ def _on_stock_low(sender, instance, created, **kwargs):
     tenant = getattr(stock, 'tenant', None)
     variant = getattr(stock, 'variant', None)
     product = getattr(variant, 'product', None) if variant else None
+    # No alertar por stock de productos eliminados (soft delete).
+    if product is not None and getattr(product, 'deleted_at', None):
+        return
     pname = getattr(product, 'name', 'Producto') if product else 'Producto'
     bname = getattr(branch, 'name', '') if branch else ''
 

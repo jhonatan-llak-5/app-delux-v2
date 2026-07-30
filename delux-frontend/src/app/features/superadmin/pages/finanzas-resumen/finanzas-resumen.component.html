@@ -99,7 +99,7 @@
           <div class="p-10 text-center text-ink-400 dark:text-white/50"><i class="fa-solid fa-spinner fa-spin"></i> Cargando…</div>
         } @else if (!txns().length) {
           <div class="p-12 text-center text-ink-400 dark:text-white/50">
-            <i class="fa-regular fa-folder-open text-3xl mb-2 block"></i>
+            <div class="flex justify-center mb-2"><i class="fa-regular fa-folder-open text-3xl"></i></div>
             Aún no tienes movimientos en esta fecha.
             <div class="mt-4">
               <a routerLink="/app/admin/pos" class="inline-flex items-center gap-2 px-4 py-2 rounded-xl bg-ink-900 dark:bg-white/10 text-white text-sm font-semibold">
@@ -156,7 +156,7 @@
         </div>
         @if (!topProducts().length) {
           <div class="p-8 text-center text-ink-400 dark:text-white/50 text-sm">
-            <i class="fa-regular fa-chart-bar text-2xl mb-2 block"></i>
+            <div class="flex justify-center mb-2"><i class="fa-regular fa-chart-bar text-2xl"></i></div>
             Sin ventas en este periodo.
           </div>
         } @else {

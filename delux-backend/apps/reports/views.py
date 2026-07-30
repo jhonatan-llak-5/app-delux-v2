@@ -326,7 +326,10 @@ class ReportsViewSet(ViewSet):
         _branch = request.query_params.get('branch')
         if getattr(_u, 'role', None) == 'BRANCH_MANAGER' and _u.branch_id:
             _branch = _u.branch_id
-        stock_qs = Stock.objects.filter(quantity__lte=F('min_threshold'))
+        stock_qs = Stock.objects.filter(
+            quantity__lte=F('min_threshold'),
+            variant__product__deleted_at__isnull=True,   # excluir productos eliminados
+        )
         if _branch:
             stock_qs = stock_qs.filter(branch_id=_branch)
         qs = (
