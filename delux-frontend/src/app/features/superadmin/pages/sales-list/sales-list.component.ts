@@ -178,6 +178,58 @@ import { DlxPaginationComponent } from '@shared/ui/pagination.component';
       <dlx-pagination [page]="page()" [pageSize]="pageSize()" [total]="total()"
                       (pageChange)="onPage($event)" (pageSizeChange)="onSize($event)" />
     }
+
+    <!-- Modal: cancelar venta con motivo + devolver stock (POS y web) -->
+    @if (cancelOrder(); as co) {
+      <div class="fixed inset-0 z-50 grid place-items-center bg-black/50 backdrop-blur-sm p-4 animate-fade-in"
+           (click)="cancelOrder.set(null)">
+        <div class="w-full max-w-md rounded-2xl bg-white dark:bg-ink-900 shadow-2xl overflow-hidden"
+             (click)="$event.stopPropagation()">
+          <div class="p-5 border-b border-slate-100 dark:border-white/10">
+            <h3 class="font-bold text-lg text-slate-900 dark:text-white flex items-center gap-2">
+              <i class="fa-solid fa-ban text-rose-500"></i> Cancelar venta {{ co.code }}
+            </h3>
+            <p class="text-xs text-slate-500 dark:text-slate-400 mt-1">
+              Anula la venta internamente. La nota de crédito, si aplica, se emite aparte en NovaFactura.
+            </p>
+          </div>
+          <div class="p-5 space-y-4">
+            <label class="block">
+              <span class="eg-label">Motivo <span class="text-rose-400">*</span></span>
+              <select class="eg-input" [(ngModel)]="cancelReason">
+                <option value="">Selecciona un motivo…</option>
+                <option value="Devolución">Devolución</option>
+                <option value="Producto defectuoso">Producto defectuoso</option>
+                <option value="Error de registro">Error de registro</option>
+                <option value="Cliente se arrepintió">Cliente se arrepintió</option>
+                <option value="Otro">Otro</option>
+              </select>
+            </label>
+            @if (cancelReason === 'Otro') {
+              <input class="eg-input" [(ngModel)]="cancelDetail" placeholder="Describe el motivo…" />
+            }
+            <label class="flex items-start gap-2 cursor-pointer">
+              <input type="checkbox" [(ngModel)]="cancelRestoreStock" class="w-4 h-4 mt-0.5" />
+              <span class="text-sm text-slate-700 dark:text-slate-200">
+                Devolver los productos al inventario
+                <span class="block text-[11px] text-slate-400">Actívalo si la mercadería vuelve al stock (no la marques si está defectuosa o no revendible).</span>
+              </span>
+            </label>
+          </div>
+          <div class="p-5 pt-0 flex gap-2">
+            <button (click)="confirmCancel()" [disabled]="!effectiveCancelReason() || cancelling()"
+                    class="flex-1 py-2.5 rounded-xl bg-rose-600 hover:bg-rose-700 text-white text-sm font-bold disabled:opacity-40 flex items-center justify-center gap-2 transition">
+              @if (cancelling()) { <i class="fa-solid fa-spinner fa-spin"></i> } @else { <i class="fa-solid fa-ban"></i> }
+              Cancelar venta
+            </button>
+            <button (click)="cancelOrder.set(null)" [disabled]="cancelling()"
+                    class="px-5 py-2.5 rounded-xl bg-slate-100 dark:bg-white/5 hover:bg-slate-200 dark:hover:bg-white/10 text-slate-600 dark:text-slate-300 text-sm font-semibold transition">
+              Volver
+            </button>
+          </div>
+        </div>
+      </div>
+    }
   `,
 })
 export class SalesListComponent implements OnInit {
@@ -301,16 +353,41 @@ export class SalesListComponent implements OnInit {
     this.router.navigate(['/app/admin/sales', o.id, 'voucher']);
   }
 
-  async cancel(o: Order) {
-    const ok = await this.confirm.ask({
-      title: 'Cancelar venta',
-      message: `¿Cancelar la venta ${o.code}? Esta acción no devuelve el stock automáticamente.`,
-      variant: 'danger', confirmText: 'Cancelar venta', cancelText: 'Volver',
-    });
-    if (!ok) return;
-    this.svc.cancel(o.id).subscribe({
-      next: () => { this.notify.success('Venta cancelada'); this.reload(); },
-      error: e => this.notify.fromServerError(e, 'No se pudo cancelar la venta.'),
+  // ── Cancelar venta (modal con motivo + devolver stock) ──
+  cancelOrder = signal<Order | null>(null);
+  cancelReason = '';
+  cancelDetail = '';
+  cancelRestoreStock = false;
+  cancelling = signal(false);
+
+  /** Motivo final: si eligió "Otro", usa el detalle escrito. */
+  effectiveCancelReason(): string {
+    return this.cancelReason === 'Otro' ? this.cancelDetail.trim() : this.cancelReason;
+  }
+
+  cancel(o: Order) {
+    this.cancelReason = '';
+    this.cancelDetail = '';
+    this.cancelRestoreStock = false;
+    this.cancelOrder.set(o);
+  }
+
+  confirmCancel() {
+    const o = this.cancelOrder();
+    const reason = this.effectiveCancelReason();
+    if (!o || !reason || this.cancelling()) return;
+    this.cancelling.set(true);
+    this.svc.cancel(o.id, reason, this.cancelRestoreStock).subscribe({
+      next: r => {
+        this.cancelling.set(false);
+        this.cancelOrder.set(null);
+        this.notify.success(r.restored_stock ? 'Venta cancelada y stock devuelto' : 'Venta cancelada');
+        this.reload();
+      },
+      error: e => {
+        this.cancelling.set(false);
+        this.notify.fromServerError(e, 'No se pudo cancelar la venta.');
+      },
     });
   }
 }

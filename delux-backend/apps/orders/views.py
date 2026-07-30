@@ -53,14 +53,46 @@ class AdminOrderViewSet(viewsets.ReadOnlyModelViewSet):
 
     @action(detail=True, methods=['post'])
     def cancel(self, request, pk=None):
+        """Cancela/anula la venta (interno de DLUX). Registra el motivo y, si se
+        pide, devuelve el stock al inventario. NO emite nota de crédito: eso se
+        gestiona aparte en NovaFactura."""
         if request.user.role == 'SALESPERSON':
             return Response({'detail': 'No autorizado.'}, status=status.HTTP_403_FORBIDDEN)
         order = self.get_object()
         if order.status in (OrderStatus.CANCELLED, OrderStatus.REFUNDED):
             return Response({'detail': 'Ya estaba cancelada.'}, status=400)
-        order.status = OrderStatus.CANCELLED
-        order.save(update_fields=['status', 'updated_at'])
-        return Response({'detail': 'Orden cancelada.'})
+
+        reason = (request.data.get('reason') or '').strip()
+        if not reason:
+            return Response({'detail': 'Indica el motivo de la cancelación.'}, status=400)
+        restore_stock = bool(request.data.get('restore_stock'))
+
+        from django.db import transaction
+        from apps.inventory.models import Stock, StockMovement
+        with transaction.atomic():
+            if restore_stock and order.branch_id:
+                for it in order.items.select_related('variant').all():
+                    if not it.variant_id:
+                        continue
+                    stock = Stock.objects.select_for_update().filter(
+                        variant=it.variant, branch_id=order.branch_id,
+                    ).first()
+                    if not stock:
+                        continue
+                    before = stock.quantity
+                    stock.quantity += it.quantity
+                    stock.save(update_fields=['quantity', 'updated_at'])
+                    StockMovement.objects.create(
+                        tenant=order.tenant, stock=stock,
+                        type=StockMovement.TYPE_IN, quantity=it.quantity,
+                        note=f'Cancelación venta {order.code}: {reason}',
+                        actor=request.user if request.user.is_authenticated else None,
+                        qty_before=before, qty_after=stock.quantity,
+                    )
+            order.status = OrderStatus.CANCELLED
+            order.cancel_reason = reason[:200]
+            order.save(update_fields=['status', 'cancel_reason', 'updated_at'])
+        return Response({'detail': 'Venta cancelada.', 'restored_stock': restore_stock})
 
     @action(detail=True, methods=['post'], url_path='set-status')
     def set_status(self, request, pk=None):

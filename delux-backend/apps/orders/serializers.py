@@ -35,7 +35,7 @@ class OrderSerializer(serializers.ModelSerializer):
         fields = ('id', 'code', 'branch', 'branch_name',
                   'customer', 'customer_name', 'customer_email', 'customer_phone', 'customer_document',
                   'seller', 'seller_name',
-                  'channel', 'fulfillment', 'status',
+                  'channel', 'fulfillment', 'status', 'cancel_reason',
                   'subtotal', 'discount', 'shipping_fee', 'tax', 'total',
                   'coupon_code', 'notes',
                   'invoice_status', 'invoice_number', 'invoice_access_key',

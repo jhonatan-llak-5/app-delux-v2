@@ -115,8 +115,9 @@ export class OrderService {
     return this.http.post<Order>(`${this.base}/${id}/set-status/`, { status, notes });
   }
 
-  cancel(id: number) {
-    return this.http.post<{ detail: string }>(`${this.base}/${id}/cancel/`, {});
+  cancel(id: number, reason: string, restoreStock: boolean) {
+    return this.http.post<{ detail: string; restored_stock: boolean }>(
+      `${this.base}/${id}/cancel/`, { reason, restore_stock: restoreStock });
   }
 
   /** Reintenta la emisión de la factura electrónica de la venta. */

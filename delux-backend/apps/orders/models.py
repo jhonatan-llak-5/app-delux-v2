@@ -55,6 +55,8 @@ class Order(TenantOwnedModel):
 
     coupon_code = models.CharField(max_length=40, blank=True)
     notes = models.TextField(blank=True)
+    # Motivo al cancelar/anular la venta (Devolución, Defectuoso, Error, ...).
+    cancel_reason = models.CharField(max_length=200, blank=True, default='')
 
     # ─── Factura electrónica (emitida en NovaFactura) ───
     class InvoiceStatus(models.TextChoices):
