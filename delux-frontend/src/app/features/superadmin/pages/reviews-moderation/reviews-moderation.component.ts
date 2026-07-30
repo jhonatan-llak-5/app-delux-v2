@@ -26,7 +26,7 @@ import { StarRatingComponent } from '@shared/components/star-rating/star-rating.
       </div>
     </div>
 
-    <div class="grid grid-cols-3 gap-3 mb-6">
+    <div class="grid grid-cols-1 sm:grid-cols-3 gap-3 mb-6">
       <dlx-stat-card label="Pendientes" [value]="countBy('PENDING')" icon="fa-clock" iconBg="bg-amber-50 dark:bg-amber-500/15" iconColor="text-amber-600 dark:text-amber-400" />
       <dlx-stat-card label="Aprobadas" [value]="countBy('APPROVED')" icon="fa-circle-check" iconBg="bg-emerald-50 dark:bg-emerald-500/15" iconColor="text-emerald-600 dark:text-emerald-400" />
       <dlx-stat-card label="Rechazadas" [value]="countBy('REJECTED')" icon="fa-circle-xmark" iconBg="bg-rose-50 dark:bg-rose-500/15" iconColor="text-rose-600 dark:text-rose-400" />

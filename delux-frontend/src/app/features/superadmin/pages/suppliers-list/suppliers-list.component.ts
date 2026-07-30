@@ -24,12 +24,12 @@ interface SupplierForm {
   imports: [DlxEmptyStateComponent, DlxSearchInputComponent, DlxFieldErrorComponent, CommonModule, FormsModule, DlxConfirmDialogComponent, DlxToggleComponent, DlxExportMenuComponent],
   changeDetection: ChangeDetectionStrategy.OnPush,
   template: `
-    <div class="mb-5 flex items-start justify-between gap-3 flex-wrap">
+    <div class="mb-5 flex flex-col sm:flex-row sm:items-start sm:justify-between gap-3">
       <div>
         <h1 class="text-2xl md:text-3xl font-bold tracking-tight">Proveedores</h1>
         <p class="text-slate-500 text-sm mt-1">Quién te entrega la mercadería. Se usan en la recepción de productos.</p>
       </div>
-      <div class="flex gap-2">
+      <div class="flex flex-wrap gap-2 w-full sm:w-auto">
         <button class="btn-secondary text-sm" (click)="reload()"><i class="fa-solid fa-arrows-rotate"></i> Recargar</button>
         <dlx-export-menu [columns]="exportColumns" [rows]="suppliers()" filename="proveedores" title="Proveedores" />
         <button class="eg-btn-primary text-sm" (click)="openCreate()"><i class="fa-solid fa-plus"></i> Nuevo proveedor</button>

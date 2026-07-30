@@ -35,6 +35,7 @@ export class DashboardLayoutComponent implements AfterViewInit, OnDestroy {
   branding = inject(BrandingService);
   branchCtx = inject(BranchContextService);
   branchOpen = signal(false);
+  searchOpen = signal(false);   // buscador expandible en móvil
   theme = inject(ThemeService);
   ws = inject(WebSocketService);
   isFullscreen = signal(false);

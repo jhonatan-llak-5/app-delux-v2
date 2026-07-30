@@ -19,7 +19,7 @@ import { PayrollService, PayrollRun } from '@features/superadmin/services/payrol
   imports: [DlxEmptyStateComponent, CommonModule, FormsModule, RouterLink, DlxStatCardComponent, DlxExportMenuComponent],
   changeDetection: ChangeDetectionStrategy.OnPush,
   template: `
-    <div class="mb-5 flex items-start justify-between gap-3 flex-wrap">
+    <div class="mb-5 flex flex-col sm:flex-row sm:items-start sm:justify-between gap-3">
       <div>
         <div class="flex items-center gap-2 text-xs text-slate-500 mb-1">
           <i class="fa-solid fa-money-check-dollar"></i>
@@ -28,7 +28,7 @@ import { PayrollService, PayrollRun } from '@features/superadmin/services/payrol
         <h1 class="text-2xl md:text-3xl font-bold tracking-tight">Nómina de empleados</h1>
         <p class="text-slate-500 text-sm mt-1">Genera y da seguimiento a los pagos mensuales de tu equipo.</p>
       </div>
-      <div class="flex gap-2">
+      <div class="flex flex-wrap gap-2 w-full sm:w-auto">
         <dlx-export-menu [columns]="exportColumns" [rows]="rows()" filename="nomina" title="Nómina de empleados" orientation="l" />
         <a routerLink="/app/admin/payroll/reporte" class="btn-secondary text-sm"><i class="fa-solid fa-chart-column"></i> Reporte</a>
         <button class="eg-btn-primary text-sm" (click)="openGenerate()"><i class="fa-solid fa-plus"></i> Generar pagos</button>

@@ -28,7 +28,7 @@ import { NotificationsService, NotifKind } from '@shared/services/notifications.
       </button>
 
       @if (open()) {
-        <div class="absolute right-0 top-full mt-2 w-[380px] max-h-[480px] overflow-hidden
+        <div class="absolute right-0 top-full mt-2 w-[calc(100vw-1.5rem)] sm:w-[380px] max-w-[380px] max-h-[480px] overflow-hidden
                     rounded-xl border shadow-xl animate-slide-down z-50 flex flex-col"
              [style.background-color]="'var(--dash-card)'"
              [style.border-color]="'var(--dash-border)'">
