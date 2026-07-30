@@ -95,7 +95,7 @@
                 <p class="mt-2 text-[11px] text-slate-400">
                   <i class="fa-solid fa-store"></i> Venta de mostrador (pagada). El estado no se modifica.
                 </p>
-              } @else if (canManage() && !isFinal(o.status)) {
+              } @else if (canManage() && !orderLocked(o.status)) {
                 <div class="mt-2 flex items-center gap-2">
                   <select [ngModel]="o.status" (ngModelChange)="changeStatus($event)" [disabled]="saving()"
                           class="eg-input text-xs !py-1.5 flex-1">
@@ -106,6 +106,10 @@
                   @if (saving()) { <i class="fa-solid fa-spinner fa-spin text-slate-400 text-xs"></i> }
                 </div>
                 <p class="text-[10px] text-slate-400 mt-1">Cambia el estado del pedido y notifica al equipo.</p>
+              } @else if (o.status === 'PAID') {
+                <p class="mt-2 inline-flex items-center gap-1.5 text-[11px] font-semibold text-emerald-600 dark:text-emerald-400">
+                  <i class="fa-solid fa-lock"></i> Venta cerrada. El estado ya no se puede modificar.
+                </p>
               }
             </div>
             <div>
@@ -169,7 +173,7 @@
                 <span class="inline-flex items-center px-2 py-0.5 rounded-md text-xs font-bold uppercase mt-1" [ngClass]="shipBadge(sh.status)">
                   {{ sh.status_label }}
                 </span>
-                @if (canManage()) {
+                @if (canManage() && !shipLocked(sh.status)) {
                   <div class="mt-2 flex items-center gap-2">
                     <select [ngModel]="sh.status" (ngModelChange)="changeShipStatus($event)" [disabled]="savingShip()"
                             class="eg-input text-xs !py-1.5 flex-1">
@@ -180,6 +184,10 @@
                     @if (savingShip()) { <i class="fa-solid fa-spinner fa-spin text-slate-400 text-xs"></i> }
                   </div>
                   <p class="text-[10px] text-slate-400 mt-1">Al marcar Fallido o Devuelto se pedirá el motivo.</p>
+                } @else if (canManage() && sh.status === 'DELIVERED') {
+                  <p class="mt-2 inline-flex items-center gap-1.5 text-[11px] font-semibold text-emerald-600 dark:text-emerald-400">
+                    <i class="fa-solid fa-lock"></i> Envío entregado. El seguimiento quedó cerrado.
+                  </p>
                 }
               </div>
               <div class="grid grid-cols-2 gap-3 text-sm">

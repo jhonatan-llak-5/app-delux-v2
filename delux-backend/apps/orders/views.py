@@ -120,6 +120,16 @@ class AdminOrderViewSet(viewsets.ReadOnlyModelViewSet):
             update_fields.append('notes')
         order.save(update_fields=update_fields)
 
+        # Al marcar PAGADO: cierra la venta. Sincroniza el cobro (pagos
+        # pendientes -> confirmados) y descuenta el stock si aún no se hizo.
+        # Idempotente: no vuelve a descontar si ya existe una salida de stock
+        # para este pedido (p.ej. contra entrega, que descuenta al crear).
+        if new_status == OrderStatus.PAID:
+            try:
+                self._settle_paid(order, request.user)
+            except Exception as e:
+                print(f'[settle_paid] {e}')
+
         # Sistema inteligente de notificaciones: avisa al cliente (in-app),
         # al staff y al vendedor; email al cliente SOLO en hitos.
         try:
@@ -129,6 +139,41 @@ class AdminOrderViewSet(viewsets.ReadOnlyModelViewSet):
             print(f'[notify set_status] {e}')
 
         return Response(OrderSerializer(order).data)
+
+    def _settle_paid(self, order, user):
+        """Confirma pagos pendientes y descuenta stock (idempotente) al cerrar
+        la venta como PAGADA."""
+        from django.db import transaction
+        from apps.payments.models import Payment, PaymentStatus
+        from apps.inventory.models import Stock, StockMovement
+        with transaction.atomic():
+            for p in order.payments.filter(status=PaymentStatus.PENDING):
+                p.status = PaymentStatus.SUCCEEDED
+                p.raw_payload = {**(p.raw_payload or {}),
+                                 'validated_by': user.id, 'via': 'set_status'}
+                p.save(update_fields=['status', 'raw_payload'])
+            already_out = StockMovement.objects.filter(
+                type=StockMovement.TYPE_OUT, note__icontains=order.code
+            ).exists()
+            if already_out:
+                return
+            for item in order.items.all():
+                item_branch = item.branch_id or order.branch_id
+                stock = Stock.objects.select_for_update().filter(
+                    variant=item.variant, branch_id=item_branch
+                ).first()
+                if not stock:
+                    continue
+                before = stock.quantity
+                stock.reserved = max(0, stock.reserved - item.quantity)
+                stock.quantity = max(0, stock.quantity - item.quantity)
+                stock.save(update_fields=['reserved', 'quantity', 'updated_at'])
+                StockMovement.objects.create(
+                    tenant=order.tenant, stock=stock,
+                    type=StockMovement.TYPE_OUT, quantity=-item.quantity,
+                    note=f'Venta {order.code} (marcada pagada)',
+                    qty_before=before, qty_after=stock.quantity,
+                )
 
     @action(detail=True, methods=['post'], url_path='retry-invoice')
     def retry_invoice(self, request, pk=None):

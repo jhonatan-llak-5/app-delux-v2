@@ -120,6 +120,10 @@ export class SaleDetailComponent implements OnInit {
     return r === 'SUPERADMIN' || r === 'TENANT_ADMIN' || r === 'BRANCH_MANAGER';
   }
   isFinal(s: string) { return s === 'CANCELLED' || s === 'REFUNDED'; }
+  // Estados que cierran/bloquean el selector del pedido (venta cerrada).
+  orderLocked(s: string) { return this.isFinal(s) || s === 'PAID'; }
+  private revertOrderSelect() { const o = this.order(); if (o) this.order.set({ ...o }); }
+  private revertShipSelect() { const sh = this.shipment(); if (sh) this.shipment.set({ ...sh }); }
   waLink(phone: string) {
     const digits = (phone || '').replace(/[^0-9]/g, '');
     return 'https://wa.me/' + digits;
@@ -129,7 +133,7 @@ export class SaleDetailComponent implements OnInit {
   obsText = '';
   private pendingStatus: string | null = null;
 
-  changeStatus(newStatus: string) {
+  async changeStatus(newStatus: string) {
     const o = this.order();
     if (!o || newStatus === o.status) return;
     // Cancelado / devuelto requieren un motivo → abrir modal.
@@ -138,6 +142,17 @@ export class SaleDetailComponent implements OnInit {
       this.pendingStatus = newStatus;
       this.obsText = '';
       this.obsOpen.set(true);
+      return;
+    }
+    // "Pagado" cierra la venta: pide confirmación explícita.
+    if (newStatus === 'PAID') {
+      const ok = await this.confirm.ask({
+        title: 'Cerrar venta como pagada',
+        message: 'Si marcas esta venta como PAGADA quedará cerrada y finalizada: se confirmará el cobro y se descontará el stock. El estado ya no se podrá modificar. ¿Continuar?',
+        confirmText: 'Sí, cerrar venta',
+      });
+      if (!ok) { this.revertOrderSelect(); return; }
+      this.applyStatus(newStatus);
       return;
     }
     this.applyStatus(newStatus);
@@ -169,14 +184,22 @@ export class SaleDetailComponent implements OnInit {
     if (!o) return;
     this.saving.set(true);
     this.svc.setStatus(o.id, newStatus, notes).subscribe({
-      next: updated => { this.order.set(updated); this.saving.set(false); this.notify.success('Estado actualizado'); },
+      next: updated => {
+        this.order.set(updated);
+        this.saving.set(false);
+        this.notify.success(newStatus === 'PAID' ? 'Venta cerrada como pagada' : 'Estado actualizado');
+        // Al cerrar como pagada, refresca el pago para que el KPI quede sincronizado.
+        if (newStatus === 'PAID') this.loadPayments(o.id);
+      },
       error: e => { this.saving.set(false); this.notify.fromServerError(e, 'No se pudo cambiar el estado.'); },
     });
   }
 
   // ---- Envío ----
-  private isShipFinal(s: string) { return s === 'FAILED' || s === 'RETURNED'; }
-  changeShipStatus(newStatus: string) {
+  isShipFinal(s: string) { return s === 'FAILED' || s === 'RETURNED'; }
+  // Estados que cierran/bloquean el selector del envío.
+  shipLocked(s: string) { return this.isShipFinal(s) || s === 'DELIVERED'; }
+  async changeShipStatus(newStatus: string) {
     const sh = this.shipment();
     if (!sh || newStatus === sh.status) return;
     if (this.isShipFinal(newStatus)) {
@@ -184,6 +207,17 @@ export class SaleDetailComponent implements OnInit {
       this.pendingStatus = newStatus;
       this.obsText = '';
       this.obsOpen.set(true);
+      return;
+    }
+    // "Entregado" cierra el envío: pide confirmación explícita.
+    if (newStatus === 'DELIVERED') {
+      const ok = await this.confirm.ask({
+        title: 'Confirmar entrega',
+        message: 'Vas a marcar este envío como ENTREGADO. El seguimiento quedará cerrado y no se podrá cambiar. ¿Confirmas la entrega?',
+        confirmText: 'Sí, entregado',
+      });
+      if (!ok) { this.revertShipSelect(); return; }
+      this.applyShipStatus(newStatus);
       return;
     }
     this.applyShipStatus(newStatus);
