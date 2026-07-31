@@ -94,6 +94,94 @@ class AdminOrderViewSet(viewsets.ReadOnlyModelViewSet):
             order.save(update_fields=['status', 'cancel_reason', 'updated_at'])
         return Response({'detail': 'Venta cancelada.', 'restored_stock': restore_stock})
 
+    @action(detail=True, methods=['post'], url_path='register-change')
+    def register_change(self, request, pk=None):
+        """Registra un CAMBIO (return-to-stock parcial) sobre una venta ya
+        realizada. El producto vuelve al stock (+cantidad), la venta NO se
+        anula pero su total NETO baja (total_changes += valor_devuelto) para las
+        estadísticas, y queda un registro en el historial. Puede haber varios
+        cambios por venta."""
+        if request.user.role == 'SALESPERSON':
+            return Response({'detail': 'No autorizado.'}, status=status.HTTP_403_FORBIDDEN)
+
+        order = self.get_object()
+        if order.status == OrderStatus.CANCELLED:
+            return Response({'detail': 'La venta está cancelada.'}, status=400)
+
+        order_item_id = request.data.get('order_item_id')
+        try:
+            quantity = int(request.data.get('quantity', 1))
+        except (TypeError, ValueError):
+            return Response({'detail': 'Cantidad inválida.'}, status=400)
+        if quantity < 1:
+            return Response({'detail': 'La cantidad debe ser al menos 1.'}, status=400)
+
+        from decimal import Decimal, InvalidOperation
+        try:
+            valor_devuelto = Decimal(str(request.data.get('valor_devuelto', 0)))
+        except (InvalidOperation, TypeError, ValueError):
+            return Response({'detail': 'Valor devuelto inválido.'}, status=400)
+        if valor_devuelto <= 0:
+            return Response({'detail': 'El valor devuelto debe ser mayor a cero.'}, status=400)
+        order_total = order.total or Decimal('0')
+        if valor_devuelto > order_total:
+            return Response(
+                {'detail': 'El valor devuelto no puede superar el total de la venta.'}, status=400)
+
+        from apps.returns.models import SaleChange, SaleChangeType
+        # Tipo AUTOMÁTICO: TOTAL si se devuelve el total de la venta; PARCIAL si es menor.
+        tipo = SaleChangeType.TOTAL if valor_devuelto >= order_total else SaleChangeType.PARCIAL
+        descripcion = (request.data.get('descripcion') or '').strip()
+
+        order_item = order.items.filter(pk=order_item_id).first()
+        if not order_item:
+            return Response({'detail': 'El ítem no pertenece a esta venta.'}, status=400)
+        if quantity > order_item.quantity:
+            return Response(
+                {'detail': 'La cantidad supera lo vendido en ese ítem.'}, status=400)
+
+        import secrets
+        from django.db import transaction
+        from apps.inventory.models import Stock, StockMovement
+        with transaction.atomic():
+            branch_id = order_item.branch_id or order.branch_id
+            stock = None
+            if order_item.variant_id and branch_id:
+                stock = Stock.objects.select_for_update().filter(
+                    variant_id=order_item.variant_id, branch_id=branch_id,
+                ).first()
+                if stock:
+                    before = stock.quantity
+                    stock.quantity += quantity
+                    stock.save(update_fields=['quantity', 'updated_at'])
+                else:
+                    stock = Stock.objects.create(
+                        tenant=order.tenant, variant_id=order_item.variant_id,
+                        branch_id=branch_id, quantity=quantity,
+                    )
+                    before = 0
+                StockMovement.objects.create(
+                    tenant=order.tenant, stock=stock,
+                    type=StockMovement.TYPE_IN, quantity=quantity,
+                    note=f'Cambio venta {order.code}: {descripcion[:120]}',
+                    actor=request.user if request.user.is_authenticated else None,
+                    qty_before=before, qty_after=stock.quantity,
+                )
+
+            code = f'CMB-{timezone.now().strftime("%Y%m%d")}-{secrets.token_hex(3).upper()}'
+            SaleChange.objects.create(
+                tenant=order.tenant, code=code, order=order, order_item=order_item,
+                variant_id=order_item.variant_id, branch_id=branch_id,
+                product_name=order_item.product_name, quantity=quantity,
+                valor_devuelto=valor_devuelto, tipo=tipo, descripcion=descripcion,
+                actor=request.user if request.user.is_authenticated else None,
+            )
+
+            order.total_changes = (order.total_changes or 0) + valor_devuelto
+            order.save(update_fields=['total_changes', 'updated_at'])
+
+        return Response(OrderSerializer(order).data)
+
     @action(detail=True, methods=['post'], url_path='set-status')
     def set_status(self, request, pk=None):
         """Cambia el estado del pedido (gerentes/admins). Bloquea estados finales."""
@@ -245,11 +333,16 @@ class AdminOrderViewSet(viewsets.ReadOnlyModelViewSet):
         qs = self.get_queryset()
         today = timezone.now().date()
         today_qs = qs.filter(created_at__date=today)
+        # Revenue NETO: total facturado menos los cambios devueltos.
+        _tot = qs.filter(status=OrderStatus.PAID).aggregate(
+            t=Sum('total'), c=Sum('total_changes'))
+        _today = today_qs.filter(status=OrderStatus.PAID).aggregate(
+            t=Sum('total'), c=Sum('total_changes'))
         return Response({
             'total_orders': qs.count(),
-            'total_revenue': qs.filter(status=OrderStatus.PAID).aggregate(t=Sum('total'))['t'] or 0,
+            'total_revenue': (_tot['t'] or 0) - (_tot['c'] or 0),
             'today_orders': today_qs.count(),
-            'today_revenue': today_qs.filter(status=OrderStatus.PAID).aggregate(t=Sum('total'))['t'] or 0,
+            'today_revenue': (_today['t'] or 0) - (_today['c'] or 0),
             'pending': qs.filter(status=OrderStatus.PENDING).count(),
             'paid': qs.filter(status=OrderStatus.PAID).count(),
             'cancelled': qs.filter(status=OrderStatus.CANCELLED).count(),

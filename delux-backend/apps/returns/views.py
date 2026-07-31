@@ -11,8 +11,8 @@ from apps.accounts.permissions import IsBranchManager
 from apps.customers.me_views import get_or_create_customer_for_user
 from apps.orders.models import Order, OrderItem, OrderStatus
 from apps.inventory.models import Stock, StockMovement
-from .models import ReturnRequest, ReturnItem, ReturnStatus
-from .serializers import ReturnSerializer
+from .models import ReturnRequest, ReturnItem, ReturnStatus, SaleChange
+from .serializers import ReturnSerializer, SaleChangeSerializer
 
 
 class MeReturnsView(APIView):
@@ -117,3 +117,30 @@ class AdminReturnViewSet(viewsets.ModelViewSet):
             rr.order.save(update_fields=['status', 'updated_at'])
             rr.save(update_fields=['status'])
         return Response(ReturnSerializer(rr).data)
+
+
+class AdminSaleChangeViewSet(viewsets.ReadOnlyModelViewSet):
+    """Historial admin de CAMBIOS (return-to-stock parcial ligado a la venta,
+    SIN reembolso ni anulación). Solo lectura."""
+    serializer_class = SaleChangeSerializer
+    permission_classes = [permissions.IsAuthenticated, IsBranchManager]
+    filter_backends = [filters.SearchFilter, filters.OrderingFilter]
+    search_fields = ['code', 'order__code', 'product_name', 'descripcion']
+    ordering = ['-created_at']
+
+    def get_queryset(self):
+        qs = SaleChange.objects.select_related(
+            'order', 'order_item', 'branch', 'actor')
+        user = self.request.user
+        if getattr(user, 'role', None) and user.role != 'SUPERADMIN':
+            if getattr(user, 'tenant_id', None):
+                qs = qs.filter(tenant_id=user.tenant_id)
+        # Aísla por la sucursal donde SE REGISTRÓ el cambio (branch del cambio),
+        # para perfiles atados a una sola sucursal.
+        if getattr(user, 'role', None) in ('BRANCH_MANAGER', 'SALESPERSON') and user.branch_id:
+            qs = qs.filter(branch_id=user.branch_id)
+        # Filtro opcional por la sucursal seleccionada en el panel.
+        branch = self.request.query_params.get('branch')
+        if branch:
+            qs = qs.filter(branch_id=branch)
+        return qs

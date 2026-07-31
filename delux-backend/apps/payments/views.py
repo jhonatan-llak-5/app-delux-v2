@@ -378,8 +378,9 @@ class CheckoutCODView(APIView):
                             qty_before=web_before, qty_after=stock.quantity,
                         )
 
-                order.status = OrderStatus.PREPARING
-                order.save(update_fields=['status', 'updated_at'])
+                # El pedido nace en "Pendiente de pago" (contra entrega se cobra
+                # al entregar); se marca "Pagado" al confirmar el cobro.
+                # (order.status ya es PENDING desde create_web_orders.)
 
                 # Cada sucursal cobra su total por separado: un Payment por pedido.
                 Payment.objects.create(

@@ -71,8 +71,12 @@ class FinanceViewSet(viewsets.ViewSet):
         branch_id = self._scope_branch(request)
 
         oq = self._orders_qs(request, from_d, to_d)
-        ventas_web = _dec(oq.filter(channel=OrderChannel.WEB).aggregate(t=Sum('total'))['t'])
-        ventas_pos = _dec(oq.filter(channel=OrderChannel.POS).aggregate(t=Sum('total'))['t'])
+        # Ventas NETAS: se descuenta el valor de los cambios registrados
+        # (producto devuelto) para que ganancia/estadísticas cuadren con el stock.
+        _wb = oq.filter(channel=OrderChannel.WEB).aggregate(t=Sum('total'), c=Sum('total_changes'))
+        _pb = oq.filter(channel=OrderChannel.POS).aggregate(t=Sum('total'), c=Sum('total_changes'))
+        ventas_web = _dec(_wb['t']) - _dec(_wb['c'])
+        ventas_pos = _dec(_pb['t']) - _dec(_pb['c'])
         ventas = ventas_web + ventas_pos
 
         ri = ReceptionItem.objects.filter(reception__status=Reception.STATUS_COMMITTED,
@@ -144,12 +148,12 @@ class FinanceViewSet(viewsets.ViewSet):
         oq = self._orders_qs(request, from_d, to_d)
         trunc = TruncMonth('created_at') if by_month else TruncDate('created_at')
         web, pos = {}, {}
-        for r in oq.annotate(b=trunc).values('b', 'channel').annotate(t=Sum('total')):
+        for r in oq.annotate(b=trunc).values('b', 'channel').annotate(t=Sum('total'), c=Sum('total_changes')):
             d = r['b']
             if hasattr(d, 'date'):
                 d = d.date()
             key = f'{d.year}-{d.month:02d}' if by_month else d.isoformat()
-            (web if r['channel'] == OrderChannel.WEB else pos)[key] = float(_dec(r['t']))
+            (web if r['channel'] == OrderChannel.WEB else pos)[key] = float(_dec(r['t']) - _dec(r['c']))
 
         eq = Expense.objects.filter(date__gte=from_d, date__lte=to_d)
         if tenant_id: eq = eq.filter(tenant_id=tenant_id)
@@ -220,7 +224,7 @@ class FinanceViewSet(viewsets.ViewSet):
                     'party': cust,
                     'method': chan_lbl.get(o.channel, o.channel),
                     'ref': o.code,
-                    'amount': str(_dec(o.total)),
+                    'amount': str(_dec(o.total) - _dec(getattr(o, 'total_changes', 0))),
                 })
 
         # ── EGRESOS: gastos operativos ──

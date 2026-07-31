@@ -95,6 +95,7 @@ import { DlxPaginationComponent } from '@shared/ui/pagination.component';
       } @else if (orders().length === 0) {
         <dlx-empty-state icon="fa-receipt" title="No hay ventas registradas con esos filtros." />
       } @else {
+        <div class="overflow-x-auto">
         <table class="w-full text-sm">
           <thead class="bg-slate-50 text-slate-500">
             <tr class="text-left">
@@ -114,7 +115,7 @@ import { DlxPaginationComponent } from '@shared/ui/pagination.component';
           <tbody>
             @for (o of orders(); track o.id) {
               <tr class="border-t border-slate-100 hover:bg-slate-50/60">
-                <td class="px-5 py-3 font-mono text-xs font-semibold">{{ o.code }}</td>
+                <td class="px-5 py-3 font-mono text-xs font-semibold whitespace-nowrap">{{ o.code }}</td>
                 <td class="px-5 py-3 text-xs text-slate-600">{{ o.created_at | date:'short' }}</td>
                 <td class="px-5 py-3 text-xs">{{ o.branch_name }}</td>
                 <td class="px-5 py-3 text-xs">
@@ -149,10 +150,17 @@ import { DlxPaginationComponent } from '@shared/ui/pagination.component';
                 <td class="px-5 py-3 text-center text-xs">{{ o.items_count }}</td>
                 <td class="px-5 py-3 text-right font-bold">\${{ o.total }}</td>
                 <td class="px-5 py-3 text-center">
-                  <span class="inline-flex items-center px-2 py-0.5 rounded-md text-[11px] font-bold uppercase"
-                        [ngClass]="o.status | orderStatusClass">
-                    {{ o.status | orderStatusLabel }}
-                  </span>
+                  @if (+(o.total_changes || 0) > 0) {
+                    <span class="inline-flex items-center px-2 py-0.5 rounded-md text-[11px] font-bold uppercase bg-amber-100 text-amber-700 dark:bg-amber-500/15 dark:text-amber-400"
+                          title="Esta venta tiene un cambio/devolución registrado">
+                      Devuelta
+                    </span>
+                  } @else {
+                    <span class="inline-flex items-center px-2 py-0.5 rounded-md text-[11px] font-bold uppercase"
+                          [ngClass]="o.status | orderStatusClass">
+                      {{ o.status | orderStatusLabel }}
+                    </span>
+                  }
                 </td>
                 <td class="px-5 py-3 text-center">
                   @if (o.invoice_status && o.invoice_status !== 'NOT_ISSUED') {
@@ -171,6 +179,7 @@ import { DlxPaginationComponent } from '@shared/ui/pagination.component';
             }
           </tbody>
         </table>
+        </div>
       }
     </div>
 
@@ -227,6 +236,89 @@ import { DlxPaginationComponent } from '@shared/ui/pagination.component';
               Volver
             </button>
           </div>
+        </div>
+      </div>
+    }
+
+    <!-- Modal: registrar cambio (reutiliza el flujo del detalle de venta) -->
+    @if (changeOpen()) {
+      <div class="fixed inset-0 z-50 grid place-items-center bg-black/50 backdrop-blur-sm p-4 animate-fade-in"
+           (click)="cancelChange()">
+        <div class="w-full max-w-md rounded-2xl bg-white dark:bg-[#121826] shadow-2xl overflow-hidden border border-slate-200 dark:border-white/10"
+             (click)="$event.stopPropagation()">
+          @if (changeLoading()) {
+            <div class="p-12 text-center text-slate-400">
+              <i class="fa-solid fa-spinner fa-spin text-2xl"></i>
+              <p class="text-xs mt-2">Cargando venta…</p>
+            </div>
+          } @else if (changeOrder(); as o) {
+            <div class="p-6 space-y-4">
+              <div class="w-12 h-12 rounded-full bg-amber-100 text-amber-600 grid place-items-center">
+                <i class="fa-solid fa-right-left text-xl"></i>
+              </div>
+              <div>
+                <h3 class="text-lg font-bold tracking-tight">Registrar cambio {{ o.code }}</h3>
+                <p class="text-slate-500 text-sm mt-1">
+                  El producto vuelve al stock y el total neto de la venta baja. La venta no se anula.
+                </p>
+              </div>
+
+              <div>
+                <label class="text-[11px] uppercase tracking-widest text-slate-500 font-semibold">Producto que se devuelve</label>
+                <select [ngModel]="changeItemId()" (ngModelChange)="onChangeItem(+$event)"
+                        class="eg-input mt-1 w-full text-sm">
+                  <option [ngValue]="null" disabled>Selecciona un ítem…</option>
+                  @for (it of o.items; track it.id) {
+                    <option [ngValue]="it.id">{{ it.product_name }} · {{ it.size }}/{{ it.color }} · x{{ it.quantity }}</option>
+                  }
+                </select>
+              </div>
+
+              <div class="grid grid-cols-2 gap-3">
+                <div>
+                  <label class="text-[11px] uppercase tracking-widest text-slate-500 font-semibold">Cantidad</label>
+                  <input type="number" min="1" [max]="changeMaxQty()" [ngModel]="changeQty()" (ngModelChange)="changeQty.set(+$event)"
+                         class="eg-input mt-1 w-full text-sm" />
+                </div>
+                <div>
+                  <label class="text-[11px] uppercase tracking-widest text-slate-500 font-semibold">Tipo (automático)</label>
+                  <div class="eg-input mt-1 w-full text-sm flex items-center font-semibold"
+                       [class.text-amber-600]="changeTipoAuto() === 'TOTAL'">
+                    {{ changeTipoAutoLabel() }}
+                  </div>
+                </div>
+              </div>
+
+              <div>
+                <label class="text-[11px] uppercase tracking-widest text-slate-500 font-semibold">Valor devuelto</label>
+                <input type="number" min="0.01" step="0.01" [max]="changeTotalNum()" [ngModel]="changeValue()" (ngModelChange)="changeValue.set(+$event)"
+                       class="eg-input mt-1 w-full text-sm" />
+                <p class="text-[11px] text-slate-400 mt-1">Mayor a $0 y hasta \${{ changeTotalNum() | number:'1.2-2' }} (total de la venta).</p>
+                @if (changeValue() > changeTotalNum()) {
+                  <p class="text-[11px] text-rose-500 mt-1">No puede superar el total de la venta.</p>
+                }
+              </div>
+
+              <div>
+                <label class="text-[11px] uppercase tracking-widest text-slate-500 font-semibold">Descripción / motivo</label>
+                <textarea [ngModel]="changeDesc()" (ngModelChange)="changeDesc.set($event)" rows="3" maxlength="500"
+                          placeholder="Ej: talla equivocada / producto defectuoso…"
+                          class="eg-input mt-1 w-full resize-none text-sm"></textarea>
+              </div>
+            </div>
+            <div class="p-5 pt-0 flex gap-2 justify-end">
+              <button (click)="cancelChange()" [disabled]="changeSaving()"
+                      class="px-4 py-2.5 rounded-xl bg-slate-100 dark:bg-white/5 hover:bg-slate-200 dark:hover:bg-white/10 text-slate-600 dark:text-slate-300 text-sm font-semibold transition">
+                Cancelar
+              </button>
+              <button (click)="confirmChange()" [disabled]="changeItemId() === null || changeQty() < 1 || !changeValueValid() || changeSaving()"
+                      class="px-5 py-2.5 rounded-xl bg-amber-600 hover:bg-amber-700 text-white text-sm font-bold transition disabled:opacity-40 flex items-center gap-2">
+                @if (changeSaving()) { <i class="fa-solid fa-spinner fa-spin"></i> }
+                @else { <i class="fa-solid fa-right-left"></i> }
+                Registrar cambio
+              </button>
+            </div>
+          }
         </div>
       </div>
     }
@@ -341,11 +433,18 @@ export class SalesListComponent implements OnInit {
   }
 
 
+  /** Solo roles de gestión pueden registrar cambios / cancelar (no el vendedor). */
+  canManage(): boolean {
+    const r = this.auth.user()?.role;
+    return r === 'SUPERADMIN' || r === 'TENANT_ADMIN' || r === 'BRANCH_MANAGER';
+  }
+
   rowActions(o: Order): RowAction[] {
     return [
       { label: 'Ver', icon: 'fa-eye', link: ['/app/admin/sales', o.id] },
       { label: 'Imprimir voucher', icon: 'fa-print', run: () => this.printVoucher(o) },
-      { label: 'Cancelar venta', icon: 'fa-ban', variant: 'danger', hidden: o.status !== 'PAID', run: () => this.cancel(o) },
+      { label: 'Registrar cambio', icon: 'fa-right-left', hidden: !this.canManage() || o.status !== 'PAID' || +(o.total_changes || 0) > 0, run: () => this.openChange(o) },
+      { label: 'Cancelar venta', icon: 'fa-ban', variant: 'danger', hidden: !this.canManage() || o.status === 'CANCELLED' || o.status === 'REFUNDED', run: () => this.cancel(o) },
     ];
   }
 
@@ -388,6 +487,85 @@ export class SalesListComponent implements OnInit {
         this.cancelling.set(false);
         this.notify.fromServerError(e, 'No se pudo cancelar la venta.');
       },
+    });
+  }
+
+  // ── Registrar cambio (mismo flujo que el detalle de la venta) ──
+  changeOpen = signal(false);
+  changeOrder = signal<Order | null>(null);
+  changeLoading = signal(false);
+  changeItemId = signal<number | null>(null);
+  changeQty = signal(1);
+  changeValue = signal(0);
+  changeTipo = signal<'PARCIAL' | 'TOTAL'>('PARCIAL');
+  changeDesc = signal('');
+  changeSaving = signal(false);
+
+  changeMaxQty(): number {
+    const o = this.changeOrder();
+    const it = o?.items?.find(i => i.id === this.changeItemId());
+    return it ? it.quantity : 1;
+  }
+  changeTotalNum(): number { return +(this.changeOrder()?.total || 0); }
+  changeTipoAuto(): 'TOTAL' | 'PARCIAL' { return this.changeValue() >= this.changeTotalNum() ? 'TOTAL' : 'PARCIAL'; }
+  changeTipoAutoLabel(): string { return this.changeTipoAuto() === 'TOTAL' ? 'Total' : 'Parcial'; }
+  changeValueValid(): boolean { const v = this.changeValue(); return v > 0 && v <= this.changeTotalNum(); }
+
+  /** Abre el modal y carga el detalle de la venta para poblar los ítems. */
+  openChange(o: Order) {
+    this.changeItemId.set(null);
+    this.changeQty.set(1);
+    this.changeValue.set(0);
+    this.changeTipo.set('PARCIAL');
+    this.changeDesc.set('');
+    this.changeOrder.set(null);
+    this.changeOpen.set(true);
+    this.changeLoading.set(true);
+    this.svc.get(o.id).subscribe({
+      next: full => { this.changeOrder.set(full); this.changeLoading.set(false); },
+      error: e => {
+        this.changeLoading.set(false);
+        this.changeOpen.set(false);
+        this.notify.fromServerError(e, 'No se pudo cargar la venta.');
+      },
+    });
+  }
+
+  cancelChange() { this.changeOpen.set(false); }
+
+  onChangeItem(id: number) {
+    const o = this.changeOrder();
+    this.changeItemId.set(id);
+    const it = o?.items?.find(i => i.id === id);
+    if (it) {
+      const sub = +it.subtotal || (+it.unit_price * it.quantity);
+      this.changeValue.set(sub);
+      this.changeQty.set(1);
+    }
+  }
+
+  confirmChange() {
+    const o = this.changeOrder();
+    const itemId = this.changeItemId();
+    if (!o || itemId == null) return;
+    const qty = this.changeQty();
+    const value = this.changeValue();
+    if (qty < 1 || !this.changeValueValid()) return;
+    this.changeSaving.set(true);
+    this.svc.registerChange(o.id, {
+      order_item_id: itemId,
+      quantity: qty,
+      valor_devuelto: value,
+      tipo: this.changeTipoAuto(),
+      descripcion: this.changeDesc().trim(),
+    }).subscribe({
+      next: () => {
+        this.changeSaving.set(false);
+        this.changeOpen.set(false);
+        this.notify.success('Cambio registrado');
+        this.reload();
+      },
+      error: e => { this.changeSaving.set(false); this.notify.fromServerError(e, 'No se pudo registrar el cambio.'); },
     });
   }
 }

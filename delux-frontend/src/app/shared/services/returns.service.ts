@@ -1,6 +1,26 @@
 import { Injectable, inject } from '@angular/core';
 import { HttpClient, HttpParams } from '@angular/common/http';
+import { Observable } from 'rxjs';
 import { environment } from '@env/environment';
+
+export interface SaleChange {
+  id: number;
+  code: string;
+  order: number;
+  order_code: string;
+  product_name: string;
+  sku: string;
+  size: string;
+  color: string;
+  quantity: number;
+  valor_devuelto: string;
+  tipo: string;
+  tipo_label: string;
+  descripcion: string;
+  branch_name: string | null;
+  actor_name: string | null;
+  created_at: string;
+}
 
 export interface ReturnItem {
   id: number;
@@ -49,6 +69,12 @@ export class ReturnsService {
     let p = new HttpParams();
     Object.entries(params).forEach(([k, v]) => { if (v) p = p.set(k, String(v)); });
     return this.http.get<{ count: number; results: ReturnRequest[] }>(`${this.base}/admin/returns/`, { params: p });
+  }
+  /** Historial de cambios registrados en ventas. */
+  listChanges(params: { search?: string; page?: number; page_size?: number } = {}): Observable<{ count: number; results: SaleChange[] }> {
+    let p = new HttpParams();
+    Object.entries(params).forEach(([k, v]) => { if (v) p = p.set(k, String(v)); });
+    return this.http.get<{ count: number; results: SaleChange[] }>(`${this.base}/admin/sale-changes/`, { params: p });
   }
   approve(id: number, admin_note = '') { return this.http.post<ReturnRequest>(`${this.base}/admin/returns/${id}/approve/`, { admin_note }); }
   reject(id: number, admin_note = '') { return this.http.post<ReturnRequest>(`${this.base}/admin/returns/${id}/reject/`, { admin_note }); }

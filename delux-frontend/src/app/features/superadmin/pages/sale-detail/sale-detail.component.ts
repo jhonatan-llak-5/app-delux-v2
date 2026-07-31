@@ -32,14 +32,22 @@ export class SaleDetailComponent implements OnInit {
   savingShip = signal(false);
 
   readonly shipStatuses = [
-    { value: 'CREATED',    label: 'Creado' },
     { value: 'PREPARING',  label: 'Preparando' },
-    { value: 'SHIPPED',    label: 'Enviado' },
     { value: 'IN_TRANSIT', label: 'En tránsito' },
     { value: 'DELIVERED',  label: 'Entregado' },
-    { value: 'FAILED',     label: 'Fallido' },
-    { value: 'RETURNED',   label: 'Devuelto' },
   ];
+  private shipLabels: Record<string, string> = {
+    CREATED: 'Creado', PREPARING: 'Preparando', SHIPPED: 'Enviado',
+    IN_TRANSIT: 'En tránsito', DELIVERED: 'Entregado', FAILED: 'Fallido', RETURNED: 'Devuelto',
+  };
+  /** Opciones del envío (Preparando/En tránsito/Entregado) + el estado actual si es antiguo. */
+  shipStatusOptions(sh: { status: string }) {
+    const opts = [...this.shipStatuses];
+    if (!opts.some(x => x.value === sh.status)) {
+      opts.unshift({ value: sh.status, label: this.shipLabels[sh.status] || sh.status });
+    }
+    return opts;
+  }
   shipBadge(s: string) {
     return ({
       CREATED: 'bg-slate-100 text-slate-700', PREPARING: 'bg-amber-100 text-amber-700',
@@ -105,16 +113,30 @@ export class SaleDetailComponent implements OnInit {
     this.loadPayments(o.id);
     this.loadShipment(o.id);
   }
-  readonly statuses = [
-    { value: 'PENDING',   label: 'Pendiente de pago' },
-    { value: 'PAID',      label: 'Pagado' },
-    { value: 'PREPARING', label: 'Preparando' },
-    { value: 'READY',     label: 'Listo para retirar' },
-    { value: 'SHIPPED',   label: 'Enviado' },
-    { value: 'DELIVERED', label: 'Entregado' },
-    { value: 'CANCELLED', label: 'Cancelado' },
-    { value: 'REFUNDED',  label: 'Devuelto' },
-  ];
+  private orderStatusLabels: Record<string, string> = {
+    PENDING: 'Pendiente de pago', PAID: 'Pagado', PREPARING: 'Preparando',
+    READY: 'Listo para retirar', SHIPPED: 'Enviado', DELIVERED: 'Entregado',
+    CANCELLED: 'Cancelado', REFUNDED: 'Devuelto',
+  };
+  /**
+   * Estados de "Información" para pedidos web: Pendiente de pago → (Listo para
+   * retirar, solo retiro en tienda) → Pagado (cierra y bloquea la venta).
+   * Cancelar/devolución/cambio se registran desde sus propias ventanas.
+   */
+  orderStatuses(o: { status: string; fulfillment?: string }) {
+    const opts: { value: string; label: string }[] = [
+      { value: 'PENDING', label: 'Pendiente de pago' },
+    ];
+    if (o.fulfillment === 'PICKUP') {
+      opts.push({ value: 'READY', label: 'Listo para retirar' });
+    }
+    opts.push({ value: 'PAID', label: 'Pagado' });
+    // Datos antiguos: si el estado actual no está en la lista, agrégalo para no dejar el select vacío.
+    if (!opts.some(x => x.value === o.status)) {
+      opts.unshift({ value: o.status, label: this.orderStatusLabels[o.status] || o.status });
+    }
+    return opts;
+  }
   canManage() {
     const r = this.auth.user()?.role;
     return r === 'SUPERADMIN' || r === 'TENANT_ADMIN' || r === 'BRANCH_MANAGER';
@@ -128,10 +150,104 @@ export class SaleDetailComponent implements OnInit {
     const digits = (phone || '').replace(/[^0-9]/g, '');
     return 'https://wa.me/' + digits;
   }
+  // Cancelar venta (motivo + opción de devolver stock).
+  cancelOpen = signal(false);
+  cancelReason = signal('');
+  cancelRestore = signal(true);
+  cancelling = signal(false);
+  openCancel() { this.cancelReason.set(''); this.cancelRestore.set(true); this.cancelOpen.set(true); }
+  confirmCancel() {
+    const o = this.order();
+    const reason = this.cancelReason().trim();
+    if (!o || !reason) return;
+    this.cancelling.set(true);
+    this.svc.cancel(o.id, reason, this.cancelRestore()).subscribe({
+      next: () => {
+        this.cancelling.set(false);
+        this.cancelOpen.set(false);
+        this.notify.success('Venta cancelada');
+        this.reload();
+      },
+      error: e => { this.cancelling.set(false); this.notify.fromServerError(e, 'No se pudo cancelar la venta.'); },
+    });
+  }
+
   // Modal de observaciones para estados "fallidos" (cancelado/devuelto).
   obsOpen = signal(false);
   obsText = '';
   private pendingStatus: string | null = null;
+
+  // ── Registrar cambio (producto vuelve a stock, baja el total neto) ──
+  changeOpen = signal(false);
+  changeItemId = signal<number | null>(null);
+  changeQty = signal(1);
+  changeValue = signal(0);
+  changeTipo = signal<'PARCIAL' | 'TOTAL'>('PARCIAL');
+  changeDesc = signal('');
+  changeSaving = signal(false);
+
+  changeMaxQty(): number {
+    const o = this.order();
+    const it = o?.items.find(i => i.id === this.changeItemId());
+    return it ? it.quantity : 1;
+  }
+  /** Total de la venta (tope del valor devuelto). */
+  orderTotalNum(): number { return +(this.order()?.total || 0); }
+  /** Tipo automático: Total si el valor devuelto iguala el total; Parcial si es menor. */
+  changeTipoAuto(): 'TOTAL' | 'PARCIAL' { return this.changeValue() >= this.orderTotalNum() ? 'TOTAL' : 'PARCIAL'; }
+  changeTipoAutoLabel(): string { return this.changeTipoAuto() === 'TOTAL' ? 'Total' : 'Parcial'; }
+  /** Valida que el valor devuelto sea > 0 y ≤ total de la venta. */
+  changeValueValid(): boolean { const v = this.changeValue(); return v > 0 && v <= this.orderTotalNum(); }
+
+  openChange() {
+    this.changeItemId.set(null);
+    this.changeQty.set(1);
+    this.changeValue.set(0);
+    this.changeTipo.set('PARCIAL');
+    this.changeDesc.set('');
+    this.changeOpen.set(true);
+  }
+
+  cancelChange() { this.changeOpen.set(false); }
+
+  onChangeItem(id: number) {
+    const o = this.order();
+    this.changeItemId.set(id);
+    const it = o?.items.find(i => i.id === id);
+    if (it) {
+      const sub = +it.subtotal || (+it.unit_price * it.quantity);
+      this.changeValue.set(sub);
+      this.changeQty.set(1);
+    }
+  }
+
+  confirmChange() {
+    const o = this.order();
+    const itemId = this.changeItemId();
+    if (!o || itemId == null) return;
+    const qty = this.changeQty();
+    const value = this.changeValue();
+    const desc = this.changeDesc().trim();
+    if (qty < 1 || !this.changeValueValid()) return;
+    this.changeSaving.set(true);
+    this.svc.registerChange(o.id, {
+      order_item_id: itemId,
+      quantity: qty,
+      valor_devuelto: value,
+      tipo: this.changeTipoAuto(),
+      descripcion: desc,
+    }).subscribe({
+      next: updated => {
+        this.changeSaving.set(false);
+        this.changeOpen.set(false);
+        this.order.set(updated);
+        this.notify.success('Cambio registrado');
+        this.loadPayments(o.id);
+        this.loadShipment(o.id);
+      },
+      error: e => { this.changeSaving.set(false); this.notify.fromServerError(e, 'No se pudo registrar el cambio.'); },
+    });
+  }
 
   async changeStatus(newStatus: string) {
     const o = this.order();

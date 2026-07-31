@@ -160,7 +160,8 @@
               </div>
             }
 
-            <!-- TALLAS -->
+            <!-- TALLAS (solo si el producto tiene tallas reales) -->
+            @if (productHasSizes()) {
             <div class="mt-7">
               <div class="flex items-center justify-between mb-3.5">
                 <h3 class="text-[13px] font-bold text-ink-950 dark:text-white">
@@ -169,54 +170,70 @@
                     <span class="font-normal text-ink-600 dark:text-white/55 ml-1">{{ activeSize() }}</span>
                   }
                 </h3>
-                <button type="button" class="text-[12px] font-semibold text-[#0095f6] hover:underline">
+                <button type="button" (click)="openSizeGuide()"
+                        class="text-[12px] font-semibold text-[#0095f6] hover:underline">
                   Guía de tallas
                 </button>
               </div>
               <div class="grid grid-cols-4 sm:grid-cols-5 gap-2">
-                @for (s of product().sizes; track s) {
-                  <button type="button" (click)="selectSize(s)"
-                          [attr.aria-label]="'Talla ' + s"
-                          class="h-12 rounded-xl text-[14px] font-semibold transition-all duration-150"
-                          [ngClass]="activeSize() === s
-                            ? 'bg-ink-950 text-white dark:bg-white dark:text-ink-950 border-2 border-ink-950 dark:border-white'
-                            : 'bg-white dark:bg-white/[0.03] border-2 border-ink-200 dark:border-white/15 text-ink-950 dark:text-white hover:border-ink-950 dark:hover:border-white'">
-                    {{ s }}
+                @for (opt of sizeOptions(); track opt.size) {
+                  <button type="button" (click)="selectSize(opt.size)"
+                          [disabled]="!opt.inStock"
+                          [attr.aria-label]="'Talla ' + opt.size + (opt.inStock ? '' : ' (agotada)')"
+                          class="h-12 rounded-xl text-[14px] font-semibold transition-all duration-150 relative"
+                          [ngClass]="!opt.inStock
+                            ? 'bg-ink-50 dark:bg-white/[0.02] border-2 border-dashed border-ink-200 dark:border-white/10 text-ink-400 dark:text-white/25 line-through cursor-not-allowed'
+                            : (activeSize() === opt.size
+                              ? 'bg-ink-950 text-white dark:bg-white dark:text-ink-950 border-2 border-ink-950 dark:border-white'
+                              : 'bg-white dark:bg-white/[0.03] border-2 border-ink-200 dark:border-white/15 text-ink-950 dark:text-white hover:border-ink-950 dark:hover:border-white')">
+                    {{ opt.size }}
                   </button>
                 }
               </div>
+              @if (!sizeOptions().length) {
+                <p class="text-[12px] text-ink-500 dark:text-white/50 mt-2">
+                  No hay tallas disponibles para este color.
+                </p>
+              }
               @if (sizeError()) {
                 <p class="text-[12px] text-rose-600 dark:text-rose-400 mt-2 font-medium">
                   <i class="fa-solid fa-circle-exclamation"></i> Selecciona una talla antes de continuar
                 </p>
               }
             </div>
+            }
 
             <!-- SUCURSAL / DISPONIBILIDAD -->
             @if (branches().length) {
               <div class="mt-7">
-                @if (branches().length === 1) {
+                @if (branchOptions().length === 1) {
                   <p class="text-[13px] text-ink-700 dark:text-white/70 flex items-center gap-2">
                     <i class="fa-solid fa-store text-[#0095f6]"></i>
                     Disponible en:
-                    <span class="font-semibold text-ink-950 dark:text-white">{{ branches()[0].name }}</span>
-                    <span class="text-ink-500 dark:text-white/50">· {{ branches()[0].stock }} en stock</span>
+                    <span class="font-semibold text-ink-950 dark:text-white">{{ branchOptions()[0].name }}</span>
+                    <span class="text-ink-500 dark:text-white/50">· {{ branchOptions()[0].stock }} en stock</span>
                   </p>
                 } @else {
                   <h3 class="text-[13px] font-bold text-ink-950 dark:text-white mb-3.5">Elige la sucursal</h3>
                   <div class="space-y-2">
-                    @for (b of branches(); track b.id) {
+                    @for (b of branchOptions(); track b.id) {
                       <button type="button" (click)="selectBranch(b.id)"
+                              [disabled]="b.stock <= 0"
                               class="w-full flex items-center justify-between gap-3 px-4 py-3 rounded-xl border-2 text-left transition"
-                              [ngClass]="activeBranchId() === b.id
-                                ? 'border-[#0095f6] bg-[#0095f6]/5'
-                                : 'border-ink-200 dark:border-white/15 hover:border-[#0095f6]'">
+                              [ngClass]="b.stock <= 0
+                                ? 'border-ink-100 dark:border-white/10 opacity-50 cursor-not-allowed'
+                                : (activeBranchId() === b.id
+                                  ? 'border-[#0095f6] bg-[#0095f6]/5'
+                                  : 'border-ink-200 dark:border-white/15 hover:border-[#0095f6]')">
                         <span class="flex items-center gap-2">
                           <i class="fa-solid text-[13px]"
                              [ngClass]="activeBranchId() === b.id ? 'fa-circle-dot text-[#0095f6]' : 'fa-circle text-ink-300 dark:text-white/30'"></i>
                           <span class="font-semibold text-ink-950 dark:text-white text-[14px]">{{ b.name }}</span>
                         </span>
-                        <span class="text-[13px] text-ink-600 dark:text-white/55 tabular-nums">{{ b.stock }} en stock</span>
+                        <span class="text-[13px] tabular-nums"
+                              [ngClass]="b.stock <= 0 ? 'text-rose-500 dark:text-rose-400' : 'text-ink-600 dark:text-white/55'">
+                          {{ b.stock > 0 ? b.stock + ' en stock' : 'Sin stock' }}
+                        </span>
                       </button>
                     }
                   </div>
@@ -335,5 +352,93 @@
         </div>
 
       </section>
+
+      <!-- ═══════════ MODAL GUÍA DE TALLAS ═══════════ -->
+      @if (sizeGuideOpen()) {
+        <div class="fixed inset-0 z-[100] flex items-center justify-center p-4"
+             role="dialog" aria-modal="true" aria-label="Guía de tallas">
+          <!-- Overlay -->
+          <div class="absolute inset-0 bg-black/60 backdrop-blur-sm" (click)="closeSizeGuide()"></div>
+
+          <!-- Tarjeta -->
+          <div class="relative w-full max-w-lg max-h-[85vh] overflow-y-auto rounded-3xl
+                      bg-white dark:bg-slate-900 border border-ink-100 dark:border-white/10
+                      shadow-2xl p-6 md:p-8">
+            <div class="flex items-start justify-between gap-4 mb-5">
+              <div>
+                <h2 class="font-bold text-[22px] text-ink-950 dark:text-white tracking-tight">Guía de tallas</h2>
+                <p class="text-[13px] text-ink-600 dark:text-white/55 mt-1">Encuentra tu talla ideal.</p>
+              </div>
+              <button type="button" (click)="closeSizeGuide()" aria-label="Cerrar"
+                      class="shrink-0 w-9 h-9 rounded-full grid place-items-center
+                             text-ink-500 dark:text-white/60
+                             hover:bg-ink-100 dark:hover:bg-white/10 transition">
+                <i class="fa-solid fa-xmark text-[15px]"></i>
+              </button>
+            </div>
+
+            @if (sizeGuideKind() === 'shoes' || sizeGuideKind() === 'both') {
+              <div class="mb-6">
+                <h3 class="text-[13px] font-bold text-ink-950 dark:text-white mb-3 flex items-center gap-2">
+                  <i class="fa-solid fa-shoe-prints text-[#0095f6]"></i> Calzado
+                </h3>
+                <div class="overflow-hidden rounded-2xl border border-ink-100 dark:border-white/10">
+                  <table class="w-full text-[13px] text-left">
+                    <thead class="bg-ink-50 dark:bg-white/[0.04] text-ink-700 dark:text-white/70">
+                      <tr>
+                        <th class="px-4 py-2.5 font-semibold">EU</th>
+                        <th class="px-4 py-2.5 font-semibold">US</th>
+                        <th class="px-4 py-2.5 font-semibold">CM</th>
+                      </tr>
+                    </thead>
+                    <tbody class="text-ink-800 dark:text-white/80">
+                      @for (r of shoeSizeRows; track r.eu) {
+                        <tr class="border-t border-ink-100 dark:border-white/10">
+                          <td class="px-4 py-2 tabular-nums">{{ r.eu }}</td>
+                          <td class="px-4 py-2 tabular-nums">{{ r.us }}</td>
+                          <td class="px-4 py-2 tabular-nums">{{ r.cm }}</td>
+                        </tr>
+                      }
+                    </tbody>
+                  </table>
+                </div>
+              </div>
+            }
+
+            @if (sizeGuideKind() === 'clothing' || sizeGuideKind() === 'both') {
+              <div class="mb-6">
+                <h3 class="text-[13px] font-bold text-ink-950 dark:text-white mb-3 flex items-center gap-2">
+                  <i class="fa-solid fa-shirt text-[#0095f6]"></i> Ropa
+                </h3>
+                <div class="overflow-hidden rounded-2xl border border-ink-100 dark:border-white/10">
+                  <table class="w-full text-[13px] text-left">
+                    <thead class="bg-ink-50 dark:bg-white/[0.04] text-ink-700 dark:text-white/70">
+                      <tr>
+                        <th class="px-4 py-2.5 font-semibold">Talla</th>
+                        <th class="px-4 py-2.5 font-semibold">Pecho (cm)</th>
+                        <th class="px-4 py-2.5 font-semibold">Cintura (cm)</th>
+                      </tr>
+                    </thead>
+                    <tbody class="text-ink-800 dark:text-white/80">
+                      @for (r of clothingSizeRows; track r.size) {
+                        <tr class="border-t border-ink-100 dark:border-white/10">
+                          <td class="px-4 py-2 font-semibold">{{ r.size }}</td>
+                          <td class="px-4 py-2 tabular-nums">{{ r.chest }}</td>
+                          <td class="px-4 py-2 tabular-nums">{{ r.waist }}</td>
+                        </tr>
+                      }
+                    </tbody>
+                  </table>
+                </div>
+              </div>
+            }
+
+            <p class="text-[12px] text-ink-500 dark:text-white/50 leading-relaxed">
+              <i class="fa-solid fa-circle-info mr-1"></i>
+              Las medidas son aproximadas y pueden variar según el modelo.
+            </p>
+          </div>
+        </div>
+      }
     </div>
-  
+

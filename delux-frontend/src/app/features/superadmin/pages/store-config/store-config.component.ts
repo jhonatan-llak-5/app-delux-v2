@@ -18,6 +18,14 @@ import { StoreSettingsService, StorePayments, StoreOptions } from '@features/sup
 
 type TabId = 'perfil' | 'tienda' | 'impuestos' | 'pagos' | 'notificaciones';
 
+/** Imagen precargada para el PDF (dataURL + dimensiones naturales). */
+type PdfImg = { data: string; w: number; h: number } | null;
+/** Paleta deportiva navy + rojo del catálogo. */
+interface PdfPalette {
+  navy: number[]; red: number[]; white: number[]; near: number[];
+  ink: number[]; gray: number[]; dot: number[]; grayLight: number[];
+}
+
 @Component({
   selector: 'dlx-store-config',
   standalone: true,
@@ -722,118 +730,250 @@ export class StoreConfigComponent implements OnInit {
   private isPromo(p: Product): boolean {
     return !!p.compare_at_price && Number(p.compare_at_price) > Number(p.base_price);
   }
-  private pdfCover(doc: jsPDF, store: string, tagline: string, logo: { data: string; w: number; h: number } | null, pageW: number, pageH: number, branchName = ''): void {
-    const cx = pageW / 2;
-    doc.setFillColor(9, 12, 20); doc.rect(0, 0, pageW, pageH, 'F');
-    // Marco doble dorado
-    doc.setDrawColor(198, 161, 74); doc.setLineWidth(0.7); doc.rect(9, 9, pageW - 18, pageH - 18, 'S');
-    doc.setLineWidth(0.2); doc.rect(12.5, 12.5, pageW - 25, pageH - 25, 'S');
-    // Etiqueta superior
-    doc.setTextColor(198, 161, 74); doc.setFont('helvetica', 'bold'); doc.setFontSize(9);
-    doc.text('C A T Á L O G O   O F I C I A L', cx, 42, { align: 'center' });
-    // Título central
-    doc.setTextColor(248, 248, 248); doc.setFont('times', 'normal'); doc.setFontSize(58);
-    doc.text('Catálogo', cx, pageH / 2 - 6, { align: 'center' });
-    doc.setTextColor(198, 161, 74); doc.setFont('times', 'italic'); doc.setFontSize(30);
-    doc.text('de productos', cx, pageH / 2 + 13, { align: 'center' });
-    doc.setDrawColor(198, 161, 74); doc.setLineWidth(0.5);
-    doc.line(cx - 22, pageH / 2 + 23, cx + 22, pageH / 2 + 23);
-    if (tagline) {
-      doc.setTextColor(170, 175, 185); doc.setFont('helvetica', 'normal'); doc.setFontSize(11);
-      doc.text(this.trunc(tagline, 60), cx, pageH / 2 + 33, { align: 'center' });
-    }
-    // Pie: logo + nombre + año
+  // ═══════════ Catálogo deportivo (navy + rojo) — utilidades de dibujo ═══════════
+  /** Color de acento: primary del branding si parece rojo, si no #E01B24. */
+  private pdfRed(): number[] {
+    const fallback = [224, 27, 36];
+    try {
+      if (typeof document === 'undefined' || typeof getComputedStyle === 'undefined') return fallback;
+      const v = getComputedStyle(document.documentElement).getPropertyValue('--dash-primary');
+      const rgb = this.pdfParseColor(v);
+      // Solo se adopta si el canal rojo domina claramente (aspecto "rojo").
+      if (rgb && rgb[0] > 120 && rgb[0] > rgb[1] * 1.35 && rgb[0] > rgb[2] * 1.35) return rgb;
+    } catch { /* usa fallback */ }
+    return fallback;
+  }
+  private pdfParseColor(v: string): number[] | null {
+    if (!v) return null;
+    v = v.trim();
+    let m = /^#([0-9a-f]{6})$/i.exec(v);
+    if (m) { const n = parseInt(m[1], 16); return [(n >> 16) & 255, (n >> 8) & 255, n & 255]; }
+    m = /^#([0-9a-f]{3})$/i.exec(v);
+    if (m) { const h = m[1]; return [parseInt(h[0] + h[0], 16), parseInt(h[1] + h[1], 16), parseInt(h[2] + h[2], 16)]; }
+    m = /rgba?\(([^)]+)\)/i.exec(v);
+    if (m) { const p = m[1].split(',').map(s => parseFloat(s)); if (p.length >= 3 && p.every(x => !isNaN(x))) return [p[0], p[1], p[2]]; }
+    return null;
+  }
+  private pdfFill(doc: jsPDF, c: number[]): void { doc.setFillColor(c[0], c[1], c[2]); }
+  private pdfDraw(doc: jsPDF, c: number[]): void { doc.setDrawColor(c[0], c[1], c[2]); }
+  private pdfText(doc: jsPDF, c: number[]): void { doc.setTextColor(c[0], c[1], c[2]); }
+
+  /** Dibuja el logo (si es un logo subido real) o el nombre en bold del color dado. */
+  private pdfBrand(doc: jsPDF, logo: PdfImg, name: string, x: number, y: number, maxH: number,
+                   color: number[], size: number, align: 'left' | 'center' = 'left'): void {
     if (logo) {
-      const h = 15; const w = Math.min(logo.w * (h / logo.h), 58);
-      try { doc.addImage(logo.data, 'PNG', cx - w / 2, pageH - 58, w, h); } catch { /* usa texto */ }
+      const h = maxH; const w = Math.min(logo.w * (h / logo.h), 60);
+      const dx = align === 'center' ? x - w / 2 : x;
+      try { doc.addImage(logo.data, 'PNG', dx, y - h, w, h); return; } catch { /* cae a texto */ }
     }
-    doc.setTextColor(215, 215, 220); doc.setFont('helvetica', 'bold'); doc.setFontSize(12);
-    doc.text(store, cx, pageH - 36, { align: 'center' });
-    doc.setTextColor(198, 161, 74); doc.setFont('helvetica', 'normal'); doc.setFontSize(9);
-    doc.text(String(new Date().getFullYear()), cx, pageH - 29, { align: 'center' });
-    if (branchName) {
-      doc.setTextColor(170, 175, 185); doc.setFont('helvetica', 'normal'); doc.setFontSize(9);
-      doc.text('Sucursal: ' + this.trunc(branchName, 40), cx, pageH - 22, { align: 'center' });
+    doc.setFont('helvetica', 'bold'); doc.setFontSize(size); this.pdfText(doc, color);
+    doc.setCharSpace(0.6);
+    doc.text(this.trunc(name.toUpperCase(), 24), x, y, align === 'center' ? { align: 'center' } : undefined);
+    doc.setCharSpace(0);
+  }
+
+  /** Encabezado de páginas de producto: "CATÁLOGO" + año + línea fina. */
+  private pdfProductHeader(doc: jsPDF, pal: PdfPalette, pageW: number, margin: number): void {
+    const year = new Date().getFullYear();
+    doc.setFont('helvetica', 'bold'); doc.setFontSize(8); this.pdfText(doc, pal.ink);
+    doc.setCharSpace(2.6); doc.text('CATÁLOGO', margin, 15); doc.setCharSpace(0);
+    doc.setFont('helvetica', 'normal'); doc.setFontSize(9); this.pdfText(doc, pal.gray);
+    doc.text(String(year), pageW - margin, 15, { align: 'right' });
+    this.pdfDraw(doc, pal.dot); doc.setLineWidth(0.3); doc.line(margin, 19, pageW - margin, 19);
+  }
+
+  /** Pestaña angular roja con el número de página en blanco. */
+  private pdfPageTab(doc: jsPDF, pageW: number, pageH: number, margin: number, n: number, pal: PdfPalette): void {
+    const th = 11, tw = 20, slant = 5;
+    const ty = pageH - 6 - th, rx = pageW - margin, lx = rx - tw;
+    this.pdfFill(doc, pal.red);
+    // Paralelogramo (dos triángulos) con corte diagonal a ambos lados.
+    doc.triangle(lx + slant, ty, rx, ty, lx, ty + th, 'F');
+    doc.triangle(rx, ty, rx - slant, ty + th, lx, ty + th, 'F');
+    doc.setFont('helvetica', 'bold'); doc.setFontSize(10); this.pdfText(doc, pal.white);
+    doc.text(String(n), (lx + rx) / 2, ty + th / 2 + 1.9, { align: 'center' });
+  }
+
+  /** Pie de página: logo/nombre rojo, "EDICIÓN {año}" central y pestaña con número. */
+  private pdfFooter(doc: jsPDF, logo: PdfImg, name: string, pal: PdfPalette,
+                    pageW: number, pageH: number, margin: number, n: number, onNavy = false): void {
+    const year = new Date().getFullYear();
+    this.pdfDraw(doc, onNavy ? pal.gray : pal.dot); doc.setLineWidth(0.3);
+    doc.line(margin, pageH - 18, pageW - margin, pageH - 18);
+    this.pdfBrand(doc, logo, name, margin, pageH - 9, 6, pal.red, 11, 'left');
+    doc.setFont('helvetica', 'normal'); doc.setFontSize(7.5); this.pdfText(doc, onNavy ? pal.grayLight : pal.gray);
+    doc.setCharSpace(2.4); doc.text('EDICIÓN ' + year, pageW / 2, pageH - 10, { align: 'center' }); doc.setCharSpace(0);
+    this.pdfPageTab(doc, pageW, pageH, margin, n, pal);
+  }
+
+  /** Rejilla decorativa de puntos. */
+  private pdfDotGrid(doc: jsPDF, x: number, y: number, cols: number, rows: number, step: number, r: number, color: number[]): void {
+    this.pdfFill(doc, color);
+    for (let c = 0; c < cols; c++) for (let rw = 0; rw < rows; rw++) doc.circle(x + c * step, y + rw * step, r, 'F');
+  }
+
+  /** Marca de feature: círculo rojo con check blanco. */
+  private pdfFeatureMark(doc: jsPDF, x: number, y: number, pal: PdfPalette): void {
+    this.pdfFill(doc, pal.red); doc.circle(x, y, 2.6, 'F');
+    this.pdfDraw(doc, pal.white); doc.setLineWidth(0.6);
+    doc.line(x - 1.2, y + 0.1, x - 0.3, y + 1.1); doc.line(x - 0.3, y + 1.1, x + 1.4, y - 1.2);
+  }
+
+  /** Trío de marcas-ícono simples (check · rombo · anillo) para cada producto. */
+  private pdfTripleMark(doc: jsPDF, x: number, y: number, color: number[]): void {
+    const g = 6.5;
+    this.pdfDraw(doc, color); this.pdfFill(doc, color); doc.setLineWidth(0.5);
+    // check
+    doc.line(x, y, x + 1.1, y + 1.2); doc.line(x + 1.1, y + 1.2, x + 3.2, y - 1.6);
+    // rombo
+    const dx = x + g + 1.5;
+    doc.triangle(dx, y - 1.8, dx + 1.7, y, dx - 1.7, y, 'F');
+    doc.triangle(dx, y + 1.8, dx + 1.7, y, dx - 1.7, y, 'F');
+    // anillo
+    doc.circle(x + g * 2 + 1.5, y, 1.7, 'S');
+  }
+
+  /** Íconos vectoriales simples de contacto (teléfono, correo, web). */
+  private pdfContactIcon(doc: jsPDF, kind: 'phone' | 'mail' | 'web', x: number, y: number, color: number[]): void {
+    this.pdfDraw(doc, color); this.pdfFill(doc, color); doc.setLineWidth(0.5);
+    if (kind === 'phone') {
+      doc.roundedRect(x + 1, y - 4.2, 5, 8.4, 1, 1, 'S');
+      doc.line(x + 2.4, y - 3, x + 4.6, y - 3);     // altavoz
+      doc.circle(x + 3.5, y + 2.7, 0.5, 'F');        // botón
+    } else if (kind === 'mail') {
+      doc.rect(x, y - 3.2, 8, 6.4, 'S');
+      doc.line(x, y - 3.2, x + 4, y + 0.4); doc.line(x + 8, y - 3.2, x + 4, y + 0.4);
+    } else {
+      doc.circle(x + 4, y, 4, 'S');
+      doc.line(x, y, x + 8, y);
+      doc.line(x + 4, y - 4, x + 4, y + 4);
+      doc.line(x + 1.1, y - 2.4, x + 6.9, y - 2.4);
+      doc.line(x + 1.1, y + 2.4, x + 6.9, y + 2.4);
     }
   }
-  private pdfContact(doc: jsPDF, store: string, logo: { data: string; w: number; h: number } | null, branches: AdminBranch[], pageW: number, pageH: number): void {
-    const cx = pageW / 2, M = 22;
-    doc.setFillColor(9, 12, 20); doc.rect(0, 0, pageW, pageH, 'F');
-    doc.setDrawColor(198, 161, 74); doc.setLineWidth(0.7); doc.rect(9, 9, pageW - 18, pageH - 18, 'S');
-    doc.setLineWidth(0.2); doc.rect(12.5, 12.5, pageW - 25, pageH - 25, 'S');
-    // Encabezado
-    doc.setTextColor(198, 161, 74); doc.setFont('helvetica', 'bold'); doc.setFontSize(9);
-    doc.text('G U Í A   D E   C O M P R A', cx, 28, { align: 'center' });
-    doc.setTextColor(248, 248, 248); doc.setFont('times', 'normal'); doc.setFontSize(26);
-    doc.text('Cómo comprar', cx, 40, { align: 'center' });
-    doc.setDrawColor(198, 161, 74); doc.setLineWidth(0.4); doc.line(cx - 18, 44, cx + 18, 44);
 
-    let y = 58;
-    const section = (t: string) => {
-      doc.setTextColor(198, 161, 74); doc.setFont('helvetica', 'bold'); doc.setFontSize(11);
-      doc.text(t.toUpperCase(), M, y);
-      doc.setDrawColor(55, 61, 74); doc.setLineWidth(0.2); doc.line(M, y + 2.5, pageW - M, y + 2.5);
-      y += 8.5;
-    };
-    const row = (label: string, value: string) => {
-      doc.setFont('helvetica', 'normal'); doc.setFontSize(9);
-      if (label) { doc.setTextColor(150, 155, 165); doc.text(label, M, y); }
-      doc.setTextColor(226, 226, 231); doc.setFontSize(10);
-      doc.text(value, label ? M + 30 : M, y);
-      y += 6.2;
-    };
-    const bullet = (value: string) => {
-      doc.setTextColor(198, 161, 74); doc.setFont('helvetica', 'bold'); doc.setFontSize(10);
-      doc.text('•', M, y);
-      doc.setTextColor(226, 226, 231); doc.setFont('helvetica', 'normal');
-      doc.text(value, M + 5, y);
-      y += 6.2;
-    };
+  // ═══════════ Página 1 — Portada ═══════════
+  private pdfCover(doc: jsPDF, store: string, tagline: string, logo: PdfImg, pal: PdfPalette,
+                   pageW: number, pageH: number, hero: PdfImg): void {
+    const M = 20, year = new Date().getFullYear();
+    void hero; // La portada ya no usa imagen hero; queda solo con textos y branding.
+    this.pdfFill(doc, pal.white); doc.rect(0, 0, pageW, pageH, 'F');
 
-    // Contacto
-    section('Contacto');
-    if (this.branding.whatsappNumber()) row('Tel / WhatsApp', this.branding.whatsappNumber());
-    if (this.branding.contactEmail()) row('Correo', this.branding.contactEmail());
-    doc.setTextColor(160, 165, 175); doc.setFont('helvetica', 'italic'); doc.setFontSize(9);
-    doc.text('Escríbenos y con gusto te ayudamos con tu pedido.', M, y); y += 9;
+    // Composición angular superior izquierda: navy + rojo + franja blanca diagonal.
+    this.pdfFill(doc, pal.navy); doc.triangle(0, 0, 98, 0, 0, 74, 'F');
+    this.pdfFill(doc, pal.red);  doc.triangle(0, 0, 60, 0, 0, 44, 'F');
+    this.pdfFill(doc, pal.white); // franja blanca en diagonal (dos triángulos)
+    doc.triangle(52, 0, 70, 0, 0, 44, 'F');
+    doc.triangle(70, 0, 0, 62, 0, 44, 'F');
 
-    // Métodos de pago
-    section('Métodos de pago');
-    let anyPay = false;
-    if (this.branding.transferEnabled()) { bullet('Transferencia bancaria'); anyPay = true; }
-    if (this.branding.deunaEnabled()) { bullet('DeUna (QR)'); anyPay = true; }
-    if (this.branding.codEnabled()) { bullet('Pago contra entrega'); anyPay = true; }
-    if (!anyPay) bullet('Consulta los métodos disponibles');
-    y += 3;
+    // Año grande + "EDICIÓN" (arriba derecha, siempre dentro del margen).
+    doc.setFont('helvetica', 'bold'); doc.setFontSize(40); this.pdfText(doc, pal.ink);
+    doc.text(String(year), pageW - M, 32, { align: 'right' });
+    doc.setFont('helvetica', 'normal'); doc.setFontSize(9); this.pdfText(doc, pal.gray);
+    // El tracking agranda el ancho real: se mide y se posiciona a mano para no salir del margen.
+    const edLabel = 'EDICIÓN', edCS = 3.2;
+    doc.setCharSpace(edCS);
+    const edW = doc.getTextWidth(edLabel) + edCS * (edLabel.length - 1);
+    doc.text(edLabel, pageW - M - edW, 39);
+    doc.setCharSpace(0);
 
-    // Ubicaciones
+    // Bloque de título (rebalanceado, sin imagen hero).
+    doc.setFont('helvetica', 'bold'); doc.setFontSize(58); this.pdfText(doc, pal.ink);
+    doc.text('CATÁLOGO', M, 110);
+    doc.setFont('helvetica', 'normal'); doc.setFontSize(16); this.pdfText(doc, pal.navy);
+    doc.setCharSpace(6.5); doc.text('COLECCIÓN', M + 1.5, 124); doc.setCharSpace(0);
+    doc.setFont('helvetica', 'italic'); doc.setFontSize(14); this.pdfText(doc, pal.red);
+    doc.text(this.trunc(tagline || 'Estilo que te acompaña', 46), M + 1.5, 135);
+
+    // Barra roja + rejilla de puntos: rellenan de forma equilibrada el espacio antes ocupado por la imagen.
+    this.pdfFill(doc, pal.red); doc.rect(M + 1.5, 145, 48, 3, 'F');
+    this.pdfDotGrid(doc, M + 2, 168, 12, 6, 7, 1.1, pal.dot);
+    // Encaje angular navy + rojo sobre la banda inferior (continuidad deportiva).
+    this.pdfFill(doc, pal.navy); doc.triangle(M, 232, pageW - M, 232, pageW - M, 214, 'F');
+    this.pdfFill(doc, pal.red);  doc.triangle(pageW - M, 214, pageW - M, 232, pageW - M - 26, 232, 'F');
+
+    // Banda inferior navy con acentos rojos diagonales.
+    const bandY = 244, bandH = pageH - bandY;
+    this.pdfFill(doc, pal.navy); doc.rect(0, bandY, pageW, bandH, 'F');
+    this.pdfFill(doc, pal.red);
+    doc.triangle(pageW, bandY, pageW, pageH, pageW - 42, pageH, 'F');
+    doc.triangle(pageW - 30, bandY, pageW, bandY, pageW, bandY + 16, 'F');
+
+    // Logo/nombre en rojo + divisor + 3 features en blanco con tracking.
+    this.pdfBrand(doc, logo, store, M, bandY + bandH / 2 + 2, 9, pal.red, 15, 'left');
+    this.pdfDraw(doc, pal.grayLight); doc.setLineWidth(0.4);
+    doc.line(M + 60, bandY + 8, M + 60, bandY + bandH - 8);
+    const feats = ['CALIDAD PREMIUM', 'DISEÑO MODERNO', 'MÁXIMO CONFORT'];
+    let fy = bandY + 15;
+    for (const f of feats) {
+      this.pdfFeatureMark(doc, M + 70, fy - 1, pal);
+      doc.setFont('helvetica', 'bold'); doc.setFontSize(8.5); this.pdfText(doc, pal.white);
+      doc.setCharSpace(1.6); doc.text(f, M + 76, fy + 0.5); doc.setCharSpace(0);
+      fy += 11;
+    }
+  }
+
+  // ═══════════ Página final — Cierre (gracias + contacto, fondo navy) ═══════════
+  private pdfClosing(doc: jsPDF, store: string, tagline: string, logo: PdfImg, branches: AdminBranch[],
+                     pal: PdfPalette, pageW: number, pageH: number): void {
+    const cx = pageW / 2;
+    this.pdfFill(doc, pal.navy); doc.rect(0, 0, pageW, pageH, 'F');
+    // Acentos angulares en esquinas opuestas (arriba-izq y abajo-der).
+    this.pdfFill(doc, pal.red);   doc.triangle(0, 0, 66, 0, 0, 52, 'F');
+    this.pdfFill(doc, pal.white); doc.triangle(0, 0, 30, 0, 0, 22, 'F');
+    this.pdfFill(doc, pal.red);   doc.triangle(pageW, pageH, pageW - 66, pageH, pageW, pageH - 52, 'F');
+    this.pdfFill(doc, pal.white); doc.triangle(pageW, pageH, pageW - 30, pageH, pageW, pageH - 22, 'F');
+
+    // ── Encabezado de agradecimiento (compacto, arriba) ──
+    doc.setFont('helvetica', 'bold'); doc.setFontSize(30); this.pdfText(doc, pal.white);
+    doc.text('GRACIAS POR ELEGIR', cx, 52, { align: 'center' });
+    doc.setFont('helvetica', 'bold'); doc.setFontSize(12); this.pdfText(doc, pal.red);
+    doc.setCharSpace(3.5);
+    doc.text(this.trunc((tagline || 'CALIDAD QUE SE SIENTE').toUpperCase(), 40), cx, 64, { align: 'center' });
+    doc.setCharSpace(0);
+
+    // ── Bloque de contacto (centro/abajo) ──
+    // Logo/nombre grande en rojo.
+    this.pdfBrand(doc, logo, store, cx, 98, 13, pal.red, 26, 'center');
+
+    // Encabezado "CONTÁCTANOS" + barra roja.
+    doc.setFont('helvetica', 'bold'); doc.setFontSize(14); this.pdfText(doc, pal.white);
+    doc.setCharSpace(4.5); doc.text('CONTÁCTANOS', cx, 122, { align: 'center' }); doc.setCharSpace(0);
+    this.pdfFill(doc, pal.red); doc.rect(cx - 15, 126, 30, 2, 'F');
+
+    // Líneas de contacto con íconos vectoriales (datos reales del branding).
+    const bx = cx - 52;
+    let y = 144;
+    const web = (typeof window !== 'undefined' ? window.location.origin : '') + '/shop';
+    const rows: { kind: 'phone' | 'mail' | 'web'; v: string }[] = [];
+    if (this.branding.whatsappNumber()) rows.push({ kind: 'phone', v: this.branding.whatsappNumber() });
+    if (this.branding.contactEmail()) rows.push({ kind: 'mail', v: this.branding.contactEmail() });
+    rows.push({ kind: 'web', v: web });
+    for (const r of rows) {
+      this.pdfContactIcon(doc, r.kind, bx, y - 1, pal.red);
+      doc.setFont('helvetica', 'normal'); doc.setFontSize(11); this.pdfText(doc, pal.white);
+      doc.text(this.trunc(r.v, 52), bx + 13, y + 1.5);
+      y += 13;
+    }
+
+    // Ubicaciones (si existen sucursales).
     if (branches.length) {
-      section('Visítanos');
-      for (const b of branches.slice(0, 6)) {
-        doc.setTextColor(198, 161, 74); doc.setFont('helvetica', 'bold'); doc.setFontSize(10);
-        doc.text(b.name + (b.city ? '  —  ' + b.city : ''), M, y); y += 5;
+      y += 6;
+      doc.setFont('helvetica', 'bold'); doc.setFontSize(9); this.pdfText(doc, pal.red);
+      doc.setCharSpace(2.5); doc.text('VISÍTANOS', bx, y); doc.setCharSpace(0);
+      y += 8;
+      for (const b of branches.slice(0, 4)) {
+        doc.setFont('helvetica', 'bold'); doc.setFontSize(10); this.pdfText(doc, pal.white);
+        doc.text(this.trunc(b.name + (b.city ? '  ·  ' + b.city : ''), 48), bx, y); y += 5;
         const detail = [b.address, b.phone ? 'Tel: ' + b.phone : ''].filter(Boolean).join('   ·   ');
         if (detail) {
-          doc.setTextColor(195, 200, 208); doc.setFont('helvetica', 'normal'); doc.setFontSize(9);
-          doc.text(this.trunc(detail, 92), M, y); y += 4.5;
+          doc.setFont('helvetica', 'normal'); doc.setFontSize(8); this.pdfText(doc, pal.grayLight);
+          doc.text(this.trunc(detail, 70), bx, y); y += 5;
         }
         y += 3;
       }
-      y += 1;
     }
-
-    // Compra en línea
-    section('Compra en línea');
-    const web = (typeof window !== 'undefined' ? window.location.origin : '');
-    row('Sitio web', web + '/shop');
-
-    // Pie
-    if (logo) {
-      const h = 13; const w = Math.min(logo.w * (h / logo.h), 46);
-      try { doc.addImage(logo.data, 'PNG', cx - w / 2, pageH - 40, w, h); } catch { /* usa texto */ }
-    }
-    doc.setTextColor(170, 175, 185); doc.setFont('helvetica', 'normal'); doc.setFontSize(9);
-    doc.text('Gracias por tu preferencia  ·  ' + store, cx, pageH - 22, { align: 'center' });
+    doc.setCharSpace(0);
   }
 
   async downloadCatalog(): Promise<void> {
@@ -857,6 +997,8 @@ export class StoreConfigComponent implements OnInit {
       const logo = await this.loadImg(this.branding.logoUrl(), true);
       const imgs = new Map<number, { data: string; w: number; h: number } | null>();
       for (const p of products) { if (!imgs.has(p.id)) imgs.set(p.id, await this.loadImg(p.main_image_url)); }
+      // Imagen destacada para la portada (primer producto con foto disponible).
+      const hero = [...imgs.values()].find(im => !!im) || null;
 
       // Secciones: Promociones primero, luego por categoría (alfabético).
       const promos = products.filter(p => this.isPromo(p));
@@ -869,90 +1011,87 @@ export class StoreConfigComponent implements OnInit {
       if (promos.length) sections.push({ title: 'PROMOCIONES', items: promos });
       [...byCat.keys()].sort((a, b) => a.localeCompare(b)).forEach(k => sections.push({ title: k, items: byCat.get(k)! }));
 
-      const bId = this.branchCtx.current();
-      const branchName = bId != null ? this.branchCtx.currentName() : '';
-
       const doc = new jsPDF('p', 'mm', 'a4');
-      // Interior tipo revista: márgenes amplios, mucho aire, 2 columnas.
-      const pageW = 210, pageH = 297, margin = 18, cols = 2, gap = 12, bottom = 20;
-      const cardW = (pageW - margin * 2 - gap * (cols - 1)) / cols;
-      const photoH = 58, cardH = 92, rowGap = 8, contentTop = 27;
-
-      const drawHeader = () => {
-        doc.setFont('times', 'normal'); doc.setFontSize(9); doc.setTextColor(90, 96, 106);
-        doc.text(store.toUpperCase(), margin, 15);
-        const right = branchName ? 'Catálogo · ' + this.trunc(branchName, 28) : 'Catálogo';
-        doc.text(right, pageW - margin, 15, { align: 'right' });
-        doc.setDrawColor(205, 208, 214); doc.setLineWidth(0.2);
-        doc.line(margin, 19, pageW - margin, 19);
+      // Paleta deportiva navy + rojo.
+      const pal: PdfPalette = {
+        navy: [15, 27, 45], red: this.pdfRed(), white: [255, 255, 255], near: [246, 246, 246],
+        ink: [20, 20, 20], gray: [138, 138, 138], dot: [210, 210, 214], grayLight: [188, 192, 200],
       };
-      const drawFooter = (n: number) => {
-        doc.setDrawColor(205, 208, 214); doc.setLineWidth(0.2);
-        doc.line(margin, pageH - 15, pageW - margin, pageH - 15);
-        doc.setFont('helvetica', 'normal'); doc.setFontSize(8); doc.setTextColor(150, 155, 165);
-        doc.text(store, margin, pageH - 10);
-        doc.text(String(n), pageW - margin, pageH - 10, { align: 'right' });
-      };
+      // Solo se dibuja como imagen el logo si es uno subido de verdad (no el asset por defecto).
+      const logoUrl = this.branding.logoUrl();
+      const brandLogo: PdfImg = (logo && !logoUrl.startsWith('assets/')) ? logo : null;
 
-      const drawCard = (p: Product, x: number, y: number) => {
-        // Recuadro de foto con línea fina (sin sombras "tipo web").
-        doc.setFillColor(250, 249, 247); doc.rect(x, y, cardW, photoH, 'F');
-        doc.setDrawColor(214, 210, 202); doc.setLineWidth(0.2); doc.rect(x, y, cardW, photoH, 'S');
-        const pad = 5, bw = cardW - pad * 2, bh = photoH - pad * 2;
+      const pageW = 210, pageH = 297, margin = 18, gap = 12, bottom = 26, contentTop = 30;
+      const cellW = (pageW - margin * 2 - gap) / 2;
+      const photoH = 58, textBlock = 34, cardH = photoH + textBlock, rowGap = 12;
+      const bigPhotoH = 100, bigCardH = bigPhotoH + 42;
+
+      const drawHeader = () => this.pdfProductHeader(doc, pal, pageW, margin);
+      const drawFooter = (n: number) => this.pdfFooter(doc, brandLogo, store, pal, pageW, pageH, margin, n);
+
+      // Producto: imagen limpia + nombre + precio rojo + descripción + trío de marcas.
+      // Con `center` la imagen y todos los textos se centran en la página (secciones de un solo ítem).
+      const drawCard = (p: Product, x: number, y: number, w: number, ph: number, big = false, center = false) => {
+        const cx = x + w / 2;
         const im = imgs.get(p.id);
         if (im) {
-          const r = Math.min(bw / im.w, bh / im.h);
-          const w = im.w * r, h = im.h * r;
-          try { doc.addImage(im.data, 'JPEG', x + (cardW - w) / 2, y + (photoH - h) / 2, w, h); } catch { /* no válida */ }
+          const boxW = center ? Math.min(w, 96) : w; // imagen elegante y no gigante cuando va centrada
+          const r = Math.min(boxW / im.w, ph / im.h);
+          const iw = im.w * r, ih = im.h * r;
+          try { doc.addImage(im.data, 'JPEG', cx - iw / 2, y + (ph - ih), iw, ih); } catch { /* no válida */ }
         } else {
-          doc.setTextColor(190, 190, 190); doc.setFont('helvetica', 'italic'); doc.setFontSize(9);
-          doc.text('Sin imagen', x + cardW / 2, y + photoH / 2, { align: 'center' });
+          doc.setFont('helvetica', 'italic'); doc.setFontSize(10); this.pdfText(doc, pal.grayLight);
+          doc.text('Sin imagen', cx, y + ph / 2, { align: 'center' });
         }
         const promo = this.isPromo(p);
-        if (promo) {
-          doc.setFillColor(150, 32, 32); doc.rect(x, y, 22, 6, 'F');
-          doc.setTextColor(255, 255, 255); doc.setFont('helvetica', 'bold'); doc.setFontSize(7);
-          doc.text('OFERTA', x + 11, y + 4, { align: 'center' });
-        }
+        const tx = center ? cx : x;
+        const opt: any = center ? { align: 'center' } : undefined;
 
-        let ty = y + photoH + 7;
-        const meta = [p.brand_name, p.category_name].filter(Boolean).join('  ·  ');
-        if (meta) {
-          doc.setFont('helvetica', 'normal'); doc.setFontSize(7); doc.setTextColor(150, 152, 158);
-          doc.text(this.trunc(meta.toUpperCase(), 44), x, ty);
-          ty += 5;
-        }
-        doc.setFont('times', 'normal'); doc.setFontSize(13); doc.setTextColor(28, 30, 36);
-        doc.text(this.trunc(p.name, 30), x, ty);
+        let ty = y + ph + (big ? 11 : 8);
+        doc.setFont('helvetica', 'bold'); doc.setFontSize(big ? 16 : 12.5); this.pdfText(doc, pal.ink);
+        doc.text(this.trunc(p.name, big ? 46 : 26), tx, ty, opt);
 
-        ty += 7; doc.setFont('times', 'bold'); doc.setFontSize(13); doc.setTextColor(20, 22, 28);
+        ty += big ? 8.5 : 7;
         const priceStr = '$ ' + Number(p.base_price).toFixed(2);
-        doc.text(priceStr, x, ty);
+        doc.setFont('helvetica', 'bold'); doc.setFontSize(big ? 15 : 12.5);
+        const pw = doc.getTextWidth(priceStr);
         if (promo) {
-          const nw = doc.getTextWidth(priceStr);
           const os = '$ ' + Number(p.compare_at_price).toFixed(2);
-          doc.setFont('helvetica', 'normal'); doc.setFontSize(9); doc.setTextColor(160, 162, 168);
-          doc.text(os, x + nw + 4, ty);
+          doc.setFont('helvetica', 'normal'); doc.setFontSize(9);
           const ow = doc.getTextWidth(os);
-          doc.setDrawColor(160, 162, 168); doc.setLineWidth(0.3);
-          doc.line(x + nw + 4, ty - 1.3, x + nw + 4 + ow, ty - 1.3);
+          const gapP = 5;
+          const startX = center ? cx - (pw + gapP + ow) / 2 : x;
+          doc.setFont('helvetica', 'bold'); doc.setFontSize(big ? 15 : 12.5); this.pdfText(doc, pal.red);
+          doc.text(priceStr, startX, ty);
+          doc.setFont('helvetica', 'normal'); doc.setFontSize(9); this.pdfText(doc, pal.gray);
+          doc.text(os, startX + pw + gapP, ty);
+          this.pdfDraw(doc, pal.gray); doc.setLineWidth(0.3);
+          doc.line(startX + pw + gapP, ty - 1.3, startX + pw + gapP + ow, ty - 1.3);
+        } else {
+          this.pdfText(doc, pal.red);
+          doc.text(priceStr, tx, ty, opt);
         }
 
-        const vd = p.variants_detail || [];
-        const sizes = [...new Set(vd.map(v => (v.size || '').trim()).filter(Boolean))];
-        const colors = [...new Set(vd.map(v => (v.color || '').trim()).filter(Boolean))];
-        ty += 6; doc.setFont('helvetica', 'normal'); doc.setFontSize(7.5); doc.setTextColor(115, 118, 126);
-        if (sizes.length) { doc.text(this.trunc('Tallas: ' + sizes.join(', '), 48), x, ty); ty += 4; }
-        if (colors.length) { doc.text(this.trunc('Colores: ' + colors.join(', '), 48), x, ty); ty += 4; }
-        const stock = p.total_stock ?? 0;
-        if (stock > 0) { doc.setTextColor(120, 124, 132); doc.text('Disponibles: ' + stock, x, ty); }
-        else { doc.setTextColor(175, 70, 70); doc.text('Agotado', x, ty); }
+        // Descripción corta en gris (short_description / description).
+        const desc = (p.short_description || p.description || '').replace(/\s+/g, ' ').trim();
+        ty += big ? 7 : 6;
+        if (desc) {
+          doc.setFont('helvetica', 'normal'); doc.setFontSize(big ? 9.5 : 8); this.pdfText(doc, pal.gray);
+          doc.text(this.trunc(desc, big ? 96 : 42), tx, ty, opt);
+        }
+
+        // Trío de marcas-ícono simples (centrado cuando corresponde).
+        ty += big ? 8 : 6.5;
+        const markW = 16.5;
+        this.pdfTripleMark(doc, center ? cx - markW / 2 : x + 1, ty, pal.grayLight);
       };
 
-      // Portada elegante (se conserva).
-      this.pdfCover(doc, store, this.branding.tagline(), logo, pageW, pageH, branchName);
+      const tagline = this.branding.tagline();
 
-      // Layout en flujo con encabezados de sección estilo revista.
+      // Página 1: portada deportiva.
+      this.pdfCover(doc, store, tagline, brandLogo, pal, pageW, pageH, hero);
+
+      // Páginas de productos, en flujo con paginación real.
       doc.addPage();
       let pageNum = 1;
       let y = contentTop;
@@ -961,28 +1100,36 @@ export class StoreConfigComponent implements OnInit {
         if (y + need > pageH - bottom) { doc.addPage(); pageNum++; drawHeader(); drawFooter(pageNum); y = contentTop; }
       };
       for (const sec of sections) {
-        ensure(16 + cardH);
+        const single = sec.items.length === 1;
+        // Reserva título + primera fila/tarjeta juntos: evita títulos huérfanos y páginas casi vacías.
+        ensure(20 + (single ? bigCardH : cardH + rowGap));
         const promoSec = sec.title === 'PROMOCIONES';
-        doc.setFont('times', 'normal'); doc.setFontSize(16);
-        doc.setTextColor(promoSec ? 150 : 30, promoSec ? 32 : 32, promoSec ? 32 : 38);
-        doc.text(sec.title.charAt(0).toUpperCase() + sec.title.slice(1).toLowerCase(), margin, y + 5);
-        doc.setFont('helvetica', 'normal'); doc.setFontSize(8); doc.setTextColor(150, 155, 165);
-        doc.text(sec.items.length + (sec.items.length === 1 ? ' artículo' : ' artículos'), pageW - margin, y + 5, { align: 'right' });
-        doc.setDrawColor(promoSec ? 150 : 205, promoSec ? 32 : 208, promoSec ? 32 : 214); doc.setLineWidth(0.3);
-        doc.line(margin, y + 8.5, pageW - margin, y + 8.5);
-        y += 15;
-        for (let i = 0; i < sec.items.length; i += cols) {
-          ensure(cardH + rowGap);
-          drawCard(sec.items[i], margin, y);
-          if (sec.items[i + 1]) drawCard(sec.items[i + 1], margin + cardW + gap, y);
-          y += cardH + rowGap;
+        const title = promoSec ? 'Promociones' : (sec.title.charAt(0).toUpperCase() + sec.title.slice(1).toLowerCase());
+        // Título de sección + barra roja + rejilla de puntos a la derecha.
+        doc.setFont('helvetica', 'bold'); doc.setFontSize(20); this.pdfText(doc, pal.ink);
+        doc.text(this.trunc(title, 40), margin, y + 6);
+        this.pdfFill(doc, pal.red); doc.rect(margin, y + 9.5, 30, 2, 'F');
+        this.pdfDotGrid(doc, pageW - margin - 15, y, 6, 4, 3, 0.8, pal.dot);
+        y += 20;
+        if (single) {
+          // Producto único: imagen y textos centrados en la página (espacio ya reservado arriba).
+          drawCard(sec.items[0], margin, y, pageW - margin * 2, bigPhotoH, true, true);
+          y += bigCardH + 4;
+        } else {
+          for (let i = 0; i < sec.items.length; i += 2) {
+            if (i > 0) ensure(cardH + rowGap); // la primera fila ya quedó reservada junto al título
+            drawCard(sec.items[i], margin, y, cellW, photoH);
+            if (sec.items[i + 1]) drawCard(sec.items[i + 1], margin + cellW + gap, y, cellW, photoH);
+            y += cardH + rowGap;
+          }
         }
-        y += 5;
+        y += 6;
       }
 
-      // Última página: guía de compra / contacto / ubicaciones
-      doc.addPage();
-      this.pdfContact(doc, store, logo, branches, pageW, pageH);
+      // Página final: cierre (gracias + contacto, navy) en una sola página.
+      doc.addPage(); pageNum++;
+      this.pdfClosing(doc, store, tagline, brandLogo, branches, pal, pageW, pageH);
+      this.pdfFooter(doc, brandLogo, store, pal, pageW, pageH, margin, pageNum, true);
 
       doc.save('catalogo-' + store.toLowerCase().replace(/\s+/g, '-') + '.pdf');
       this.notifyToast.success('Catálogo generado.');

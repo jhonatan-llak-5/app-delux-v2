@@ -20,6 +20,20 @@ class OrderItemSerializer(serializers.ModelSerializer):
         read_only_fields = ('id', 'subtotal')
 
 
+class SaleChangeMiniSerializer(serializers.Serializer):
+    """Serializer ligero de un CAMBIO, embebido en el detalle de la venta.
+    Definido inline para evitar imports circulares con apps.returns."""
+    id = serializers.IntegerField(read_only=True)
+    code = serializers.CharField(read_only=True)
+    product_name = serializers.CharField(read_only=True)
+    quantity = serializers.IntegerField(read_only=True)
+    valor_devuelto = serializers.DecimalField(max_digits=10, decimal_places=2, read_only=True)
+    tipo = serializers.CharField(read_only=True)
+    tipo_label = serializers.CharField(source='get_tipo_display', read_only=True)
+    descripcion = serializers.CharField(read_only=True)
+    created_at = serializers.DateTimeField(read_only=True)
+
+
 class OrderSerializer(serializers.ModelSerializer):
     items = OrderItemSerializer(many=True, read_only=True)
     items_count = serializers.IntegerField(read_only=True, default=0)
@@ -29,6 +43,14 @@ class OrderSerializer(serializers.ModelSerializer):
     customer_email = serializers.CharField(source='customer.email', read_only=True, default=None)
     customer_phone = serializers.CharField(source='customer.phone', read_only=True, default=None)
     customer_document = serializers.CharField(source='customer.document_id', read_only=True, default=None)
+    net_total = serializers.SerializerMethodField()
+    changes = serializers.SerializerMethodField()
+
+    def get_net_total(self, obj):
+        return str(obj.net_total)
+
+    def get_changes(self, obj):
+        return SaleChangeMiniSerializer(obj.changes.all(), many=True).data
 
     class Meta:
         model = Order
@@ -37,11 +59,13 @@ class OrderSerializer(serializers.ModelSerializer):
                   'seller', 'seller_name',
                   'channel', 'fulfillment', 'status', 'cancel_reason',
                   'subtotal', 'discount', 'shipping_fee', 'tax', 'total',
+                  'total_changes', 'net_total', 'changes',
                   'coupon_code', 'notes',
                   'invoice_status', 'invoice_number', 'invoice_access_key',
                   'invoice_pdf_url', 'invoice_xml_url', 'invoice_error', 'invoice_updated_at',
                   'items', 'items_count', 'created_at', 'updated_at')
-        read_only_fields = ('id', 'code', 'group_code', 'subtotal', 'total', 'created_at', 'updated_at',
+        read_only_fields = ('id', 'code', 'group_code', 'subtotal', 'total', 'total_changes',
+                            'created_at', 'updated_at',
                             'invoice_status', 'invoice_number', 'invoice_access_key',
                             'invoice_pdf_url', 'invoice_xml_url', 'invoice_error', 'invoice_updated_at')
 

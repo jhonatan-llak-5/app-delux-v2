@@ -1,5 +1,5 @@
 """Endpoints públicos para búsqueda y listado del shop."""
-from django.db.models import Q, Min, Max
+from django.db.models import Q, Min, Max, Count
 from rest_framework import permissions
 from rest_framework.response import Response
 from rest_framework.views import APIView
@@ -39,7 +39,9 @@ def filter_products(request):
     color = params.get('color')
     if size or color:
         vq = Q()
-        if size: vq &= Q(variants__size__iexact=size)
+        if size:
+            sizes = [s for s in size.split(',') if s]
+            if sizes: vq &= Q(variants__size__in=sizes)
         if color: vq &= Q(variants__color__iexact=color)
         qs = qs.filter(vq).distinct()
 
@@ -232,18 +234,85 @@ class ProductFacetsView(APIView):
     permission_classes = [permissions.AllowAny]
 
     def get(self, request):
+        from apps.variants.models import Variant
+
+        prov = request.query_params.get('province')
+
+        # Queryset base de productos disponibles. Si viene ?province= se limita a
+        # los que tienen stock (>0) en alguna sucursal de esa provincia (mismo
+        # criterio estricto que filter_products); si no, todos los publicados.
         qs = Product.objects.filter(status=ProductStatus.PUBLISHED, deleted_at__isnull=True)
+        if prov:
+            qs = qs.filter(
+                variants__stocks__branch__province__iexact=prov,
+                variants__stocks__quantity__gt=0,
+            ).distinct()
+
+        # Precio min/max reales sobre el base qs.
         agg = qs.aggregate(min_price=Min('base_price'), max_price=Max('base_price'))
-        brands = list(Brand.objects.filter(is_active=True, products__status=ProductStatus.PUBLISHED,
-                                            products__deleted_at__isnull=True)
-                      .values('id', 'name', 'slug').distinct())
-        cats = list(Category.objects.filter(is_active=True)
-                    .values('id', 'name', 'slug', 'parent_id'))
+
+        # Categorias con conteo (distinct) de productos en el base qs. Solo >0.
+        cat_rows = (qs.values('category__slug', 'category__name')
+                    .annotate(count=Count('id', distinct=True))
+                    .order_by('category__name'))
+        categories = [
+            {'slug': r['category__slug'], 'name': r['category__name'], 'count': r['count']}
+            for r in cat_rows if r['category__slug'] and r['count'] > 0
+        ]
+
+        # Marcas con conteo (distinct) de productos en el base qs. Solo >0.
+        brand_rows = (qs.values('brand_id', 'brand__name')
+                      .annotate(count=Count('id', distinct=True))
+                      .order_by('brand__name'))
+        brands = [
+            {'id': r['brand_id'], 'name': r['brand__name'], 'count': r['count']}
+            for r in brand_rows if r['brand_id'] and r['count'] > 0
+        ]
+
+        # Generos presentes con conteo (distinct) de productos. Solo >0.
+        gender_labels = {'MEN': 'Hombre', 'WOMEN': 'Mujer', 'UNISEX': 'Unisex', 'KIDS': 'Niños'}
+        gender_rows = (qs.values('gender')
+                       .annotate(count=Count('id', distinct=True))
+                       .order_by('gender'))
+        genders = [
+            {'value': r['gender'], 'label': gender_labels.get(r['gender'], r['gender']),
+             'count': r['count']}
+            for r in gender_rows if r['gender'] and r['count'] > 0
+        ]
+
+        # Tallas disponibles: variantes activas de productos publicados no
+        # borrados. Si viene ?province= solo las que tengan stock (>0) alli.
+        vqs = Variant.objects.filter(
+            is_active=True,
+            product__status=ProductStatus.PUBLISHED,
+            product__deleted_at__isnull=True,
+        )
+        if prov:
+            vqs = vqs.filter(
+                stocks__branch__province__iexact=prov,
+                stocks__quantity__gt=0,
+            )
+        size_set = {s for s in vqs.values_list('size', flat=True) if s}
+
+        # Orden natural-ish: numericas ascendentes primero, luego letras
+        # (XS < S < M < L < XL < XXL < XXXL), resto alfabetico al final.
+        _letter_order = {'XS': 1, 'S': 2, 'M': 3, 'L': 4, 'XL': 5, 'XXL': 6, 'XXXL': 7}
+
+        def _size_key(s):
+            st = str(s).strip()
+            if st.isdigit():
+                return (0, int(st), '')
+            return (1, _letter_order.get(st.upper(), 99), st.upper())
+
+        sizes = sorted(size_set, key=_size_key)
+
         return Response({
             'min_price': float(agg['min_price'] or 0),
             'max_price': float(agg['max_price'] or 500),
+            'categories': categories,
             'brands': brands,
-            'categories': cats,
+            'sizes': sizes,
+            'genders': genders,
         })
 
 
@@ -330,6 +399,23 @@ class PublicProductDetailView(APIView):
             'stock': r['stock'] or 0,
         } for r in _brows if (r['stock'] or 0) > 0]
 
+        # Stock POR VARIANTE y sucursal (UNA sola consulta agregada, sin N+1).
+        # Se incluyen TODAS las sucursales con stock>0 (no se limita por
+        # provincia) para que el frontend pueda filtrar/mostrar disponibilidad.
+        _variant_ids = [v['id'] for v in variants]
+        _stock_rows = list(_Stock.objects
+                           .filter(variant_id__in=_variant_ids, quantity__gt=0)
+                           .values('variant_id', 'branch_id', 'branch__name')
+                           .annotate(q=_Sum('quantity')))
+        stock_by_variant: dict = {}
+        branch_names: dict = {}
+        for r in _stock_rows:
+            q = r['q'] or 0
+            if q <= 0:
+                continue
+            stock_by_variant.setdefault(r['variant_id'], {})[str(r['branch_id'])] = q
+            branch_names[str(r['branch_id'])] = r['branch__name']
+
         return Response({
             'id': p.id, 'name': p.name, 'slug': p.slug,
             'brand_name': p.brand.name, 'category_name': p.category.name,
@@ -345,7 +431,11 @@ class PublicProductDetailView(APIView):
             'sizes': sizes,
             'colors': colors,
             'variants': [
-                {'id': v['id'], 'size': v['size'], 'color': v['color']}
+                {
+                    'id': v['id'], 'size': v['size'], 'color': v['color'],
+                    'stock_by_branch': stock_by_variant.get(v['id'], {}),
+                    'total_stock': sum(stock_by_variant.get(v['id'], {}).values()),
+                }
                 for v in variants
             ],
             'rating': round(agg['avg'], 1) if agg['avg'] else 0,
@@ -353,4 +443,5 @@ class PublicProductDetailView(APIView):
             'in_stock': _in_stock,
             'out_of_stock_display': _oos,
             'branches': branches,
+            'branch_names': branch_names,
         })

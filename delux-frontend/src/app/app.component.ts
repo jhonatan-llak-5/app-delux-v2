@@ -1,4 +1,4 @@
-import { ChangeDetectionStrategy, Component, OnInit, inject } from '@angular/core';
+import { ChangeDetectionStrategy, Component, OnInit, effect, inject, signal } from '@angular/core';
 import { NavigationEnd, Router, RouterOutlet } from '@angular/router';
 import { filter } from 'rxjs/operators';
 import { NgxSonnerToaster } from 'ngx-sonner';
@@ -34,21 +34,43 @@ export class AppComponent implements OnInit {
   private ref = inject(RefService);
   private router = inject(Router);
 
+  /** URL actual, actualizada en cada NavigationEnd (fuente reactiva del forzado). */
+  private currentUrl = signal(this.router.url);
+
+  constructor() {
+    // Forzado de tema reactivo: depende de la URL actual y de la preferencia de tienda.
+    // - /app y /kiosko: respetan la preferencia del usuario (tema del dashboard).
+    // - Rutas de compra (shop/product/cart/checkout/auth): respetan la preferencia de tienda.
+    // - Resto de páginas públicas (marketing/legales/inicio): siempre claro.
+    effect(() => {
+      const url = this.currentUrl();
+      const shopMode = this.theme.shopMode();
+      if (url.startsWith('/app') || url.startsWith('/kiosko')) {
+        this.theme.force(null);
+      } else if (this.isShopUrl(url)) {
+        this.theme.force(shopMode);
+      } else {
+        this.theme.force('light');
+      }
+    }, { allowSignalWrites: true });
+  }
+
+  private isShopUrl(url: string): boolean {
+    return url.startsWith('/shop')
+      || url.startsWith('/product')
+      || url.startsWith('/cart')
+      || url.startsWith('/checkout')
+      || url.startsWith('/auth');
+  }
+
   ngOnInit() {
     this.tenant.load().subscribe({ error: () => {} });
     this.fileValidator.loadConfig();
     this.branding.load();
     this.ref.capture();  // Atribución de afiliado (?ref=)
 
-    // Tema por contexto: el dashboard (/app) y el kiosko respetan la preferencia
-    // del usuario; el resto (landing, tienda, login/registro) siempre en claro.
-    const applyContextTheme = (url: string) => {
-      const usesUserTheme = url.startsWith('/app') || url.startsWith('/kiosko');
-      this.theme.force(usesUserTheme ? null : 'light');
-    };
-    applyContextTheme(this.router.url);
     this.router.events
       .pipe(filter((e): e is NavigationEnd => e instanceof NavigationEnd))
-      .subscribe(e => applyContextTheme(e.urlAfterRedirects));
+      .subscribe(e => this.currentUrl.set(e.urlAfterRedirects));
   }
 }

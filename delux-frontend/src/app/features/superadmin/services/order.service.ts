@@ -19,6 +19,18 @@ export interface Payment {
   updated_at: string;
 }
 
+export interface SaleChangeMini {
+  id: number;
+  code: string;
+  product_name: string;
+  quantity: number;
+  valor_devuelto: string;
+  tipo: string;
+  tipo_label: string;
+  descripcion: string;
+  created_at: string;
+}
+
 export interface OrderItem {
   id: number;
   variant: number;
@@ -63,6 +75,9 @@ export interface Order {
   invoice_updated_at?: string | null;
   items: OrderItem[];
   items_count: number;
+  total_changes?: string;
+  net_total?: string;
+  changes?: SaleChangeMini[];
   created_at: string;
   updated_at: string;
 }
@@ -118,6 +133,11 @@ export class OrderService {
   cancel(id: number, reason: string, restoreStock: boolean) {
     return this.http.post<{ detail: string; restored_stock: boolean }>(
       `${this.base}/${id}/cancel/`, { reason, restore_stock: restoreStock });
+  }
+
+  /** Registra un cambio en una venta (producto vuelve a stock, baja el total neto). */
+  registerChange(id: number, body: { order_item_id: number; quantity: number; valor_devuelto: number; tipo: 'PARCIAL' | 'TOTAL'; descripcion: string }): Observable<Order> {
+    return this.http.post<Order>(`${this.base}/${id}/register-change/`, body);
   }
 
   /** Reintenta la emisión de la factura electrónica de la venta. */

@@ -91,7 +91,7 @@ def auto_create_shipment(order, address=None):
         tenant=order.tenant, order=order,
         tracking_code=gen_tracking(),
         carrier=Carrier.INHOUSE,
-        status=ShipmentStatus.CREATED,
+        status=ShipmentStatus.PREPARING,
         recipient_name=(getattr(cust, 'full_name', '') or 'Cliente'),
         recipient_phone=(getattr(cust, 'phone', '') or ''),
         address_line1=(addr_text or 'Direccion por coordinar')[:200],
@@ -102,7 +102,7 @@ def auto_create_shipment(order, address=None):
     )
     ShipmentEvent.objects.create(
         tenant=order.tenant, shipment=sh,
-        status=ShipmentStatus.CREATED,
+        status=ShipmentStatus.PREPARING,
         description='Pedido recibido. Estamos preparando tu envio.',
     )
     return sh
@@ -180,17 +180,9 @@ class AdminShipmentViewSet(viewsets.ModelViewSet):
                 actor=request.user if request.user.is_authenticated else None,
             )
 
-            # Sincronizar Order.status
-            from apps.orders.models import OrderStatus
-            mapping = {
-                'PREPARING': OrderStatus.PREPARING,
-                'SHIPPED':   OrderStatus.SHIPPED,
-                'IN_TRANSIT': OrderStatus.SHIPPED,
-                'DELIVERED': OrderStatus.DELIVERED,
-            }
-            if new_status in mapping:
-                s.order.status = mapping[new_status]
-                s.order.save(update_fields=['status', 'updated_at'])
+            # El estado del ENVÍO es independiente del estado del pedido
+            # (Información: Pendiente de pago / Listo para retirar / Pagado).
+            # El seguimiento de la entrega vive en el envío, no reescribe Order.status.
 
         # Broadcast WebSocket (público — el cliente con la página abierta lo ve)
         try:

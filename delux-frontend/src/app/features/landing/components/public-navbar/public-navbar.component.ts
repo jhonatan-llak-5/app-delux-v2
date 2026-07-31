@@ -31,18 +31,28 @@ export class PublicNavbarComponent {
   accountOpen = signal(false);
   scrolled = signal(false);
   isHome = signal(false);
+  /** Ruta de compra (shop/product/cart): habilita el toggle de tema. */
+  isShop = signal(false);
   /** El hero de Inicio es navy: el navbar va transparente + texto blanco arriba. */
   overHero = computed(() => this.isHome() && !this.scrolled());
 
   constructor() {
     this.isHome.set(this.isHomeUrl(this.router.url));
+    this.isShop.set(this.isShopUrl(this.router.url));
     this.router.events.subscribe(e => {
-      if (e instanceof NavigationEnd) this.isHome.set(this.isHomeUrl(e.urlAfterRedirects));
+      if (e instanceof NavigationEnd) {
+        this.isHome.set(this.isHomeUrl(e.urlAfterRedirects));
+        this.isShop.set(this.isShopUrl(e.urlAfterRedirects));
+      }
     });
   }
   private isHomeUrl(u: string): boolean {
     const path = (u || '/').split('?')[0].split('#')[0];
     return path === '/' || path === '';
+  }
+  private isShopUrl(u: string): boolean {
+    const path = (u || '/').split('?')[0].split('#')[0];
+    return path.startsWith('/shop') || path.startsWith('/product') || path.startsWith('/cart');
   }
 
   userName  = computed(() => this.auth.user()?.full_name ?? 'Usuario');

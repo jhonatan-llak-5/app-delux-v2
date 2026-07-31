@@ -37,15 +37,28 @@ export interface PublicProductDetail {
   short_description: string; description: string;
   main_image_url: string; images: string[];
   sizes: string[]; colors: PublicProductColor[];
-  variants: { id: number; size: string; color: string }[];
+  variants: { id: number; size: string; color: string; stock_by_branch?: Record<string, number>; total_stock?: number }[];
   rating: number; reviews_count: number;
   in_stock?: boolean;
   out_of_stock_display?: 'SHOW' | 'HIDE' | 'SOLD_OUT';
   branches?: { id: number; name: string; province: string; stock: number }[];
+  branch_names?: Record<string, string>;
 }
 
 export interface PublicCategory { id: number; name: string; slug: string; parent_id: number | null; }
 export interface PublicBrand    { id: number; name: string; slug: string; }
+
+export interface FacetCategory { slug: string; name: string; count: number; }
+export interface FacetBrand    { id: number; name: string; count: number; }
+export interface FacetGender   { value: 'MEN' | 'WOMEN' | 'UNISEX' | 'KIDS'; label: string; count: number; }
+export interface ProductFacets {
+  min_price: number;
+  max_price: number;
+  categories: FacetCategory[];
+  brands: FacetBrand[];
+  sizes: string[];
+  genders: FacetGender[];
+}
 
 @Injectable({ providedIn: 'root' })
 export class PublicCatalogService {
@@ -68,11 +81,10 @@ export class PublicCatalogService {
     );
   }
 
-  facets(): Observable<{
-    min_price: number; max_price: number;
-    brands: PublicBrand[]; categories: PublicCategory[];
-  }> {
-    return this.http.get<any>(`${this.base}/products/facets/`);
+  facets(params: { province?: string } = {}): Observable<ProductFacets> {
+    let p = new HttpParams();
+    if (params.province) p = p.set('province', params.province);
+    return this.http.get<ProductFacets>(`${this.base}/products/facets/`, { params: p });
   }
 
   getProduct(id: number | string): Observable<PublicProductDetail> {

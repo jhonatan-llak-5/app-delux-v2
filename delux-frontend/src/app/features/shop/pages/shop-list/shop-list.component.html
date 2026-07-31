@@ -23,9 +23,21 @@
       <div class="max-w-[1400px] mx-auto px-6 md:px-10 py-4
                   flex items-center justify-between gap-4 flex-wrap">
 
-        <!-- Pills de género -->
+        <!-- Pills de género (dinámicas por facets) -->
         <div class="flex items-center gap-2">
-          @for (g of genders; track g.value) {
+          <button (click)="setGender('all')"
+                  class="px-5 h-10 rounded-full text-[13px] font-semibold transition-colors"
+                  [class.bg-ink-950]="gender() === 'all'"
+                  [class.text-white]="gender() === 'all'"
+                  [class.dark:bg-white]="gender() === 'all'"
+                  [class.dark:text-ink-950]="gender() === 'all'"
+                  [class.text-ink-600]="gender() !== 'all'"
+                  [class.dark:text-white/65]="gender() !== 'all'"
+                  [class.hover:bg-ink-100]="gender() !== 'all'"
+                  [class.dark:hover:bg-white/[0.06]]="gender() !== 'all'">
+            Todos
+          </button>
+          @for (g of facetGenders(); track g.value) {
             <button (click)="setGender(g.value)"
                     class="px-5 h-10 rounded-full text-[13px] font-semibold transition-colors"
                     [class.bg-ink-950]="gender() === g.value"
@@ -83,59 +95,94 @@
 
         <!-- SIDEBAR FILTROS (collapsible mobile) -->
         @if (showFilters() || isDesktop) {
-          <aside class="space-y-7 lg:sticky lg:top-24 self-start">
+          <aside class="space-y-7 self-start">
 
-            <!-- Categorías -->
+            <!-- Categorías (dinámicas por facets) -->
+            @if (facetCats().length) {
             <div>
-              <h3 class="text-[12px] uppercase tracking-[0.2em] font-bold
-                         text-ink-500 dark:text-white/45 mb-4">
-                Categoría
-              </h3>
+              <button type="button" (click)="toggleSection('cat')"
+                      class="w-full flex items-center justify-between gap-2 mb-4">
+                <span class="text-[12px] uppercase tracking-[0.2em] font-bold
+                             text-ink-500 dark:text-white/45 flex items-center gap-2">
+                  Categoría
+                  @if (filter().categories.length) {
+                    <span class="w-4 h-4 rounded-full bg-[#e4002b] text-white text-[9px] font-bold grid place-items-center">{{ filter().categories.length }}</span>
+                  }
+                </span>
+                <i class="fa-solid fa-chevron-down text-[11px] text-ink-400 dark:text-white/40 transition-transform"
+                   [class.rotate-180]="isSectionOpen('cat')"></i>
+              </button>
+              @if (isSectionOpen('cat')) {
               <ul class="space-y-1">
-                @for (c of categories; track c.slug) {
+                @for (c of facetCats(); track c.slug) {
                   <li>
                     <label class="flex items-center gap-3 px-3 py-2 -mx-3 rounded-lg cursor-pointer
                                   hover:bg-ink-50 dark:hover:bg-white/[0.04] transition">
                       <input type="checkbox" [checked]="filter().categories.includes(c.slug)"
                              (change)="toggleCategory(c.slug)"
                              class="w-4 h-4 rounded accent-[#e4002b]" />
-                      <span class="text-[14px] text-ink-700 dark:text-white/75 flex-1">{{ c.label }}</span>
+                      <span class="text-[14px] text-ink-700 dark:text-white/75 flex-1">{{ c.name }}</span>
                       <span class="text-[12px] text-ink-400 dark:text-white/35">{{ c.count }}</span>
                     </label>
                   </li>
                 }
               </ul>
+              }
             </div>
+            }
 
-            <!-- Marcas -->
+            <!-- Marcas (dinámicas por facets) -->
+            @if (facetBrands().length) {
             <div>
-              <h3 class="text-[12px] uppercase tracking-[0.2em] font-bold
-                         text-ink-500 dark:text-white/45 mb-4">
-                Marca
-              </h3>
+              <button type="button" (click)="toggleSection('brand')"
+                      class="w-full flex items-center justify-between gap-2 mb-4">
+                <span class="text-[12px] uppercase tracking-[0.2em] font-bold
+                             text-ink-500 dark:text-white/45 flex items-center gap-2">
+                  Marca
+                  @if (filter().brands.length) {
+                    <span class="w-4 h-4 rounded-full bg-[#e4002b] text-white text-[9px] font-bold grid place-items-center">{{ filter().brands.length }}</span>
+                  }
+                </span>
+                <i class="fa-solid fa-chevron-down text-[11px] text-ink-400 dark:text-white/40 transition-transform"
+                   [class.rotate-180]="isSectionOpen('brand')"></i>
+              </button>
+              @if (isSectionOpen('brand')) {
               <ul class="space-y-1">
-                @for (b of brands; track b) {
+                @for (b of facetBrands(); track b.id) {
                   <li>
                     <label class="flex items-center gap-3 px-3 py-2 -mx-3 rounded-lg cursor-pointer
                                   hover:bg-ink-50 dark:hover:bg-white/[0.04] transition">
-                      <input type="checkbox" [checked]="filter().brands.includes(b)"
-                             (change)="toggleBrand(b)"
+                      <input type="checkbox" [checked]="filter().brands.includes(b.id)"
+                             (change)="toggleBrand(b.id)"
                              class="w-4 h-4 rounded accent-[#e4002b]" />
-                      <span class="text-[14px] text-ink-700 dark:text-white/75">{{ b }}</span>
+                      <span class="text-[14px] text-ink-700 dark:text-white/75 flex-1">{{ b.name }}</span>
+                      <span class="text-[12px] text-ink-400 dark:text-white/35">{{ b.count }}</span>
                     </label>
                   </li>
                 }
               </ul>
+              }
             </div>
+            }
 
-            <!-- Tallas -->
+            <!-- Tallas (dinámicas por facets) -->
+            @if (facetSizes().length) {
             <div>
-              <h3 class="text-[12px] uppercase tracking-[0.2em] font-bold
-                         text-ink-500 dark:text-white/45 mb-4">
-                Talla
-              </h3>
+              <button type="button" (click)="toggleSection('size')"
+                      class="w-full flex items-center justify-between gap-2 mb-4">
+                <span class="text-[12px] uppercase tracking-[0.2em] font-bold
+                             text-ink-500 dark:text-white/45 flex items-center gap-2">
+                  Talla
+                  @if (filter().sizes.length) {
+                    <span class="w-4 h-4 rounded-full bg-[#e4002b] text-white text-[9px] font-bold grid place-items-center">{{ filter().sizes.length }}</span>
+                  }
+                </span>
+                <i class="fa-solid fa-chevron-down text-[11px] text-ink-400 dark:text-white/40 transition-transform"
+                   [class.rotate-180]="isSectionOpen('size')"></i>
+              </button>
+              @if (isSectionOpen('size')) {
               <div class="grid grid-cols-4 gap-2">
-                @for (s of sizes; track s) {
+                @for (s of facetSizes(); track s) {
                   <button (click)="toggleSize(s)"
                           class="h-10 rounded-lg text-[12px] font-semibold transition"
                           [class.bg-[#e4002b]]="filter().sizes.includes(s)"
@@ -151,26 +198,40 @@
                   </button>
                 }
               </div>
+              }
             </div>
+            }
 
-            <!-- Precio -->
+            <!-- Precio (rango real por facets) -->
             <div>
-              <h3 class="text-[12px] uppercase tracking-[0.2em] font-bold
-                         text-ink-500 dark:text-white/45 mb-4">
-                Precio ($)
-              </h3>
+              <button type="button" (click)="toggleSection('price')"
+                      class="w-full flex items-center justify-between gap-2 mb-4">
+                <span class="text-[12px] uppercase tracking-[0.2em] font-bold
+                             text-ink-500 dark:text-white/45 flex items-center gap-2">
+                  Precio ($)
+                  @if (filter().priceMin != null || filter().priceMax != null) {
+                    <span class="w-2 h-2 rounded-full bg-[#e4002b]"></span>
+                  }
+                </span>
+                <i class="fa-solid fa-chevron-down text-[11px] text-ink-400 dark:text-white/40 transition-transform"
+                   [class.rotate-180]="isSectionOpen('price')"></i>
+              </button>
+              @if (isSectionOpen('price')) {
               <div class="grid grid-cols-2 gap-2">
                 <input type="number" [value]="filter().priceMin" (input)="setPriceMin($any($event.target).value)"
-                       placeholder="Mín"
+                       [min]="priceBounds().min" [max]="priceBounds().max"
+                       [placeholder]="'Mín ' + priceBounds().min"
                        class="h-10 px-3 rounded-lg border border-ink-200 dark:border-white/15
                               bg-transparent text-[14px] text-ink-950 dark:text-white
                               focus:outline-none focus:border-[#e4002b]" />
                 <input type="number" [value]="filter().priceMax" (input)="setPriceMax($any($event.target).value)"
-                       placeholder="Máx"
+                       [min]="priceBounds().min" [max]="priceBounds().max"
+                       [placeholder]="'Máx ' + priceBounds().max"
                        class="h-10 px-3 rounded-lg border border-ink-200 dark:border-white/15
                               bg-transparent text-[14px] text-ink-950 dark:text-white
                               focus:outline-none focus:border-[#e4002b]" />
               </div>
+              }
             </div>
 
             @if (activeFiltersCount() > 0) {

@@ -1,7 +1,8 @@
 import { ChangeDetectionStrategy, Component, OnInit, computed, inject, signal } from '@angular/core';
 import { DlxEmptyStateComponent } from '@shared/ui/empty-state.component';
 import { OrderStatusLabelPipe, OrderStatusClassPipe } from '@shared/ui/order-status.pipe';
-import { ImgFallbackDirective } from '@shared/ui/img-fallback.directive';
+import { DlxSearchInputComponent } from '@shared/ui/search-input.component';
+import { DlxPaginationComponent } from '@shared/ui/pagination.component';
 import { CommonModule } from '@angular/common';
 import { RouterLink } from '@angular/router';
 import { MeService } from '@features/account/services/me.service';
@@ -20,22 +21,30 @@ export interface ProfileOrder {
   total: string;
 }
 
-/** Compra agrupada: los pedidos con el mismo group_code no vacío van juntos. */
-export interface OrderGroup {
-  key: string;
-  group_code: string;
-  orders: ProfileOrder[];
-}
-
 @Component({
   selector: 'dlx-orders-tab',
   standalone: true,
-  imports: [DlxEmptyStateComponent, OrderStatusLabelPipe, OrderStatusClassPipe, ImgFallbackDirective, CommonModule, RouterLink],
+  imports: [
+    DlxEmptyStateComponent, OrderStatusLabelPipe, OrderStatusClassPipe,
+    DlxSearchInputComponent, DlxPaginationComponent, CommonModule, RouterLink,
+  ],
   changeDetection: ChangeDetectionStrategy.OnPush,
   template: `
-    <div class="editorial-card p-6">
-      <h2 class="font-display font-bold text-2xl text-ink-950 dark:text-white mb-2">Mis compras</h2>
-      <p class="text-sm text-ink-700 dark:text-white/60 mb-6">{{ orders().length }} órdenes registradas.</p>
+    <div>
+      <div class="flex flex-wrap items-end justify-between gap-4 mb-6">
+        <div>
+          <div class="flex items-center gap-2 text-xs text-slate-500 mb-1">
+            <i class="fa-solid fa-receipt"></i>
+            <span class="uppercase tracking-widest font-semibold">Mi cuenta</span>
+          </div>
+          <h1 class="text-2xl md:text-3xl font-bold tracking-tight">Mis compras</h1>
+          <p class="text-slate-500 text-sm mt-1">{{ orders().length }} órdenes registradas.</p>
+        </div>
+        @if (orders().length > 0) {
+          <dlx-search-input [value]="search()" (valueChange)="onSearch($event)"
+                            placeholder="Buscar por voucher o producto…" class="w-full sm:w-auto sm:min-w-72" />
+        }
+      </div>
 
       @if (loading()) {
         <div class="text-center py-10">
@@ -48,73 +57,67 @@ export interface OrderGroup {
           </a>
         </dlx-empty-state>
       } @else {
-        <div class="space-y-6">
-          @for (grp of grouped(); track grp.key) {
-          <div [ngClass]="grp.group_code ? 'rounded-2xl border border-accent-500/30 bg-accent-50/40 dark:bg-accent-500/[0.06] p-4' : ''">
-            @if (grp.group_code) {
-              <div class="flex items-center gap-2 mb-3 px-1">
-                <i class="fa-solid fa-boxes-stacked text-accent-600 dark:text-accent-400"></i>
-                <h3 class="font-semibold text-ink-950 dark:text-white text-sm">
-                  Compra {{ grp.group_code }} · {{ grp.orders.length }} paquetes
-                </h3>
-              </div>
-            }
-            <ul class="space-y-4">
-          @for (o of grp.orders; track o.id) {
-            <li class="p-5 rounded-xl border border-ink-200 dark:border-white/10 bg-white dark:bg-ink-950">
-              <div class="flex flex-wrap items-center justify-between gap-3 mb-3 pb-3 border-b border-ink-100 dark:border-white/10">
-                <div>
-                  <p class="font-mono text-xs uppercase tracking-widest text-ink-500 dark:text-white/50">Voucher</p>
-                  <p class="font-bold text-ink-950 dark:text-white">{{ o.code }}</p>
-                </div>
-                <div>
-                  <p class="text-[10px] uppercase tracking-widest text-ink-500 dark:text-white/50 font-semibold">Fecha</p>
-                  <p class="text-xs text-ink-950 dark:text-white">{{ o.created_at | date:'medium' }}</p>
-                </div>
-                <div>
-                  <p class="text-[10px] uppercase tracking-widest text-ink-500 dark:text-white/50 font-semibold">Sucursal</p>
-                  <p class="text-xs text-ink-950 dark:text-white">{{ o.branch_name }}</p>
-                </div>
-                <span class="inline-flex items-center px-3 py-1 rounded-full text-[10px] font-bold uppercase tracking-widest"
-                      [ngClass]="o.status | orderStatusClass">
-                  {{ o.status | orderStatusLabel }}
-                </span>
-              </div>
-
-              <div class="flex gap-2 overflow-x-auto pb-2 mb-2">
-                @for (it of o.items.slice(0, 6); track it.id) {
-                  <img [src]="it.product_image" [alt]="it.product_name"
-                       class="w-16 h-16 rounded-lg object-cover bg-ink-100 dark:bg-white/5 shrink-0"
- dlxImgFallback />
+        <div class="card overflow-hidden">
+          <div class="overflow-x-auto">
+            <table class="w-full text-sm">
+              <thead class="bg-slate-50 dark:bg-white/5 text-slate-500">
+                <tr class="text-left">
+                  <th class="px-4 py-3 font-semibold">Voucher</th>
+                  <th class="px-4 py-3 font-semibold">Fecha</th>
+                  <th class="px-4 py-3 font-semibold">Sucursal</th>
+                  <th class="px-4 py-3 font-semibold text-center">Artículos</th>
+                  <th class="px-4 py-3 font-semibold text-right">Total</th>
+                  <th class="px-4 py-3 font-semibold text-center">Estado</th>
+                  <th class="px-4 py-3 font-semibold text-right">Acción</th>
+                </tr>
+              </thead>
+              <tbody>
+                @for (o of paged(); track o.id) {
+                  <tr class="border-t border-slate-100 dark:border-white/5 hover:bg-slate-50/60 dark:hover:bg-white/5">
+                    <td class="px-4 py-2.5 whitespace-nowrap">
+                      <span class="font-mono text-xs font-semibold">{{ o.code }}</span>
+                      @if (o.group_code) {
+                        <span class="ml-2 inline-flex items-center gap-1 px-2 py-0.5 rounded-md text-[10px] font-semibold
+                                     bg-accent-50 text-accent-700 dark:bg-accent-500/15 dark:text-accent-300"
+                              title="Parte de una compra multi-sucursal">
+                          <i class="fa-solid fa-boxes-stacked text-[9px]"></i> multi-sucursal
+                        </span>
+                      }
+                    </td>
+                    <td class="px-4 py-2.5 text-xs text-slate-600 dark:text-slate-300 whitespace-nowrap">{{ o.created_at | date:'short' }}</td>
+                    <td class="px-4 py-2.5 text-xs">{{ o.branch_name || '—' }}</td>
+                    <td class="px-4 py-2.5 text-center">{{ o.items_count || o.items.length }}</td>
+                    <td class="px-4 py-2.5 text-right font-bold whitespace-nowrap">\${{ o.total }}</td>
+                    <td class="px-4 py-2.5 text-center">
+                      <span class="inline-flex items-center px-2 py-0.5 rounded-md text-[11px] font-bold uppercase"
+                            [ngClass]="o.status | orderStatusClass">
+                        {{ o.status | orderStatusLabel }}
+                      </span>
+                    </td>
+                    <td class="px-4 py-2.5 text-right whitespace-nowrap">
+                      @if (o.fulfillment === 'SHIPPING') {
+                        <a [routerLink]="['/tracking', o.code]"
+                           class="inline-flex items-center gap-2 text-xs font-semibold text-accent-600 hover:text-accent-700 dark:text-accent-400 dark:hover:text-accent-300">
+                          <i class="fa-solid fa-truck-fast"></i> Seguir mi pedido
+                        </a>
+                      } @else {
+                        <span class="text-slate-400 dark:text-white/30">—</span>
+                      }
+                    </td>
+                  </tr>
                 }
-                @if (o.items.length > 6) {
-                  <div class="w-16 h-16 rounded-lg bg-ink-100 dark:bg-white/5 grid place-items-center text-xs font-bold text-ink-500 dark:text-white/50 shrink-0">
-                    +{{ o.items.length - 6 }}
-                  </div>
-                }
-              </div>
-
-              <div class="flex items-baseline justify-between">
-                <span class="text-sm text-ink-700 dark:text-white/70">{{ o.items_count }} artículo(s)</span>
-                <span class="font-display text-2xl font-bold text-ink-950 dark:text-white">
-                  \${{ o.total }}
-                </span>
-              </div>
-
-              @if (o.fulfillment === 'SHIPPING') {
-                <div class="mt-3 pt-3 border-t border-ink-100 dark:border-white/10 flex justify-end">
-                  <a [routerLink]="['/tracking', o.code]"
-                     class="inline-flex items-center gap-2 text-sm font-semibold text-accent-600 hover:text-accent-700 dark:text-accent-400 dark:hover:text-accent-300">
-                    <i class="fa-solid fa-truck-fast"></i> Seguir mi pedido
-                  </a>
-                </div>
-              }
-            </li>
-          }
-            </ul>
+              </tbody>
+            </table>
           </div>
+          @if (filtered().length === 0) {
+            <dlx-empty-state icon="fa-magnifying-glass" title="Sin resultados para tu búsqueda." />
           }
         </div>
+
+        @if (filtered().length > 0) {
+          <dlx-pagination [page]="page()" [pageSize]="pageSize()" [total]="filtered().length"
+                          (pageChange)="onPage($event)" (pageSizeChange)="onSize($event)" />
+        }
       }
     </div>
   `,
@@ -123,22 +126,25 @@ export class OrdersTabComponent implements OnInit {
   private me = inject(MeService);
   orders = signal<ProfileOrder[]>([]);
   loading = signal(true);
+  search = signal('');
+  page = signal(1);
+  pageSize = signal(25);
 
-  /** Agrupa los pedidos por group_code (los vacíos quedan como compras individuales). */
-  grouped = computed<OrderGroup[]>(() => {
-    const out: OrderGroup[] = [];
-    const map = new Map<string, OrderGroup>();
-    for (const o of this.orders()) {
-      const gc = (o.group_code || '').trim();
-      if (gc) {
-        let g = map.get(gc);
-        if (!g) { g = { key: gc, group_code: gc, orders: [] }; map.set(gc, g); out.push(g); }
-        g.orders.push(o);
-      } else {
-        out.push({ key: 'single-' + o.id, group_code: '', orders: [o] });
-      }
-    }
-    return out;
+  /** Filtra por voucher, sucursal y nombre de producto (client-side). */
+  filtered = computed<ProfileOrder[]>(() => {
+    const q = this.search().trim().toLowerCase();
+    if (!q) return this.orders();
+    return this.orders().filter(o =>
+      o.code.toLowerCase().includes(q) ||
+      (o.branch_name || '').toLowerCase().includes(q) ||
+      (o.items || []).some(it => (it.product_name || '').toLowerCase().includes(q)),
+    );
+  });
+
+  /** Página actual sobre el resultado filtrado. */
+  paged = computed<ProfileOrder[]>(() => {
+    const start = (this.page() - 1) * this.pageSize();
+    return this.filtered().slice(start, start + this.pageSize());
   });
 
   ngOnInit() {
@@ -148,4 +154,7 @@ export class OrdersTabComponent implements OnInit {
     });
   }
 
+  onSearch(v: string) { this.search.set(v); this.page.set(1); }
+  onPage(p: number) { this.page.set(p); }
+  onSize(s: number) { this.pageSize.set(s); this.page.set(1); }
 }

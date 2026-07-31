@@ -52,6 +52,10 @@ class Order(TenantOwnedModel):
     shipping_fee = models.DecimalField(max_digits=10, decimal_places=2, default=0)
     tax = models.DecimalField(max_digits=10, decimal_places=2, default=0)
     total = models.DecimalField(max_digits=10, decimal_places=2, default=0)
+    # Suma de los valores devueltos por CAMBIOS (return-to-stock parcial ligado
+    # a la venta). La venta NO se anula: solo baja su total NETO (total -
+    # total_changes) para las estadísticas.
+    total_changes = models.DecimalField(max_digits=10, decimal_places=2, default=0)
 
     coupon_code = models.CharField(max_length=40, blank=True)
     # Agrupa los sub-pedidos de una misma compra web multi-sucursal (un pedido
@@ -90,6 +94,11 @@ class Order(TenantOwnedModel):
             models.Index(fields=['tenant', 'branch']),
             models.Index(fields=['tenant', 'channel']),
         ]
+
+    @property
+    def net_total(self):
+        """Total neto de la venta descontando los cambios devueltos al stock."""
+        return (self.total or 0) - (self.total_changes or 0)
 
 
 class OrderItem(TenantOwnedModel):

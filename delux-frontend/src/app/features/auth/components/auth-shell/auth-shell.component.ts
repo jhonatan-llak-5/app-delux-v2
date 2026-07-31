@@ -3,6 +3,7 @@ import { CommonModule } from '@angular/common';
 import { Location } from '@angular/common';
 import { RouterLink } from '@angular/router';
 import { BrandingService } from '@core/services/branding.service';
+import { ThemeService } from '@core/services/theme.service';
 
 /**
  * AuthShell — Hero visual izq + form clean derecho (estilo Instagram exacto).
@@ -14,7 +15,19 @@ import { BrandingService } from '@core/services/branding.service';
   imports: [CommonModule, RouterLink],
   changeDetection: ChangeDetectionStrategy.OnPush,
   template: `
-    <div class="min-h-screen flex bg-white dark:bg-slate-950 transition-colors">
+    <div class="relative min-h-screen flex bg-white dark:bg-slate-950 transition-colors">
+
+      <!-- Toggle de tema (preferencia de la tienda) -->
+      <button type="button" (click)="theme.shopToggle()"
+              class="absolute top-5 right-5 z-20 w-10 h-10 grid place-items-center rounded-full
+                     bg-white/90 dark:bg-white/10 text-ink-700 dark:text-white/80
+                     border border-ink-200 dark:border-white/10 shadow-sm
+                     hover:bg-white dark:hover:bg-white/15 hover:text-ink-900 dark:hover:text-white transition"
+              [attr.aria-label]="theme.isDark() ? 'Activar modo claro' : 'Activar modo oscuro'"
+              [title]="theme.isDark() ? 'Modo claro' : 'Modo oscuro'">
+        <i class="fa-solid" [class.fa-sun]="theme.isDark()" [class.fa-moon]="!theme.isDark()"></i>
+      </button>
+
 
       <!-- ───── PANEL IZQUIERDO (hero visual) ───── -->
       <aside class="hidden lg:block relative w-[55%] overflow-hidden bg-[#0a0d14]">
@@ -99,6 +112,7 @@ import { BrandingService } from '@core/services/branding.service';
 })
 export class AuthShellComponent {
   protected readonly branding = inject(BrandingService);
+  protected readonly theme = inject(ThemeService);
   @Input() title = '';
   @Input() subtitle = '';
 }

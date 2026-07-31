@@ -24,6 +24,22 @@
                   class="px-4 py-2 rounded-lg bg-[var(--dash-primary)] text-white text-sm font-semibold hover:opacity-90">
             <i class="fa-solid fa-qrcode"></i> Comprobante (PDF)
           </a>
+          @if (canManage() && o.status === 'PAID' && !(o.total_changes && +o.total_changes > 0)) {
+            <button type="button" (click)="openChange()"
+                    class="px-4 py-2 rounded-lg bg-amber-500 hover:bg-amber-600 text-white text-sm font-semibold">
+              <i class="fa-solid fa-right-left"></i> Registrar cambio
+            </button>
+          } @else if (o.total_changes && +o.total_changes > 0) {
+            <span class="px-4 py-2 rounded-lg bg-amber-100 dark:bg-amber-500/15 text-amber-700 dark:text-amber-400 text-sm font-semibold inline-flex items-center gap-2">
+              <i class="fa-solid fa-circle-check"></i> Cambio registrado
+            </span>
+          }
+          @if (canManage() && o.status !== 'CANCELLED' && o.status !== 'REFUNDED') {
+            <button type="button" (click)="openCancel()"
+                    class="px-4 py-2 rounded-lg bg-rose-600 hover:bg-rose-700 text-white text-sm font-semibold">
+              <i class="fa-solid fa-ban"></i> Cancelar venta
+            </button>
+          }
         </div>
       </div>
 
@@ -68,8 +84,47 @@
                 <span class="font-bold">TOTAL</span>
                 <span class="text-2xl font-display font-bold">${{ o.total }}</span>
               </div>
+              @if (o.total_changes && +o.total_changes > 0) {
+                <div class="flex justify-between text-sm pt-2 border-t border-slate-100">
+                  <span class="text-slate-500">Cambios</span>
+                  <span class="font-semibold text-amber-600">-${{ o.total_changes }}</span>
+                </div>
+                <div class="flex justify-between">
+                  <span class="font-bold">Neto</span>
+                  <span class="text-xl font-display font-bold text-emerald-600 dark:text-emerald-400">${{ o.net_total }}</span>
+                </div>
+              }
             </div>
           </div>
+
+          @if (o.changes && o.changes.length) {
+            <div class="card p-5">
+              <h3 class="font-semibold text-sm mb-3 flex items-center gap-2">
+                <i class="fa-solid fa-right-left text-slate-400"></i> Cambios registrados
+              </h3>
+              <ul class="divide-y divide-slate-100 dark:divide-white/10">
+                @for (c of o.changes; track c.id) {
+                  <li class="py-3 first:pt-0 last:pb-0">
+                    <div class="flex items-start justify-between gap-3">
+                      <div class="min-w-0">
+                        <p class="text-sm font-semibold">{{ c.product_name }}</p>
+                        <p class="text-xs text-slate-500 mt-0.5">
+                          <span class="font-mono">{{ c.code }}</span> · {{ c.quantity }}× · {{ c.created_at | date:'short' }}
+                        </p>
+                        @if (c.descripcion) {
+                          <p class="text-xs text-slate-500 mt-1">{{ c.descripcion }}</p>
+                        }
+                      </div>
+                      <div class="text-right shrink-0">
+                        <p class="font-bold text-amber-600">-${{ c.valor_devuelto }}</p>
+                        <span class="inline-flex items-center px-2 py-0.5 rounded-md text-[10px] font-bold uppercase mt-1 bg-slate-100 text-slate-600 dark:bg-white/10 dark:text-slate-300">{{ c.tipo_label }}</span>
+                      </div>
+                    </div>
+                  </li>
+                }
+              </ul>
+            </div>
+          }
 
           @if (o.notes) {
             <div class="card p-5">
@@ -99,7 +154,7 @@
                 <div class="mt-2 flex items-center gap-2">
                   <select [ngModel]="o.status" (ngModelChange)="changeStatus($event)" [disabled]="saving()"
                           class="eg-input text-xs !py-1.5 flex-1">
-                    @for (st of statuses; track st.value) {
+                    @for (st of orderStatuses(o); track st.value) {
                       <option [value]="st.value">{{ st.label }}</option>
                     }
                   </select>
@@ -177,7 +232,7 @@
                   <div class="mt-2 flex items-center gap-2">
                     <select [ngModel]="sh.status" (ngModelChange)="changeShipStatus($event)" [disabled]="savingShip()"
                             class="eg-input text-xs !py-1.5 flex-1">
-                      @for (st of shipStatuses; track st.value) {
+                      @for (st of shipStatusOptions(sh); track st.value) {
                         <option [value]="st.value">{{ st.label }}</option>
                       }
                     </select>
@@ -342,6 +397,116 @@
               @if (saving()) { <i class="fa-solid fa-spinner fa-spin"></i> }
               @else { <i class="fa-solid fa-check"></i> }
               Guardar y cambiar estado
+            </button>
+          </div>
+        </div>
+      </div>
+    }
+
+    @if (cancelOpen()) {
+      <div class="fixed inset-0 z-50 grid place-items-center bg-black/50 backdrop-blur-sm p-4 animate-fade-in"
+           (click)="cancelOpen.set(false)">
+        <div class="w-full max-w-md rounded-2xl bg-white dark:bg-[#121826] shadow-2xl overflow-hidden border border-slate-200 dark:border-white/10"
+             (click)="$event.stopPropagation()">
+          <div class="p-6">
+            <div class="w-12 h-12 rounded-full bg-rose-100 text-rose-600 grid place-items-center mb-4">
+              <i class="fa-solid fa-ban text-xl"></i>
+            </div>
+            <h3 class="text-lg font-bold tracking-tight">Cancelar venta</h3>
+            <p class="text-slate-500 text-sm mt-1">Indica el motivo. La venta quedará anulada.</p>
+            <textarea [ngModel]="cancelReason()" (ngModelChange)="cancelReason.set($event)" rows="3" maxlength="200"
+                      placeholder="Ej: el cliente desistió / no confirmó el pago…"
+                      class="eg-input mt-4 w-full resize-none text-sm"></textarea>
+            <label class="mt-3 flex items-center gap-2 text-sm text-slate-600 dark:text-slate-300 cursor-pointer">
+              <input type="checkbox" [ngModel]="cancelRestore()" (ngModelChange)="cancelRestore.set($event)" class="rounded" />
+              Devolver los productos al stock
+            </label>
+          </div>
+          <div class="p-5 pt-0 flex gap-2 justify-end">
+            <button (click)="cancelOpen.set(false)" [disabled]="cancelling()"
+                    class="px-4 py-2.5 rounded-xl bg-slate-100 dark:bg-white/5 hover:bg-slate-200 dark:hover:bg-white/10 text-slate-600 dark:text-slate-300 text-sm font-semibold transition">
+              Volver
+            </button>
+            <button (click)="confirmCancel()" [disabled]="!cancelReason().trim() || cancelling()"
+                    class="px-5 py-2.5 rounded-xl bg-rose-600 hover:bg-rose-700 text-white text-sm font-bold transition disabled:opacity-40 flex items-center gap-2">
+              @if (cancelling()) { <i class="fa-solid fa-spinner fa-spin"></i> }
+              @else { <i class="fa-solid fa-ban"></i> }
+              Cancelar venta
+            </button>
+          </div>
+        </div>
+      </div>
+    }
+
+    @if (changeOpen() && order(); as o) {
+      <div class="fixed inset-0 z-50 grid place-items-center bg-black/50 backdrop-blur-sm p-4 animate-fade-in"
+           (click)="cancelChange()">
+        <div class="w-full max-w-md rounded-2xl bg-white dark:bg-[#121826] shadow-2xl overflow-hidden border border-slate-200 dark:border-white/10"
+             (click)="$event.stopPropagation()">
+          <div class="p-6 space-y-4">
+            <div class="w-12 h-12 rounded-full bg-amber-100 text-amber-600 grid place-items-center">
+              <i class="fa-solid fa-right-left text-xl"></i>
+            </div>
+            <div>
+              <h3 class="text-lg font-bold tracking-tight">Registrar cambio</h3>
+              <p class="text-slate-500 text-sm mt-1">
+                El producto vuelve al stock y el total neto de la venta baja. La venta no se anula.
+              </p>
+            </div>
+
+            <div>
+              <label class="text-[11px] uppercase tracking-widest text-slate-500 font-semibold">Producto que se devuelve</label>
+              <select [ngModel]="changeItemId()" (ngModelChange)="onChangeItem(+$event)"
+                      class="eg-input mt-1 w-full text-sm">
+                <option [ngValue]="null" disabled>Selecciona un ítem…</option>
+                @for (it of o.items; track it.id) {
+                  <option [ngValue]="it.id">{{ it.product_name }} · {{ it.size }}/{{ it.color }} · x{{ it.quantity }}</option>
+                }
+              </select>
+            </div>
+
+            <div class="grid grid-cols-2 gap-3">
+              <div>
+                <label class="text-[11px] uppercase tracking-widest text-slate-500 font-semibold">Cantidad</label>
+                <input type="number" min="1" [max]="changeMaxQty()" [ngModel]="changeQty()" (ngModelChange)="changeQty.set(+$event)"
+                       class="eg-input mt-1 w-full text-sm" />
+              </div>
+              <div>
+                <label class="text-[11px] uppercase tracking-widest text-slate-500 font-semibold">Tipo (automático)</label>
+                <div class="eg-input mt-1 w-full text-sm flex items-center font-semibold"
+                     [class.text-amber-600]="changeTipoAuto() === 'TOTAL'">
+                  {{ changeTipoAutoLabel() }}
+                </div>
+              </div>
+            </div>
+
+            <div>
+              <label class="text-[11px] uppercase tracking-widest text-slate-500 font-semibold">Valor devuelto</label>
+              <input type="number" min="0.01" step="0.01" [max]="orderTotalNum()" [ngModel]="changeValue()" (ngModelChange)="changeValue.set(+$event)"
+                     class="eg-input mt-1 w-full text-sm" />
+              <p class="text-[11px] text-slate-400 mt-1">Mayor a $0 y hasta ${{ orderTotalNum() | number:'1.2-2' }} (total de la venta).</p>
+              @if (changeValue() > orderTotalNum()) {
+                <p class="text-[11px] text-rose-500 mt-1">No puede superar el total de la venta.</p>
+              }
+            </div>
+
+            <div>
+              <label class="text-[11px] uppercase tracking-widest text-slate-500 font-semibold">Descripción / motivo</label>
+              <textarea [ngModel]="changeDesc()" (ngModelChange)="changeDesc.set($event)" rows="3" maxlength="500"
+                        placeholder="Ej: talla equivocada / producto defectuoso…"
+                        class="eg-input mt-1 w-full resize-none text-sm"></textarea>
+            </div>
+          </div>
+          <div class="p-5 pt-0 flex gap-2 justify-end">
+            <button (click)="cancelChange()" [disabled]="changeSaving()"
+                    class="px-4 py-2.5 rounded-xl bg-slate-100 dark:bg-white/5 hover:bg-slate-200 dark:hover:bg-white/10 text-slate-600 dark:text-slate-300 text-sm font-semibold transition">
+              Cancelar
+            </button>
+            <button (click)="confirmChange()" [disabled]="changeItemId() === null || changeQty() < 1 || !changeValueValid() || changeSaving()"
+                    class="px-5 py-2.5 rounded-xl bg-amber-600 hover:bg-amber-700 text-white text-sm font-bold transition disabled:opacity-40 flex items-center gap-2">
+              @if (changeSaving()) { <i class="fa-solid fa-spinner fa-spin"></i> }
+              @else { <i class="fa-solid fa-right-left"></i> }
+              Registrar cambio
             </button>
           </div>
         </div>

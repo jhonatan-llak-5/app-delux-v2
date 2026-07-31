@@ -36,13 +36,6 @@ import { CartService } from '@features/checkout/services/cart.service';
               </div>
             }
 
-            <div class="flex items-start gap-2.5 rounded-xl border border-amber-200 dark:border-amber-500/30 bg-amber-50 dark:bg-amber-500/10 px-4 py-3">
-              <i class="fa-solid fa-truck-fast text-amber-600 dark:text-amber-400 mt-0.5"></i>
-              <p class="text-[13px] text-ink-700 dark:text-white/75 leading-snug">
-                El costo de envío depende de DLUX y del courier. <strong>DLUX te contactará</strong> para confirmar el valor adicional del envío.
-              </p>
-            </div>
-
             @for (g of cart.groups(); track g.branch_id) {
               <div class="editorial-card overflow-hidden">
                 <div class="flex items-center gap-2 px-5 py-3.5 border-b border-ink-200 dark:border-white/10 bg-ink-50 dark:bg-white/[0.03]">

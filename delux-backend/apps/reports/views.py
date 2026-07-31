@@ -56,22 +56,24 @@ class ReportsViewSet(ViewSet):
         base = Order.objects.filter(seller=user, status=OrderStatus.PAID)
         qs = base.filter(created_at__date__gte=from_d, created_at__date__lte=to_d)
 
-        total_revenue = qs.aggregate(t=Sum('total'))['t'] or Decimal('0')
+        _agg = qs.aggregate(t=Sum('total'), c=Sum('total_changes'))
+        total_revenue = (_agg['t'] or Decimal('0')) - (_agg['c'] or Decimal('0'))
         total_orders = qs.count()
         items_sold = OrderItem.objects.filter(order__in=qs).aggregate(t=Sum('quantity'))['t'] or 0
         aov = (total_revenue / total_orders) if total_orders else Decimal('0')
 
         today = timezone.now().date()
         today_qs = base.filter(created_at__date=today)
-        today_revenue = today_qs.aggregate(t=Sum('total'))['t'] or Decimal('0')
+        _tagg = today_qs.aggregate(t=Sum('total'), c=Sum('total_changes'))
+        today_revenue = (_tagg['t'] or Decimal('0')) - (_tagg['c'] or Decimal('0'))
         today_orders = today_qs.count()
 
         rate = Decimal(str(getattr(user, 'commission_rate', 0) or 0))
         commission = (total_revenue * rate / Decimal('100')).quantize(Decimal('0.01'))
 
-        # Serie diaria
+        # Serie diaria (revenue NETO: total - cambios devueltos)
         rows = (qs.annotate(day=TruncDate('created_at')).values('day')
-                  .annotate(revenue=Sum('total'), orders=Count('id')).order_by('day'))
+                  .annotate(revenue=Sum('total') - Sum('total_changes'), orders=Count('id')).order_by('day'))
         by_key = {r['day']: r for r in rows}
         timeline = []
         d = from_d
@@ -83,7 +85,7 @@ class ReportsViewSet(ViewSet):
             d += timedelta(days=1)
 
         by_branch = list(
-            qs.values('branch__name').annotate(revenue=Sum('total'), orders=Count('id')).order_by('-revenue'))
+            qs.values('branch__name').annotate(revenue=Sum('total') - Sum('total_changes'), orders=Count('id')).order_by('-revenue'))
 
         recent = []
         for o in qs.select_related('branch', 'customer').order_by('-created_at')[:6]:
@@ -115,7 +117,8 @@ class ReportsViewSet(ViewSet):
     def overview(self, request):
         """KPIs principales: revenue, órdenes, AOV, conversion (simulada)."""
         qs, from_d, to_d = base_orders_qs(request)
-        total_revenue = qs.aggregate(t=Sum('total'))['t'] or Decimal('0')
+        _agg = qs.aggregate(t=Sum('total'), c=Sum('total_changes'))
+        total_revenue = (_agg['t'] or Decimal('0')) - (_agg['c'] or Decimal('0'))
         total_orders = qs.count()
         aov = (total_revenue / total_orders) if total_orders else Decimal('0')
         items_sold = OrderItem.objects.filter(order__in=qs).aggregate(t=Sum('quantity'))['t'] or 0
@@ -132,7 +135,8 @@ class ReportsViewSet(ViewSet):
             prev_qs = prev_qs.filter(branch_id=request.query_params['branch'])
         if getattr(request.user, 'role', None) == 'BRANCH_MANAGER' and request.user.branch_id:
             prev_qs = prev_qs.filter(branch_id=request.user.branch_id)
-        prev_revenue = prev_qs.aggregate(t=Sum('total'))['t'] or Decimal('0')
+        _pagg = prev_qs.aggregate(t=Sum('total'), c=Sum('total_changes'))
+        prev_revenue = (_pagg['t'] or Decimal('0')) - (_pagg['c'] or Decimal('0'))
         prev_orders = prev_qs.count()
 
         def delta(curr, prev):
@@ -158,7 +162,7 @@ class ReportsViewSet(ViewSet):
         qs, from_d, to_d = base_orders_qs(request)
         rows = (qs.annotate(day=TruncDate('created_at'))
                   .values('day')
-                  .annotate(revenue=Sum('total'), orders=Count('id'))
+                  .annotate(revenue=Sum('total') - Sum('total_changes'), orders=Count('id'))
                   .order_by('day'))
         data = list(rows)
         # Llenar días vacíos con ceros
@@ -180,7 +184,7 @@ class ReportsViewSet(ViewSet):
         qs, _, _ = base_orders_qs(request)
         rows = list(
             qs.values('branch_id', 'branch__name', 'branch__code')
-              .annotate(revenue=Sum('total'), orders=Count('id'))
+              .annotate(revenue=Sum('total') - Sum('total_changes'), orders=Count('id'))
               .order_by('-revenue')
         )
         return Response({'results': rows})
@@ -294,7 +298,7 @@ class ReportsViewSet(ViewSet):
             qs.exclude(seller__isnull=True)
               .values('seller_id', 'seller__full_name', 'seller__email',
                       'seller__commission_rate', 'seller__branch__name')
-              .annotate(revenue=Sum('total'), orders=Count('id'))
+              .annotate(revenue=Sum('total') - Sum('total_changes'), orders=Count('id'))
               .order_by('-revenue')[:10]
         )
         # Calcular comisión
@@ -313,7 +317,7 @@ class ReportsViewSet(ViewSet):
         qs, _, _ = base_orders_qs(request)
         items = (
             qs.values('channel')
-              .annotate(revenue=Sum('total'), orders=Count('id'))
+              .annotate(revenue=Sum('total') - Sum('total_changes'), orders=Count('id'))
               .order_by('-revenue')
         )
         return Response({'results': list(items)})
