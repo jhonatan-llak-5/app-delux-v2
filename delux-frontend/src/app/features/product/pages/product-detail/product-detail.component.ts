@@ -220,8 +220,18 @@ export class ProductDetailComponent implements OnInit {
 
   ngOnInit(): void {
     if (this.auth.isLogged()) this.me.wishlist().subscribe({ error: () => {} });
-    const id = this.route.snapshot.paramMap.get('id');
-    if (!id) { this.loading.set(false); return; }
+    // Reacciona al cambio de id: al buscar/seleccionar otro producto desde el
+    // detalle, la ruta cambia pero Angular reutiliza el componente, así que hay
+    // que recargar cuando cambia el param (no basta el snapshot inicial).
+    this.route.paramMap.subscribe(pm => {
+      const id = pm.get('id');
+      if (!id) { this.loading.set(false); return; }
+      this.loadProduct(id);
+    });
+  }
+
+  private loadProduct(id: string): void {
+    this.loading.set(true);
     this.catalog.getProduct(id).subscribe({
       next: d => {
         this.product.set({
