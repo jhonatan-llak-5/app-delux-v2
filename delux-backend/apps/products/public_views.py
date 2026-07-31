@@ -338,6 +338,7 @@ class PublicProductDetailView(APIView):
             images.insert(0, p.main_image_url)
         # Sin imagen por defecto: si el producto no tiene fotos, se devuelve
         # la lista vacia y el frontend muestra su placeholder "sin imagen".
+        main_img = images[0] if images else ''
 
         variants = list(Variant.objects.filter(product=p, is_active=True)
                         .values('id', 'size', 'color'))
@@ -369,7 +370,7 @@ class PublicProductDetailView(APIView):
         colors = [{
             'name': c,
             'hex': palette.get(c.strip().lower(), '#475569'),
-            'image': images[0],
+            'image': main_img,
         } for c in color_names]
 
         agg = (Review.objects.filter(product=p, status=ReviewStatus.APPROVED)
@@ -418,15 +419,16 @@ class PublicProductDetailView(APIView):
 
         return Response({
             'id': p.id, 'name': p.name, 'slug': p.slug,
-            'brand_name': p.brand.name, 'category_name': p.category.name,
-            'category_slug': p.category.slug,
+            'brand_name': p.brand.name if p.brand else 'General',
+            'category_name': p.category.name if p.category else 'General',
+            'category_slug': p.category.slug if p.category else '',
             'base_price': str(p.offer_price(p.base_price)),
             'compare_at_price': (str(p.base_price) if p.on_offer
                                  else (str(p.compare_at_price) if p.compare_at_price else None)),
             'gender': p.gender, 'tag': p.tag,
             'short_description': p.short_description,
             'description': p.description,
-            'main_image_url': images[0],
+            'main_image_url': main_img,
             'images': images,
             'sizes': sizes,
             'colors': colors,
