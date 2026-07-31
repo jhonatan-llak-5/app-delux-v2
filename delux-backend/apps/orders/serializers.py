@@ -61,10 +61,12 @@ class OrderSerializer(serializers.ModelSerializer):
                   'subtotal', 'discount', 'shipping_fee', 'tax', 'total',
                   'total_changes', 'net_total', 'changes',
                   'coupon_code', 'notes',
+                  'payment_form', 'payment_plazo', 'payment_unidad',
                   'invoice_status', 'invoice_number', 'invoice_access_key',
                   'invoice_pdf_url', 'invoice_xml_url', 'invoice_error', 'invoice_updated_at',
                   'items', 'items_count', 'created_at', 'updated_at')
         read_only_fields = ('id', 'code', 'group_code', 'subtotal', 'total', 'total_changes',
+                            'payment_form', 'payment_plazo', 'payment_unidad',
                             'created_at', 'updated_at',
                             'invoice_status', 'invoice_number', 'invoice_access_key',
                             'invoice_pdf_url', 'invoice_xml_url', 'invoice_error', 'invoice_updated_at')
@@ -88,6 +90,9 @@ class POSCheckoutSerializer(serializers.Serializer):
     discount = serializers.DecimalField(max_digits=10, decimal_places=2, default=0)
     notes = serializers.CharField(max_length=500, required=False, allow_blank=True)
     seller_id = serializers.IntegerField(required=False, allow_null=True)
+    payment_form = serializers.CharField(max_length=2, required=False, default='01')
+    payment_plazo = serializers.IntegerField(required=False, default=0)
+    payment_unidad = serializers.CharField(max_length=8, required=False, default='dias')
 
     def validate(self, attrs):
         if not attrs.get('items'):
@@ -171,6 +176,21 @@ class POSCheckoutSerializer(serializers.Serializer):
                 from apps.customers.utils import get_or_create_consumidor_final
                 customer = get_or_create_consumidor_final(tenant)
 
+        # Forma de pago (SRI tabla 24). Se normaliza con valores por defecto
+        # seguros para no romper la emisión si llega algo inesperado.
+        _pf = (validated_data.get('payment_form') or '01')
+        if _pf not in ('01', '16', '17', '18', '19', '20'):
+            _pf = '01'
+        try:
+            _plazo = int(validated_data.get('payment_plazo') or 0)
+        except (TypeError, ValueError):
+            _plazo = 0
+        if _plazo < 0:
+            _plazo = 0
+        _unidad = (validated_data.get('payment_unidad') or 'dias')
+        if _unidad not in ('dias', 'meses'):
+            _unidad = 'dias'
+
         with transaction.atomic():
             today = timezone.now().strftime('%Y%m%d')
             seq = Order.objects.filter(
@@ -187,6 +207,9 @@ class POSCheckoutSerializer(serializers.Serializer):
                 status=OrderStatus.PAID,
                 discount=validated_data.get('discount', 0),
                 notes=validated_data.get('notes', ''),
+                payment_form=_pf,
+                payment_plazo=_plazo,
+                payment_unidad=_unidad,
             )
 
             subtotal = Decimal('0')

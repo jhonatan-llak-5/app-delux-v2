@@ -447,21 +447,64 @@
               }
             </div>
 
-            <!-- Calculadora de vuelto (efectivo) -->
-            <div class="mt-4 rounded-xl border border-slate-200 dark:border-white/10 p-4 text-left">
-              <label class="eg-label">¿Con cuánto paga tu cliente?</label>
-              <dlx-price-input [(ngModel)]="paidWith" [nullable]="true" placeholder="0.00"
-                               extraClass="w-full text-lg font-semibold" />
-              <div class="flex items-center justify-between mt-3">
-                <span class="text-sm text-slate-500">Vuelto a devolver</span>
-                <span class="text-xl font-bold" [class.text-emerald-600]="change() >= 0" [class.text-rose-500]="change() < 0">
-                  ${{ change() >= 0 ? change().toFixed(2) : '0.00' }}
-                </span>
+            <!-- Forma de pago -->
+            <div class="mt-4 rounded-xl border border-slate-200 dark:border-white/10 p-4 text-left space-y-3">
+              <div>
+                <label class="eg-label">Forma de pago</label>
+                <select [ngModel]="paymentForm()" (ngModelChange)="paymentForm.set($event)"
+                        class="w-full rounded-lg border border-slate-200 dark:border-white/10 bg-white dark:bg-white/5 px-3 py-2 text-sm">
+                  @for (pf of paymentForms; track pf.v) {
+                    <option [value]="pf.v">{{ pf.label }}</option>
+                  }
+                </select>
               </div>
-              @if (change() < 0 && paidWith) {
-                <p class="text-[11px] text-rose-500 mt-1">Falta ${{ (-change()).toFixed(2) }} para cubrir el total.</p>
+
+              <label class="flex items-start gap-2 cursor-pointer"
+                     [class.font-semibold]="paymentForm() === '19'">
+                <input type="checkbox" [ngModel]="aCredito()" (ngModelChange)="aCredito.set($event)"
+                       class="mt-0.5 h-4 w-4 rounded border-slate-300 text-[var(--dash-primary)]" />
+                <span class="text-sm">
+                  A crédito
+                  <span class="block text-[11px] text-slate-400">Márcalo solo si el cliente paga a plazo</span>
+                </span>
+              </label>
+
+              @if (aCredito()) {
+                <div class="flex items-end gap-2">
+                  <div class="flex-1">
+                    <label class="eg-label">Plazo</label>
+                    <input type="number" min="1" [ngModel]="plazo()" (ngModelChange)="plazo.set(+$event)"
+                           class="w-full rounded-lg border border-slate-200 dark:border-white/10 bg-white dark:bg-white/5 px-3 py-2 text-sm" />
+                  </div>
+                  <div class="flex-1">
+                    <label class="eg-label">Unidad</label>
+                    <select [ngModel]="unidad()" (ngModelChange)="unidad.set($event)"
+                            class="w-full rounded-lg border border-slate-200 dark:border-white/10 bg-white dark:bg-white/5 px-3 py-2 text-sm">
+                      <option value="meses">Meses</option>
+                      <option value="dias">Días</option>
+                    </select>
+                  </div>
+                </div>
               }
             </div>
+
+            <!-- Calculadora de vuelto (solo efectivo) -->
+            @if (paymentForm() === '01') {
+              <div class="mt-4 rounded-xl border border-slate-200 dark:border-white/10 p-4 text-left">
+                <label class="eg-label">¿Con cuánto paga tu cliente?</label>
+                <dlx-price-input [(ngModel)]="paidWith" [nullable]="true" placeholder="0.00"
+                                 extraClass="w-full text-lg font-semibold" />
+                <div class="flex items-center justify-between mt-3">
+                  <span class="text-sm text-slate-500">Vuelto a devolver</span>
+                  <span class="text-xl font-bold" [class.text-emerald-600]="change() >= 0" [class.text-rose-500]="change() < 0">
+                    ${{ change() >= 0 ? change().toFixed(2) : '0.00' }}
+                  </span>
+                </div>
+                @if (change() < 0 && paidWith) {
+                  <p class="text-[11px] text-rose-500 mt-1">Falta ${{ (-change()).toFixed(2) }} para cubrir el total.</p>
+                }
+              </div>
+            }
           </div>
           <div class="p-5 pt-0 space-y-2">
             <button (click)="confirmSale()" [disabled]="saving()"

@@ -98,6 +98,9 @@ export interface POSPayload {
   discount?: number;
   notes?: string;
   seller_id?: number | null;
+  payment_form?: string;
+  payment_plazo?: number;
+  payment_unidad?: string;
 }
 
 export interface OrderSummary {
@@ -143,6 +146,16 @@ export class OrderService {
   /** Reintenta la emisión de la factura electrónica de la venta. */
   retryInvoice(id: number): Observable<Order> {
     return this.http.post<Order>(`${this.base}/${id}/retry-invoice/`, {});
+  }
+
+  /** Emite (por primera vez) la factura electrónica de una venta con los datos del cliente. */
+  emitInvoice(id: number, body: {
+    customer_data: { identification: string; document_type?: string; name: string; email?: string; address?: string; phone?: string };
+    payment_form?: string;
+    payment_plazo?: number;
+    payment_unidad?: string;
+  }): Observable<Order> {
+    return this.http.post<Order>(`${this.base}/${id}/emit-invoice/`, body);
   }
 
   /** Descarga el RIDE (pdf) o XML de la factura vía proxy autenticado de DLUX. */

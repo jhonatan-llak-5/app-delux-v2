@@ -11,11 +11,13 @@ import { environment } from '@env/environment';
 import { generateVoucherPDF } from '@shared/utils/voucher-pdf.util';
 import { AuthService } from '@core/services/auth.service';
 import { NotifyService } from '@shared/services/notify.service';
+import { StoreSettingsService } from '@features/superadmin/services/store-settings.service';
+import { EmitInvoiceComponent } from '@features/superadmin/components/emit-invoice/emit-invoice.component';
 
 @Component({
   selector: 'dlx-sale-detail',
   standalone: true,
-  imports: [OrderStatusLabelPipe, OrderStatusClassPipe, ImgFallbackDirective, CommonModule, FormsModule, RouterLink],
+  imports: [OrderStatusLabelPipe, OrderStatusClassPipe, ImgFallbackDirective, CommonModule, FormsModule, RouterLink, EmitInvoiceComponent],
   changeDetection: ChangeDetectionStrategy.OnPush,
   templateUrl: './sale-detail.component.html',
 })
@@ -25,6 +27,10 @@ export class SaleDetailComponent implements OnInit {
   private auth = inject(AuthService);
   private notify = inject(NotifyService);
   private confirm = inject(ConfirmService);
+  private storeSet = inject(StoreSettingsService);
+  einvoiceEnabled = signal(false);   // facturación electrónica activa
+  cfMax = signal(50);                // tope $ para facturar como Consumidor Final
+  emitOpen = signal(false);          // modal "Emitir factura"
   saving = signal(false);
   payments = signal<Payment[]>([]);
   validating = signal(false);
@@ -358,6 +364,13 @@ export class SaleDetailComponent implements OnInit {
     this.svc.get(id).subscribe(o => this.order.set(o));
     this.loadPayments(id);
     this.loadShipment(id);
+    this.storeSet.getStoreOptions().subscribe({
+      next: o => {
+        this.einvoiceEnabled.set(!!o.einvoice_enabled);
+        this.cfMax.set(Number(o.einvoice_consumidor_final_max) || 50);
+      },
+      error: () => {},
+    });
   }
 
   paymentStatusClass(s: string) {
@@ -390,6 +403,16 @@ export class SaleDetailComponent implements OnInit {
   canRetryInvoice(): boolean {
     const s = this.order()?.invoice_status;
     return s === 'ERROR' || s === 'REJECTED' || s === 'NOT_ISSUED';
+  }
+  /** La factura aún no se ha emitido (estado inicial / no emitida). */
+  invoiceNotIssued(): boolean {
+    const s = this.order()?.invoice_status;
+    return !s || s === 'NOT_ISSUED';
+  }
+  /** Éxito del modal de emisión: refleja el pedido actualizado (PROCESSING). */
+  onInvoiceEmitted(updated: Order) {
+    this.order.set(updated);
+    this.emitOpen.set(false);
   }
   downloadingFile = signal<'pdf' | 'xml' | null>(null);
   /** Abre el RIDE/XML vía proxy autenticado (no expone la URL pública). */

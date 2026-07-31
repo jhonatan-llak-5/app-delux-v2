@@ -57,6 +57,11 @@ class Order(TenantOwnedModel):
     # total_changes) para las estadísticas.
     total_changes = models.DecimalField(max_digits=10, decimal_places=2, default=0)
 
+    # ─── Forma de pago (SRI tabla 24) ───
+    payment_form = models.CharField(max_length=2, default='01')      # código SRI forma de pago
+    payment_plazo = models.PositiveIntegerField(default=0)           # >0 = a crédito
+    payment_unidad = models.CharField(max_length=8, default='dias')  # 'dias' | 'meses'
+
     coupon_code = models.CharField(max_length=40, blank=True)
     # Agrupa los sub-pedidos de una misma compra web multi-sucursal (un pedido
     # por sucursal). Vacío en compras normales de una sola sucursal.

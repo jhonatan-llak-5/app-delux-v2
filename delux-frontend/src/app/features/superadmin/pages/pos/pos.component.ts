@@ -92,6 +92,17 @@ export class PosComponent implements OnInit, OnDestroy {
   confirmOpen = signal(false);
   paidWith: number | null = null;   // efectivo recibido (calculadora de vuelto)
   change(): number { return (Number(this.paidWith) || 0) - this.total(); }
+  // ── Forma de pago (contrato SRI con el backend) ──
+  paymentForm = signal<'01' | '16' | '19' | '20'>('01');
+  aCredito = signal(false);
+  plazo = signal(1);
+  unidad = signal<'meses' | 'dias'>('meses');
+  readonly paymentForms = [
+    { v: '01', label: 'Efectivo' },
+    { v: '16', label: 'Tarjeta de débito' },
+    { v: '19', label: 'Tarjeta de crédito' },
+    { v: '20', label: 'Transferencia' },
+  ];
   error = signal<string | null>(null);
   completedOrder = signal<Order | null>(null);
   customerData: Record<string, string> = {
@@ -431,6 +442,9 @@ export class PosComponent implements OnInit, OnDestroy {
       customer_data: (this.customerData['full_name'] || this.customerData['email'])
         ? this.customerData : undefined,
       seller_id: this.isManager() ? this.sellerId : undefined,
+      payment_form: this.paymentForm(),
+      payment_plazo: this.aCredito() ? +this.plazo() : 0,
+      payment_unidad: this.unidad(),
     };
     this.ord.posCheckout(payload).subscribe({
       next: order => {
@@ -513,6 +527,10 @@ export class PosComponent implements OnInit, OnDestroy {
     this.cart.set([]);
     this.discount.set(0);
     this.paidWith = null;
+    this.paymentForm.set('01');
+    this.aCredito.set(false);
+    this.plazo.set(1);
+    this.unidad.set('meses');
     this.completedOrder.set(null);
     this.customerData = this.blankCustomer();
     this.customerId.set(null);

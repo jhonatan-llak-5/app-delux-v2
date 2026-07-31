@@ -272,9 +272,10 @@
             </div>
           }
 
-          <!-- Factura electrónica -->
+          <!-- Factura electrónica (POS y WEB) -->
           @if (order(); as o) {
-            @if (o.channel === 'POS') {
+            @if (o.channel === 'POS' || o.channel === 'WEB') {
+              @let webNotIssued = o.channel === 'WEB' && invoiceNotIssued() && einvoiceEnabled() && canManage();
               <div class="card p-5 space-y-3">
                 <div class="flex items-center justify-between">
                   <h3 class="font-bold tracking-tight flex items-center gap-2">
@@ -292,6 +293,13 @@
                 @if ((o.invoice_status === 'REJECTED' || o.invoice_status === 'ERROR') && o.invoice_error) {
                   <p class="text-xs text-rose-600">{{ o.invoice_error }}</p>
                 }
+                @if (webNotIssued) {
+                  <p class="text-xs text-slate-500">Esta venta web aún no tiene factura electrónica emitida.</p>
+                  <button type="button" (click)="emitOpen.set(true)"
+                          class="w-full inline-flex items-center justify-center gap-2 text-sm font-semibold px-4 h-10 rounded-xl bg-[var(--dash-primary)] text-white hover:opacity-90 transition">
+                    <i class="fa-solid fa-file-invoice"></i> Emitir factura
+                  </button>
+                }
                 <div class="flex flex-wrap items-center gap-2 pt-1">
                   @if (o.invoice_status === 'AUTHORIZED') {
                     <button type="button" (click)="openInvoiceFile('pdf')" [disabled]="downloadingFile() === 'pdf'"
@@ -303,7 +311,7 @@
                       <i class="fa-solid" [ngClass]="downloadingFile() === 'xml' ? 'fa-spinner fa-spin' : 'fa-file-code'"></i> XML
                     </button>
                   }
-                  @if (canRetryInvoice()) {
+                  @if (canRetryInvoice() && !webNotIssued) {
                     <button type="button" (click)="retryInvoice()" [disabled]="retryingInvoice()"
                             class="ml-auto inline-flex items-center gap-1.5 text-xs font-semibold px-3 h-8 rounded-lg border border-slate-200 dark:border-white/10 hover:bg-slate-50 dark:hover:bg-white/5 disabled:opacity-70">
                       <i class="fa-solid" [ngClass]="retryingInvoice() ? 'fa-spinner fa-spin' : 'fa-rotate-right'"></i>
@@ -511,5 +519,12 @@
           </div>
         </div>
       </div>
+    }
+
+    <!-- Modal: emitir factura electrónica (venta WEB) -->
+    @if (emitOpen() && order(); as o) {
+      <dlx-emit-invoice [order]="o" [cfMax]="cfMax()"
+                        (emitted)="onInvoiceEmitted($event)"
+                        (closed)="emitOpen.set(false)" />
     }
 

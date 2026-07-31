@@ -74,8 +74,13 @@ def build_emit_payload(order, cfg) -> dict:
         "customer_email": getattr(customer, "email", "") or "",
         "customer_address": getattr(customer, "address", "") or "",
         "customer_phone": getattr(customer, "phone", "") or "",
-        "payment_form": "01",  # SRI tabla 24: 01 = sin utilización del sistema financiero
-        "payments": [{"forma_pago": "01", "total": str(Decimal(str(order.total or 0)))}],
+        "payment_form": order.payment_form or '01',  # SRI tabla 24
+        "payments": [{
+            "forma_pago": order.payment_form or '01',
+            "total": str(order.total),
+            "plazo": order.payment_plazo or 0,
+            "unidad_tiempo": order.payment_unidad or 'dias',
+        }],
         "details": details,
     }
 

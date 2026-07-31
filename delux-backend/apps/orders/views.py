@@ -285,6 +285,121 @@ class AdminOrderViewSet(viewsets.ReadOnlyModelViewSet):
             return Response({'detail': f'No se pudo reintentar: {e}'}, status=500)
         return Response(OrderSerializer(order).data)
 
+    @action(detail=True, methods=['post'], url_path='emit-invoice')
+    def emit_invoice(self, request, pk=None):
+        """Emite MANUALMENTE la factura electrónica de una venta desde el panel.
+
+        Pensada sobre todo para ventas WEB (que no facturan solas): el operador
+        confirma/ingresa los datos SRI del cliente (cédula/RUC, nombre, etc.) y la
+        forma de pago, y se encola la emisión en NovaFactura. También sirve para
+        reemitir una venta cuya factura quedó NOT_ISSUED/REJECTED/ERROR.
+        """
+        if request.user.role == 'SALESPERSON':
+            return Response({'detail': 'No autorizado.'}, status=status.HTTP_403_FORBIDDEN)
+
+        order = self.get_object()
+
+        from apps.settings.models import PlatformSettings
+        cfg = PlatformSettings.load()
+        if not cfg.einvoice_enabled:
+            return Response({'detail': 'La facturación electrónica no está activa.'}, status=400)
+        if order.status == OrderStatus.CANCELLED:
+            return Response({'detail': 'La venta está cancelada.'}, status=400)
+        if order.invoice_status in (Order.InvoiceStatus.PROCESSING,
+                                    Order.InvoiceStatus.AUTHORIZED):
+            return Response(
+                {'detail': 'La factura ya fue emitida o está en proceso.'}, status=400)
+
+        from decimal import Decimal
+        cdata = request.data.get('customer_data') or {}
+        if not isinstance(cdata, dict):
+            return Response({'detail': 'customer_data inválido.'}, status=400)
+
+        ident = (cdata.get('identification') or '').strip()
+        doc_type = (cdata.get('document_type') or '').strip()
+        name = (cdata.get('name') or '').strip()
+        email = (cdata.get('email') or '').strip()
+        address = (cdata.get('address') or '').strip()
+        phone = (cdata.get('phone') or '').strip()
+
+        # ── Validaciones (antes de tocar la BD) ──────────────────────────────
+        # Forma de pago (SRI tabla 24), normalizada de forma segura.
+        pf_in = request.data.get('payment_form')
+        plazo_in = request.data.get('payment_plazo')
+        unidad_in = request.data.get('payment_unidad')
+        pf = plazo = unidad = None
+        if pf_in is not None:
+            pf = str(pf_in).strip() or '01'
+            if pf not in ('01', '16', '17', '18', '19', '20'):
+                pf = '01'
+        if plazo_in is not None:
+            try:
+                plazo = int(plazo_in)
+            except (TypeError, ValueError):
+                return Response({'detail': 'Plazo inválido.'}, status=400)
+            if plazo < 0:
+                return Response({'detail': 'El plazo no puede ser negativo.'}, status=400)
+        if unidad_in is not None:
+            unidad = str(unidad_in).strip() or 'dias'
+            if unidad not in ('dias', 'meses'):
+                return Response({'detail': 'Unidad de tiempo inválida.'}, status=400)
+
+        # Validación Consumidor Final: sin identificación (o 9999999999999) no se
+        # puede facturar por encima del umbral configurado.
+        is_cf = (not ident) or ident == '9999999999999'
+        limit = Decimal(str(getattr(cfg, 'einvoice_consumidor_final_max', 50) or 50))
+        order_total = order.total or Decimal('0')
+        if is_cf and order_total >= limit:
+            return Response({'detail': (
+                f'Las ventas de ${limit:.2f} o más no pueden emitirse como '
+                f'Consumidor Final. Ingresa la identificación del cliente.'
+            )}, status=400)
+
+        # ── Escritura atómica ────────────────────────────────────────────────
+        from django.db import transaction
+        from apps.customers.models import Customer
+        with transaction.atomic():
+            # 1) Actualiza (o crea) el cliente de la orden con los datos SRI.
+            customer = order.customer
+            if customer is None:
+                customer = Customer(tenant=order.tenant, full_name=(name or 'CONSUMIDOR FINAL'))
+            customer.document_id = ident
+            if doc_type:
+                customer.document_type = doc_type
+            if name:
+                customer.full_name = name
+                # Si es RUC (04) el nombre es la razón social del contribuyente.
+                if doc_type == '04':
+                    customer.business_name = name
+            if email:
+                customer.email = email
+            if address:
+                customer.address = address
+            if phone:
+                customer.phone = phone
+            customer.save()
+            order.customer = customer
+
+            # 2) Forma de pago en la orden (solo lo que llegó).
+            order_fields = ['customer']
+            if pf is not None:
+                order.payment_form = pf
+                order_fields.append('payment_form')
+            if plazo is not None:
+                order.payment_plazo = plazo
+                order_fields.append('payment_plazo')
+            if unidad is not None:
+                order.payment_unidad = unidad
+                order_fields.append('payment_unidad')
+            order.save(update_fields=list(dict.fromkeys(order_fields + ['updated_at'])))
+
+            # 3) Encola la emisión (marca PROCESSING/ERROR internamente).
+            from apps.orders.einvoice import enqueue_invoice
+            enqueue_invoice(order)
+
+        order.refresh_from_db()
+        return Response(OrderSerializer(order).data)
+
     @action(detail=True, methods=['get'], url_path='invoice-file')
     def invoice_file(self, request, pk=None):
         """Proxy autenticado del RIDE/XML. Descarga el archivo desde NovaFactura
