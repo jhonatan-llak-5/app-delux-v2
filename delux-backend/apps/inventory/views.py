@@ -147,8 +147,19 @@ class AdminStockViewSet(viewsets.ReadOnlyModelViewSet):
         variant = stock.variant
         data = request.data or {}
         if data.get('base_price') not in (None, ''):
-            variant.price_override = data['base_price']
-            variant.save(update_fields=['price_override'])
+            product = variant.product
+            # Producto BÁSICO (una sola variante): el precio es el del producto
+            # (base_price), que es lo que lee el catálogo público. En productos
+            # con varias variantes el precio es POR VARIANTE (price_override).
+            if product.variants.filter(is_active=True).count() <= 1:
+                product.base_price = data['base_price']
+                product.save(update_fields=['base_price'])
+                if variant.price_override is not None:
+                    variant.price_override = None
+                    variant.save(update_fields=['price_override'])
+            else:
+                variant.price_override = data['base_price']
+                variant.save(update_fields=['price_override'])
         if data.get('cost') not in (None, ''):
             variant.cost = data['cost']
             variant.save(update_fields=['cost'])

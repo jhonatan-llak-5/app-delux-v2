@@ -121,8 +121,13 @@ class PublicProductsView(APIView):
         from apps.variants.models import Variant as _Variant
         sizes_map: dict = {}
         colors_map: dict = {}
+        # Precio efectivo por producto: menor entre (price_override de la
+        # variante) o el base_price del producto. Así el catálogo refleja el
+        # precio editado en inventario (que se guarda como price_override).
+        eff_price_map: dict = {}
+        _base_by_pid = {pp.id: pp.base_price for pp in products}
         for v in (_Variant.objects.filter(product_id__in=pids, is_active=True)
-                  .values('product_id', 'size', 'color')):
+                  .values('product_id', 'size', 'color', 'price_override')):
             pid = v['product_id']
             if v['size']:
                 sizes_map.setdefault(pid, [])
@@ -132,6 +137,11 @@ class PublicProductsView(APIView):
                 colors_map.setdefault(pid, [])
                 if v['color'] not in colors_map[pid]:
                     colors_map[pid].append(v['color'])
+            _eff = v['price_override'] if v['price_override'] is not None else _base_by_pid.get(pid)
+            if _eff is not None:
+                _cur = eff_price_map.get(pid)
+                if _cur is None or _eff < _cur:
+                    eff_price_map[pid] = _eff
 
         # Mapa de stock por ciudad o sucursal (para disponibilidad).
         stock_map = {}
@@ -172,12 +182,13 @@ class PublicProductsView(APIView):
 
         def serialize(p):
             stock = stock_map.get(p.id, 0)
+            _effp = eff_price_map.get(p.id, p.base_price)
             return {
                 'id': p.id, 'name': p.name, 'slug': p.slug,
-                'brand_id': p.brand_id, 'brand_name': p.brand.name,
-                'category_id': p.category_id, 'category_name': p.category.name,
-                'base_price': str(p.offer_price(p.base_price)),
-                'compare_at_price': (str(p.base_price) if p.on_offer
+                'brand_id': p.brand_id, 'brand_name': p.brand.name if p.brand else 'General',
+                'category_id': p.category_id, 'category_name': p.category.name if p.category else 'General',
+                'base_price': str(p.offer_price(_effp)),
+                'compare_at_price': (str(_effp) if p.on_offer
                                      else (str(p.compare_at_price) if p.compare_at_price else None)),
                 'gender': p.gender, 'tag': p.tag,
                 'main_image_url': p.main_image_url,
@@ -341,7 +352,15 @@ class PublicProductDetailView(APIView):
         main_img = images[0] if images else ''
 
         variants = list(Variant.objects.filter(product=p, is_active=True)
-                        .values('id', 'size', 'color'))
+                        .values('id', 'size', 'color', 'price_override'))
+        # Precio efectivo: si alguna variante tiene price_override (editado en
+        # inventario), se usa; si no, el base_price del producto. Se muestra el
+        # menor como precio "desde".
+        _eff_prices = [
+            v['price_override'] if v['price_override'] is not None else p.base_price
+            for v in variants
+        ]
+        eff_base = min(_eff_prices) if _eff_prices else p.base_price
         # Tallas únicas (orden natural-ish) y colores únicos
         sizes = sorted({v['size'] for v in variants if v['size']},
                        key=lambda x: (len(x), x))
@@ -422,8 +441,8 @@ class PublicProductDetailView(APIView):
             'brand_name': p.brand.name if p.brand else 'General',
             'category_name': p.category.name if p.category else 'General',
             'category_slug': p.category.slug if p.category else '',
-            'base_price': str(p.offer_price(p.base_price)),
-            'compare_at_price': (str(p.base_price) if p.on_offer
+            'base_price': str(p.offer_price(eff_base)),
+            'compare_at_price': (str(eff_base) if p.on_offer
                                  else (str(p.compare_at_price) if p.compare_at_price else None)),
             'gender': p.gender, 'tag': p.tag,
             'short_description': p.short_description,
