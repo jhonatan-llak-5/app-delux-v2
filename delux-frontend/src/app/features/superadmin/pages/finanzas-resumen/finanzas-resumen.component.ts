@@ -2,10 +2,12 @@ import { ChangeDetectionStrategy, Component, computed, effect, inject, signal } 
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { RouterLink } from '@angular/router';
+import { firstValueFrom } from 'rxjs';
 import { BranchContextService } from '@core/services/branch-context.service';
 import { DlxExportMenuComponent } from '@shared/ui/export-menu.component';
 import { DlxSearchInputComponent } from '@shared/ui/search-input.component';
-import { ExportColumn } from '@shared/utils/export.util';
+import { ExportColumn, PdfLogo } from '@shared/utils/export.util';
+import { exportBalancePdf } from '@shared/utils/balance-report.util';
 import {
   ExpenseService, FinanceSummary, FinanceTopProduct, FinanceTxn, FinanceTxnPage,
 } from '@features/superadmin/services/expense.service';
@@ -155,6 +157,50 @@ export class FinanzasResumenComponent {
     const d = this.data();
     return d ? `${this.ctx.currentName()} · ${d.range.from} a ${d.range.to}` : '';
   });
+
+  /**
+   * PDF dedicado del Balance general (blanco y negro, por secciones).
+   * Se conecta a la opción "PDF" del menú de exportación; CSV/Excel siguen usando
+   * la utilidad genérica con `exportColumns`/`exportRows`.
+   */
+  onExportPdf = async ({ logo, brandName }: { logo: PdfLogo | null; brandName: string }): Promise<void> => {
+    const d = this.data();
+    if (!d) return;
+    const r = this.range();
+    if (!this.validRange(r)) return;
+
+    // Trae TODAS las transacciones del período (sin paginar, sin filtro de tipo/búsqueda).
+    let page: FinanceTxnPage | null = null;
+    try {
+      page = await firstValueFrom(this.svc.financeTransactions({
+        from: r.from, to: r.to, branch: this.ctx.current() ?? undefined,
+        page: 1, page_size: 1000,
+      }));
+    } catch { page = null; }
+
+    const txns = (page?.results ?? []).map(t => ({
+      kind: t.kind, date: t.date, concept: t.concept,
+      party: t.party, method: t.method, amount: Number(t.amount || 0),
+    }));
+
+    exportBalancePdf({
+      storeName: this.ctx.currentName(),
+      brandName,
+      logo,
+      range: { from: r.from, to: r.to },
+      ventas: Number(d.ventas || 0),
+      gastos: Number(d.gastos || 0),
+      balance: this.balance(),
+      orders: d.orders ?? 0,
+      compras: Number(d.compras || 0),
+      comprasUnits: d.compras_units ?? 0,
+      topProducts: this.topProducts().map(p => ({ product: p.product, qty: p.qty, revenue: Number(p.revenue || 0) })),
+      txns,
+      ingresosTotal: Number(page?.ingresos_total || 0),
+      egresosTotal: Number(page?.egresos_total || 0),
+      txnBalance: page ? Number(page.balance || 0) : this.balance(),
+    });
+  };
 
   money(n: string | number | undefined): string { return Number(n || 0).toLocaleString('es-EC', { minimumFractionDigits: 2, maximumFractionDigits: 2 }); }
   txnDate(iso: string): string {

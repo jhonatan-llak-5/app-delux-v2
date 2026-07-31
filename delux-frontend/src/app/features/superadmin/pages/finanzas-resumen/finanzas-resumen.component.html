@@ -10,7 +10,8 @@
     </div>
     <div class="flex items-center gap-3">
       <dlx-export-menu [columns]="exportColumns" [rows]="exportRows()" filename="balance"
-                       title="Balance general" [subtitle]="exportSubtitle()" />
+                       title="Balance general" [subtitle]="exportSubtitle()"
+                       [pdfHandler]="onExportPdf" />
       <a routerLink="/app/admin/pos"
          class="inline-flex items-center gap-2 px-4 py-2.5 rounded-xl bg-[var(--dash-primary)] hover:bg-[var(--dash-primary-d)] text-white font-semibold transition">
         <i class="fa-solid fa-plus"></i> Crear venta

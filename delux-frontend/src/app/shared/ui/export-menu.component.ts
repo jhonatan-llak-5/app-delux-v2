@@ -63,6 +63,12 @@ export class DlxExportMenuComponent {
   @Input() title = '';
   @Input() subtitle = '';
   @Input() orientation: 'p' | 'l' = 'p';
+  /**
+   * Manejador PDF opcional. Si se define, la opción "PDF" delega en él (recibiendo
+   * el logo ya cargado y el nombre de marca) en lugar de usar `exportPdf` genérico.
+   * CSV/Excel siguen usando la utilidad compartida.
+   */
+  @Input() pdfHandler?: (o: { logo: PdfLogo | null; brandName: string }) => void | Promise<void>;
 
   private branding = inject(BrandingService);
   private auth = inject(AuthService);
@@ -84,10 +90,14 @@ export class DlxExportMenuComponent {
       else if (fmt === 'xlsx') exportXlsx(data, this.columns, this.filename);
       else {
         const logo = await this.loadLogo();
-        exportPdf(data, this.columns, this.filename, {
-          title: this.title || this.filename, subtitle: this.subtitle,
-          orientation: this.orientation, logo, brandName: this.branding.siteName(),
-        });
+        if (this.pdfHandler) {
+          await this.pdfHandler({ logo, brandName: this.branding.siteName() });
+        } else {
+          exportPdf(data, this.columns, this.filename, {
+            title: this.title || this.filename, subtitle: this.subtitle,
+            orientation: this.orientation, logo, brandName: this.branding.siteName(),
+          });
+        }
       }
     } finally {
       this.busy.set(false);
