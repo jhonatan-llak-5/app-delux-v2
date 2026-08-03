@@ -5,13 +5,14 @@ import { DlxModalComponent } from '@shared/ui/modal.component';
 import { FormsModule } from '@angular/forms';
 import { DlxProvinceSelectComponent } from '@shared/ui/province-select.component';
 import { DlxPhoneInputComponent } from '@shared/ui/phone-input.component';
+import { DlxDocTypeSelectComponent } from '@shared/ui/doc-type-select.component';
 import { Customer, CustomerPayload, CustomerService } from '@features/superadmin/services/customer.service';
 import { parseApiError } from '@shared/utils/api-error.util';
 
 @Component({
   selector: 'dlx-customer-form-modal',
   standalone: true,
-  imports: [DlxFieldErrorComponent, CommonModule, FormsModule, DlxModalComponent, DlxProvinceSelectComponent, DlxPhoneInputComponent],
+  imports: [DlxFieldErrorComponent, CommonModule, FormsModule, DlxModalComponent, DlxProvinceSelectComponent, DlxPhoneInputComponent, DlxDocTypeSelectComponent],
   changeDetection: ChangeDetectionStrategy.OnPush,
   template: `
     <dlx-modal [open]="true" [maxWidth]="480"
@@ -20,15 +21,8 @@ import { parseApiError } from '@shared/utils/api-error.util';
       <form (ngSubmit)="save()" #f="ngForm" class="space-y-4">
           <div class="grid grid-cols-3 gap-3">
             <div>
-              <label class="eg-label">Identificación <span class="text-rose-500">*</span></label>
-              <select [(ngModel)]="payload.document_type" name="document_type" class="eg-input">
-                <option value="05">Cédula</option>
-                <option value="04">RUC</option>
-                <option value="06">Pasaporte</option>
-                <option value="07">Consumidor final</option>
-                <option value="08">Identificación del exterior</option>
-                <option value="09">Placa</option>
-              </select>
+              <label class="eg-label">Identificación SRI <span class="text-rose-500">*</span></label>
+              <dlx-doc-type-select [(ngModel)]="payload.document_type" name="document_type" />
             </div>
             <div class="col-span-2">
               <label class="eg-label">Número de identificación <span class="text-rose-500">*</span></label>
@@ -60,10 +54,14 @@ import { parseApiError } from '@shared/utils/api-error.util';
               <dlx-field-error [error]="fe(\'email\')" />
             </div>
           </div>
+          <div>
+            <label class="eg-label">Dirección</label>
+            <input [(ngModel)]="payload.address" name="address" maxlength="240" class="eg-input" />
+          </div>
           <div class="grid grid-cols-2 gap-3">
             <div>
-              <label class="eg-label">Dirección</label>
-              <input [(ngModel)]="payload.address" name="address" maxlength="240" class="eg-input" />
+              <label class="eg-label">Ciudad</label>
+              <input [(ngModel)]="payload.city" name="city" maxlength="80" class="eg-input" />
             </div>
             <div>
               <label class="eg-label">Provincia</label>
@@ -106,7 +104,7 @@ export class CustomerFormModalComponent implements OnInit {
 
   payload: CustomerPayload = {
     full_name: '', email: '', phone: '', document_id: '',
-    document_type: '05', business_name: '', address: '', province: '',
+    document_type: '05', business_name: '', address: '', city: '', province: '',
     accepts_marketing: false, tags: [],
   };
   saving = signal(false);
@@ -124,6 +122,7 @@ export class CustomerFormModalComponent implements OnInit {
         document_type: this.customer.document_type || '05',
         business_name: this.customer.business_name || '',
         address: this.customer.address || '',
+        city: this.customer.city || '',
         province: this.customer.province || '',
         accepts_marketing: this.customer.accepts_marketing,
         tags: this.customer.tags || [],

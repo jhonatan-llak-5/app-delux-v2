@@ -15,14 +15,20 @@ import { NotifyService } from '@shared/services/notify.service';
   imports: [DlxModalComponent, DlxFieldErrorComponent, CommonModule, FormsModule, DlxToggleComponent],
   changeDetection: ChangeDetectionStrategy.OnPush,
   template: `
-    <div class="editorial-card p-6">
-      <div class="flex items-center justify-between mb-2">
-        <h2 class="font-display font-bold text-2xl text-ink-950 dark:text-white">Direcciones</h2>
-        <button (click)="openCreate()" class="btn-outline text-sm font-semibold px-4 py-2">
-          <i class="fa-solid fa-plus text-[10px]"></i> Nueva
+    <div>
+      <div class="flex flex-wrap items-end justify-between gap-4 mb-6">
+        <div>
+          <div class="flex items-center gap-2 text-xs text-slate-500 mb-1">
+            <i class="fa-solid fa-location-dot"></i>
+            <span class="uppercase tracking-widest font-semibold">Mi cuenta</span>
+          </div>
+          <h1 class="text-2xl md:text-3xl font-bold tracking-tight">Direcciones</h1>
+          <p class="text-slate-500 text-sm mt-1">Para envíos a domicilio y facturación.</p>
+        </div>
+        <button (click)="openCreate()" class="btn-accent text-sm font-semibold px-5 py-2.5">
+          <i class="fa-solid fa-plus text-[10px]"></i> Nueva dirección
         </button>
       </div>
-      <p class="text-sm text-ink-700 dark:text-white/60 mb-6">Para envíos a domicilio y facturación.</p>
 
       @if (addresses().length === 0) {
         <div class="text-center py-10">

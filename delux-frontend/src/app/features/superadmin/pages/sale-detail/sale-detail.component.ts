@@ -8,7 +8,7 @@ import { Order, OrderService, Payment } from '@features/superadmin/services/orde
 import { ShippingService, Shipment } from '@shared/services/shipping.service';
 import { ConfirmService } from '@shared/components/confirm/confirm.service';
 import { environment } from '@env/environment';
-import { generateVoucherPDF } from '@shared/utils/voucher-pdf.util';
+import { printVoucherPDF } from '@shared/utils/voucher-pdf.util';
 import { AuthService } from '@core/services/auth.service';
 import { NotifyService } from '@shared/services/notify.service';
 import { StoreSettingsService } from '@features/superadmin/services/store-settings.service';
@@ -384,10 +384,10 @@ export class SaleDetailComponent implements OnInit, OnDestroy {
     } as any)[s] || 'bg-slate-100 text-slate-700';
   }
 
-  /** Imprime el comprobante de venta térmico (formato único de recibo). */
+  /** Imprime el comprobante de venta térmico (abre la vista de impresión). */
   print() {
     const o = this.order();
-    if (o) generateVoucherPDF(o, this.branding.receiptBusiness());
+    if (o) printVoucherPDF(o, this.branding.receiptBusiness());
   }
 
   /**

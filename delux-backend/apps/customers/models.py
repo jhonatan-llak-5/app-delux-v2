@@ -26,6 +26,7 @@ class Customer(TenantOwnedModel):
     document_type = models.CharField(max_length=2, choices=DOC_TYPES, default='05', blank=True)
     business_name = models.CharField(max_length=160, blank=True)
     address = models.CharField(max_length=240, blank=True)
+    city = models.CharField(max_length=80, blank=True)
     province = models.CharField(max_length=80, blank=True)
     accepts_marketing = models.BooleanField(default=False)
     is_active = models.BooleanField(default=True)

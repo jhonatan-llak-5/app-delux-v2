@@ -61,6 +61,12 @@ class MeProfileView(APIView):
             'email': c.email,
             'phone': c.phone,
             'document_id': c.document_id,
+            # Datos de facturación (por defecto para emitir facturas a su nombre)
+            'document_type': c.document_type or '05',
+            'business_name': c.business_name,
+            'address': c.address,
+            'city': c.city,
+            'province': c.province,
             'accepts_marketing': c.accepts_marketing,
             'total_orders': agg['total_orders'] or 0,
             'total_spent': str(agg['total_spent'] or '0.00'),
@@ -68,7 +74,8 @@ class MeProfileView(APIView):
 
     def patch(self, request):
         c = get_or_create_customer_for_user(request.user)
-        for f in ('full_name', 'phone', 'document_id', 'accepts_marketing'):
+        for f in ('full_name', 'phone', 'document_id', 'accepts_marketing',
+                  'document_type', 'business_name', 'address', 'city', 'province'):
             if f in request.data:
                 setattr(c, f, request.data[f])
         c.save()
@@ -168,3 +175,52 @@ class MeWishlistDeleteView(APIView):
         c = get_or_create_customer_for_user(request.user)
         WishlistItem.objects.filter(customer=c, product_id=product_id).delete()
         return Response(status=204)
+
+
+class MeOrderInvoiceFileView(APIView):
+    """Proxy del RIDE/XML de la factura de UNA compra del cliente autenticado.
+    Verifica que el pedido sea suyo y descarga el archivo desde NovaFactura
+    (servidor a servidor, con la API key). Los documentos no son públicos.
+    GET /me/orders/<id>/invoice-file/?kind=pdf|xml
+    """
+    permission_classes = [permissions.IsAuthenticated]
+
+    def get(self, request, order_id):
+        c = get_or_create_customer_for_user(request.user)
+        order = c.orders.filter(pk=order_id).first()
+        if order is None:
+            return Response({'detail': 'Compra no encontrada.'}, status=404)
+
+        kind = (request.query_params.get('kind') or 'pdf').lower()
+        if kind not in ('pdf', 'xml'):
+            return Response({'detail': 'Tipo inválido.'}, status=400)
+        if not order.invoice_id:
+            return Response({'detail': 'Esta compra no tiene factura emitida.'}, status=404)
+
+        from apps.settings.models import PlatformSettings
+        cfg = PlatformSettings.load()
+        if not (cfg.einvoice_base_url and cfg.einvoice_api_key):
+            return Response({'detail': 'Facturación no configurada.'}, status=400)
+
+        import requests
+        from django.http import StreamingHttpResponse
+        remote = 'ride' if kind == 'pdf' else 'xml'
+        url = cfg.einvoice_base_url.rstrip('/') + f'/api/v1/invoices/{order.invoice_id}/{remote}/'
+        try:
+            r = requests.get(
+                url, headers={'Authorization': f'Api-Key {cfg.einvoice_api_key}'},
+                timeout=30, stream=True,
+            )
+        except requests.RequestException as e:
+            return Response({'detail': f'No se pudo obtener el archivo: {e}'}, status=502)
+        if r.status_code == 404:
+            return Response({'detail': 'El archivo aún no está disponible.'}, status=404)
+        if r.status_code != 200:
+            return Response({'detail': 'No se pudo obtener el archivo.'}, status=502)
+
+        content_type = 'application/pdf' if kind == 'pdf' else 'application/xml'
+        ext = 'pdf' if kind == 'pdf' else 'xml'
+        filename = f'{order.invoice_access_key or order.code}.{ext}'
+        resp = StreamingHttpResponse(r.iter_content(chunk_size=8192), content_type=content_type)
+        resp['Content-Disposition'] = f'inline; filename="{filename}"'
+        return resp

@@ -20,7 +20,7 @@ class CustomerSerializer(serializers.ModelSerializer):
         model = Customer
         fields = (
             'id', 'full_name', 'email', 'phone', 'document_id',
-            'document_type', 'business_name', 'address', 'province',
+            'document_type', 'business_name', 'address', 'city', 'province',
             'accepts_marketing', 'is_active', 'tags',
             'total_orders', 'total_spent', 'last_order_at',
             'addresses', 'created_at',
@@ -32,7 +32,7 @@ class CustomerCreateSerializer(serializers.ModelSerializer):
     class Meta:
         model = Customer
         fields = ('full_name', 'email', 'phone', 'document_id',
-                  'document_type', 'business_name', 'address', 'province',
+                  'document_type', 'business_name', 'address', 'city', 'province',
                   'accepts_marketing', 'is_active', 'tags')
 
     def create(self, validated_data):

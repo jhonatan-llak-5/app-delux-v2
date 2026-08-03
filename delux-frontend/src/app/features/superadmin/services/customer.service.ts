@@ -24,6 +24,7 @@ export interface Customer {
   document_type: string;
   business_name: string;
   address: string;
+  city: string;
   province: string;
   accepts_marketing: boolean;
   is_active: boolean;
@@ -43,6 +44,7 @@ export interface CustomerPayload {
   document_type?: string;
   business_name?: string;
   address?: string;
+  city?: string;
   province?: string;
   accepts_marketing?: boolean;
   is_active?: boolean;

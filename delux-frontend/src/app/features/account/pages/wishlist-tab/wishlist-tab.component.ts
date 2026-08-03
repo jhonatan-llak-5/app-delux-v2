@@ -11,9 +11,17 @@ import { MeService, WishlistEntry } from '@features/account/services/me.service'
   imports: [DlxEmptyStateComponent, ImgFallbackDirective, CommonModule, RouterLink],
   changeDetection: ChangeDetectionStrategy.OnPush,
   template: `
-    <div class="editorial-card p-6">
-      <h2 class="font-display font-bold text-2xl text-ink-950 dark:text-white mb-2">Favoritos</h2>
-      <p class="text-sm text-ink-700 dark:text-white/60 mb-6">{{ items().length }} productos guardados.</p>
+    <div>
+      <div class="flex flex-wrap items-end justify-between gap-4 mb-6">
+        <div>
+          <div class="flex items-center gap-2 text-xs text-slate-500 mb-1">
+            <i class="fa-solid fa-heart"></i>
+            <span class="uppercase tracking-widest font-semibold">Mi cuenta</span>
+          </div>
+          <h1 class="text-2xl md:text-3xl font-bold tracking-tight">Favoritos</h1>
+          <p class="text-slate-500 text-sm mt-1">{{ items().length }} productos guardados.</p>
+        </div>
+      </div>
 
       @if (loading()) {
         <div class="text-center py-10">

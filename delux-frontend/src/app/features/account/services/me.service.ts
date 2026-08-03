@@ -9,6 +9,12 @@ export interface MeProfile {
   email: string;
   phone: string;
   document_id: string;
+  // Datos de facturación (por defecto para emitir facturas a su nombre)
+  document_type: string;
+  business_name: string;
+  address: string;
+  city: string;
+  province: string;
   accepts_marketing: boolean;
   total_orders: number;
   total_spent: string;
@@ -61,6 +67,11 @@ export class MeService {
   setDefaultAddress(id: number) { return this.http.post(`${this.base}/me/addresses/${id}/set_default/`, {}); }
 
   orders() { return this.http.get<{ count: number; results: any[] }>(`${this.base}/me/orders/`); }
+
+  /** Descarga el RIDE (pdf) o XML de la factura de una compra (proxy autenticado). */
+  orderInvoiceFile(orderId: number, kind: 'pdf' | 'xml') {
+    return this.http.get(`${this.base}/me/orders/${orderId}/invoice-file/?kind=${kind}`, { responseType: 'blob' });
+  }
 
   wishlist(): Observable<{ count: number; results: WishlistEntry[] }> {
     return this.http.get<{ count: number; results: WishlistEntry[] }>(`${this.base}/me/wishlist/`)

@@ -322,8 +322,11 @@ class AdminOrderViewSet(viewsets.ReadOnlyModelViewSet):
         ident = (cdata.get('identification') or '').strip()
         doc_type = (cdata.get('document_type') or '').strip()
         name = (cdata.get('name') or '').strip()
+        business_name = (cdata.get('business_name') or '').strip()
         email = (cdata.get('email') or '').strip()
         address = (cdata.get('address') or '').strip()
+        city = (cdata.get('city') or '').strip()
+        province = (cdata.get('province') or '').strip()
         phone = (cdata.get('phone') or '').strip()
 
         # ── Validaciones (antes de tocar la BD) ──────────────────────────────
@@ -368,21 +371,38 @@ class AdminOrderViewSet(viewsets.ReadOnlyModelViewSet):
             #    datos SRI. En Consumidor Final NO se toca el perfil del cliente
             #    (para no sobrescribir sus datos con el placeholder CF).
             if not is_cf:
-                customer = order.customer
+                # Upsert por identificación dentro del tenant: si ya existe un
+                # cliente con esa cédula/RUC se reutiliza y actualiza; si no,
+                # se crea. Así el vendedor puede facturar a otro cliente
+                # (buscándolo) o a uno nuevo sin salir del popup.
+                customer = None
+                if ident:
+                    customer = Customer.objects.filter(
+                        tenant=order.tenant, document_id=ident).first()
                 if customer is None:
-                    customer = Customer(tenant=order.tenant, full_name=(name or 'Cliente'))
+                    customer = order.customer
+                if customer is None:
+                    customer = Customer(tenant=order.tenant,
+                                        full_name=(name or business_name or 'Cliente'))
                 customer.document_id = ident
                 if doc_type:
                     customer.document_type = doc_type
                 if name:
                     customer.full_name = name
-                    # Si es RUC (04) el nombre es la razón social del contribuyente.
-                    if doc_type == '04':
-                        customer.business_name = name
+                # Razón social: explícita si vino; si es RUC (04) y no vino,
+                # usa el nombre como razón social del contribuyente.
+                if business_name:
+                    customer.business_name = business_name
+                elif doc_type == '04' and name:
+                    customer.business_name = name
                 if email:
                     customer.email = email
                 if address:
                     customer.address = address
+                if city:
+                    customer.city = city
+                if province:
+                    customer.province = province
                 if phone:
                     customer.phone = phone
                 customer.save()

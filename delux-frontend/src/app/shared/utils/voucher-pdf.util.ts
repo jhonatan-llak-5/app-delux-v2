@@ -53,32 +53,37 @@ function buildReceiptDoc(order: Order, biz?: Partial<ReceiptBusiness>): jsPDF {
   const height = Math.max(150, 120 + nItems * 9);
   const doc = new jsPDF({ unit: 'mm', format: [W, height] });
 
-  let y = 7;
+  let y = 11;   // margen superior
   const line = () => { doc.setLineWidth(0.2); doc.line(L, y, R, y); y += 3.5; };
 
-  // ── Encabezado del emisor ──
+  // ── Encabezado del emisor (TODO en negrilla) ──
   doc.setFont('helvetica', 'bold'); doc.setFontSize(14);
   doc.text((biz?.tradeName || 'DELUX').toUpperCase(), C, y, { align: 'center' }); y += 5;
-  doc.setFont('helvetica', 'normal'); doc.setFontSize(8);
-  if (biz?.legalName) { doc.text(biz.legalName.toUpperCase(), C, y, { align: 'center', maxWidth: R - L }); y += 3.5; }
+  doc.setFontSize(8);   // sigue en 'bold'
+  if (biz?.legalName) {
+    const ln = doc.splitTextToSize(biz.legalName.toUpperCase(), R - L);
+    doc.text(ln, C, y, { align: 'center' }); y += 3.5 * ln.length;
+  }
   if (biz?.ruc) { doc.text(`RUC: ${biz.ruc}`, C, y, { align: 'center' }); y += 3.5; }
   if (biz?.phone) { doc.text(`TLF: ${biz.phone}`, C, y, { align: 'center' }); y += 3.5; }
   if (biz?.address) {
     const addr = doc.splitTextToSize(biz.address.toUpperCase(), R - L);
     doc.text(addr, C, y, { align: 'center' }); y += 3.5 * addr.length;
   }
-  y += 1.5; line();
+  doc.setFont('helvetica', 'normal');
+  y += 4;   // solo espacio, sin línea (el original no lleva línea bajo el encabezado)
 
   // ── Datos de la factura / cliente ──
   doc.setFontSize(8);
-  const row = (label: string, value: string) => {
-    doc.setFont('helvetica', 'bold'); doc.text(label, L, y);
+  const row = (label: string, value: string, boldLabel = false) => {
+    doc.setFont('helvetica', boldLabel ? 'bold' : 'normal');
+    doc.text(label, L, y);
+    const lbW = doc.getTextWidth(label) + 1.6;   // separación clara etiqueta/valor
     doc.setFont('helvetica', 'normal');
-    const lbW = doc.getTextWidth(label) + 1;
     const val = doc.splitTextToSize(value, R - L - lbW);
     doc.text(val, L + lbW, y); y += 3.6 * val.length;
   };
-  row('Factura Electrónica N°: ', order.invoice_number || 'En proceso');
+  row('Factura Electrónica N°: ', order.invoice_number || 'En proceso', true);
   row('Emisión: ', fmtDate(order.created_at));
   row('Cliente: ', (order.customer_name || 'CONSUMIDOR FINAL').toUpperCase());
   if (order.branch_name) row('Direcc: ', order.branch_name);
@@ -101,27 +106,41 @@ function buildReceiptDoc(order: Order, biz?: Partial<ReceiptBusiness>): jsPDF {
     styles: { fontSize: 7.5, cellPadding: 0.6, textColor: [0, 0, 0] },
     headStyles: { fontStyle: 'bold' },
     columnStyles: {
-      0: { cellWidth: 9, halign: 'left' },
-      1: { cellWidth: 37 },
-      2: { cellWidth: 13, halign: 'right' },
-      3: { cellWidth: 13, halign: 'right' },
+      0: { cellWidth: 8, halign: 'left' },
+      1: { cellWidth: 36, halign: 'left' },
+      2: { cellWidth: 14, halign: 'right' },
+      3: { cellWidth: 14, halign: 'right' },
+    },
+    // Fuerza que el ENCABEZADO de P.Unit y Total también vaya a la derecha,
+    // alineado con sus valores (algunas versiones no lo heredan de columnStyles).
+    didParseCell: (data: any) => {
+      if (data.section === 'head' && (data.column.index === 2 || data.column.index === 3)) {
+        data.cell.styles.halign = 'right';
+      }
     },
   });
   y = (doc as any).lastAutoTable.finalY + 2;
   line();
 
   // ── Totales (Neto + IVA = Total) ──
+  // El IVA se CALCULA desde el total y la tasa (igual que el SRI): los precios
+  // incluyen IVA, así que neto = total / (1 + tasa) e IVA = total − neto.
+  // Solo si el backend trae un impuesto ya calculado (> 0) se respeta ese valor.
   const total = Number(order.total) || 0;
-  const iva = order.tax != null ? Number(order.tax) : (total - total / (1 + rate));
+  const iva = (order.tax != null && +order.tax > 0) ? +order.tax : (total - total / (1 + rate));
   const neto = total - iva;
   const discount = Number(order.discount) || 0;
   const subTotal = neto + discount;
   const ivaPct = Math.round(rate * 100);
 
-  doc.setFontSize(8.5); doc.setFont('helvetica', 'normal');
+  doc.setFontSize(8.5);
+  // Etiqueta a la IZQUIERDA (a media hoja) EN NEGRILLA y valor a la DERECHA,
+  // para que la columna de montos quede perfectamente alineada.
+  const totLabelX = R - 32;
   const tot = (label: string, value: string, bold = false) => {
+    doc.setFont('helvetica', 'bold');
+    doc.text(label, totLabelX, y, { align: 'left' });
     doc.setFont('helvetica', bold ? 'bold' : 'normal');
-    doc.text(label, R - 26, y, { align: 'right' });
     doc.text(`${value}`, R, y, { align: 'right' });
     y += 4;
   };
@@ -136,7 +155,9 @@ function buildReceiptDoc(order: Order, biz?: Partial<ReceiptBusiness>): jsPDF {
   doc.setFontSize(8); doc.setFont('helvetica', 'normal');
   const units = (order.items || []).reduce((s, it) => s + (Number(it.quantity) || 0), 0);
   doc.text(`Artículos entregados: ${units}`, L, y); y += 3.6;
-  if (order.seller_name) { doc.text(`Vendedor: ${order.seller_name}`, L, y); y += 3.6; }
+  // Vendedor: nombre del vendedor; en ventas web (sin vendedor) muestra "Venta web".
+  const sellerLabel = order.seller_name || ((order as any).channel === 'WEB' ? 'Venta web' : '—');
+  doc.text(`Vendedor: ${sellerLabel}`, L, y); y += 3.6;
   doc.text(fmtDateTime(order.created_at), L, y); y += 4;
 
   // ── Firma cliente ──

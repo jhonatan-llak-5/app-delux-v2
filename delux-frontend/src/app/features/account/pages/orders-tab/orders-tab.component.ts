@@ -3,9 +3,15 @@ import { DlxEmptyStateComponent } from '@shared/ui/empty-state.component';
 import { OrderStatusLabelPipe, OrderStatusClassPipe } from '@shared/ui/order-status.pipe';
 import { DlxSearchInputComponent } from '@shared/ui/search-input.component';
 import { DlxPaginationComponent } from '@shared/ui/pagination.component';
+import { DlxModalComponent } from '@shared/ui/modal.component';
+import { ImgFallbackDirective } from '@shared/ui/img-fallback.directive';
 import { CommonModule } from '@angular/common';
 import { RouterLink } from '@angular/router';
 import { MeService } from '@features/account/services/me.service';
+import { BrandingService } from '@core/services/branding.service';
+import { NotifyService } from '@shared/services/notify.service';
+import { printVoucherPDF } from '@shared/utils/voucher-pdf.util';
+import { Order } from '@features/superadmin/services/order.service';
 
 /** Un pedido individual del perfil (incluye group_code para agrupar compras multi-sucursal). */
 export interface ProfileOrder {
@@ -16,9 +22,21 @@ export interface ProfileOrder {
   branch_name: string;
   status: string;
   fulfillment: string;
-  items: { id: number; product_image: string; product_name: string }[];
+  items: { id: number; product_image: string; product_name: string; sku?: string; size?: string; color?: string; quantity?: number; unit_price?: number; subtotal?: number }[];
   items_count: number;
+  subtotal?: string;
+  discount?: string;
+  tax?: string;
   total: string;
+  seller_name?: string | null;
+  customer_name?: string | null;
+  customer_document?: string | null;
+  customer_phone?: string | null;
+  // Factura electrónica
+  invoice_status?: string;
+  invoice_number?: string;
+  invoice_access_key?: string;
+  invoice_authorization?: string;
 }
 
 @Component({
@@ -26,7 +44,7 @@ export interface ProfileOrder {
   standalone: true,
   imports: [
     DlxEmptyStateComponent, OrderStatusLabelPipe, OrderStatusClassPipe,
-    DlxSearchInputComponent, DlxPaginationComponent, CommonModule, RouterLink,
+    DlxSearchInputComponent, DlxPaginationComponent, DlxModalComponent, ImgFallbackDirective, CommonModule, RouterLink,
   ],
   changeDetection: ChangeDetectionStrategy.OnPush,
   template: `
@@ -95,14 +113,18 @@ export interface ProfileOrder {
                       </span>
                     </td>
                     <td class="px-4 py-2.5 text-right whitespace-nowrap">
-                      @if (o.fulfillment === 'SHIPPING') {
-                        <a [routerLink]="['/tracking', o.code]"
-                           class="inline-flex items-center gap-2 text-xs font-semibold text-accent-600 hover:text-accent-700 dark:text-accent-400 dark:hover:text-accent-300">
-                          <i class="fa-solid fa-truck-fast"></i> Seguir mi pedido
-                        </a>
-                      } @else {
-                        <span class="text-slate-400 dark:text-white/30">—</span>
-                      }
+                      <div class="inline-flex items-center gap-3 justify-end">
+                        @if (o.fulfillment === 'SHIPPING') {
+                          <a [routerLink]="['/tracking', o.code]"
+                             class="inline-flex items-center gap-2 text-xs font-semibold text-accent-600 hover:text-accent-700 dark:text-accent-400 dark:hover:text-accent-300">
+                            <i class="fa-solid fa-truck-fast"></i> Seguir
+                          </a>
+                        }
+                        <button type="button" (click)="openDetail(o)"
+                                class="inline-flex items-center gap-1.5 text-xs font-semibold text-slate-600 dark:text-white/70 hover:text-ink-950 dark:hover:text-white">
+                          <i class="fa-solid fa-eye"></i> Detalle
+                        </button>
+                      </div>
                     </td>
                   </tr>
                 }
@@ -120,15 +142,130 @@ export interface ProfileOrder {
         }
       }
     </div>
+
+    @if (detail(); as d) {
+      <dlx-modal [open]="true" [maxWidth]="560" [title]="'Compra ' + d.code" (closed)="closeDetail()">
+        <div class="space-y-4 text-sm">
+          <div class="flex flex-wrap items-center gap-x-5 gap-y-1 text-xs text-slate-500">
+            <span><i class="fa-regular fa-calendar"></i> {{ d.created_at | date:'medium' }}</span>
+            <span><i class="fa-solid fa-store"></i> {{ d.branch_name || '—' }}</span>
+            <span class="inline-flex items-center px-2 py-0.5 rounded-md text-[11px] font-bold uppercase"
+                  [ngClass]="d.status | orderStatusClass">{{ d.status | orderStatusLabel }}</span>
+          </div>
+
+          <div class="rounded-xl border border-slate-100 dark:border-white/10 divide-y divide-slate-100 dark:divide-white/10">
+            @for (it of d.items; track it.id) {
+              <div class="flex items-center gap-3 p-3">
+                <img [src]="it.product_image" [alt]="it.product_name" dlxImgFallback
+                     class="w-12 h-12 rounded-lg object-cover bg-slate-100 dark:bg-white/5 shrink-0" />
+                <div class="min-w-0 flex-1">
+                  <p class="font-semibold truncate">{{ it.product_name }}</p>
+                  <p class="text-xs text-slate-500">
+                    {{ it.size || '' }}{{ it.color ? (it.size ? ' · ' : '') + it.color : '' }} · x{{ it.quantity || 1 }}
+                  </p>
+                </div>
+                <span class="font-semibold whitespace-nowrap">\${{ it.subtotal ?? it.unit_price }}</span>
+              </div>
+            }
+          </div>
+
+          <div class="flex justify-end">
+            <div class="w-52 space-y-1">
+              @if (d.subtotal) { <div class="flex justify-between text-slate-500"><span>Subtotal</span><span>\${{ d.subtotal }}</span></div> }
+              @if (d.discount && +d.discount > 0) { <div class="flex justify-between text-slate-500"><span>Descuento</span><span>-\${{ d.discount }}</span></div> }
+              @if (d.tax && +d.tax > 0) { <div class="flex justify-between text-slate-500"><span>IVA</span><span>\${{ d.tax }}</span></div> }
+              <div class="flex justify-between font-bold text-base pt-1 border-t border-slate-100 dark:border-white/10"><span>Total</span><span>\${{ d.total }}</span></div>
+            </div>
+          </div>
+
+          <div class="rounded-xl border border-slate-100 dark:border-white/10 p-3 space-y-2">
+            <div class="flex items-center justify-between">
+              <span class="font-semibold"><i class="fa-solid fa-file-invoice text-slate-400"></i> Factura electrónica</span>
+              <span class="inline-flex items-center px-2 py-0.5 rounded-md text-[11px] font-bold uppercase"
+                    [ngClass]="invoiceClass(d.invoice_status)">{{ invoiceLabel(d.invoice_status) }}</span>
+            </div>
+            @if (d.invoice_status === 'AUTHORIZED') {
+              @if (d.invoice_number) { <p class="text-xs text-slate-500">Número: <span class="font-mono text-slate-700 dark:text-slate-300">{{ d.invoice_number }}</span></p> }
+              @if (d.invoice_access_key) { <p class="text-[11px] text-slate-400 break-all">Clave de acceso: {{ d.invoice_access_key }}</p> }
+              <div class="flex flex-wrap items-center gap-3 pt-1">
+                <button type="button" (click)="openInvoiceFile(d, 'pdf')" [disabled]="downloading()"
+                        class="inline-flex items-center gap-1.5 text-xs font-semibold text-rose-600 hover:underline disabled:opacity-60">
+                  <i class="fa-solid" [ngClass]="downloading() ? 'fa-spinner fa-spin' : 'fa-file-pdf'"></i> RIDE (PDF)
+                </button>
+                <button type="button" (click)="openInvoiceFile(d, 'xml')" [disabled]="downloading()"
+                        class="inline-flex items-center gap-1.5 text-xs font-semibold text-slate-500 hover:underline disabled:opacity-60">
+                  <i class="fa-solid fa-file-code"></i> XML
+                </button>
+                <button type="button" (click)="printReceipt(d)"
+                        class="ml-auto inline-flex items-center gap-1.5 text-xs font-semibold px-3 h-8 rounded-lg bg-ink-950 text-white hover:bg-ink-900">
+                  <i class="fa-solid fa-print"></i> Imprimir comprobante
+                </button>
+              </div>
+            } @else {
+              <p class="text-xs text-slate-500">Aún no hay factura disponible. Aparecerá aquí cuando el SRI la autorice.</p>
+            }
+          </div>
+        </div>
+      </dlx-modal>
+    }
   `,
 })
 export class OrdersTabComponent implements OnInit {
   private me = inject(MeService);
+  private branding = inject(BrandingService);
+  private notify = inject(NotifyService);
   orders = signal<ProfileOrder[]>([]);
   loading = signal(true);
   search = signal('');
   page = signal(1);
   pageSize = signal(25);
+
+  detail = signal<ProfileOrder | null>(null);
+  downloading = signal(false);
+
+  openDetail(o: ProfileOrder) { this.detail.set(o); }
+  closeDetail() { this.detail.set(null); }
+
+  invoiceLabel(s?: string): string {
+    return ({
+      PROCESSING: 'Procesando', PENDING_SRI: 'En espera del SRI',
+      AUTHORIZED: 'Autorizada', REJECTED: 'Rechazada',
+      ANNULLED: 'Anulada', ERROR: 'Error',
+    } as any)[s || ''] || 'No emitida';
+  }
+  invoiceClass(s?: string): string {
+    return ({
+      PROCESSING: 'bg-amber-100 text-amber-700',
+      PENDING_SRI: 'bg-sky-100 text-sky-700',
+      AUTHORIZED: 'bg-emerald-100 text-emerald-700',
+      REJECTED: 'bg-rose-100 text-rose-700',
+      ANNULLED: 'bg-slate-200 text-slate-600',
+      ERROR: 'bg-rose-100 text-rose-700',
+    } as any)[s || ''] || 'bg-slate-100 text-slate-600';
+  }
+
+  /** Abre el RIDE (pdf) o XML de la factura en una pestaña nueva. */
+  openInvoiceFile(o: ProfileOrder, kind: 'pdf' | 'xml') {
+    if (this.downloading()) return;
+    this.downloading.set(true);
+    this.me.orderInvoiceFile(o.id, kind).subscribe({
+      next: blob => {
+        this.downloading.set(false);
+        const url = URL.createObjectURL(blob);
+        window.open(url, '_blank');
+        setTimeout(() => URL.revokeObjectURL(url), 60000);
+      },
+      error: () => {
+        this.downloading.set(false);
+        this.notify.error('No se pudo obtener el archivo. Intenta más tarde.');
+      },
+    });
+  }
+
+  /** Imprime el comprobante térmico de la compra (mismo formato de la tienda). */
+  printReceipt(o: ProfileOrder) {
+    printVoucherPDF(o as unknown as Order, this.branding.receiptBusiness());
+  }
 
   /** Filtra por voucher, sucursal y nombre de producto (client-side). */
   filtered = computed<ProfileOrder[]>(() => {
