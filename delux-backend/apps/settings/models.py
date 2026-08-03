@@ -54,6 +54,17 @@ class PlatformSettings(models.Model):
     site_logo = models.ImageField(upload_to=_site_logo_upload_to, blank=True, null=True)
     site_favicon = models.ImageField(upload_to=_site_favicon_upload_to, blank=True, null=True)
 
+    # ─── Datos del negocio (emisor) para el comprobante de venta impreso ───
+    business_legal_name = models.CharField(
+        max_length=200, blank=True, default='',
+        help_text='Razón social del emisor (aparece en el recibo).')
+    business_ruc = models.CharField(
+        max_length=20, blank=True, default='', help_text='RUC del emisor.')
+    business_address = models.CharField(
+        max_length=200, blank=True, default='', help_text='Dirección del emisor.')
+    business_phone = models.CharField(
+        max_length=40, blank=True, default='', help_text='Teléfono del emisor.')
+
     # ─── Contacto público ───
     whatsapp_contact_number = models.CharField(max_length=30, blank=True, default='')
     public_contact_email = models.EmailField(

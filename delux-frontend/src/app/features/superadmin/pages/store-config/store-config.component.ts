@@ -128,6 +128,37 @@ interface PdfPalette {
           }
         </div>
 
+        <!-- Datos del negocio (para el comprobante de venta impreso) -->
+        <div class="card p-6">
+          <h2 class="font-bold tracking-tight mb-1">Datos del negocio</h2>
+          <p class="text-sm text-slate-500 mb-4">Aparecen en el encabezado del comprobante de venta que se imprime en la impresora de recibos.</p>
+          <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+            <div class="sm:col-span-2">
+              <label class="eg-label">Razón social</label>
+              <input [(ngModel)]="store.business_legal_name" class="eg-input w-full" placeholder="Ej. TOAPANTA CHINGO CRISTIAN PABLO" maxlength="200" />
+            </div>
+            <div>
+              <label class="eg-label">RUC</label>
+              <input [(ngModel)]="store.business_ruc" class="eg-input w-full font-mono" placeholder="0000000000001" maxlength="20" />
+            </div>
+            <div>
+              <label class="eg-label">Teléfono</label>
+              <input [(ngModel)]="store.business_phone" class="eg-input w-full" placeholder="0999999999" maxlength="40" />
+            </div>
+            <div class="sm:col-span-2">
+              <label class="eg-label">Dirección</label>
+              <input [(ngModel)]="store.business_address" class="eg-input w-full" placeholder="Ej. VENEZUELA Y BOLÍVAR 233 ESQ" maxlength="200" />
+            </div>
+          </div>
+          <div class="flex justify-end mt-4">
+            <button type="button" (click)="saveStore()" [disabled]="savingStore()"
+                    class="px-5 h-11 rounded-xl bg-[var(--dash-primary)] text-white text-sm font-semibold hover:opacity-90 disabled:opacity-50">
+              @if (savingStore()) { <i class="fa-solid fa-spinner fa-spin mr-1"></i> } @else { <i class="fa-solid fa-floppy-disk mr-1"></i> }
+              Guardar datos del negocio
+            </button>
+          </div>
+        </div>
+
         <!-- Catálogo PDF -->
         <div class="card p-6">
           <h2 class="font-bold tracking-tight mb-1">Catálogo en PDF</h2>

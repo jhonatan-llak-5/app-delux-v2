@@ -24,6 +24,11 @@ export interface StoreOptions {
   consumidor_final_enabled: boolean;
   einvoice_enabled?: boolean;
   einvoice_consumidor_final_max?: number;
+  // Datos del negocio (emisor) para el comprobante de venta impreso.
+  business_legal_name?: string;
+  business_ruc?: string;
+  business_address?: string;
+  business_phone?: string;
 }
 
 /**

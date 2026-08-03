@@ -2,122 +2,182 @@ import { Order } from '@features/superadmin/services/order.service';
 import jsPDF from 'jspdf';
 import autoTable from 'jspdf-autotable';
 
-/** Construye el documento del voucher (sin guardarlo). */
-function buildVoucherDoc(order: Order): jsPDF {
-  const doc = new jsPDF({ unit: 'mm', format: [80, 220] });
+/**
+ * Datos del negocio (emisor) que van en el encabezado del comprobante.
+ * Se leen del BrandingService (public-config) y se pasan al construir el PDF.
+ */
+export interface ReceiptBusiness {
+  tradeName: string;   // Nombre comercial (site_name), p.ej. "DE LUX"
+  legalName: string;   // Razón social
+  ruc: string;
+  address: string;
+  phone: string;
+  taxRate: number;     // % IVA (15)
+}
 
-  let y = 8;
-  const center = 40;
+function money(v: any): string {
+  const n = Number(v);
+  return (isNaN(n) ? 0 : n).toFixed(2);
+}
 
-  // Header
-  doc.setFontSize(16);
-  doc.setFont('helvetica', 'bold');
-  doc.text('DELUX', center, y, { align: 'center' });
-  y += 5;
+function fmtDate(iso?: string): string {
+  const d = iso ? new Date(iso) : new Date();
+  const dd = String(d.getDate()).padStart(2, '0');
+  const mm = String(d.getMonth() + 1).padStart(2, '0');
+  return `${dd}/${mm}/${d.getFullYear()}`;
+}
+
+function fmtDateTime(iso?: string): string {
+  const d = iso ? new Date(iso) : new Date();
+  return d.toLocaleString('es-EC', {
+    day: '2-digit', month: '2-digit', year: 'numeric',
+    hour: '2-digit', minute: '2-digit', second: '2-digit', hour12: true,
+  });
+}
+
+/**
+ * Construye el COMPROBANTE DE VENTA en formato de recibo para impresora
+ * térmica (ancho ~80 mm). Un solo formato, usado en el POS y en el detalle
+ * de venta. Réplica del recibo del cliente: encabezado del emisor, datos de
+ * la factura y del cliente, ítems, totales (Neto + IVA), vendedor y la
+ * autorización / clave de acceso del SRI.
+ */
+function buildReceiptDoc(order: Order, biz?: Partial<ReceiptBusiness>): jsPDF {
+  const W = 80;                 // ancho del papel (mm)
+  const L = 4, R = W - 4;       // márgenes
+  const C = W / 2;              // centro
+  const rate = (biz?.taxRate != null && !isNaN(+biz.taxRate) ? +biz.taxRate : 15) / 100;
+
+  // Altura estimada para no desperdiciar papel (crece con los ítems).
+  const nItems = order.items?.length || 0;
+  const height = Math.max(150, 120 + nItems * 9);
+  const doc = new jsPDF({ unit: 'mm', format: [W, height] });
+
+  let y = 7;
+  const line = () => { doc.setLineWidth(0.2); doc.line(L, y, R, y); y += 3.5; };
+
+  // ── Encabezado del emisor ──
+  doc.setFont('helvetica', 'bold'); doc.setFontSize(14);
+  doc.text((biz?.tradeName || 'DELUX').toUpperCase(), C, y, { align: 'center' }); y += 5;
+  doc.setFont('helvetica', 'normal'); doc.setFontSize(8);
+  if (biz?.legalName) { doc.text(biz.legalName.toUpperCase(), C, y, { align: 'center', maxWidth: R - L }); y += 3.5; }
+  if (biz?.ruc) { doc.text(`RUC: ${biz.ruc}`, C, y, { align: 'center' }); y += 3.5; }
+  if (biz?.phone) { doc.text(`TLF: ${biz.phone}`, C, y, { align: 'center' }); y += 3.5; }
+  if (biz?.address) {
+    const addr = doc.splitTextToSize(biz.address.toUpperCase(), R - L);
+    doc.text(addr, C, y, { align: 'center' }); y += 3.5 * addr.length;
+  }
+  y += 1.5; line();
+
+  // ── Datos de la factura / cliente ──
   doc.setFontSize(8);
-  doc.setFont('helvetica', 'normal');
-  doc.text('Streetwear premium', center, y, { align: 'center' });
-  y += 4;
-  doc.text(order.branch_name, center, y, { align: 'center' });
-  y += 6;
+  const row = (label: string, value: string) => {
+    doc.setFont('helvetica', 'bold'); doc.text(label, L, y);
+    doc.setFont('helvetica', 'normal');
+    const lbW = doc.getTextWidth(label) + 1;
+    const val = doc.splitTextToSize(value, R - L - lbW);
+    doc.text(val, L + lbW, y); y += 3.6 * val.length;
+  };
+  row('Factura Electrónica N°: ', order.invoice_number || 'En proceso');
+  row('Emisión: ', fmtDate(order.created_at));
+  row('Cliente: ', (order.customer_name || 'CONSUMIDOR FINAL').toUpperCase());
+  if (order.branch_name) row('Direcc: ', order.branch_name);
+  row('RUC/CI: ', order.customer_document || '9999999999999');
+  row('Tlf: ', order.customer_phone || '9999999999');
+  y += 1; line();
 
-  doc.setLineWidth(0.2);
-  doc.line(4, y, 76, y);
-  y += 4;
-
-  // Voucher info
-  doc.setFontSize(9);
-  doc.setFont('helvetica', 'bold');
-  doc.text(`Voucher #${order.code}`, 4, y);
-  y += 4;
-  doc.setFont('helvetica', 'normal');
-  doc.text(`Fecha: ${new Date(order.created_at).toLocaleString('es-EC')}`, 4, y);
-  y += 4;
-  if (order.customer_name) {
-    doc.text(`Cliente: ${order.customer_name}`, 4, y);
-    y += 4;
-  }
-  if (order.seller_name) {
-    doc.text(`Vendedor: ${order.seller_name}`, 4, y);
-    y += 4;
-  }
-  y += 2;
-
-  // Items table
+  // ── Ítems (precios sin IVA, estilo factura) ──
   autoTable(doc, {
     startY: y,
-    head: [['Producto', 'Cant', 'Precio', 'Total']],
-    body: order.items.map(it => [
-      `${it.product_name}\n${it.sku} · ${it.size} · ${it.color}`,
-      it.quantity.toString(),
-      `$${it.unit_price}`,
-      `$${it.subtotal}`,
-    ]),
-    margin: { left: 4, right: 4 },
-    styles: { fontSize: 7, cellPadding: 1 },
-    headStyles: { fillColor: [11, 14, 22], textColor: [255, 255, 255] },
+    head: [['Cant.', 'Descrip.', 'P.Unit', 'Total']],
+    body: (order.items || []).map(it => {
+      const desc = it.sku || `${it.size || ''}${it.color ? ' ' + it.color : ''}`.trim() || it.product_name;
+      const baseUnit = Number(it.unit_price) / (1 + rate);
+      const baseTot = Number(it.subtotal) / (1 + rate);
+      return [String(it.quantity), desc, money(baseUnit), money(baseTot)];
+    }),
+    theme: 'plain',
+    margin: { left: L, right: L },
+    styles: { fontSize: 7.5, cellPadding: 0.6, textColor: [0, 0, 0] },
+    headStyles: { fontStyle: 'bold' },
     columnStyles: {
-      0: { cellWidth: 36 },
-      1: { cellWidth: 8, halign: 'center' },
-      2: { cellWidth: 14, halign: 'right' },
-      3: { cellWidth: 14, halign: 'right' },
+      0: { cellWidth: 9, halign: 'left' },
+      1: { cellWidth: 37 },
+      2: { cellWidth: 13, halign: 'right' },
+      3: { cellWidth: 13, halign: 'right' },
     },
   });
+  y = (doc as any).lastAutoTable.finalY + 2;
+  line();
 
-  y = (doc as any).lastAutoTable.finalY + 4;
+  // ── Totales (Neto + IVA = Total) ──
+  const total = Number(order.total) || 0;
+  const iva = order.tax != null ? Number(order.tax) : (total - total / (1 + rate));
+  const neto = total - iva;
+  const discount = Number(order.discount) || 0;
+  const subTotal = neto + discount;
+  const ivaPct = Math.round(rate * 100);
 
-  // Totals
-  doc.setFontSize(9);
-  doc.text('Subtotal', 4, y);
-  doc.text(`$${order.subtotal}`, 76, y, { align: 'right' });
-  y += 4;
-  if (+order.tax > 0) {
-    doc.text('IVA incluido', 4, y);
-    doc.text(`$${order.tax}`, 76, y, { align: 'right' });
+  doc.setFontSize(8.5); doc.setFont('helvetica', 'normal');
+  const tot = (label: string, value: string, bold = false) => {
+    doc.setFont('helvetica', bold ? 'bold' : 'normal');
+    doc.text(label, R - 26, y, { align: 'right' });
+    doc.text(`${value}`, R, y, { align: 'right' });
     y += 4;
-  }
-  if (+order.discount > 0) {
-    doc.text('Descuento', 4, y);
-    doc.text(`-$${order.discount}`, 76, y, { align: 'right' });
-    y += 4;
-  }
-  doc.setLineWidth(0.3);
-  doc.line(4, y, 76, y);
-  y += 4;
-  doc.setFontSize(11);
-  doc.setFont('helvetica', 'bold');
-  doc.text('TOTAL', 4, y);
-  doc.text(`$${order.total}`, 76, y, { align: 'right' });
-  y += 8;
+  };
+  tot('SubTotal', money(subTotal));
+  tot('Dscto.', money(discount));
+  tot('Neto', money(neto));
+  tot(`${ivaPct}% IVA`, money(iva));
+  tot('Total', money(total), true);
+  y += 1; line();
 
-  // Footer
+  // ── Vendedor / entrega / fecha ──
+  doc.setFontSize(8); doc.setFont('helvetica', 'normal');
+  const units = (order.items || []).reduce((s, it) => s + (Number(it.quantity) || 0), 0);
+  doc.text(`Artículos entregados: ${units}`, L, y); y += 3.6;
+  if (order.seller_name) { doc.text(`Vendedor: ${order.seller_name}`, L, y); y += 3.6; }
+  doc.text(fmtDateTime(order.created_at), L, y); y += 4;
+
+  // ── Firma cliente ──
+  y += 4;
+  doc.setLineWidth(0.2); doc.line(C - 22, y, C + 22, y); y += 3.5;
+  doc.text('Cliente', C, y, { align: 'center' }); y += 5;
+
+  // ── Pie: cambios + autorización ──
   doc.setFontSize(7);
-  doc.setFont('helvetica', 'normal');
-  doc.text('¡Gracias por tu compra!', center, y, { align: 'center' });
-  y += 3;
-  doc.text('delux.com.ec', center, y, { align: 'center' });
+  const changes = doc.splitTextToSize('Para cambios es INDISPENSABLE presentar este documento', R - L);
+  doc.text(changes, C, y, { align: 'center' }); y += 3.2 * changes.length + 1;
+
+  const auth = order.invoice_access_key || order.invoice_authorization || '';
+  if (auth) {
+    doc.setFont('helvetica', 'bold');
+    doc.text('AUTORIZACIÓN / CLAVE ACCESO', C, y, { align: 'center' }); y += 3.4;
+    doc.setFont('helvetica', 'normal'); doc.setFontSize(6.5);
+    const wrapped = doc.splitTextToSize(auth, R - L);
+    doc.text(wrapped, C, y, { align: 'center' }); y += 3 * wrapped.length;
+  }
 
   return doc;
 }
 
-/** Descarga el voucher como PDF. */
-export function generateVoucherPDF(order: Order): void {
-  buildVoucherDoc(order).save(`voucher-${order.code}.pdf`);
+/** Descarga el comprobante como PDF. */
+export function generateVoucherPDF(order: Order, biz?: Partial<ReceiptBusiness>): void {
+  buildReceiptDoc(order, biz).save(`comprobante-${order.code}.pdf`);
 }
 
 /**
- * Abre el voucher en una vista previa (nueva pestaña) y lanza el diálogo de
- * impresión del navegador, donde el usuario elige la impresora. Si el navegador
- * bloquea la ventana emergente, cae a descargar el PDF.
+ * Abre el comprobante y lanza el diálogo de impresión del navegador (el usuario
+ * elige la impresora térmica). Si el navegador bloquea el popup, descarga el PDF.
  */
-export function printVoucherPDF(order: Order): void {
-  const doc = buildVoucherDoc(order);
+export function printVoucherPDF(order: Order, biz?: Partial<ReceiptBusiness>): void {
+  const doc = buildReceiptDoc(order, biz);
   try {
     doc.autoPrint();
     const url = doc.output('bloburl');
     const win = window.open(url as any, '_blank');
-    if (!win) { doc.save(`voucher-${order.code}.pdf`); }   // popup bloqueado
+    if (!win) { doc.save(`comprobante-${order.code}.pdf`); }
   } catch {
-    doc.save(`voucher-${order.code}.pdf`);
+    doc.save(`comprobante-${order.code}.pdf`);
   }
 }

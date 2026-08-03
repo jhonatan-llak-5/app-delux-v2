@@ -5,6 +5,11 @@ import { environment } from '@env/environment';
 interface BrandConfig {
   site_name?: string;
   platform_tagline?: string;
+  // Datos del negocio (emisor) para el comprobante impreso.
+  business_legal_name?: string;
+  business_ruc?: string;
+  business_address?: string;
+  business_phone?: string;
   site_logo_url?: string | null;
   site_favicon_url?: string | null;
   affiliate_commission_rate?: number;
@@ -138,6 +143,24 @@ export class BrandingService {
     const r = this._cfg()?.tax_rate;
     return r != null && !isNaN(+r) ? +r : 15;
   });
+
+  // ─── Datos del negocio (emisor) para el comprobante impreso ───
+  readonly businessLegalName = computed(() => this._cfg()?.business_legal_name || '');
+  readonly businessRuc = computed(() => this._cfg()?.business_ruc || '');
+  readonly businessAddress = computed(() => this._cfg()?.business_address || '');
+  readonly businessPhone = computed(() => this._cfg()?.business_phone || '');
+
+  /** Datos del emisor para el encabezado del comprobante de venta impreso. */
+  receiptBusiness() {
+    return {
+      tradeName: this.siteName(),
+      legalName: this.businessLegalName(),
+      ruc: this.businessRuc(),
+      address: this.businessAddress(),
+      phone: this.businessPhone(),
+      taxRate: this.taxRate(),
+    };
+  }
 
   /** Llamar una vez al iniciar la app. */
   load(): void {

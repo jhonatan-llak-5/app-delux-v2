@@ -78,6 +78,11 @@ class StoreOptionsView(APIView):
             'consumidor_final_enabled': bool(c.consumidor_final_enabled),
             'einvoice_enabled': bool(c.einvoice_enabled),
             'einvoice_consumidor_final_max': float(c.einvoice_consumidor_final_max or 0),
+            # Datos del negocio (emisor) para el comprobante impreso.
+            'business_legal_name': c.business_legal_name or '',
+            'business_ruc': c.business_ruc or '',
+            'business_address': c.business_address or '',
+            'business_phone': c.business_phone or '',
         })
 
     def patch(self, request):
@@ -95,6 +100,9 @@ class StoreOptionsView(APIView):
             c.out_of_stock_display = val; fields.append('out_of_stock_display')
         if 'consumidor_final_enabled' in d:
             c.consumidor_final_enabled = bool(d.get('consumidor_final_enabled')); fields.append('consumidor_final_enabled')
+        for f in ('business_legal_name', 'business_ruc', 'business_address', 'business_phone'):
+            if f in d:
+                setattr(c, f, str(d.get(f) or '').strip()); fields.append(f)
         if fields:
             c.save(update_fields=fields)
         return Response({
@@ -102,6 +110,10 @@ class StoreOptionsView(APIView):
             'delivery_enabled': bool(c.delivery_enabled),
             'out_of_stock_display': c.out_of_stock_display or 'SHOW',
             'consumidor_final_enabled': bool(c.consumidor_final_enabled),
+            'business_legal_name': c.business_legal_name or '',
+            'business_ruc': c.business_ruc or '',
+            'business_address': c.business_address or '',
+            'business_phone': c.business_phone or '',
         })
 
 
@@ -193,6 +205,11 @@ class PublicUploadConfigView(APIView):
             'allowed_video_extensions': c.allowed_video_extensions,
             'site_name': c.site_name or c.platform_name or 'Delux',
             'platform_tagline': c.platform_tagline,
+            # Datos del negocio (emisor) para el comprobante de venta impreso.
+            'business_legal_name': c.business_legal_name or '',
+            'business_ruc': c.business_ruc or '',
+            'business_address': c.business_address or '',
+            'business_phone': c.business_phone or '',
             'site_logo_url': _url(getattr(c, 'site_logo', None)),
             'site_favicon_url': _url(getattr(c, 'site_favicon', None)),
             'payphone_available': bool(

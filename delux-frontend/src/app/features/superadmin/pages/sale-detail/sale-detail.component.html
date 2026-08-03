@@ -16,14 +16,17 @@
           <a routerLink="/app/admin/sales" class="px-4 py-2 rounded-lg bg-slate-100 hover:bg-slate-200 text-sm">
             <i class="fa-solid fa-arrow-left"></i> Volver
           </a>
-          <a [routerLink]="['/app/admin/sales', o.id, 'voucher']"
-                  class="px-4 py-2 rounded-lg bg-ink-950 text-white text-sm font-semibold hover:bg-ink-900">
-            <i class="fa-solid fa-print"></i> Ver / imprimir voucher
-          </a>
-          <a [href]="receiptUrl(o.code)" target="_blank" rel="noopener"
-                  class="px-4 py-2 rounded-lg bg-[var(--dash-primary)] text-white text-sm font-semibold hover:opacity-90">
-            <i class="fa-solid fa-qrcode"></i> Comprobante (PDF)
-          </a>
+          @if (canPrintReceipt()) {
+            <button type="button" (click)="print()"
+                    class="px-4 py-2 rounded-lg bg-ink-950 text-white text-sm font-semibold hover:bg-ink-900">
+              <i class="fa-solid fa-print"></i> Imprimir comprobante
+            </button>
+          } @else if (einvoiceEnabled()) {
+            <span class="px-4 py-2 rounded-lg bg-slate-100 dark:bg-white/5 text-slate-500 text-sm font-semibold inline-flex items-center gap-2"
+                  title="El comprobante se habilita cuando el SRI autoriza la factura.">
+              <i class="fa-solid fa-clock"></i> Comprobante al autorizar
+            </span>
+          }
           @if (canManage() && o.status === 'PAID' && !(o.total_changes && +o.total_changes > 0)) {
             <button type="button" (click)="openChange()"
                     class="px-4 py-2 rounded-lg bg-amber-500 hover:bg-amber-600 text-white text-sm font-semibold">

@@ -401,7 +401,19 @@ class AdminOrderViewSet(viewsets.ReadOnlyModelViewSet):
                 order_fields.append('payment_unidad')
             order.save(update_fields=list(dict.fromkeys(order_fields + ['updated_at'])))
 
-            # 3) Encola la emisión (marca PROCESSING/ERROR internamente).
+            # 3) Marca PROCESSING de inmediato para que el detalle muestre
+            #    "Generando factura" al instante (la emisión real es async; el
+            #    webhook confirmará luego AUTORIZADA/RECHAZADA). Si el broker
+            #    está caído, enqueue_invoice la deja en ERROR.
+            order.invoice_status = Order.InvoiceStatus.PROCESSING
+            order.invoice_error = ''
+            order.invoice_message = ''
+            order.invoice_updated_at = timezone.now()
+            order.save(update_fields=[
+                'invoice_status', 'invoice_error', 'invoice_message', 'invoice_updated_at',
+            ])
+
+            # 4) Encola la emisión en NovaFactura.
             from apps.orders.einvoice import enqueue_invoice
             enqueue_invoice(order)
 

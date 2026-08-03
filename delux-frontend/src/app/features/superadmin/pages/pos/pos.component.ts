@@ -1,4 +1,4 @@
-import { ChangeDetectionStrategy, Component, OnInit, computed, effect, inject, signal, untracked } from '@angular/core';
+import { ChangeDetectionStrategy, Component, OnDestroy, OnInit, computed, effect, inject, signal, untracked } from '@angular/core';
 import { DlxEmptyStateComponent } from '@shared/ui/empty-state.component';
 import { ImgFallbackDirective } from '@shared/ui/img-fallback.directive';
 import { DlxSearchInputComponent } from '@shared/ui/search-input.component';
@@ -12,7 +12,7 @@ import { BranchContextService } from '@core/services/branch-context.service';
 import { BrandingService } from '@core/services/branding.service';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
-import { RouterLink } from '@angular/router';
+import { Router, RouterLink } from '@angular/router';
 import { debounceTime, Subject } from 'rxjs';
 import { SEARCH_DEBOUNCE_MS } from '@shared/config/search';
 
@@ -23,7 +23,7 @@ import { CouponService, CouponValidation } from '@features/superadmin/services/c
 import { CategoryService, Category } from '@features/superadmin/services/category.service';
 import { CustomerService, Customer } from '@features/superadmin/services/customer.service';
 import { StoreSettingsService } from '@features/superadmin/services/store-settings.service';
-import { generateVoucherPDF, printVoucherPDF } from '@shared/utils/voucher-pdf.util';
+import { printVoucherPDF } from '@shared/utils/voucher-pdf.util';
 import { parseApiError } from '@shared/utils/api-error.util';
 import { imgOrPlaceholder, onImageError } from '@shared/utils/img-placeholder';
 import { ViewMode, readViewPref, writeViewPref } from '@shared/utils/view-pref.util';
@@ -48,7 +48,7 @@ interface CartItem {
   changeDetection: ChangeDetectionStrategy.OnPush,
   templateUrl: './pos.component.html',
 })
-export class PosComponent implements OnInit {
+export class PosComponent implements OnInit, OnDestroy {
   private inv = inject(InventoryService);
   private ord = inject(OrderService);
   private adminSvc = inject(AdminService);
@@ -63,6 +63,7 @@ export class PosComponent implements OnInit {
   branchCtx = inject(BranchContextService);
   private branding = inject(BrandingService);
   private confirm = inject(ConfirmService);
+  private router = inject(Router);
 
   couponInput = '';
   appliedCoupon = signal<CouponValidation | null>(null);
@@ -453,6 +454,7 @@ export class PosComponent implements OnInit {
       next: order => {
         this.saving.set(false);
         this.completedOrder.set(order);
+        this.startInvoicePolling(order);
       },
       error: e => {
         this.saving.set(false);
@@ -468,10 +470,56 @@ export class PosComponent implements OnInit {
 
 
   printVoucher() {
-    if (this.completedOrder()) printVoucherPDF(this.completedOrder()!);
+    if (this.completedOrder()) printVoucherPDF(this.completedOrder()!, this.branding.receiptBusiness());
   }
 
+  /** ¿Se puede imprimir ya el comprobante? Sin factura electrónica, siempre;
+   *  con factura, solo cuando el SRI la AUTORIZA (ya tiene N° y clave). */
+  receiptReady(): boolean {
+    const o = this.completedOrder();
+    if (!o) return false;
+    if (!this.einvoiceEnabled()) return true;
+    return o.invoice_status === 'AUTHORIZED';
+  }
+
+  /** Navega al detalle de la venta (donde también se puede imprimir). */
+  goToSaleDetail() {
+    const o = this.completedOrder();
+    if (!o) return;
+    this.stopInvoicePolling();
+    this.router.navigate(['/app/admin/sales', o.id]);
+  }
+
+  // ── Polling del estado de la factura tras la venta ──
+  private pollTimer: any = null;
+  private startInvoicePolling(order: Order): void {
+    this.stopInvoicePolling();
+    // Sin factura electrónica o ya autorizada: no hace falta consultar.
+    if (!this.einvoiceEnabled() || order.invoice_status === 'AUTHORIZED') return;
+    let attempts = 0;
+    this.pollTimer = setInterval(() => {
+      attempts++;
+      const cur = this.completedOrder();
+      if (!cur || cur.id !== order.id) { this.stopInvoicePolling(); return; }
+      this.ord.get(order.id).subscribe({
+        next: o => {
+          this.completedOrder.set(o);
+          if (['AUTHORIZED', 'REJECTED', 'ANNULLED'].includes(o.invoice_status || '')) {
+            this.stopInvoicePolling();
+          }
+        },
+        error: () => {},
+      });
+      if (attempts >= 20) this.stopInvoicePolling();   // deja de insistir (~1 min)
+    }, 3000);
+  }
+  private stopInvoicePolling(): void {
+    if (this.pollTimer) { clearInterval(this.pollTimer); this.pollTimer = null; }
+  }
+  ngOnDestroy(): void { this.stopInvoicePolling(); }
+
   newSale() {
+    this.stopInvoicePolling();
     this.cart.set([]);
     this.discount.set(0);
     this.paidWith = null;

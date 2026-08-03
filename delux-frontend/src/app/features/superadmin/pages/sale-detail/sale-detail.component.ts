@@ -1,4 +1,4 @@
-import { ChangeDetectionStrategy, Component, OnInit, inject, signal } from '@angular/core';
+import { ChangeDetectionStrategy, Component, OnDestroy, OnInit, inject, signal } from '@angular/core';
 import { OrderStatusLabelPipe, OrderStatusClassPipe } from '@shared/ui/order-status.pipe';
 import { ImgFallbackDirective } from '@shared/ui/img-fallback.directive';
 import { CommonModule } from '@angular/common';
@@ -12,6 +12,7 @@ import { generateVoucherPDF } from '@shared/utils/voucher-pdf.util';
 import { AuthService } from '@core/services/auth.service';
 import { NotifyService } from '@shared/services/notify.service';
 import { StoreSettingsService } from '@features/superadmin/services/store-settings.service';
+import { BrandingService } from '@core/services/branding.service';
 import { EmitInvoiceComponent } from '@features/superadmin/components/emit-invoice/emit-invoice.component';
 
 @Component({
@@ -21,13 +22,14 @@ import { EmitInvoiceComponent } from '@features/superadmin/components/emit-invoi
   changeDetection: ChangeDetectionStrategy.OnPush,
   templateUrl: './sale-detail.component.html',
 })
-export class SaleDetailComponent implements OnInit {
+export class SaleDetailComponent implements OnInit, OnDestroy {
   private svc = inject(OrderService);
   private shipSvc = inject(ShippingService);
   private auth = inject(AuthService);
   private notify = inject(NotifyService);
   private confirm = inject(ConfirmService);
   private storeSet = inject(StoreSettingsService);
+  private branding = inject(BrandingService);
   einvoiceEnabled = signal(false);   // facturación electrónica activa
   cfMax = signal(50);                // tope $ para facturar como Consumidor Final
   emitOpen = signal(false);          // modal "Emitir factura"
@@ -361,7 +363,7 @@ export class SaleDetailComponent implements OnInit {
 
   ngOnInit() {
     const id = +this.route.snapshot.paramMap.get('id')!;
-    this.svc.get(id).subscribe(o => this.order.set(o));
+    this.svc.get(id).subscribe(o => { this.order.set(o); this.maybePollInvoice(); });
     this.loadPayments(id);
     this.loadShipment(id);
     this.storeSet.getStoreOptions().subscribe({
@@ -382,7 +384,23 @@ export class SaleDetailComponent implements OnInit {
     } as any)[s] || 'bg-slate-100 text-slate-700';
   }
 
-  print() { if (this.order()) generateVoucherPDF(this.order()!); }
+  /** Imprime el comprobante de venta térmico (formato único de recibo). */
+  print() {
+    const o = this.order();
+    if (o) generateVoucherPDF(o, this.branding.receiptBusiness());
+  }
+
+  /**
+   * ¿Se puede imprimir el comprobante? Con factura electrónica activa, solo
+   * cuando está AUTORIZADA (ya tiene N° y clave de acceso). Sin factura
+   * electrónica, se imprime como recibo simple de la venta.
+   */
+  canPrintReceipt(): boolean {
+    const o = this.order();
+    if (!o) return false;
+    if (!this.einvoiceEnabled()) return true;
+    return o.invoice_status === 'AUTHORIZED';
+  }
 
   // ── Factura electrónica ──
   retryingInvoice = signal(false);
@@ -419,7 +437,37 @@ export class SaleDetailComponent implements OnInit {
   onInvoiceEmitted(updated: Order) {
     this.order.set(updated);
     this.emitOpen.set(false);
+    this.maybePollInvoice();   // sigue el estado hasta que el SRI resuelva
   }
+
+  // ── Seguimiento del estado de la factura (Procesando → Autorizada) ──
+  private invPollTimer: any = null;
+  /** Si la factura está en curso, consulta cada pocos segundos hasta que el SRI
+   *  la resuelva (autorizada/rechazada/anulada), sin recargar la página. */
+  private maybePollInvoice(): void {
+    this.stopInvoicePolling();
+    const st = this.order()?.invoice_status;
+    if (st !== 'PROCESSING' && st !== 'PENDING_SRI') return;
+    const id = this.order()!.id;
+    let attempts = 0;
+    this.invPollTimer = setInterval(() => {
+      attempts++;
+      this.svc.get(id).subscribe({
+        next: o => {
+          this.order.set(o);
+          if (!['PROCESSING', 'PENDING_SRI'].includes(o.invoice_status || '')) {
+            this.stopInvoicePolling();
+          }
+        },
+        error: () => {},
+      });
+      if (attempts >= 30) this.stopInvoicePolling();   // hasta ~2 min
+    }, 4000);
+  }
+  private stopInvoicePolling(): void {
+    if (this.invPollTimer) { clearInterval(this.invPollTimer); this.invPollTimer = null; }
+  }
+  ngOnDestroy(): void { this.stopInvoicePolling(); }
   downloadingFile = signal<'pdf' | 'xml' | null>(null);
   /** Abre el RIDE/XML vía proxy autenticado (no expone la URL pública). */
   openInvoiceFile(kind: 'pdf' | 'xml') {

@@ -90,11 +90,6 @@ export const SUPERADMIN_ROUTES: Routes = [
         loadComponent: () =>
           import('./pages/sale-detail/sale-detail.component').then(m => m.SaleDetailComponent),
       },
-      {
-        path: 'sales/:id/voucher',
-        loadComponent: () =>
-          import('./pages/voucher-preview/voucher-preview.component').then(m => m.VoucherPreviewComponent),
-      },
       { path: 'staff', pathMatch: 'full', redirectTo: 'users' },
       {
         path: 'staff/new',

@@ -71,7 +71,10 @@ def build_emit_payload(order, cfg) -> dict:
         "company": cfg.einvoice_company_uuid,
         "branch": cfg.einvoice_branch_uuid,
         "emission_point": cfg.einvoice_emission_point_uuid,
-        "issue_date": (order.created_at.date() if order.created_at else timezone.localdate()).isoformat(),
+        # La factura se emite HOY (fecha real de emisión). Para ventas web que se
+        # facturan días después, usar la fecha original de la venta puede hacer que
+        # el SRI la rechace por "fecha de emisión fuera de rango".
+        "issue_date": timezone.localdate().isoformat(),
         "customer_identification": ident,
         "customer_name": name,
         "customer_email": getattr(customer, "email", "") or "",

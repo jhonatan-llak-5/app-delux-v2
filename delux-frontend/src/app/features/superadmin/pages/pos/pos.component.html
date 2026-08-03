@@ -534,8 +534,18 @@
             <p class="text-3xl font-display font-bold mt-4">${{ completedOrder()!.total }}</p>
           </div>
           <div class="p-6 space-y-2">
-            <button (click)="printVoucher()" class="w-full py-3 rounded-lg bg-ink-950 dark:bg-white/10 text-white text-sm font-semibold hover:bg-ink-900 dark:hover:bg-white/20 transition">
-              <i class="fa-solid fa-print"></i> Imprimir voucher
+            @if (receiptReady()) {
+              <button (click)="printVoucher()" class="w-full py-3 rounded-lg bg-ink-950 dark:bg-white/10 text-white text-sm font-semibold hover:bg-ink-900 dark:hover:bg-white/20 transition">
+                <i class="fa-solid fa-print"></i> Imprimir comprobante
+              </button>
+            } @else {
+              <div class="w-full py-3 rounded-lg bg-amber-50 dark:bg-amber-500/10 text-amber-700 dark:text-amber-400 text-sm font-semibold text-center flex items-center justify-center gap-2">
+                <i class="fa-solid fa-spinner fa-spin"></i> Autorizando factura en el SRI…
+              </div>
+              <p class="text-[11px] text-slate-500 text-center">El comprobante se habilita al autorizarse. También puedes imprimirlo desde el detalle de la venta.</p>
+            }
+            <button (click)="goToSaleDetail()" class="w-full py-3 rounded-lg bg-[var(--dash-primary)] text-white text-sm font-semibold hover:opacity-90 transition">
+              <i class="fa-solid fa-receipt"></i> Ver detalle de venta
             </button>
             <button (click)="newSale()" class="w-full py-3 rounded-lg bg-slate-100 hover:bg-slate-200 dark:bg-white/5 dark:hover:bg-white/10 text-slate-700 dark:text-slate-200 text-sm font-semibold transition">
               <i class="fa-solid fa-plus"></i> Nueva venta

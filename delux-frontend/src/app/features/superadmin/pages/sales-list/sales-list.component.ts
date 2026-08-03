@@ -17,7 +17,8 @@ import { Order, OrderService, OrderSummary } from '@features/superadmin/services
 import { ConfirmService } from '@shared/components/confirm/confirm.service';
 import { NotifyService } from '@shared/services/notify.service';
 import { AdminService, AdminBranch } from '@features/superadmin/services/admin.service';
-import { generateVoucherPDF } from '@shared/utils/voucher-pdf.util';
+import { printVoucherPDF } from '@shared/utils/voucher-pdf.util';
+import { BrandingService } from '@core/services/branding.service';
 import { DlxPaginationComponent } from '@shared/ui/pagination.component';
 
 @Component({
@@ -330,6 +331,7 @@ export class SalesListComponent implements OnInit {
   private router = inject(Router);
   private confirm = inject(ConfirmService);
   private notify = inject(NotifyService);
+  private branding = inject(BrandingService);
   private adminSvc = inject(AdminService);
   private branchCtx = inject(BranchContextService);
   private ready = false;
@@ -448,14 +450,29 @@ export class SalesListComponent implements OnInit {
   rowActions(o: Order): RowAction[] {
     return [
       { label: 'Ver', icon: 'fa-eye', link: ['/app/admin/sales', o.id] },
-      { label: 'Imprimir voucher', icon: 'fa-print', run: () => this.printVoucher(o) },
+      { label: 'Imprimir comprobante', icon: 'fa-print', run: () => this.printVoucher(o) },
       { label: 'Registrar cambio', icon: 'fa-right-left', hidden: !this.canManage() || o.status !== 'PAID' || +(o.total_changes || 0) > 0, run: () => this.openChange(o) },
       { label: 'Cancelar venta', icon: 'fa-ban', variant: 'danger', hidden: !this.canManage() || o.status === 'CANCELLED' || o.status === 'REFUNDED', run: () => this.cancel(o) },
     ];
   }
 
+  /**
+   * Imprime el comprobante de venta (formato único de recibo). Trae la venta
+   * completa (con ítems) y, si la factura está en curso, avisa que aún no está
+   * autorizada en vez de imprimir un comprobante incompleto.
+   */
   printVoucher(o: Order) {
-    this.router.navigate(['/app/admin/sales', o.id, 'voucher']);
+    this.svc.get(o.id).subscribe({
+      next: full => {
+        const st = full.invoice_status;
+        if (st === 'PROCESSING' || st === 'PENDING_SRI') {
+          this.notify.warning('La factura aún no está autorizada por el SRI. Intenta en unos momentos.');
+          return;
+        }
+        printVoucherPDF(full, this.branding.receiptBusiness());
+      },
+      error: () => this.notify.error('No se pudo generar el comprobante.'),
+    });
   }
 
   // ── Cancelar venta (modal con motivo + devolver stock) ──

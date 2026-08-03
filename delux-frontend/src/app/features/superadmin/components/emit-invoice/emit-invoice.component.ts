@@ -59,26 +59,35 @@ import { NotifyService } from '@shared/services/notify.service';
                        [message]="cfMessage()" />
           }
 
-          <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
-            <div>
-              <label class="text-[11px] uppercase tracking-widest text-slate-500 font-semibold">Tipo de documento</label>
-              <select [ngModel]="documentType()" (ngModelChange)="onDocType($event)"
-                      class="eg-input mt-1 w-full text-sm">
-                @for (dt of docTypes; track dt.v) {
-                  <option [value]="dt.v">{{ dt.label }}</option>
-                }
-              </select>
-            </div>
-            <div>
-              <label class="text-[11px] uppercase tracking-widest text-slate-500 font-semibold">Identificación</label>
-              <input type="text" [ngModel]="identification()" (ngModelChange)="identification.set($event)"
-                     [disabled]="isConsumidorFinal()"
-                     placeholder="Cédula / RUC / Pasaporte"
-                     class="eg-input mt-1 w-full text-sm disabled:opacity-60" autocomplete="off" />
-            </div>
-          </div>
+          <!-- Interruptor rápido: emitir como Consumidor Final -->
+          <label class="flex items-start gap-3 rounded-xl border border-slate-200 dark:border-white/10 px-4 py-3 cursor-pointer hover:border-[var(--dash-primary)]/50 transition">
+            <input type="checkbox" [ngModel]="isConsumidorFinal()" (ngModelChange)="toggleConsumidorFinal($event)"
+                   class="mt-0.5 w-4 h-4 rounded accent-[var(--dash-primary)]" />
+            <span>
+              <span class="font-semibold text-sm">Emitir como Consumidor Final</span>
+              <span class="block text-[11px] text-slate-500 dark:text-white/50">Sin datos del cliente (ID 9999999999999). Permitido en ventas menores a \${{ cfMax }}.</span>
+            </span>
+          </label>
 
           @if (!isConsumidorFinal()) {
+            <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
+              <div>
+                <label class="text-[11px] uppercase tracking-widest text-slate-500 font-semibold">Tipo de documento</label>
+                <select [ngModel]="documentType()" (ngModelChange)="onDocType($event)"
+                        class="eg-input mt-1 w-full text-sm">
+                  @for (dt of docTypes; track dt.v) {
+                    @if (dt.v !== '07') { <option [value]="dt.v">{{ dt.label }}</option> }
+                  }
+                </select>
+              </div>
+              <div>
+                <label class="text-[11px] uppercase tracking-widest text-slate-500 font-semibold">Identificación</label>
+                <input type="text" [ngModel]="identification()" (ngModelChange)="identification.set($event)"
+                       placeholder="Cédula / RUC / Pasaporte"
+                       class="eg-input mt-1 w-full text-sm" autocomplete="off" />
+              </div>
+            </div>
+
             <div>
               <label class="text-[11px] uppercase tracking-widest text-slate-500 font-semibold">Nombre / Razón social</label>
               <input type="text" [ngModel]="name()" (ngModelChange)="name.set($event)"
@@ -270,6 +279,11 @@ export class EmitInvoiceComponent implements OnInit {
       if (this.identification().trim() === '9999999999999') this.identification.set('');
       if (this.name().trim() === 'CONSUMIDOR FINAL') this.name.set('');
     }
+  }
+
+  /** Interruptor rápido: emitir como Consumidor Final o pedir datos del cliente. */
+  toggleConsumidorFinal(on: boolean) {
+    this.onDocType(on ? '07' : '05');
   }
 
   emit() {
