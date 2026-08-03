@@ -1,5 +1,6 @@
-import { ChangeDetectionStrategy, Component, ElementRef, OnDestroy, OnInit, ViewChild, computed, inject, signal } from '@angular/core';
+import { ChangeDetectionStrategy, Component, OnInit, ViewChild, computed, inject, signal } from '@angular/core';
 import { ImgFallbackDirective } from '@shared/ui/img-fallback.directive';
+import { BarcodeScanDirective } from '@shared/directives/barcode-scan.directive';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { InventoryService, Supplier, ReceptionItemIn, ReceptionResult, ScanResult } from '@features/superadmin/services/inventory.service';
@@ -60,11 +61,11 @@ const KIND_LABELS: Record<string, string> = {
 @Component({
   selector: 'dlx-reception',
   standalone: true,
-  imports: [ImgFallbackDirective, CommonModule, FormsModule, ManualProductModalComponent, DlxConfirmDialogComponent, DlxPriceInputComponent, SupplierSelectComponent],
+  imports: [ImgFallbackDirective, CommonModule, FormsModule, ManualProductModalComponent, DlxConfirmDialogComponent, DlxPriceInputComponent, SupplierSelectComponent, BarcodeScanDirective],
   changeDetection: ChangeDetectionStrategy.OnPush,
   templateUrl: './reception.component.html',
 })
-export class ReceptionComponent implements OnInit, OnDestroy {
+export class ReceptionComponent implements OnInit {
   private inv = inject(InventoryService);
   private admin = inject(AdminService);
   private brandSvc = inject(BrandService);
@@ -82,15 +83,6 @@ export class ReceptionComponent implements OnInit, OnDestroy {
   /** Borrador del formulario de producto (en progreso) restaurado del storage. */
   restoredManual: ManualDraft | null = null;
   clearFormOpen = signal(false);
-
-  @ViewChild('camVideo') camVideo?: ElementRef<HTMLVideoElement>;
-  cameraOn = signal(false);
-  camError = signal<string | null>(null);
-  private stream?: MediaStream;
-  private rafId: any = null;
-  private detector: any = null;
-  private lastScan = '';
-  private lastScanAt = 0;
 
   tab = signal<'upload' | 'review' | 'confirm'>('upload');
 
@@ -442,6 +434,14 @@ export class ReceptionComponent implements OnInit, OnDestroy {
     this.saveState();
   }
 
+  /** Lector USB (pistola HID): recibe el código y lo procesa como escaneo. */
+  onBarcodeScanned(code: string): void {
+    const c = (code || '').trim();
+    if (!c) return;
+    this.scanCode = c;
+    this.onScan();
+  }
+
   onScan(): void {
     const code = this.scanCode.trim();
     if (!code || !this.defaultBranchId()) return;
@@ -632,8 +632,6 @@ export class ReceptionComponent implements OnInit, OnDestroy {
 
   money(v: number): string { return '$' + (Math.round((v || 0) * 100) / 100).toFixed(2); }
 
-  ngOnDestroy(): void { this.stopCamera(); }
-
   supplierOpen = signal(false);
   showSupplierModal = signal(false);
 
@@ -675,56 +673,6 @@ export class ReceptionComponent implements OnInit, OnDestroy {
       next: (sup) => { this.suppliers.update(l => [...l, sup]); this.notify.success('Proveedor guardado'); },
       error: (e) => this.notify.error(parseApiError(e).message || 'No se pudo guardar el proveedor.'),
     });
-  }
-
-  async startCamera(): Promise<void> {
-    this.camError.set(null);
-    const w: any = window;
-    if (typeof window === 'undefined' || !('BarcodeDetector' in w)) {
-      this.camError.set('Tu navegador no soporta cámara para escanear. Usa una pistola o escribe el código.');
-      return;
-    }
-    try {
-      this.stream = await navigator.mediaDevices.getUserMedia({ video: { facingMode: 'environment' } });
-    } catch {
-      this.camError.set('No se pudo acceder a la cámara (requiere HTTPS y permiso).');
-      return;
-    }
-    this.detector = new w.BarcodeDetector({ formats: ['qr_code', 'code_128', 'ean_13', 'ean_8', 'upc_a', 'upc_e', 'code_39'] });
-    this.cameraOn.set(true);
-    setTimeout(() => {
-      const v = this.camVideo?.nativeElement;
-      if (v && this.stream) { v.srcObject = this.stream; v.play().catch(() => {}); this.scanLoop(); }
-    }, 60);
-  }
-
-  private async scanLoop(): Promise<void> {
-    const v = this.camVideo?.nativeElement;
-    if (!v || !this.cameraOn() || !this.detector) return;
-    try {
-      const codes = await this.detector.detect(v);
-      if (codes && codes.length) this.onCameraCode(codes[0].rawValue || '');
-    } catch { /* frame sin codigo */ }
-    if (this.cameraOn()) this.rafId = requestAnimationFrame(() => this.scanLoop());
-  }
-
-  stopCamera(): void {
-    this.cameraOn.set(false);
-    if (this.rafId) { cancelAnimationFrame(this.rafId); this.rafId = null; }
-    this.stream?.getTracks().forEach(t => t.stop());
-    this.stream = undefined;
-  }
-
-  private onCameraCode(raw: string): void {
-    let code = (raw || '').trim();
-    const m = code.match(/[?&]code=([^&]+)/);
-    if (m) code = decodeURIComponent(m[1]);
-    if (!code) return;
-    const now = Date.now();
-    if (code === this.lastScan && now - this.lastScanAt < 2500) return;
-    this.lastScan = code; this.lastScanAt = now;
-    this.scanCode = code;
-    this.onScan();
   }
 
   printLabels(): void {

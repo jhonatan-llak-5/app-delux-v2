@@ -272,8 +272,11 @@ class AdminOrderViewSet(viewsets.ReadOnlyModelViewSet):
         from apps.settings.models import PlatformSettings
         if not PlatformSettings.load().einvoice_enabled:
             return Response({'detail': 'La facturación electrónica no está activa.'}, status=400)
-        if order.invoice_status == Order.InvoiceStatus.AUTHORIZED:
-            return Response({'detail': 'La factura ya está autorizada.'}, status=400)
+        if order.invoice_status in (Order.InvoiceStatus.AUTHORIZED,
+                                    Order.InvoiceStatus.PENDING_SRI):
+            # PENDING_SRI: el SRI tuvo un error temporal y NovaFactura reintenta
+            # solo; no hay que reintentar a mano.
+            return Response({'detail': 'La factura ya está autorizada o en espera del SRI.'}, status=400)
         order.invoice_status = Order.InvoiceStatus.PROCESSING
         order.invoice_error = ''
         order.invoice_updated_at = timezone.now()
@@ -306,6 +309,7 @@ class AdminOrderViewSet(viewsets.ReadOnlyModelViewSet):
         if order.status == OrderStatus.CANCELLED:
             return Response({'detail': 'La venta está cancelada.'}, status=400)
         if order.invoice_status in (Order.InvoiceStatus.PROCESSING,
+                                    Order.InvoiceStatus.PENDING_SRI,
                                     Order.InvoiceStatus.AUTHORIZED):
             return Response(
                 {'detail': 'La factura ya fue emitida o está en proceso.'}, status=400)
@@ -359,29 +363,33 @@ class AdminOrderViewSet(viewsets.ReadOnlyModelViewSet):
         from django.db import transaction
         from apps.customers.models import Customer
         with transaction.atomic():
-            # 1) Actualiza (o crea) el cliente de la orden con los datos SRI.
-            customer = order.customer
-            if customer is None:
-                customer = Customer(tenant=order.tenant, full_name=(name or 'CONSUMIDOR FINAL'))
-            customer.document_id = ident
-            if doc_type:
-                customer.document_type = doc_type
-            if name:
-                customer.full_name = name
-                # Si es RUC (04) el nombre es la razón social del contribuyente.
-                if doc_type == '04':
-                    customer.business_name = name
-            if email:
-                customer.email = email
-            if address:
-                customer.address = address
-            if phone:
-                customer.phone = phone
-            customer.save()
-            order.customer = customer
+            order_fields = []
+            # 1) Solo para clientes REALES se actualiza/crea el cliente con los
+            #    datos SRI. En Consumidor Final NO se toca el perfil del cliente
+            #    (para no sobrescribir sus datos con el placeholder CF).
+            if not is_cf:
+                customer = order.customer
+                if customer is None:
+                    customer = Customer(tenant=order.tenant, full_name=(name or 'Cliente'))
+                customer.document_id = ident
+                if doc_type:
+                    customer.document_type = doc_type
+                if name:
+                    customer.full_name = name
+                    # Si es RUC (04) el nombre es la razón social del contribuyente.
+                    if doc_type == '04':
+                        customer.business_name = name
+                if email:
+                    customer.email = email
+                if address:
+                    customer.address = address
+                if phone:
+                    customer.phone = phone
+                customer.save()
+                order.customer = customer
+                order_fields.append('customer')
 
             # 2) Forma de pago en la orden (solo lo que llegó).
-            order_fields = ['customer']
             if pf is not None:
                 order.payment_form = pf
                 order_fields.append('payment_form')

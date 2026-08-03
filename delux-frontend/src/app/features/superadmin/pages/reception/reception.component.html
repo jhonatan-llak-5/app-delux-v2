@@ -86,7 +86,18 @@
 
     <!-- ════════ TAB 1: SUBIR ════════ -->
     @if (tab() === 'upload') {
-    <div class="space-y-5">
+    <div dlxBarcodeScan (scanned)="onBarcodeScanned($event)" class="space-y-5">
+
+      <!-- Lector USB (pistola HID): apunta y dispara para agregar por código.
+           La captura la maneja la directiva [dlxBarcodeScan]: sin cámara. -->
+      <div class="flex items-center flex-wrap gap-2 text-sm rounded-xl border border-[var(--dash-primary)]/30 bg-[var(--dash-primary)]/5 px-4 py-2.5">
+        <i class="fa-solid fa-barcode text-[var(--dash-primary)]"></i>
+        <span class="font-semibold text-[var(--dash-primary)]">Lector de código listo</span>
+        <span class="text-slate-500 dark:text-white/60">— apunta al código para agregarlo automáticamente.</span>
+        @if (scanMsg(); as m) {
+          <span class="ml-auto font-semibold text-emerald-600 dark:text-emerald-400">{{ m }}</span>
+        }
+      </div>
 
       <!-- Card: destino · proveedor · nota (una fila) -->
       <div class="card p-5">

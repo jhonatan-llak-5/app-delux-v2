@@ -7,7 +7,7 @@ import { ImgFallbackDirective } from '@shared/ui/img-fallback.directive';
 import { AuthService } from '@core/services/auth.service';
 import { DlxStatCardComponent } from '@shared/ui';
 import { DlxSearchInputComponent } from '@shared/ui/search-input.component';
-import { DlxScanButtonComponent } from '@shared/ui/scan-button.component';
+import { BarcodeScanDirective } from '@shared/directives/barcode-scan.directive';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { ActivatedRoute, Router, RouterLink } from '@angular/router';
@@ -29,10 +29,11 @@ import { ProductService } from '@features/superadmin/services/product.service';
 import { ConfirmService } from '@shared/components/confirm/confirm.service';
 import { parseApiError } from '@shared/utils/api-error.util';
 
+// Lector de código de barras USB (HID): captura global vía BarcodeScanDirective.
 @Component({
   selector: 'dlx-inventory-overview',
   standalone: true,
-  imports: [DlxEmptyStateComponent, ImgFallbackDirective, DlxStatCardComponent, DlxSearchInputComponent, DlxScanButtonComponent, CommonModule, FormsModule, RouterLink, StockAdjustModalComponent, TransferModalComponent, RowActionsComponent, DlxPaginationComponent, DlxExportMenuComponent, DlxPriceInputComponent],
+  imports: [DlxEmptyStateComponent, ImgFallbackDirective, DlxStatCardComponent, DlxSearchInputComponent, BarcodeScanDirective, CommonModule, FormsModule, RouterLink, StockAdjustModalComponent, TransferModalComponent, RowActionsComponent, DlxPaginationComponent, DlxExportMenuComponent, DlxPriceInputComponent],
   changeDetection: ChangeDetectionStrategy.OnPush,
   templateUrl: './inventory-overview.component.html',
 })
@@ -233,8 +234,17 @@ export class InventoryOverviewComponent implements OnInit {
   };
 
   onSearch(v: string) { this.search.set(v); this.page.set(1); this.search$.next(); }
-  /** Código escaneado con la cámara: lo pone en el buscador y recarga al instante. */
+  /** Código escaneado (lo pone en el buscador y recarga al instante). */
   onScanned(code: string) { this.search.set(code); this.page.set(1); this.reload(); }
+  /**
+   * Código leído con el LECTOR USB físico (pistola HID). Reutiliza el mismo flujo
+   * que la búsqueda por código: normaliza y lo manda al buscador para recargar.
+   */
+  onBarcodeScanned(code: string) {
+    const clean = (code || '').trim();
+    if (!clean) return;
+    this.onScanned(clean);
+  }
   onFilter() { this.page.set(1); this.reload(); }
   onPage(p: number) { this.page.set(p); this.reload(); }
   onSize(s: number) { this.pageSize.set(s); this.page.set(1); this.reload(); }

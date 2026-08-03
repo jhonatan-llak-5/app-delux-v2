@@ -421,13 +421,19 @@ export class SalesListComponent implements OnInit {
   waLink(phone: string) { return 'https://wa.me/' + (phone || '').replace(/[^0-9]/g, ''); }
 
   invoiceLabel(s?: string): string {
-    return ({ PROCESSING: 'Procesando', AUTHORIZED: 'Autorizada', REJECTED: 'Rechazada', ERROR: 'Error' } as any)[s || ''] || 'No emitida';
+    return ({
+      PROCESSING: 'Procesando', PENDING_SRI: 'En espera del SRI',
+      AUTHORIZED: 'Autorizada', REJECTED: 'Rechazada',
+      ANNULLED: 'Anulada', ERROR: 'Error',
+    } as any)[s || ''] || 'No emitida';
   }
   invoiceClass(s?: string): string {
     return ({
       PROCESSING: 'bg-amber-100 text-amber-700',
+      PENDING_SRI: 'bg-sky-100 text-sky-700',
       AUTHORIZED: 'bg-emerald-100 text-emerald-700',
       REJECTED: 'bg-rose-100 text-rose-700',
+      ANNULLED: 'bg-slate-200 text-slate-600',
       ERROR: 'bg-rose-100 text-rose-700',
     } as any)[s || ''] || 'bg-slate-100 text-slate-600';
   }

@@ -66,11 +66,13 @@ export interface Order {
   total: string;
   coupon_code: string;
   notes: string;
-  invoice_status?: 'NOT_ISSUED' | 'PROCESSING' | 'AUTHORIZED' | 'REJECTED' | 'ERROR';
+  invoice_status?: 'NOT_ISSUED' | 'PROCESSING' | 'PENDING_SRI' | 'AUTHORIZED' | 'REJECTED' | 'ANNULLED' | 'ERROR';
   invoice_number?: string;
   invoice_access_key?: string;
+  invoice_authorization?: string;
   invoice_pdf_url?: string;
   invoice_xml_url?: string;
+  invoice_message?: string;
   invoice_error?: string;
   invoice_updated_at?: string | null;
   items: OrderItem[];

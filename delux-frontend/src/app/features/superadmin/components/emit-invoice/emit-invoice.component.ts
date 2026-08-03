@@ -72,39 +72,47 @@ import { NotifyService } from '@shared/services/notify.service';
             <div>
               <label class="text-[11px] uppercase tracking-widest text-slate-500 font-semibold">Identificación</label>
               <input type="text" [ngModel]="identification()" (ngModelChange)="identification.set($event)"
+                     [disabled]="isConsumidorFinal()"
                      placeholder="Cédula / RUC / Pasaporte"
-                     class="eg-input mt-1 w-full text-sm" autocomplete="off" />
+                     class="eg-input mt-1 w-full text-sm disabled:opacity-60" autocomplete="off" />
             </div>
           </div>
 
-          <div>
-            <label class="text-[11px] uppercase tracking-widest text-slate-500 font-semibold">Nombre / Razón social</label>
-            <input type="text" [ngModel]="name()" (ngModelChange)="name.set($event)"
-                   placeholder="Nombre del cliente"
-                   class="eg-input mt-1 w-full text-sm" autocomplete="off" />
-          </div>
-
-          <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
+          @if (!isConsumidorFinal()) {
             <div>
-              <label class="text-[11px] uppercase tracking-widest text-slate-500 font-semibold">Correo</label>
-              <input type="email" [ngModel]="email()" (ngModelChange)="email.set($event)"
-                     placeholder="correo@ejemplo.com"
+              <label class="text-[11px] uppercase tracking-widest text-slate-500 font-semibold">Nombre / Razón social</label>
+              <input type="text" [ngModel]="name()" (ngModelChange)="name.set($event)"
+                     placeholder="Nombre del cliente"
                      class="eg-input mt-1 w-full text-sm" autocomplete="off" />
             </div>
-            <div>
-              <label class="text-[11px] uppercase tracking-widest text-slate-500 font-semibold">Teléfono</label>
-              <input type="tel" [ngModel]="phone()" (ngModelChange)="phone.set($event)"
-                     placeholder="09xxxxxxxx"
-                     class="eg-input mt-1 w-full text-sm" autocomplete="off" />
-            </div>
-          </div>
 
-          <div>
-            <label class="text-[11px] uppercase tracking-widest text-slate-500 font-semibold">Dirección</label>
-            <input type="text" [ngModel]="address()" (ngModelChange)="address.set($event)"
-                   placeholder="Dirección del cliente (opcional)"
-                   class="eg-input mt-1 w-full text-sm" autocomplete="off" />
-          </div>
+            <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
+              <div>
+                <label class="text-[11px] uppercase tracking-widest text-slate-500 font-semibold">Correo</label>
+                <input type="email" [ngModel]="email()" (ngModelChange)="email.set($event)"
+                       placeholder="correo@ejemplo.com"
+                       class="eg-input mt-1 w-full text-sm" autocomplete="off" />
+              </div>
+              <div>
+                <label class="text-[11px] uppercase tracking-widest text-slate-500 font-semibold">Teléfono</label>
+                <input type="tel" [ngModel]="phone()" (ngModelChange)="phone.set($event)"
+                       placeholder="09xxxxxxxx"
+                       class="eg-input mt-1 w-full text-sm" autocomplete="off" />
+              </div>
+            </div>
+
+            <div>
+              <label class="text-[11px] uppercase tracking-widest text-slate-500 font-semibold">Dirección</label>
+              <input type="text" [ngModel]="address()" (ngModelChange)="address.set($event)"
+                     placeholder="Dirección del cliente (opcional)"
+                     class="eg-input mt-1 w-full text-sm" autocomplete="off" />
+            </div>
+          } @else {
+            <p class="text-xs text-slate-500 dark:text-white/50">
+              <i class="fa-solid fa-circle-info"></i>
+              Se emitirá como <span class="font-semibold">Consumidor Final</span> (identificación 9999999999999). No se requieren más datos.
+            </p>
+          }
 
           <!-- Forma de pago (opcional, colapsable) -->
           <div class="rounded-xl border border-slate-200 dark:border-white/10">
@@ -119,33 +127,35 @@ import { NotifyService } from '@shared/services/notify.service';
               <div class="px-4 pb-4 space-y-3">
                 <div>
                   <label class="text-[11px] uppercase tracking-widest text-slate-500 font-semibold">Método</label>
-                  <select [ngModel]="paymentForm()" (ngModelChange)="paymentForm.set($event)"
+                  <select [ngModel]="paymentForm()" (ngModelChange)="setPaymentForm($event)"
                           class="eg-input mt-1 w-full text-sm">
                     @for (pf of paymentForms; track pf.v) {
                       <option [value]="pf.v">{{ pf.label }}</option>
                     }
                   </select>
                 </div>
-                <label class="flex items-center gap-2 text-sm text-slate-600 dark:text-slate-300 cursor-pointer">
-                  <input type="checkbox" [ngModel]="aCredito()" (ngModelChange)="aCredito.set($event)" class="rounded" />
-                  Venta a crédito
-                </label>
-                @if (aCredito()) {
-                  <div class="grid grid-cols-2 gap-3">
-                    <div>
-                      <label class="text-[11px] uppercase tracking-widest text-slate-500 font-semibold">Plazo</label>
-                      <input type="number" min="1" [ngModel]="plazo()" (ngModelChange)="plazo.set(+$event)"
-                             class="eg-input mt-1 w-full text-sm" />
+                @if (creditAllowed()) {
+                  <label class="flex items-center gap-2 text-sm text-slate-600 dark:text-slate-300 cursor-pointer">
+                    <input type="checkbox" [ngModel]="aCredito()" (ngModelChange)="aCredito.set($event)" class="rounded" />
+                    Venta a crédito
+                  </label>
+                  @if (aCredito()) {
+                    <div class="grid grid-cols-2 gap-3">
+                      <div>
+                        <label class="text-[11px] uppercase tracking-widest text-slate-500 font-semibold">Plazo</label>
+                        <input type="number" min="1" [ngModel]="plazo()" (ngModelChange)="plazo.set(+$event)"
+                               class="eg-input mt-1 w-full text-sm" />
+                      </div>
+                      <div>
+                        <label class="text-[11px] uppercase tracking-widest text-slate-500 font-semibold">Unidad</label>
+                        <select [ngModel]="unidad()" (ngModelChange)="unidad.set($event)"
+                                class="eg-input mt-1 w-full text-sm">
+                          <option value="meses">Meses</option>
+                          <option value="dias">Días</option>
+                        </select>
+                      </div>
                     </div>
-                    <div>
-                      <label class="text-[11px] uppercase tracking-widest text-slate-500 font-semibold">Unidad</label>
-                      <select [ngModel]="unidad()" (ngModelChange)="unidad.set($event)"
-                              class="eg-input mt-1 w-full text-sm">
-                        <option value="meses">Meses</option>
-                        <option value="dias">Días</option>
-                      </select>
-                    </div>
-                  </div>
+                  }
                 }
               </div>
             }
@@ -212,6 +222,16 @@ export class EmitInvoiceComponent implements OnInit {
 
   saving = signal(false);
 
+  /** Tipo de documento = Consumidor Final (oculta datos del cliente). */
+  isConsumidorFinal = computed(() => this.documentType() === '07');
+
+  /** "A crédito" solo aplica a Tarjeta de crédito (19); el resto es contado. */
+  creditAllowed = computed(() => this.paymentForm() === '19');
+  setPaymentForm(v: string) {
+    this.paymentForm.set(v);
+    if (v !== '19') this.aCredito.set(false);  // efectivo/débito/transferencia = contado
+  }
+
   /** ¿La venta va como Consumidor Final (sin identificación real)? */
   private isCF = computed(() => {
     const id = this.identification().trim();
@@ -241,10 +261,14 @@ export class EmitInvoiceComponent implements OnInit {
 
   onDocType(v: string) {
     this.documentType.set(v);
-    // Consumidor Final: rellena identificación/nombre por defecto para agilizar.
     if (v === '07') {
-      if (!this.identification().trim()) this.identification.set('9999999999999');
-      if (!this.name().trim()) this.name.set('CONSUMIDOR FINAL');
+      // Consumidor Final: identificación fija y sin datos del cliente.
+      this.identification.set('9999999999999');
+      this.name.set('CONSUMIDOR FINAL');
+    } else {
+      // Volvió a un tipo real: limpia los valores placeholder de CF.
+      if (this.identification().trim() === '9999999999999') this.identification.set('');
+      if (this.name().trim() === 'CONSUMIDOR FINAL') this.name.set('');
     }
   }
 

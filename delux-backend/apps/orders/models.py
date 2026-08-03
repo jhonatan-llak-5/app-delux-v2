@@ -74,8 +74,12 @@ class Order(TenantOwnedModel):
     class InvoiceStatus(models.TextChoices):
         NOT_ISSUED = 'NOT_ISSUED', 'No emitida'
         PROCESSING = 'PROCESSING', 'Procesando'
+        # El SRI falló por un error temporal (de sistema, no nuestro). NovaFactura
+        # reintenta solo; no requiere acción del usuario. No es "procesando" normal.
+        PENDING_SRI = 'PENDING_SRI', 'En espera del SRI'
         AUTHORIZED = 'AUTHORIZED', 'Autorizada'
         REJECTED = 'REJECTED', 'Rechazada'
+        ANNULLED = 'ANNULLED', 'Anulada'
         ERROR = 'ERROR', 'Error'
 
     invoice_status = models.CharField(
@@ -85,9 +89,14 @@ class Order(TenantOwnedModel):
                                   help_text='ID de la factura en NovaFactura.')
     invoice_access_key = models.CharField(max_length=64, blank=True, default='',
                                           help_text='Clave de acceso del SRI.')
+    invoice_authorization = models.CharField(max_length=64, blank=True, default='',
+                                             help_text='Nro de autorización del SRI.')
     invoice_number = models.CharField(max_length=40, blank=True, default='')
     invoice_pdf_url = models.URLField(blank=True, default='')
     invoice_xml_url = models.URLField(blank=True, default='')
+    # Motivo/mensaje real del SRI para CUALQUIER estado (autorizada, rechazada,
+    # error temporal). Antes solo se guardaba el error de rechazo en invoice_error.
+    invoice_message = models.CharField(max_length=500, blank=True, default='')
     invoice_error = models.CharField(max_length=400, blank=True, default='')
     invoice_updated_at = models.DateTimeField(null=True, blank=True)
 

@@ -1,4 +1,4 @@
-import { ChangeDetectionStrategy, Component, EventEmitter, Input, OnDestroy, OnInit, Output } from '@angular/core';
+import { AfterViewInit, ChangeDetectionStrategy, Component, ElementRef, EventEmitter, Input, OnDestroy, OnInit, Output, ViewChild } from '@angular/core';
 import { FormsModule } from '@angular/forms';
 import { Subject, Subscription } from 'rxjs';
 import { debounceTime } from 'rxjs/operators';
@@ -21,19 +21,29 @@ import { SEARCH_DEBOUNCE_MS } from '@shared/config/search';
   template: `
     <div class="relative w-full" [class.max-w-md]="!fluid">
       <i class="fa-solid fa-magnifying-glass text-sm absolute left-3 top-1/2 -translate-y-1/2 text-slate-400"></i>
-      <input [ngModel]="value" (ngModelChange)="onInput($event)" (keydown.enter)="flush()"
+      <input #inp [ngModel]="value" (ngModelChange)="onInput($event)" (keydown.enter)="flush()"
              [placeholder]="placeholder"
-             class="eg-input has-icon-left pr-3" autocomplete="off" />
+             class="eg-input has-icon-left" [class.pr-3]="!scanHint" [class.pr-9]="scanHint" autocomplete="off" />
+      @if (scanHint) {
+        <i class="fa-solid fa-barcode text-sm absolute right-3 top-1/2 -translate-y-1/2 text-emerald-500"
+           title="Este campo admite lector de código de barras: apunta y dispara"></i>
+      }
     </div>
   `,
 })
-export class DlxSearchInputComponent implements OnInit, OnDestroy {
+export class DlxSearchInputComponent implements OnInit, AfterViewInit, OnDestroy {
   @Input() value = '';
   @Input() placeholder = 'Buscar…';
   @Input() fluid = false;
+  /** Enfoca el campo al montar (útil para escanear con lector sin hacer clic). */
+  @Input() autofocus = false;
+  /** Muestra un ícono de código de barras a la derecha: indica que el campo admite lector. */
+  @Input() scanHint = false;
   /** Permite ajustar el retraso por instancia; por defecto usa el global. */
   @Input() debounceMs = SEARCH_DEBOUNCE_MS;
   @Output() valueChange = new EventEmitter<string>();
+
+  @ViewChild('inp') private inp?: ElementRef<HTMLInputElement>;
 
   private input$ = new Subject<string>();
   private sub?: Subscription;
@@ -42,6 +52,9 @@ export class DlxSearchInputComponent implements OnInit, OnDestroy {
   ngOnInit(): void {
     this.lastEmitted = this.value;
     this.sub = this.input$.pipe(debounceTime(this.debounceMs)).subscribe(v => this.emit(v));
+  }
+  ngAfterViewInit(): void {
+    if (this.autofocus) setTimeout(() => this.inp?.nativeElement.focus(), 0);
   }
   ngOnDestroy(): void { this.sub?.unsubscribe(); }
 

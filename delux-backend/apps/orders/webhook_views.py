@@ -11,6 +11,7 @@ from __future__ import annotations
 import hashlib
 import hmac
 import json
+import unicodedata
 
 from django.core.exceptions import ValidationError
 from django.http import (
@@ -23,12 +24,35 @@ from django.views.decorators.csrf import csrf_exempt
 from django.views.decorators.http import require_POST
 
 # Estado del puente (NovaFactura) -> estado de factura en la orden de DLUX.
+# Ojo: "PROCESANDO" se resuelve aparte (puede ser "procesando normal" o
+# "en espera del SRI" si el mensaje indica un error temporal del SRI).
 _STATUS_MAP = {
     "AUTORIZADA": "AUTHORIZED",
     "RECHAZADA": "REJECTED",
-    "ANULADA": "REJECTED",
-    "PROCESANDO": "PROCESSING",
+    "ANULADA": "ANNULLED",
 }
+
+# Pistas de que el SRI falló por un ERROR TEMPORAL (de sistema, no nuestro):
+# NovaFactura reintenta solo, así que NO debe verse como "procesando" normal
+# sino como "en espera del SRI". Comparación sin acentos y en minúsculas.
+_TEMP_SRI_HINTS = (
+    "temporal", "reintent", "intermit", "no disponible",
+    "servicio no disponible", "error de sistema", "saturad",
+    "timeout", "time out", "intente mas tarde", "vuelva a intentar",
+    "no responde", "fuera de servicio",
+)
+
+
+def _normalize(text: str) -> str:
+    """minúsculas y sin acentos, para comparar el mensaje del SRI de forma robusta."""
+    text = unicodedata.normalize("NFKD", text or "")
+    text = "".join(c for c in text if not unicodedata.combining(c))
+    return text.lower()
+
+
+def _is_temporary_sri_error(sri_message: str) -> bool:
+    n = _normalize(sri_message)
+    return any(hint in n for hint in _TEMP_SRI_HINTS)
 
 
 @csrf_exempt
@@ -62,17 +86,36 @@ def novafactura_webhook(request):
     if order is None:
         return JsonResponse({"detail": "Orden no encontrada."}, status=404)
 
-    status = _STATUS_MAP.get((data.get("status") or "").upper(), order.invoice_status)
+    raw_status = (data.get("status") or "").upper()
+    sri_message = (data.get("sri_message") or "").strip()
+
+    if raw_status == "PROCESANDO":
+        # Error temporal del SRI (falla de sistema del SRI, no nuestra) => se
+        # queda "en espera del SRI"; NovaFactura reintenta solo. Si es un
+        # "procesando" normal, sigue siendo PROCESSING.
+        status = "PENDING_SRI" if _is_temporary_sri_error(sri_message) else "PROCESSING"
+    elif "TEMPORAL" in raw_status:
+        # Por si NovaFactura manda un estado explícito de error temporal.
+        status = "PENDING_SRI"
+    else:
+        status = _STATUS_MAP.get(raw_status, order.invoice_status)
+
     order.invoice_status = status
     order.invoice_id = data.get("invoice_id") or order.invoice_id
     order.invoice_access_key = data.get("access_key") or order.invoice_access_key
+    order.invoice_authorization = data.get("authorization_number") or order.invoice_authorization
     order.invoice_number = data.get("document_number") or order.invoice_number
     order.invoice_pdf_url = data.get("pdf_url") or order.invoice_pdf_url
     order.invoice_xml_url = data.get("xml_url") or order.invoice_xml_url
-    order.invoice_error = (data.get("sri_message") or "") if status == "REJECTED" else ""
+    # Guardamos el mensaje del SRI para CUALQUIER estado (motivo real).
+    if sri_message:
+        order.invoice_message = sri_message
+    # invoice_error se mantiene solo para rechazo real (dato corregible/reemitible).
+    order.invoice_error = sri_message if status == "REJECTED" else ""
     order.invoice_updated_at = timezone.now()
     order.save(update_fields=[
-        "invoice_status", "invoice_id", "invoice_access_key", "invoice_number",
-        "invoice_pdf_url", "invoice_xml_url", "invoice_error", "invoice_updated_at",
+        "invoice_status", "invoice_id", "invoice_access_key", "invoice_authorization",
+        "invoice_number", "invoice_pdf_url", "invoice_xml_url",
+        "invoice_message", "invoice_error", "invoice_updated_at",
     ])
     return JsonResponse({"ok": True})

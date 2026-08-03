@@ -62,14 +62,14 @@ class OrderSerializer(serializers.ModelSerializer):
                   'total_changes', 'net_total', 'changes',
                   'coupon_code', 'notes',
                   'payment_form', 'payment_plazo', 'payment_unidad',
-                  'invoice_status', 'invoice_number', 'invoice_access_key',
-                  'invoice_pdf_url', 'invoice_xml_url', 'invoice_error', 'invoice_updated_at',
+                  'invoice_status', 'invoice_number', 'invoice_access_key', 'invoice_authorization',
+                  'invoice_pdf_url', 'invoice_xml_url', 'invoice_message', 'invoice_error', 'invoice_updated_at',
                   'items', 'items_count', 'created_at', 'updated_at')
         read_only_fields = ('id', 'code', 'group_code', 'subtotal', 'total', 'total_changes',
                             'payment_form', 'payment_plazo', 'payment_unidad',
                             'created_at', 'updated_at',
-                            'invoice_status', 'invoice_number', 'invoice_access_key',
-                            'invoice_pdf_url', 'invoice_xml_url', 'invoice_error', 'invoice_updated_at')
+                            'invoice_status', 'invoice_number', 'invoice_access_key', 'invoice_authorization',
+                            'invoice_pdf_url', 'invoice_xml_url', 'invoice_message', 'invoice_error', 'invoice_updated_at')
 
 
 class POSItemInput(serializers.Serializer):

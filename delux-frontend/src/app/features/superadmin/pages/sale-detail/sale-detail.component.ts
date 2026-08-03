@@ -389,18 +389,24 @@ export class SaleDetailComponent implements OnInit {
   invoiceLabel(s?: string): string {
     return ({
       NOT_ISSUED: 'No emitida', PROCESSING: 'Procesando',
-      AUTHORIZED: 'Autorizada', REJECTED: 'Rechazada', ERROR: 'Error',
+      PENDING_SRI: 'En espera del SRI',
+      AUTHORIZED: 'Autorizada', REJECTED: 'Rechazada',
+      ANNULLED: 'Anulada', ERROR: 'Error',
     } as any)[s || ''] || 'No emitida';
   }
   invoiceClass(s?: string): string {
     return ({
       PROCESSING: 'bg-amber-100 text-amber-700',
+      PENDING_SRI: 'bg-sky-100 text-sky-700',
       AUTHORIZED: 'bg-emerald-100 text-emerald-700',
       REJECTED: 'bg-rose-100 text-rose-700',
+      ANNULLED: 'bg-slate-200 text-slate-600',
       ERROR: 'bg-rose-100 text-rose-700',
     } as any)[s || ''] || 'bg-slate-100 text-slate-600';
   }
   canRetryInvoice(): boolean {
+    // PENDING_SRI y PROCESSING NO se reintentan a mano: el SRI/NovaFactura
+    // resuelven solos. Solo rechazo/error/no emitida requieren acción.
     const s = this.order()?.invoice_status;
     return s === 'ERROR' || s === 'REJECTED' || s === 'NOT_ISSUED';
   }

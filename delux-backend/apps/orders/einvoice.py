@@ -44,6 +44,9 @@ def build_emit_payload(order, cfg) -> dict:
         or (getattr(customer, "full_name", "") or "").strip()
         or "CONSUMIDOR FINAL"
     )
+    # Consumidor Final: la razón social del comprobante debe ser "CONSUMIDOR FINAL".
+    if ident == "9999999999999":
+        name = "CONSUMIDOR FINAL"
 
     details = []
     for it in order.items.select_related("variant__product").all():

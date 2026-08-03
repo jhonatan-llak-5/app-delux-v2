@@ -1,4 +1,4 @@
-import { ChangeDetectionStrategy, Component, ElementRef, EventEmitter, Input, OnDestroy, OnInit, Output, ViewChild, signal } from '@angular/core';
+import { ChangeDetectionStrategy, Component, EventEmitter, Input, OnInit, Output, signal } from '@angular/core';
 import { DlxFieldErrorComponent } from '@shared/ui/field-error.component';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
@@ -85,7 +85,7 @@ const KIND_PRESETS: Record<string, { label: string; sizeLabel: string; sizes: st
   changeDetection: ChangeDetectionStrategy.OnPush,
   templateUrl: './manual-product-modal.component.html',
 })
-export class ManualProductModalComponent implements OnInit, OnDestroy {
+export class ManualProductModalComponent implements OnInit {
   @Input() brands: string[] = [];
   @Input() categories: string[] = [];
   @Input() categoryParents: Record<string, string> = {};
@@ -126,46 +126,8 @@ export class ManualProductModalComponent implements OnInit, OnDestroy {
   receptionSupplier = '';
   receptionNote = '';
 
-  // ── Escáner de código de barras con cámara ──
-  @ViewChild('camVideo') camVideo?: ElementRef<HTMLVideoElement>;
-  cameraOn = signal(false);
-  camError = signal<string | null>(null);
-  private stream?: MediaStream;
-  private detector: any;
-  private scanTimer: any;
-
-  async startScan(): Promise<void> {
-    this.camError.set(null);
-    const BD = (window as any).BarcodeDetector;
-    if (!BD) { this.camError.set('Tu navegador no soporta escaneo por cámara. Escribe o usa un lector USB.'); return; }
-    try {
-      this.detector = new BD({ formats: ['ean_13', 'ean_8', 'code_128', 'code_39', 'upc_a', 'upc_e', 'qr_code'] });
-      this.stream = await navigator.mediaDevices.getUserMedia({ video: { facingMode: 'environment' } });
-      this.cameraOn.set(true);
-      setTimeout(() => {
-        const v = this.camVideo?.nativeElement;
-        if (v) { v.srcObject = this.stream!; v.play().catch(() => {}); this.loop(); }
-      }, 120);
-    } catch { this.camError.set('No se pudo abrir la cámara.'); }
-  }
-  private async loop(): Promise<void> {
-    if (!this.cameraOn()) return;
-    const v = this.camVideo?.nativeElement;
-    if (v && v.readyState >= 2) {
-      try {
-        const codes = await this.detector.detect(v);
-        if (codes && codes.length && codes[0].rawValue) { this.nf.barcode = String(codes[0].rawValue); this.stopScan(); return; }
-      } catch { /* frame sin código */ }
-    }
-    this.scanTimer = setTimeout(() => this.loop(), 300);
-  }
-  stopScan(): void {
-    this.cameraOn.set(false);
-    if (this.scanTimer) { clearTimeout(this.scanTimer); this.scanTimer = null; }
-    this.stream?.getTracks().forEach(t => t.stop());
-    this.stream = undefined;
-  }
-  ngOnDestroy(): void { this.stopScan(); }
+  // El campo de código de barras acepta el lector USB (pistola HID) directamente:
+  // al enfocar el input, el lector "teclea" el código de forma nativa.
 
   // ── Variantes ──
   // Modo por defecto = CLÁSICO (talla + color, como siempre). El modo

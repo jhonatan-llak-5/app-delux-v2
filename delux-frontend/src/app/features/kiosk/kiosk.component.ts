@@ -1,5 +1,6 @@
 import { ChangeDetectionStrategy, Component, ElementRef, OnDestroy, OnInit, ViewChild, inject, signal } from '@angular/core';
 import { ImgFallbackDirective } from '@shared/ui/img-fallback.directive';
+import { BarcodeScanDirective } from '@shared/directives/barcode-scan.directive';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { RouterLink, ActivatedRoute } from '@angular/router';
@@ -11,7 +12,7 @@ import { ThemeService } from '@core/services/theme.service';
 @Component({
   selector: 'dlx-kiosk',
   standalone: true,
-  imports: [ImgFallbackDirective, CommonModule, FormsModule, RouterLink, KioskResultCardComponent],
+  imports: [ImgFallbackDirective, BarcodeScanDirective, CommonModule, FormsModule, RouterLink, KioskResultCardComponent],
   changeDetection: ChangeDetectionStrategy.OnPush,
   templateUrl: './kiosk.component.html',
 })
@@ -274,5 +275,11 @@ export class KioskComponent implements OnInit, OnDestroy {
     const m = code.match(/[?&]code=([^&]+)/);
     if (m) code = decodeURIComponent(m[1]);
     if (code) this.lookup(code);
+  }
+
+  /** Lector USB (pistola HID): consulta el producto por su código, sin cámara. */
+  onBarcodeScanned(raw: string): void {
+    if (this.cameraOn()) return;   // si la cámara está activa, ella maneja el escaneo
+    this.onCode(raw);
   }
 }

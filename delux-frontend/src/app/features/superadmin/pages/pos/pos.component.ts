@@ -1,7 +1,8 @@
-import { ChangeDetectionStrategy, Component, ElementRef, OnDestroy, OnInit, ViewChild, computed, effect, inject, signal, untracked } from '@angular/core';
+import { ChangeDetectionStrategy, Component, OnInit, computed, effect, inject, signal, untracked } from '@angular/core';
 import { DlxEmptyStateComponent } from '@shared/ui/empty-state.component';
 import { ImgFallbackDirective } from '@shared/ui/img-fallback.directive';
 import { DlxSearchInputComponent } from '@shared/ui/search-input.component';
+import { BarcodeScanDirective } from '@shared/directives/barcode-scan.directive';
 import { DlxProvinceSelectComponent } from '@shared/ui/province-select.component';
 import { DlxPhoneInputComponent } from '@shared/ui/phone-input.component';
 import { DlxPriceInputComponent } from '@shared/ui/price-input.component';
@@ -43,11 +44,11 @@ interface CartItem {
 @Component({
   selector: 'dlx-pos',
   standalone: true,
-  imports: [DlxEmptyStateComponent, ImgFallbackDirective, DlxSearchInputComponent, CommonModule, FormsModule, RouterLink, DlxProvinceSelectComponent, DlxPhoneInputComponent, DlxPriceInputComponent, AlertComponent],
+  imports: [DlxEmptyStateComponent, ImgFallbackDirective, DlxSearchInputComponent, BarcodeScanDirective, CommonModule, FormsModule, RouterLink, DlxProvinceSelectComponent, DlxPhoneInputComponent, DlxPriceInputComponent, AlertComponent],
   changeDetection: ChangeDetectionStrategy.OnPush,
   templateUrl: './pos.component.html',
 })
-export class PosComponent implements OnInit, OnDestroy {
+export class PosComponent implements OnInit {
   private inv = inject(InventoryService);
   private ord = inject(OrderService);
   private adminSvc = inject(AdminService);
@@ -79,14 +80,6 @@ export class PosComponent implements OnInit, OnDestroy {
   view = signal<ViewMode>(readViewPref('dlx_pos_view', this.auth.user()?.id));
   scanCode = '';
   scanMsg = signal<{ ok: boolean; text: string } | null>(null);
-  @ViewChild('camVideo') camVideo?: ElementRef<HTMLVideoElement>;
-  cameraOn = signal(false);
-  camError = signal<string | null>(null);
-  private camStream?: MediaStream;
-  private detector: any = null;
-  private rafId: any = null;
-  private lastScan = '';
-  private lastScanAt = 0;
   discount = signal(0);
   saving = signal(false);
   confirmOpen = signal(false);
@@ -103,6 +96,12 @@ export class PosComponent implements OnInit, OnDestroy {
     { v: '19', label: 'Tarjeta de crédito' },
     { v: '20', label: 'Transferencia' },
   ];
+  /** "A crédito" solo aplica a Tarjeta de crédito (19); el resto es contado. */
+  creditAllowed = computed(() => this.paymentForm() === '19');
+  setPaymentForm(v: '01' | '16' | '19' | '20') {
+    this.paymentForm.set(v);
+    if (v !== '19') this.aCredito.set(false);  // efectivo/débito/transferencia = contado
+  }
   error = signal<string | null>(null);
   completedOrder = signal<Order | null>(null);
   customerData: Record<string, string> = {
@@ -167,10 +166,6 @@ export class PosComponent implements OnInit, OnDestroy {
       // untracked: clearSearch()->reload() lee search()/categoryFilter(); sin esto el
       // effect dependería de ellos y borraría la búsqueda en cada tecla.
       untracked(() => this.clearSearch());
-      // Al cambiar de sucursal, apaga la cámara si estaba encendida. Leemos
-      // cameraOn() con untracked para NO volver dependiente el efecto de la
-      // cámara (si no, al encenderla el efecto se re-ejecutaba y la apagaba).
-      untracked(() => { if (this.cameraOn()) this.stopCamera(); });
     }, { allowSignalWrites: true });
   }
 
@@ -313,6 +308,14 @@ export class PosComponent implements OnInit, OnDestroy {
   setView(v: ViewMode) {
     this.view.set(v);
     writeViewPref('dlx_pos_view', this.auth.user()?.id, v);
+  }
+
+  /** Lector USB (pistola HID): recibe el código y lo procesa como escaneo. */
+  onBarcodeScanned(code: string): void {
+    const c = (code || '').trim();
+    if (!c) return;
+    this.scanCode = c;
+    this.onScan();
   }
 
   /** Escáner de código de barras: busca coincidencia exacta y la agrega al carrito. */
@@ -463,61 +466,6 @@ export class PosComponent implements OnInit, OnDestroy {
     });
   }
 
-  // ---- Escáner con cámara (BarcodeDetector) ----
-  async startCamera(): Promise<void> {
-    this.camError.set(null);
-    const w: any = window;
-    if (typeof window === 'undefined' || !('BarcodeDetector' in w)) {
-      this.camError.set('Tu navegador no soporta cámara para escanear. Usa una pistola o el buscador.');
-      this.cameraOn.set(true);
-      return;
-    }
-    try {
-      this.camStream = await navigator.mediaDevices.getUserMedia({ video: { facingMode: 'environment' } });
-    } catch {
-      this.camError.set('No se pudo acceder a la cámara (requiere HTTPS y permiso).');
-      this.cameraOn.set(true);
-      return;
-    }
-    this.detector = new w.BarcodeDetector({ formats: ['qr_code', 'code_128', 'ean_13', 'ean_8', 'upc_a', 'upc_e', 'code_39'] });
-    this.cameraOn.set(true);
-    setTimeout(() => {
-      const v = this.camVideo?.nativeElement;
-      if (v && this.camStream) { v.srcObject = this.camStream; v.play().catch(() => {}); this.scanLoop(); }
-    }, 60);
-  }
-
-  private async scanLoop(): Promise<void> {
-    const v = this.camVideo?.nativeElement;
-    if (!v || !this.cameraOn() || !this.detector) return;
-    try {
-      const codes = await this.detector.detect(v);
-      if (codes && codes.length) this.onCameraCode(codes[0].rawValue || '');
-    } catch { /* frame sin código */ }
-    if (this.cameraOn()) this.rafId = requestAnimationFrame(() => this.scanLoop());
-  }
-
-  stopCamera(): void {
-    this.cameraOn.set(false);
-    this.camError.set(null);
-    if (this.rafId) { cancelAnimationFrame(this.rafId); this.rafId = null; }
-    this.camStream?.getTracks().forEach(t => t.stop());
-    this.camStream = undefined;
-  }
-
-  private onCameraCode(raw: string): void {
-    let code = (raw || '').trim();
-    const m = code.match(/[?&]code=([^&]+)/);
-    if (m) code = decodeURIComponent(m[1]);
-    if (!code) return;
-    const now = Date.now();
-    if (code === this.lastScan && now - this.lastScanAt < 2500) return;
-    this.lastScan = code; this.lastScanAt = now;
-    this.scanCode = code;
-    this.onScan();
-  }
-
-  ngOnDestroy(): void { this.stopCamera(); }
 
   printVoucher() {
     if (this.completedOrder()) printVoucherPDF(this.completedOrder()!);

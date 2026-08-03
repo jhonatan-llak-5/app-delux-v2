@@ -24,14 +24,11 @@
       @if (!hasVariants()) {
         <div>
           <label class="eg-label">Código de barras</label>
-          <div class="flex gap-2">
-            <input [(ngModel)]="nf.barcode" class="eg-input flex-1 font-mono" placeholder="Escanea o escribe (opcional)" />
-            <button type="button" (click)="startScan()" title="Escanear con cámara"
-                    class="shrink-0 px-3 h-11 rounded-xl border border-[var(--dash-primary)] text-[var(--dash-primary)] hover:bg-[var(--dash-primary)]/5 font-semibold text-sm inline-flex items-center gap-2">
-              <i class="fa-solid fa-camera"></i> Escanear
-            </button>
+          <div class="relative">
+            <input [(ngModel)]="nf.barcode" class="eg-input w-full font-mono pr-9" placeholder="Enfoca y escanea con el lector, o escribe (opcional)" />
+            <i class="fa-solid fa-barcode absolute right-3 top-1/2 -translate-y-1/2 text-emerald-500 pointer-events-none"
+               title="Enfoca este campo y dispara el lector de código de barras USB"></i>
           </div>
-          @if (camError()) { <p class="text-[11px] text-amber-600 mt-1">{{ camError() }}</p> }
           <p class="text-[11px] text-slate-400 mt-1">
             <i class="fa-solid fa-circle-info mr-0.5"></i>
             Este es el <b>código del proveedor</b> (opcional). El sistema genera además un <b>código interno único</b> automáticamente.
@@ -475,22 +472,4 @@
     </p>
   }
 
-  <!-- Overlay de cámara para escanear -->
-  @if (cameraOn()) {
-    <div class="fixed inset-0 z-[80] bg-black flex flex-col">
-      <div class="flex items-center justify-between px-4 py-3 text-white">
-        <span class="text-sm font-semibold"><i class="fa-solid fa-barcode mr-2"></i>Escanear código</span>
-        <button type="button" (click)="stopScan()" class="w-11 h-11 rounded-full bg-white/15 hover:bg-white/25 grid place-items-center transition">
-          <i class="fa-solid fa-xmark text-xl"></i>
-        </button>
-      </div>
-      <div class="flex-1 relative overflow-hidden">
-        <video #camVideo class="absolute inset-0 w-full h-full object-cover" muted playsinline></video>
-        <div class="absolute inset-0 flex items-center justify-center pointer-events-none">
-          <div class="w-4/5 max-w-lg aspect-[3/2] border-4 border-white/70 rounded-2xl shadow-[0_0_0_9999px_rgba(0,0,0,0.45)]"></div>
-        </div>
-        <p class="absolute bottom-10 left-0 right-0 text-center text-white/90 text-sm">Apunta al código de barras</p>
-      </div>
-    </div>
-  }
 </ng-template>

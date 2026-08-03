@@ -33,20 +33,14 @@
       <!-- BUSCADOR + ESCÁNER + RESULTADOS -->
       <div class="space-y-4">
         <!-- Buscador + categoría + botón de escáner con cámara -->
-        <div class="card p-4 flex flex-wrap items-center gap-3">
-          <dlx-search-input [fluid]="true" [value]="search()" (valueChange)="onSearch($event)"
-                            placeholder="Buscar por nombre, descripción, precio o código…" class="flex-1 min-w-0" />
+        <div dlxBarcodeScan (scanned)="onBarcodeScanned($event)" class="card p-4 flex flex-wrap items-center gap-3">
+          <dlx-search-input [fluid]="true" [scanHint]="true" [autofocus]="true" [value]="search()" (valueChange)="onSearch($event)"
+                            placeholder="Buscar o escanear código…" class="flex-1 min-w-0" />
           <select [ngModel]="categoryFilter()" (ngModelChange)="onCategory($event)"
                   class="eg-input !h-11 w-full sm:w-auto shrink-0" title="Filtrar por categoría">
             <option [ngValue]="null">Todas las categorías</option>
             @for (c of categories(); track c.id) { <option [ngValue]="c.id">{{ c.name }}</option> }
           </select>
-          <button type="button" (click)="startCamera()" [disabled]="!branchId()"
-                  class="shrink-0 flex items-center gap-2 px-4 h-11 rounded-lg bg-[var(--dash-primary)] hover:bg-[var(--dash-primary-d)]
-                         text-white text-sm font-semibold transition disabled:opacity-40 disabled:cursor-not-allowed">
-            <i class="fa-solid fa-barcode"></i>
-            <span class="hidden sm:inline">Escanear</span>
-          </button>
         </div>
 
         @if (scanMsg(); as m) {
@@ -451,7 +445,7 @@
             <div class="mt-4 rounded-xl border border-slate-200 dark:border-white/10 p-4 text-left space-y-3">
               <div>
                 <label class="eg-label">Forma de pago</label>
-                <select [ngModel]="paymentForm()" (ngModelChange)="paymentForm.set($event)"
+                <select [ngModel]="paymentForm()" (ngModelChange)="setPaymentForm($event)"
                         class="w-full rounded-lg border border-slate-200 dark:border-white/10 bg-white dark:bg-white/5 px-3 py-2 text-sm">
                   @for (pf of paymentForms; track pf.v) {
                     <option [value]="pf.v">{{ pf.label }}</option>
@@ -459,32 +453,34 @@
                 </select>
               </div>
 
-              <label class="flex items-start gap-2 cursor-pointer"
-                     [class.font-semibold]="paymentForm() === '19'">
-                <input type="checkbox" [ngModel]="aCredito()" (ngModelChange)="aCredito.set($event)"
-                       class="mt-0.5 h-4 w-4 rounded border-slate-300 text-[var(--dash-primary)]" />
-                <span class="text-sm">
-                  A crédito
-                  <span class="block text-[11px] text-slate-400">Márcalo solo si el cliente paga a plazo</span>
-                </span>
-              </label>
+              @if (creditAllowed()) {
+                <label class="flex items-start gap-2 cursor-pointer"
+                       [class.font-semibold]="paymentForm() === '19'">
+                  <input type="checkbox" [ngModel]="aCredito()" (ngModelChange)="aCredito.set($event)"
+                         class="mt-0.5 h-4 w-4 rounded border-slate-300 text-[var(--dash-primary)]" />
+                  <span class="text-sm">
+                    A crédito
+                    <span class="block text-[11px] text-slate-400">Márcalo solo si el cliente paga a plazo</span>
+                  </span>
+                </label>
 
-              @if (aCredito()) {
-                <div class="flex items-end gap-2">
-                  <div class="flex-1">
-                    <label class="eg-label">Plazo</label>
-                    <input type="number" min="1" [ngModel]="plazo()" (ngModelChange)="plazo.set(+$event)"
-                           class="w-full rounded-lg border border-slate-200 dark:border-white/10 bg-white dark:bg-white/5 px-3 py-2 text-sm" />
+                @if (aCredito()) {
+                  <div class="flex items-end gap-2">
+                    <div class="flex-1">
+                      <label class="eg-label">Plazo</label>
+                      <input type="number" min="1" [ngModel]="plazo()" (ngModelChange)="plazo.set(+$event)"
+                             class="w-full rounded-lg border border-slate-200 dark:border-white/10 bg-white dark:bg-white/5 px-3 py-2 text-sm" />
+                    </div>
+                    <div class="flex-1">
+                      <label class="eg-label">Unidad</label>
+                      <select [ngModel]="unidad()" (ngModelChange)="unidad.set($event)"
+                              class="w-full rounded-lg border border-slate-200 dark:border-white/10 bg-white dark:bg-white/5 px-3 py-2 text-sm">
+                        <option value="meses">Meses</option>
+                        <option value="dias">Días</option>
+                      </select>
+                    </div>
                   </div>
-                  <div class="flex-1">
-                    <label class="eg-label">Unidad</label>
-                    <select [ngModel]="unidad()" (ngModelChange)="unidad.set($event)"
-                            class="w-full rounded-lg border border-slate-200 dark:border-white/10 bg-white dark:bg-white/5 px-3 py-2 text-sm">
-                      <option value="meses">Meses</option>
-                      <option value="dias">Días</option>
-                    </select>
-                  </div>
-                </div>
+                }
               }
             </div>
 
@@ -517,30 +513,6 @@
               Cancelar
             </button>
           </div>
-        </div>
-      </div>
-    }
-
-    @if (cameraOn()) {
-      <div class="fixed inset-0 z-[80] bg-black flex flex-col">
-        <div class="flex items-center justify-between px-4 py-3 text-white">
-          <span class="text-sm font-semibold"><i class="fa-solid fa-barcode mr-2"></i>Escanear código de barras</span>
-          <button type="button" (click)="stopCamera()"
-                  class="w-11 h-11 rounded-full bg-white/15 hover:bg-white/25 grid place-items-center transition">
-            <i class="fa-solid fa-xmark text-xl"></i>
-          </button>
-        </div>
-        <div class="flex-1 relative overflow-hidden">
-          <video #camVideo class="absolute inset-0 w-full h-full object-cover" muted playsinline></video>
-          <div class="absolute inset-0 flex items-center justify-center pointer-events-none">
-            <div class="w-4/5 max-w-lg aspect-[3/2] border-4 border-white/70 rounded-2xl shadow-[0_0_0_9999px_rgba(0,0,0,0.45)]"></div>
-          </div>
-          <p class="absolute bottom-10 left-0 right-0 text-center text-white/90 text-sm">Apunta al código de barras o QR</p>
-          @if (camError()) {
-            <div class="absolute bottom-24 left-4 right-4 text-center">
-              <span class="inline-block bg-amber-500/90 text-white text-sm px-4 py-2 rounded-lg">{{ camError() }}</span>
-            </div>
-          }
         </div>
       </div>
     }
