@@ -1,5 +1,4 @@
 import { code128BSvg } from './code128';
-import { environment } from '@env/environment';
 
 export interface LabelItem {
   sku: string;
@@ -10,8 +9,11 @@ export interface LabelItem {
 }
 
 /**
- * Abre una ventana de impresión con etiquetas (código de barras Code128 + QR al kiosko)
- * para una lista de productos. Reutilizable en recepción, historial e inventario.
+ * Abre una ventana de impresión con etiquetas (50×30 mm) para una lista de
+ * productos. Diseño: nombre de la tienda arriba-izquierda, precio arriba-derecha
+ * con fondo negro y letras blancas, código de barras Code128 a lo ancho, y
+ * debajo el código interno y el nombre del producto. Sin QR.
+ * Reutilizable en Recepción, historial de recepciones e Inventario/Etiquetas.
  */
 export function printProductLabels(
   items: LabelItem[],
@@ -24,14 +26,12 @@ export function printProductLabels(
     const copies = Math.max(1, it.quantity || 1);
     const finalP = (+it.price || 0);  // el precio ya incluye IVA
     const price = '$' + (Math.round(finalP * 100) / 100).toFixed(2);
-    const bc = code128BSvg(it.sku, { height: 50, moduleWidth: 1.5, margin: 4 });
+    const bc = code128BSvg(it.sku, { height: 60, moduleWidth: 1.6, margin: 4 });
     const sizeTxt = it.size ? ('Talla ' + it.size) : '';
-    const kioskUrl = window.location.origin + '/kiosko?code=' + encodeURIComponent(it.sku);
-    const qrUrl = `${environment.apiUrl}/kiosk/qr/?data=${encodeURIComponent(kioskUrl)}`;
     for (let i = 0; i < copies; i++) {
       html += `<div class="lbl">
         <div class="row"><span class="store">${store}</span><span class="price">${price}</span></div>
-        <div class="mid"><div class="bc">${bc}</div><img class="qr" src="${qrUrl}" alt="QR"/></div>
+        <div class="bc">${bc}</div>
         <div class="code">${it.sku}</div>
         <div class="name">${it.name}${sizeTxt ? ' · ' + sizeTxt : ''}</div>
       </div>`;
@@ -47,12 +47,10 @@ export function printProductLabels(
       .lbl { width: 50mm; height: 30mm; padding: 1.5mm 2mm; page-break-after: always; display: flex; flex-direction: column; justify-content: space-between; }
       .row { display: flex; justify-content: space-between; align-items: center; }
       .store { font-weight: 800; font-size: 9pt; letter-spacing: .5px; }
-      .price { font-weight: 800; font-size: 11pt; background: #000; color: #fff; padding: 0 4px; border-radius: 2px; }
-      .mid { display: flex; align-items: center; gap: 2mm; }
-      .bc { flex: 1; height: 11mm; min-width: 0; }
+      .price { font-weight: 800; font-size: 11pt; background: #000; color: #fff; padding: 0 5px; }
+      .bc { width: 100%; height: 13mm; }
       .bc svg { height: 100%; width: 100%; }
-      .qr { height: 11mm; width: 11mm; flex-shrink: 0; }
-      .code { font-size: 7pt; text-align: center; letter-spacing: 1px; margin-top: -1mm; }
+      .code { font-size: 7pt; text-align: center; letter-spacing: 1px; margin-top: -0.5mm; }
       .name { font-size: 7.5pt; text-align: center; font-weight: 600; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
     </style></head><body>${html}
     <scr`+`ipt>

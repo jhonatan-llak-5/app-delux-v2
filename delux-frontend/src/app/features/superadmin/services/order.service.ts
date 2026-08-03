@@ -54,6 +54,8 @@ export interface Order {
   customer_email?: string | null;
   customer_phone?: string | null;
   customer_document?: string | null;
+  customer_address?: string | null;
+  customer_city?: string | null;
   seller: number | null;
   seller_name: string | null;
   channel: string;

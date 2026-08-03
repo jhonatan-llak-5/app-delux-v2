@@ -13,8 +13,7 @@ import { BrandingService } from '@core/services/branding.service';
 import { BranchContextService } from '@core/services/branch-context.service';
 import { NotifyService } from '@shared/services/notify.service';
 import { parseApiError } from '@shared/utils/api-error.util';
-import { code128BSvg } from '@shared/utils/code128';
-import { environment } from '@env/environment';
+import { printProductLabels } from '@shared/utils/print-labels';
 import { TourService, TourStep } from '@shared/components/app-tour/tour.service';
 import { DlxConfirmDialogComponent } from '@shared/ui/confirm-dialog.component';
 import { DlxPriceInputComponent } from '@shared/ui/price-input.component';
@@ -677,52 +676,17 @@ export class ReceptionComponent implements OnInit {
 
   printLabels(): void {
     const r = this.result();
-    if (!r || typeof window === 'undefined') return;
-    const store = (this.branding.siteName() || 'DELUX').toUpperCase();
-    let html = '';
-    for (const it of r.items) {
-      const copies = this.labelPerUnit ? Math.max(1, it.quantity) : 1;
-      const finalP = (+it.price || 0);  // el precio ya incluye IVA
-      const price = '$' + (Math.round(finalP * 100) / 100).toFixed(2);
-      const bc = code128BSvg(it.variant_sku, { height: 50, moduleWidth: 1.5, margin: 4 });
-      const sizeTxt = it.size ? ('Talla ' + it.size) : '';
-      const kioskUrl = window.location.origin + '/kiosko?code=' + encodeURIComponent(it.variant_sku);
-      const qrUrl = `${environment.apiUrl}/kiosk/qr/?data=${encodeURIComponent(kioskUrl)}`;
-      for (let i = 0; i < copies; i++) {
-        html += `<div class="lbl">
-          <div class="row"><span class="store">${store}</span><span class="price">${price}</span></div>
-          <div class="mid"><div class="bc">${bc}</div><img class="qr" src="${qrUrl}" alt="QR"/></div>
-          <div class="code">${it.variant_sku}</div>
-          <div class="name">${it.product_name}${sizeTxt ? ' · ' + sizeTxt : ''}</div>
-        </div>`;
-      }
-    }
-    const w = window.open('', '_blank', 'width=480,height=640');
-    if (!w) { this.notify.error('Permite las ventanas emergentes para imprimir.'); return; }
-    w.document.write(`<!doctype html><html><head><meta charset="utf-8"><title>Etiquetas</title>
-      <style>
-        @page { size: 50mm 30mm; margin: 0; }
-        * { box-sizing: border-box; }
-        body { margin: 0; font-family: Arial, sans-serif; }
-        .lbl { width: 50mm; height: 30mm; padding: 1.5mm 2mm; page-break-after: always; display: flex; flex-direction: column; justify-content: space-between; }
-        .row { display: flex; justify-content: space-between; align-items: center; }
-        .store { font-weight: 800; font-size: 9pt; letter-spacing: .5px; }
-        .price { font-weight: 800; font-size: 11pt; background: #000; color: #fff; padding: 0 4px; border-radius: 2px; }
-        .mid { display: flex; align-items: center; gap: 2mm; }
-        .bc { flex: 1; height: 11mm; min-width: 0; }
-        .bc svg { height: 100%; width: 100%; }
-        .qr { height: 11mm; width: 11mm; flex-shrink: 0; }
-        .code { font-size: 7pt; text-align: center; letter-spacing: 1px; margin-top: -1mm; }
-        .name { font-size: 7.5pt; text-align: center; font-weight: 600; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
-      </style></head><body>${html}
-      <scr`+`ipt>
-        window.onload=function(){
-          var imgs=document.images, left=imgs.length;
-          if(!left){ window.print(); return; }
-          function done(){ if(--left<=0) window.print(); }
-          for(var i=0;i<imgs.length;i++){ if(imgs[i].complete) done(); else { imgs[i].onload=done; imgs[i].onerror=done; } }
-        };
-      </scr`+`ipt></body></html>`);
-    w.document.close();
+    if (!r) return;
+    const items = r.items.map(it => ({
+      sku: it.variant_sku,
+      name: it.product_name,
+      size: it.size,
+      price: +it.price || 0,
+      quantity: this.labelPerUnit ? Math.max(1, it.quantity) : 1,
+    }));
+    printProductLabels(items, {
+      store: this.branding.siteName(),
+      onError: (m) => this.notify.error(m),
+    });
   }
 }

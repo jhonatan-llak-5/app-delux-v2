@@ -50,7 +50,7 @@ function buildReceiptDoc(order: Order, biz?: Partial<ReceiptBusiness>): jsPDF {
 
   // Altura estimada para no desperdiciar papel (crece con los ítems).
   const nItems = order.items?.length || 0;
-  const height = Math.max(150, 120 + nItems * 9);
+  const height = Math.max(162, 132 + nItems * 9);
   const doc = new jsPDF({ unit: 'mm', format: [W, height] });
 
   let y = 11;   // margen superior
@@ -83,12 +83,20 @@ function buildReceiptDoc(order: Order, biz?: Partial<ReceiptBusiness>): jsPDF {
     const val = doc.splitTextToSize(value, R - L - lbW);
     doc.text(val, L + lbW, y); y += 3.6 * val.length;
   };
+  // ¿Consumidor Final? (sin identificación real o con el placeholder del SRI).
+  const docId = (order.customer_document || '').trim();
+  const isCF = !docId || docId === '9999999999999';
+  // Dirección del CLIENTE (no la sucursal); ciudad como respaldo.
+  const custAddr = (order.customer_address || order.customer_city || '').trim();
+  // Teléfono real del cliente; para Consumidor Final el placeholder del SRI.
+  const custTlf = (order.customer_phone || '').trim() || (isCF ? '9999999999' : '—');
+
   row('Factura Electrónica N°: ', order.invoice_number || 'En proceso', true);
   row('Emisión: ', fmtDate(order.created_at));
   row('Cliente: ', (order.customer_name || 'CONSUMIDOR FINAL').toUpperCase());
-  if (order.branch_name) row('Direcc: ', order.branch_name);
-  row('RUC/CI: ', order.customer_document || '9999999999999');
-  row('Tlf: ', order.customer_phone || '9999999999');
+  row('Direcc: ', custAddr || '—');
+  row('RUC/CI: ', docId || '9999999999999');
+  row('Tlf: ', custTlf);
   y += 1; line();
 
   // ── Ítems (precios sin IVA, estilo factura) ──
@@ -161,7 +169,8 @@ function buildReceiptDoc(order: Order, biz?: Partial<ReceiptBusiness>): jsPDF {
   doc.text(fmtDateTime(order.created_at), L, y); y += 4;
 
   // ── Firma cliente ──
-  y += 4;
+  // Más espacio arriba de la línea para que el cliente tenga dónde firmar.
+  y += 12;
   doc.setLineWidth(0.2); doc.line(C - 22, y, C + 22, y); y += 3.5;
   doc.text('Cliente', C, y, { align: 'center' }); y += 5;
 

@@ -43,6 +43,8 @@ class OrderSerializer(serializers.ModelSerializer):
     customer_email = serializers.CharField(source='customer.email', read_only=True, default=None)
     customer_phone = serializers.CharField(source='customer.phone', read_only=True, default=None)
     customer_document = serializers.CharField(source='customer.document_id', read_only=True, default=None)
+    customer_address = serializers.CharField(source='customer.address', read_only=True, default=None)
+    customer_city = serializers.CharField(source='customer.city', read_only=True, default=None)
     net_total = serializers.SerializerMethodField()
     changes = serializers.SerializerMethodField()
 
@@ -56,6 +58,7 @@ class OrderSerializer(serializers.ModelSerializer):
         model = Order
         fields = ('id', 'code', 'group_code', 'branch', 'branch_name',
                   'customer', 'customer_name', 'customer_email', 'customer_phone', 'customer_document',
+                  'customer_address', 'customer_city',
                   'seller', 'seller_name',
                   'channel', 'fulfillment', 'status', 'cancel_reason',
                   'subtotal', 'discount', 'shipping_fee', 'tax', 'total',

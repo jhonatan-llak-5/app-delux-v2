@@ -95,7 +95,7 @@ import { printProductLabels, LabelItem } from '@shared/utils/print-labels';
           </div>
         }
       </div>
-      <p class="text-[11px] text-slate-400">La etiqueta (50×30 mm) incluye el nombre, el código interno como código de barras, un QR al kiosko y el precio con IVA.</p>
+      <p class="text-[11px] text-slate-400">La etiqueta (50×30 mm) incluye el nombre, el código interno como código de barras y el precio con IVA.</p>
     </div>
   `,
 })
