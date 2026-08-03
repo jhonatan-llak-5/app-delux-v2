@@ -74,6 +74,14 @@ export class InventoryOverviewComponent implements OnInit {
     if (a && Object.keys(a).length) return Object.values(a).join(' · ');
     return `${s.variant_size || '—'} / ${s.variant_color || '—'}`;
   }
+  /** ¿La existencia tiene datos de variante reales (talla/color/atributos)? */
+  hasVariantInfo(s: Stock): boolean {
+    const a = s.variant_attributes;
+    if (a && Object.keys(a).some(k => String(a[k] ?? '').trim())) return true;
+    const sz = (s.variant_size || '').trim();
+    const co = (s.variant_color || '').trim();
+    return !!sz || !!co;
+  }
   /** Rango "$min – $max" (o un solo valor si son iguales) para la fila de producto. */
   private fmtRange(min: number, max: number): string {
     const lo = +min || 0, hi = +max || 0;

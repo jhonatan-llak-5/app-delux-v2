@@ -217,6 +217,11 @@
                             @if (g.low_count > 0) { <span class="shrink-0 px-1.5 py-0.5 rounded-md text-[10px] font-bold uppercase tracking-wide bg-amber-100 text-amber-700">Stock bajo</span> }
                           </p>
                           <p class="text-[11px] text-slate-500 truncate">{{ g.category_name }} · {{ g.brand_name }}</p>
+                          @if (hasVariantInfo(s)) {
+                            <p class="text-[11px] font-medium text-slate-600 dark:text-slate-300 mt-0.5">
+                              <i class="fa-solid fa-layer-group text-[9px] text-slate-400 mr-0.5"></i>{{ variantLabel(s) }}
+                            </p>
+                          }
                           <p class="text-[11px] text-slate-400 font-mono mt-0.5">{{ s.variant_sku }}</p>
                         </div>
                       </div>
