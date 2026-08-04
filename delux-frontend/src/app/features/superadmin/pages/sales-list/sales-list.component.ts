@@ -102,11 +102,10 @@ import { DlxPaginationComponent } from '@shared/ui/pagination.component';
             <tr class="text-left">
               <th class="px-5 py-3 font-semibold">Voucher</th>
               <th class="px-5 py-3 font-semibold">Fecha</th>
-              <th class="px-5 py-3 font-semibold">Sucursal</th>
+              @if (isSuperAdmin()) { <th class="px-5 py-3 font-semibold">Sucursal</th> }
               <th class="px-5 py-3 font-semibold">Cliente</th>
               <th class="px-5 py-3 font-semibold">Vendedor</th>
               <th class="px-5 py-3 font-semibold text-center">Canal</th>
-              <th class="px-5 py-3 font-semibold text-center">Items</th>
               <th class="px-5 py-3 font-semibold text-right">Total</th>
               <th class="px-5 py-3 font-semibold text-center">Estado</th>
               <th class="px-5 py-3 font-semibold text-center">Factura</th>
@@ -118,7 +117,7 @@ import { DlxPaginationComponent } from '@shared/ui/pagination.component';
               <tr class="border-t border-slate-100 hover:bg-slate-50/60">
                 <td class="px-5 py-3 font-mono text-xs font-semibold whitespace-nowrap">{{ o.code }}</td>
                 <td class="px-5 py-3 text-xs text-slate-600">{{ o.created_at | date:'short' }}</td>
-                <td class="px-5 py-3 text-xs">{{ o.branch_name }}</td>
+                @if (isSuperAdmin()) { <td class="px-5 py-3 text-xs">{{ o.branch_name }}</td> }
                 <td class="px-5 py-3 text-xs">
                   @if (o.customer_name) {
                     <p>{{ o.customer_name }}</p>
@@ -148,7 +147,6 @@ import { DlxPaginationComponent } from '@shared/ui/pagination.component';
                     {{ o.channel }}
                   </span>
                 </td>
-                <td class="px-5 py-3 text-center text-xs">{{ o.items_count }}</td>
                 <td class="px-5 py-3 text-right font-bold">\${{ o.total }}</td>
                 <td class="px-5 py-3 text-center">
                   @if (+(o.total_changes || 0) > 0) {
@@ -404,7 +402,10 @@ export class SalesListComponent implements OnInit {
     { header: 'Vendedor', key: o => o.seller_name || 'Mostrador' },
     { header: 'Canal', key: 'channel' },
     { header: 'Items', key: 'items_count' },
+    { header: 'Subtotal (sin IVA)', key: o => this.saleNet(o).toFixed(2) },
+    { header: 'IVA', key: o => this.saleTax(o).toFixed(2) },
     { header: 'Total', key: o => Number(o.total || 0).toFixed(2) },
+    { header: 'Forma de pago', key: o => this.paymentLabel(o) },
     { header: 'Estado', key: o => this.statusEs(o.status) },
   ];
   fetchAllForExport = async (): Promise<Order[]> => {
@@ -446,6 +447,8 @@ export class SalesListComponent implements OnInit {
     const r = this.auth.user()?.role;
     return r === 'SUPERADMIN' || r === 'TENANT_ADMIN' || r === 'BRANCH_MANAGER';
   }
+  /** Cuenta superadmin de la plataforma (única que ve la columna Sucursal). */
+  isSuperAdmin(): boolean { return this.auth.user()?.role === 'SUPERADMIN'; }
 
   rowActions(o: Order): RowAction[] {
     return [
@@ -533,6 +536,24 @@ export class SalesListComponent implements OnInit {
   changeTipoAuto(): 'TOTAL' | 'PARCIAL' { return this.changeValue() >= this.changeTotalNum() ? 'TOTAL' : 'PARCIAL'; }
   changeTipoAutoLabel(): string { return this.changeTipoAuto() === 'TOTAL' ? 'Total' : 'Parcial'; }
   changeValueValid(): boolean { const v = this.changeValue(); return v > 0 && v <= this.changeTotalNum(); }
+
+  // ── Desglose fiscal por venta (mismo criterio que el comprobante) ──
+  saleTaxRate(): number { return +this.branding.taxRate() || 0; }
+  /** IVA de la venta: el declarado si existe, si no se extrae del total. */
+  saleTax(o: Order): number {
+    const total = +o.total || 0;
+    const declared = +o.tax || 0;
+    if (declared > 0) return declared;
+    const r = this.saleTaxRate();
+    return r ? total - total / (1 + r / 100) : 0;
+  }
+  /** Subtotal sin IVA = total − IVA. */
+  saleNet(o: Order): number { return (+o.total || 0) - this.saleTax(o); }
+  /** Etiqueta legible de la forma de pago (código SRI). */
+  private readonly PAYMENT_LABELS: Record<string, string> = {
+    '01': 'Efectivo', '16': 'Tarjeta de débito', '19': 'Tarjeta de crédito', '20': 'Transferencia',
+  };
+  paymentLabel(o: Order): string { return this.PAYMENT_LABELS[o.payment_form || ''] || '—'; }
 
   /** Abre el modal y carga el detalle de la venta para poblar los ítems. */
   openChange(o: Order) {

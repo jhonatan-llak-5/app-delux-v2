@@ -9,11 +9,12 @@ import { BrandingService } from '@core/services/branding.service';
 import { NotifyService } from '@shared/services/notify.service';
 import { InventoryService, Stock } from '@features/superadmin/services/inventory.service';
 import { printProductLabels, LabelItem } from '@shared/utils/print-labels';
+import { PrinterSetupGuideComponent } from '@shared/components/printer-setup-guide/printer-setup-guide.component';
 
 @Component({
   selector: 'dlx-labels',
   standalone: true,
-  imports: [CommonModule, FormsModule, ImgFallbackDirective, DlxSearchInputComponent, DlxEmptyStateComponent],
+  imports: [CommonModule, FormsModule, ImgFallbackDirective, DlxSearchInputComponent, DlxEmptyStateComponent, PrinterSetupGuideComponent],
   changeDetection: ChangeDetectionStrategy.OnPush,
   template: `
     <div class="px-4 md:px-6 py-6 space-y-5">
@@ -27,9 +28,23 @@ import { printProductLabels, LabelItem } from '@shared/utils/print-labels';
           <h1 class="text-2xl md:text-3xl font-bold tracking-tight">Etiquetas</h1>
           <p class="text-slate-500 text-sm mt-1">Busca productos, elige cuáles imprimir y genera las etiquetas en lote.</p>
         </div>
-        <button type="button" (click)="print()" [disabled]="selected().size === 0"
-                class="inline-flex items-center gap-2 px-4 py-2.5 rounded-xl bg-[var(--dash-primary)] hover:bg-[var(--dash-primary-d)] text-white font-semibold transition disabled:opacity-50 disabled:cursor-not-allowed">
-          <i class="fa-solid fa-print"></i> Imprimir ({{ totalLabels() }})
+        <div class="flex items-center gap-2">
+          <button type="button" (click)="guide.open()" class="btn-secondary text-sm">
+            <i class="fa-solid fa-circle-question"></i> Configurar impresora
+          </button>
+          <button type="button" (click)="print()" [disabled]="selected().size === 0"
+                  class="inline-flex items-center gap-2 px-4 py-2.5 rounded-xl bg-[var(--dash-primary)] hover:bg-[var(--dash-primary-d)] text-white font-semibold transition disabled:opacity-50 disabled:cursor-not-allowed">
+            <i class="fa-solid fa-print"></i> Imprimir ({{ totalLabels() }})
+          </button>
+        </div>
+      </div>
+
+      <!-- Guía de configuración de la impresora (mismo estilo del tour) -->
+      <dlx-printer-setup-guide #guide />
+      <div class="flex justify-end -mt-3">
+        <button type="button" (click)="guide.open()"
+                class="text-xs text-slate-400 hover:text-[var(--dash-primary)] inline-flex items-center gap-1.5">
+          <i class="fa-solid fa-circle-question"></i> ¿Primera vez? Cómo configurar la impresora de etiquetas
         </button>
       </div>
 

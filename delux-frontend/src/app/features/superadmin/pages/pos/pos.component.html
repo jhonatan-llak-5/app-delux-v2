@@ -258,13 +258,13 @@
               }
 
               <div class="flex justify-between text-sm">
-                <span class="text-slate-500">Subtotal</span>
-                <span class="font-semibold">${{ subtotal().toFixed(2) }}</span>
+                <span class="text-slate-500">Subtotal <span class="text-[11px] text-slate-400">(sin IVA)</span></span>
+                <span class="font-semibold">${{ netSubtotal().toFixed(2) }}</span>
               </div>
               @if (taxRate() > 0) {
-                <div class="flex justify-between text-[11px] text-slate-400">
-                  <span>IVA {{ taxRate() }}% incluido</span>
-                  <span>${{ taxAmount().toFixed(2) }}</span>
+                <div class="flex justify-between text-sm">
+                  <span class="text-slate-500">IVA {{ taxRate() }}%</span>
+                  <span class="font-semibold">${{ taxAmount().toFixed(2) }}</span>
                 </div>
               }
               <div class="flex justify-between items-center">

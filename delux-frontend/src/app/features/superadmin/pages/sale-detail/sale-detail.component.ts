@@ -201,6 +201,29 @@ export class SaleDetailComponent implements OnInit, OnDestroy {
   }
   /** Total de la venta (tope del valor devuelto). */
   orderTotalNum(): number { return +(this.order()?.total || 0); }
+
+  // ── Desglose fiscal (mismo criterio que el comprobante impreso) ──
+  /** Tasa de IVA vigente (global, desde configuración). */
+  saleTaxRate(): number { return +this.branding.taxRate() || 0; }
+  /** IVA de la venta: el declarado si existe, si no se extrae del total. */
+  saleTax(): number {
+    const o = this.order(); if (!o) return 0;
+    const total = +o.total || 0;
+    const declared = +o.tax || 0;
+    if (declared > 0) return declared;
+    const r = this.saleTaxRate();
+    return r ? total - total / (1 + r / 100) : 0;
+  }
+  /** Subtotal sin IVA (neto) = total − IVA. Siempre cuadra: neto + IVA = total. */
+  saleNet(): number { const o = this.order(); if (!o) return 0; return (+o.total || 0) - this.saleTax(); }
+  /** Etiqueta legible de la forma de pago (código SRI tabla 24). */
+  private readonly PAYMENT_LABELS: Record<string, string> = {
+    '01': 'Efectivo', '16': 'Tarjeta de débito', '19': 'Tarjeta de crédito', '20': 'Transferencia',
+  };
+  paymentLabel(): string {
+    const pf = this.order()?.payment_form || '';
+    return this.PAYMENT_LABELS[pf] || 'Efectivo';
+  }
   /** Tipo automático: Total si el valor devuelto iguala el total; Parcial si es menor. */
   changeTipoAuto(): 'TOTAL' | 'PARCIAL' { return this.changeValue() >= this.orderTotalNum() ? 'TOTAL' : 'PARCIAL'; }
   changeTipoAutoLabel(): string { return this.changeTipoAuto() === 'TOTAL' ? 'Total' : 'Parcial'; }

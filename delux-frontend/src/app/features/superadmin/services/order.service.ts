@@ -66,6 +66,7 @@ export interface Order {
   shipping_fee: string;
   tax: string;
   total: string;
+  payment_form?: string;   // código SRI (01 efectivo, 16 débito, 19 crédito, 20 transferencia)
   coupon_code: string;
   notes: string;
   invoice_status?: 'NOT_ISSUED' | 'PROCESSING' | 'PENDING_SRI' | 'AUTHORIZED' | 'REJECTED' | 'ANNULLED' | 'ERROR';
