@@ -1,4 +1,4 @@
-from django.db.models import Count, Q
+from django.db.models import Count, Q, ProtectedError
 from django.db import transaction
 from rest_framework import filters, permissions, status, viewsets
 from rest_framework.decorators import action
@@ -27,6 +27,29 @@ class AdminCategoryViewSet(viewsets.ModelViewSet):
     search_fields = ['name', 'slug']
     ordering_fields = ['sort_order', 'name', 'created_at']
     ordering = ['sort_order', 'name']
+
+    def destroy(self, request, *args, **kwargs):
+        """No se puede eliminar una categoría en uso (FK PROTECT). Devolvemos un
+        mensaje claro en vez de un error 500. Cuenta incluye productos eliminados
+        (soft delete). El try/except cubre el caso de subcategorías con productos."""
+        cat = self.get_object()
+        count = cat.products.count()
+        if count:
+            return Response(
+                {'detail': f'No puedes eliminar la categoría "{cat.name}" porque tiene '
+                           f'{count} producto(s) asignado(s). Desactívala o reasigna '
+                           f'los productos a otra categoría primero.'},
+                status=status.HTTP_400_BAD_REQUEST,
+            )
+        try:
+            return super().destroy(request, *args, **kwargs)
+        except ProtectedError:
+            return Response(
+                {'detail': f'No puedes eliminar la categoría "{cat.name}" porque ella '
+                           f'o una de sus subcategorías tiene productos asignados. '
+                           f'Desactívala o reasigna los productos primero.'},
+                status=status.HTTP_400_BAD_REQUEST,
+            )
 
     def get_queryset(self):
         qs = (

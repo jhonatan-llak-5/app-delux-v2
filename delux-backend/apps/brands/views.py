@@ -29,6 +29,21 @@ class AdminBrandViewSet(viewsets.ModelViewSet):
             return BrandCreateUpdateSerializer
         return BrandSerializer
 
+    def destroy(self, request, *args, **kwargs):
+        """No se puede eliminar una marca en uso (FK PROTECT). En vez de un error
+        500 crudo, devolvemos un mensaje claro. La cuenta incluye productos
+        eliminados (soft delete), que también bloquean el borrado."""
+        brand = self.get_object()
+        count = brand.products.count()
+        if count:
+            return Response(
+                {'detail': f'No puedes eliminar la marca "{brand.name}" porque tiene '
+                           f'{count} producto(s) asignado(s). Desactívala o reasigna '
+                           f'los productos a otra marca primero.'},
+                status=status.HTTP_400_BAD_REQUEST,
+            )
+        return super().destroy(request, *args, **kwargs)
+
     def get_queryset(self):
         qs = Brand.objects.annotate(
             products_count=Count('products', distinct=True),
