@@ -42,6 +42,8 @@ export interface Lote {
   price: number;
   qtyMap: Record<string, number>;
   bulkQty: number;
+  /** El costo ingresado ya incluye IVA (por defecto sí). Independiente por lote. */
+  costIncludesIva: boolean;
 }
 
 /** Snapshot completo del formulario embebido (para persistir el borrador). */
@@ -153,7 +155,7 @@ export class ManualProductModalComponent implements OnInit {
   // ── Modo CLÁSICO: lotes (cada lote = talla×color + costo + precio + cantidad) ──
   lotes: Lote[] = [this.emptyLote()];
   private emptyLote(): Lote {
-    return { selColors: [], selSizes: [], newColor: '', newSizeText: '', cost: 0, price: 0, qtyMap: {}, bulkQty: 1 };
+    return { selColors: [], selSizes: [], newColor: '', newSizeText: '', cost: 0, price: 0, qtyMap: {}, bulkQty: 1, costIncludesIva: true };
   }
   addLote(): void { this.lotes = [...this.lotes, this.emptyLote()]; this.changed.emit(); }
   /** ¿El lote tiene algún dato cargado (colores, tallas, costo, precio o cantidad)? */
@@ -220,8 +222,12 @@ export class ManualProductModalComponent implements OnInit {
    * para poder ajustarla luego en el Paso 2). */
   private classicItems(): { color: string; size: string; qty: number; cost: number; price: number }[] {
     const out: { color: string; size: string; qty: number; cost: number; price: number }[] = [];
-    for (const l of this.lotes) for (const x of this.loteAllCombos(l)) {
-      out.push({ color: x.color, size: x.size, qty: this.getLoteQty(l, x.color, x.size), cost: +l.cost || 0, price: +l.price || 0 });
+    for (const l of this.lotes) {
+      // El costo se guarda SIEMPRE con IVA; cada lote decide si ya lo incluía.
+      const cost = this.costWithIva(+l.cost || 0, l.costIncludesIva);
+      for (const x of this.loteAllCombos(l)) {
+        out.push({ color: x.color, size: x.size, qty: this.getLoteQty(l, x.color, x.size), cost, price: +l.price || 0 });
+      }
     }
     return out;
   }
@@ -296,6 +302,23 @@ export class ManualProductModalComponent implements OnInit {
   margin(): number { return (this.finalPrice()) - (+this.nf.cost || 0); }
   marginPct(): number { const c = +this.nf.cost || 0; return c > 0 ? (this.margin() / c) * 100 : 0; }
   money(v: number): string { return '$' + (Math.round((v || 0) * 100) / 100).toFixed(2); }
+
+  // ── Costo con/sin IVA ──
+  /** Si el vendedor ingresó el costo tal cual la factura del proveedor (sin IVA),
+   *  se apaga y al guardar se convierte a costo CON IVA. Por defecto ya incluye IVA. */
+  costIncludesIva = true;
+  private round2(n: number): number { return Math.round((+n || 0) * 100) / 100; }
+  /** Convierte a costo CON IVA según el flag dado (aplica IVA solo si NO lo incluye). */
+  private costWithIva(c: number, includesIva: boolean): number {
+    const v = +c || 0;
+    if (includesIva) return v;
+    const r = +this.effectiveIva() || 0;
+    return this.round2(v * (1 + r / 100));
+  }
+  /** Para el costo del formulario (producto simple/personalizado): usa el flag global. */
+  private toCostWithIva(c: number): number { return this.costWithIva(c, this.costIncludesIva); }
+  /** Vista en vivo del costo con IVA (para la ayuda bajo el campo). */
+  costWithIvaPreview(c: number): number { return this.round2((+c || 0) * (1 + (+this.effectiveIva() || 0) / 100)); }
 
   // ── Oferta (descuento %) ──
   onOffer = false;
@@ -387,6 +410,7 @@ export class ManualProductModalComponent implements OnInit {
             newColor: l.newColor || '', newSizeText: l.newSizeText || '',
             cost: +l.cost || 0, price: +l.price || 0,
             qtyMap: { ...(l.qtyMap || {}) }, bulkQty: +l.bulkQty || 1,
+            costIncludesIva: l.costIncludesIva ?? true,
           }))
         : [this.emptyLote()];
       this.dims = Array.isArray(d.dims) && d.dims.length ? d.dims.map(x => ({ name: x.name, values: [...(x.values || [])] })) : [{ name: 'Talla', values: [] }];
@@ -410,6 +434,7 @@ export class ManualProductModalComponent implements OnInit {
         selColors: [...l.selColors], selSizes: [...l.selSizes],
         newColor: l.newColor, newSizeText: l.newSizeText,
         cost: l.cost, price: l.price, qtyMap: { ...l.qtyMap }, bulkQty: l.bulkQty,
+        costIncludesIva: l.costIncludesIva ?? true,
       })),
       dims: this.dims.map(d => ({ name: d.name, values: [...d.values] })),
       comboQty: { ...this.comboQty },
@@ -508,7 +533,7 @@ export class ManualProductModalComponent implements OnInit {
         product_name: this.nf.product_name.trim(),
         brand: this.nf.brand.trim(), category: this.nf.category.trim(),
         kind: this.nf.kind, color: '', size: '', barcode: this.nf.barcode.trim(),
-        cost: +(this.nf.cost ?? 0), price: this.finalPrice(), quantity: 0,
+        cost: this.toCostWithIva(+(this.nf.cost ?? 0)), price: this.finalPrice(), quantity: 0,
         tax_rate: tax, compare_at_price: cmp, discount_percent: this.offerDiscount(),
         description: (this.nf.description || '').trim(), images: imgs,
         supplier_name: this.receptionSupplier.trim(), note: this.receptionNote.trim(),
@@ -527,7 +552,7 @@ export class ManualProductModalComponent implements OnInit {
       brand: this.nf.brand.trim(),
       category: this.nf.category.trim(),
       kind: this.nf.kind,
-      cost: +(this.nf.cost ?? 0),
+      cost: this.toCostWithIva(+(this.nf.cost ?? 0)),
       price: finalUnit,
       tax_rate: tax,
       compare_at_price: cmp,
@@ -599,7 +624,7 @@ export class ManualProductModalComponent implements OnInit {
       brand: this.nf.brand.trim(), category: this.nf.category.trim(), kind: this.nf.kind,
       color: x.color.trim(), size: x.size.trim(),
       barcode: single ? this.nf.barcode.trim() : '',
-      cost: x.cost, price: x.price, quantity: x.qty,
+      cost: this.toCostWithIva(x.cost), price: x.price, quantity: x.qty,
       tax_rate: tax, compare_at_price: null, discount_percent: this.offerDiscount(),
       description: (this.nf.description || '').trim(), images: imgs,
     })));

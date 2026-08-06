@@ -92,6 +92,13 @@
           <label class="eg-label">Costo de compra *</label>
           <dlx-price-input [(ngModel)]="nf.cost" (ngModelChange)="clearErr('cost')" extraClass="w-full" />
           <dlx-field-error [error]="fe('cost')" />
+          <label class="mt-1.5 flex items-center gap-2 text-[11px] text-slate-500 cursor-pointer select-none">
+            <input type="checkbox" [(ngModel)]="costIncludesIva" class="w-3.5 h-3.5 accent-[var(--dash-primary)]" />
+            El costo ya incluye IVA
+          </label>
+          @if (!costIncludesIva && (+nf.cost || 0) > 0) {
+            <p class="text-[11px] text-slate-400 mt-0.5">Se guardará con IVA: <span class="font-semibold text-slate-600 dark:text-slate-300">{{ money(costWithIvaPreview(+nf.cost)) }}</span></p>
+          }
         </div>
       }
       <div>
@@ -321,6 +328,13 @@
               <div>
                 <label class="eg-label">Costo de compra *</label>
                 <dlx-price-input [(ngModel)]="l.cost" (ngModelChange)="changed.emit()" extraClass="w-full" />
+                <label class="mt-1.5 flex items-center gap-2 text-[11px] text-slate-500 cursor-pointer select-none">
+                  <input type="checkbox" [(ngModel)]="l.costIncludesIva" (ngModelChange)="changed.emit()" class="w-3.5 h-3.5 accent-[var(--dash-primary)]" />
+                  El costo ya incluye IVA
+                </label>
+                @if (!l.costIncludesIva && (+l.cost || 0) > 0) {
+                  <p class="text-[11px] text-slate-400 mt-0.5">Se guardará con IVA: <span class="font-semibold text-slate-600 dark:text-slate-300">{{ money(costWithIvaPreview(+l.cost)) }}</span></p>
+                }
               </div>
               <div>
                 <label class="eg-label">Precio de venta (con IVA) *</label>

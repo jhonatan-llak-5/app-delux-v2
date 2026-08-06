@@ -32,6 +32,7 @@ class ProductSerializer(serializers.ModelSerializer):
             'id', 'name', 'slug', 'short_description', 'description',
             'brand', 'brand_name', 'category', 'category_name',
             'base_price', 'compare_at_price', 'tax_rate',
+            'kind',
             'gender', 'status', 'tag', 'is_featured', 'variant_options',
             'discount_percent', 'on_offer',
             'main_image_url',

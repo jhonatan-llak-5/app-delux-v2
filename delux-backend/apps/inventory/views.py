@@ -110,6 +110,10 @@ class AdminStockViewSet(viewsets.ReadOnlyModelViewSet):
             before = stock.quantity
             new_qty = max(0, stock.quantity + delta)
             stock.quantity = new_qty
+            # Entradas (reposición/compra) no deben disparar "stock bajo"; las
+            # salidas sí (venta/merma que dejan poco stock).
+            if delta > 0:
+                stock._skip_low_stock = True
             stock.save(update_fields=['quantity', 'updated_at'])
             StockMovement.objects.create(
                 tenant=stock.tenant, stock=stock,
@@ -460,19 +464,49 @@ class AdminReceptionViewSet(viewsets.ModelViewSet):
     ordering = ['-created_at']
 
     def get_queryset(self):
+        from django.db.models.functions import Coalesce
         qs = (Reception.objects
               .select_related('supplier', 'branch', 'created_by')
-              .prefetch_related('items', 'items__variant', 'items__variant__product'))
+              .prefetch_related('items', 'items__variant', 'items__variant__product')
+              .annotate(eff_date=Coalesce('committed_at', 'created_at')))
         tenant = resolve_tenant(self.request.user)
         if tenant:
             qs = qs.filter(tenant=tenant)
         user = self.request.user
         if getattr(user, 'role', None) in ('BRANCH_MANAGER', 'SALESPERSON') and getattr(user, 'branch_id', None):
             qs = qs.filter(branch_id=user.branch_id)
-        branch = self.request.query_params.get('branch')
-        if branch:
-            qs = qs.filter(branch_id=branch)
-        return qs.order_by('-created_at')
+        params = self.request.query_params
+        if params.get('branch'):
+            qs = qs.filter(branch_id=params['branch'])
+        # Filtros para conciliar contra la factura del proveedor.
+        if params.get('supplier'):
+            qs = qs.filter(supplier_id=params['supplier'])
+        if params.get('created_by'):
+            qs = qs.filter(created_by_id=params['created_by'])
+        if params.get('date_from'):
+            qs = qs.filter(eff_date__date__gte=params['date_from'])
+        if params.get('date_to'):
+            qs = qs.filter(eff_date__date__lte=params['date_to'])
+        return qs.order_by('-eff_date')
+
+    @action(detail=False, methods=['get'])
+    def users(self, request):
+        """Usuarios que han registrado recepciones (para el filtro del historial).
+        No aplica el rango de fechas: siempre muestra la lista completa."""
+        from apps.accounts.models import User
+        recs = Reception.objects.all()
+        tenant = resolve_tenant(request.user)
+        if tenant:
+            recs = recs.filter(tenant=tenant)
+        u = request.user
+        if getattr(u, 'role', None) in ('BRANCH_MANAGER', 'SALESPERSON') and getattr(u, 'branch_id', None):
+            recs = recs.filter(branch_id=u.branch_id)
+        ids = list(recs.exclude(created_by__isnull=True)
+                       .values_list('created_by_id', flat=True).distinct())
+        out = [{'id': x.id, 'name': (x.full_name or x.email or f'Usuario {x.id}')}
+               for x in User.objects.filter(id__in=ids)]
+        out.sort(key=lambda z: z['name'].lower())
+        return Response({'results': out})
 
     def create(self, request, *args, **kwargs):
         from rest_framework.exceptions import ValidationError
@@ -637,6 +671,8 @@ class AdminReceptionViewSet(viewsets.ModelViewSet):
                 )
                 rec_before = stock.quantity
                 stock.quantity += qty
+                # Recibir mercadería no debe disparar la alerta de "stock bajo".
+                stock._skip_low_stock = True
                 stock.save(update_fields=['quantity', 'updated_at'])
                 StockMovement.objects.create(
                     tenant=tenant, stock=stock, type=StockMovement.TYPE_IN,

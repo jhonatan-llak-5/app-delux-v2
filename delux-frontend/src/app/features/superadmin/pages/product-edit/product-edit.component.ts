@@ -109,7 +109,7 @@ export class ProductEditComponent implements OnInit {
           product_name: p.name,
           brand: p.brand_name || '',
           category: p.category_name || '',
-          kind: 'OTRO',
+          kind: p.kind || 'OTRO',
           description: p.description || '',
           barcode: firstBarcode,
           base_price: Number(p.base_price) || 0,

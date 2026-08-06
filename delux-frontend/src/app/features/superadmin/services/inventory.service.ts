@@ -1,6 +1,7 @@
 import { Injectable, inject } from '@angular/core';
 import { HttpClient, HttpParams } from '@angular/common/http';
 import { Observable } from 'rxjs';
+import { map } from 'rxjs/operators';
 import { environment } from '@env/environment';
 
 export interface Stock {
@@ -222,7 +223,7 @@ export class InventoryService {
     );
   }
 
-  movements(params: { branch?: number; product?: number; type?: string } = {}): Observable<Paged<StockMovement>> {
+  movements(params: { branch?: number; product?: number; type?: string; page?: number; page_size?: number } = {}): Observable<Paged<StockMovement>> {
     let p = new HttpParams();
     Object.entries(params).forEach(([k, v]) => {
       if (v !== undefined && v !== null && v !== '') p = p.set(k, String(v));
@@ -269,7 +270,18 @@ export class InventoryService {
     return this.http.post<ReceptionResult>(`${this.base}/receptions/`, payload);
   }
 
-  listReceptions(): Observable<Paged<ReceptionResult>> {
-    return this.http.get<Paged<ReceptionResult>>(`${this.base}/receptions/`);
+  listReceptions(params: {
+    branch?: number; supplier?: number; created_by?: number;
+    date_from?: string; date_to?: string; page?: number; page_size?: number;
+  } = {}): Observable<Paged<ReceptionResult>> {
+    let p = new HttpParams();
+    Object.entries(params).forEach(([k, v]) => { if (v) p = p.set(k, String(v)); });
+    return this.http.get<Paged<ReceptionResult>>(`${this.base}/receptions/`, { params: p });
+  }
+
+  /** Usuarios que han registrado recepciones (para el filtro del historial). */
+  receptionUsers(): Observable<{ id: number; name: string }[]> {
+    return this.http.get<{ results: { id: number; name: string }[] }>(`${this.base}/receptions/users/`)
+      .pipe(map(r => r.results || []));
   }
 }

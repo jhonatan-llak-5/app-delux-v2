@@ -78,6 +78,9 @@ def _on_stock_low(sender, instance, created, **kwargs):
     if sender is not Stock:
         return
     stock = instance
+    # Recepción de mercadería: recibir stock nunca debe disparar "stock bajo".
+    if getattr(stock, '_skip_low_stock', False):
+        return
     threshold = getattr(stock, 'min_threshold', 0) or 0
     if threshold <= 0:
         return

@@ -1,19 +1,23 @@
 import { ChangeDetectionStrategy, Component, OnInit, inject, signal } from '@angular/core';
+import { FormsModule } from '@angular/forms';
 import { DlxExportMenuComponent } from '@shared/ui/export-menu.component';
-import { ExportColumn } from '@shared/utils/export.util';
+import { ExportColumn, PdfLogo } from '@shared/utils/export.util';
 import { DlxEmptyStateComponent } from '@shared/ui/empty-state.component';
 import { CommonModule, DatePipe } from '@angular/common';
 import { RouterLink } from '@angular/router';
-import { InventoryService, ReceptionResult } from '@features/superadmin/services/inventory.service';
+import { InventoryService, ReceptionResult, Supplier } from '@features/superadmin/services/inventory.service';
 import { BrandingService } from '@core/services/branding.service';
 import { NotifyService } from '@shared/services/notify.service';
 import { parseApiError } from '@shared/utils/api-error.util';
 import { printProductLabels } from '@shared/utils/print-labels';
+import { exportReceptionsPdf, ReceptionReportRow } from '@shared/utils/reception-report.util';
+import { RowActionsComponent, RowAction } from '@shared/ui/row-actions.component';
+import { DlxPaginationComponent } from '@shared/ui/pagination.component';
 
 @Component({
   selector: 'dlx-receptions-list',
   standalone: true,
-  imports: [DlxEmptyStateComponent, CommonModule, RouterLink, DatePipe, DlxExportMenuComponent],
+  imports: [DlxEmptyStateComponent, CommonModule, RouterLink, DatePipe, DlxExportMenuComponent, FormsModule, RowActionsComponent, DlxPaginationComponent],
   changeDetection: ChangeDetectionStrategy.OnPush,
   template: `
     <div class="mb-5 flex items-start justify-between gap-3 flex-wrap">
@@ -22,9 +26,41 @@ import { printProductLabels } from '@shared/utils/print-labels';
         <p class="text-slate-500 text-sm mt-1">Todas las recepciones de mercadería confirmadas.</p>
       </div>
       <div class="flex gap-2">
-        <button class="btn-secondary text-sm" (click)="reload()"><i class="fa-solid fa-arrows-rotate"></i> Recargar</button>
-        <dlx-export-menu [columns]="exportColumns" [rows]="receptions()" filename="recepciones" title="Historial de recepciones" orientation="l" />
+        <dlx-export-menu [columns]="exportColumns" [rows]="receptions()" [pdfHandler]="onExportPdf"
+                         filename="recepciones" title="Historial de recepciones" orientation="l" />
         <a routerLink="/app/admin/inventory/reception" class="eg-btn-primary text-sm"><i class="fa-solid fa-plus"></i> Nueva recepción</a>
+      </div>
+    </div>
+
+    <!-- Filtros: fecha, usuario, proveedor -->
+    <div class="card p-3 mb-4 flex flex-wrap items-end gap-3">
+      <div>
+        <label class="block text-[11px] font-semibold text-slate-500 mb-1">Desde</label>
+        <input type="date" [(ngModel)]="dateFrom" (ngModelChange)="reload()" class="eg-input !h-9 text-sm" />
+      </div>
+      <div>
+        <label class="block text-[11px] font-semibold text-slate-500 mb-1">Hasta</label>
+        <input type="date" [(ngModel)]="dateTo" (ngModelChange)="reload()" class="eg-input !h-9 text-sm" />
+      </div>
+      <div>
+        <label class="block text-[11px] font-semibold text-slate-500 mb-1">Usuario</label>
+        <select [(ngModel)]="userId" (ngModelChange)="reload()" class="eg-input !h-9 text-sm min-w-44">
+          <option [ngValue]="null">Todos</option>
+          @for (u of users(); track u.id) { <option [ngValue]="u.id">{{ u.name }}</option> }
+        </select>
+      </div>
+      <div>
+        <label class="block text-[11px] font-semibold text-slate-500 mb-1">Proveedor</label>
+        <select [(ngModel)]="supplierId" (ngModelChange)="reload()" class="eg-input !h-9 text-sm min-w-44">
+          <option [ngValue]="null">Todos</option>
+          @for (s of suppliers(); track s.id) { <option [ngValue]="s.id">{{ s.name }}</option> }
+        </select>
+      </div>
+      @if (dateFrom || dateTo || userId || supplierId) {
+        <button class="btn-secondary text-sm !h-9" (click)="clearFilters()"><i class="fa-solid fa-xmark"></i> Limpiar</button>
+      }
+      <div class="ml-auto flex items-end gap-2">
+        <button class="btn-secondary text-sm !h-9" (click)="reload()"><i class="fa-solid fa-arrows-rotate"></i> Recargar</button>
       </div>
     </div>
 
@@ -47,7 +83,7 @@ import { printProductLabels } from '@shared/utils/print-labels';
                 <th class="px-4 py-3 font-semibold">Sucursal</th>
                 <th class="px-4 py-3 font-semibold text-center">Productos</th>
                 <th class="px-4 py-3 font-semibold text-center">Unidades</th>
-                <th class="px-4 py-3"></th>
+                <th class="px-4 py-3 font-semibold text-right">Acciones</th>
               </tr>
             </thead>
             <tbody>
@@ -59,13 +95,8 @@ import { printProductLabels } from '@shared/utils/print-labels';
                   <td class="px-4 py-2.5">{{ r.branch_name }}</td>
                   <td class="px-4 py-2.5 text-center">{{ r.items_count ?? r.items.length }}</td>
                   <td class="px-4 py-2.5 text-center font-semibold">{{ r.total_units }}</td>
-                  <td class="px-4 py-2.5 text-right whitespace-nowrap">
-                    <button class="text-slate-400 hover:text-[var(--dash-primary)] mr-3" (click)="openDetail(r)" title="Ver detalle">
-                      <i class="fa-solid fa-eye text-xs"></i>
-                    </button>
-                    <button class="text-slate-400 hover:text-[var(--dash-primary)]" (click)="printLabels(r)" title="Reimprimir etiquetas">
-                      <i class="fa-solid fa-print text-xs"></i>
-                    </button>
+                  <td class="px-4 py-2.5 text-right">
+                    <dlx-row-actions [actions]="rowActions(r)" />
                   </td>
                 </tr>
               }
@@ -84,15 +115,19 @@ import { printProductLabels } from '@shared/utils/print-labels';
                 <p class="text-xs text-slate-400">{{ (r.committed_at || r.created_at) | date:'dd/MM/yyyy HH:mm' }}</p>
                 <p class="text-sm mt-1">{{ r.supplier_name || 'Sin proveedor' }} · {{ r.branch_name }}</p>
               </div>
-              <div class="flex items-center gap-3 shrink-0">
-                <button (click)="openDetail(r)" class="text-slate-400"><i class="fa-solid fa-eye text-xs"></i></button>
-                <button (click)="printLabels(r)" class="text-slate-400"><i class="fa-solid fa-print text-xs"></i></button>
+              <div class="shrink-0">
+                <dlx-row-actions [actions]="rowActions(r)" />
               </div>
             </div>
             <div class="text-xs text-slate-500 mt-2">{{ r.items_count ?? r.items.length }} productos · <span class="font-semibold">{{ r.total_units }}</span> uds</div>
           </div>
         }
       </div>
+
+      @if (total() > pageSize()) {
+        <dlx-pagination class="block mt-4" [page]="page()" [pageSize]="pageSize()" [total]="total()"
+                        (pageChange)="onPage($event)" (pageSizeChange)="onSize($event)" />
+      }
     }
 
     <!-- Detalle -->
@@ -167,18 +202,102 @@ export class ReceptionsListComponent implements OnInit {
   loading = signal(true);
   detail = signal<ReceptionResult | null>(null);
 
-  ngOnInit(): void { this.reload(); }
+  // ── Filtros ──
+  dateFrom = '';
+  dateTo = '';
+  userId: number | null = null;
+  supplierId: number | null = null;
+  users = signal<{ id: number; name: string }[]>([]);
+  suppliers = signal<Supplier[]>([]);
+  page = signal(1);
+  pageSize = signal(25);
+  total = signal(0);
 
-  reload(): void {
+  ngOnInit(): void {
+    this.reload();
+    this.inv.receptionUsers().subscribe({ next: u => this.users.set(u), error: () => {} });
+    this.inv.listSuppliers().subscribe({ next: r => this.suppliers.set(r.results), error: () => {} });
+  }
+
+  /** Recarga desde la primera página (al cambiar filtros). */
+  reload(): void { this.page.set(1); this.fetch(); }
+
+  private fetch(): void {
     this.loading.set(true);
-    this.inv.listReceptions().subscribe({
-      next: r => { this.receptions.set(r.results); this.loading.set(false); },
+    this.inv.listReceptions({
+      date_from: this.dateFrom || undefined,
+      date_to: this.dateTo || undefined,
+      created_by: this.userId ?? undefined,
+      supplier: this.supplierId ?? undefined,
+      page: this.page(), page_size: this.pageSize(),
+    }).subscribe({
+      next: r => { this.receptions.set(r.results); this.total.set(r.count); this.loading.set(false); },
       error: e => { this.loading.set(false); this.notify.error(parseApiError(e).message || 'No se pudieron cargar las recepciones.'); },
     });
   }
 
+  onPage(p: number): void { this.page.set(p); this.fetch(); }
+  onSize(s: number): void { this.pageSize.set(s); this.page.set(1); this.fetch(); }
+
+  clearFilters(): void {
+    this.dateFrom = ''; this.dateTo = ''; this.userId = null; this.supplierId = null;
+    this.reload();
+  }
+
+  /** Texto de filtros aplicados para el encabezado del PDF. */
+  private filtersLabel(): string {
+    const parts: string[] = [];
+    if (this.userId) { const u = this.users().find(x => x.id === this.userId); if (u) parts.push(`Usuario: ${u.name}`); }
+    if (this.supplierId) { const s = this.suppliers().find(x => x.id === this.supplierId); if (s) parts.push(`Proveedor: ${s.name}`); }
+    return parts.join('   ·   ');
+  }
+
+  /** Genera el PDF detallado con el logo cargado por el export-menu. */
+  onExportPdf = ({ logo, brandName }: { logo: PdfLogo | null; brandName: string }): void => {
+    const recs = this.receptions();
+    if (!recs.length) { this.notify.warning('No hay recepciones para exportar con esos filtros.'); return; }
+    const rows: ReceptionReportRow[] = recs.map(r => {
+      const items = (r.items || []).map(it => ({
+        code: it.variant_sku,
+        product: it.product_name,
+        variant: [it.size, it.color].filter(Boolean).join(' / ') || '—',
+        qty: +it.quantity || 0,
+        unitCost: +it.unit_cost || 0,
+      }));
+      const totalCost = items.reduce((a, it) => a + it.qty * it.unitCost, 0);
+      return {
+        code: r.code,
+        date: r.committed_at || r.created_at || '',
+        supplier: r.supplier_name || '—',
+        branch: r.branch_name,
+        user: r.created_by_name || '—',
+        items,
+        totalUnits: r.total_units ?? items.reduce((a, it) => a + it.qty, 0),
+        totalCost,
+      };
+    });
+    exportReceptionsPdf({
+      storeName: this.branding.siteName(),
+      brandName,
+      logo,
+      range: { from: this.dateFrom, to: this.dateTo },
+      filters: this.filtersLabel(),
+      receptions: rows,
+      grandUnits: rows.reduce((a, r) => a + r.totalUnits, 0),
+      grandCost: rows.reduce((a, r) => a + r.totalCost, 0),
+    });
+  };
+
   openDetail(r: ReceptionResult): void { this.detail.set(r); }
   money(v: any): string { return '$' + (Math.round((+v || 0) * 100) / 100).toFixed(2); }
+
+  /** Acciones de fila (mismo componente que Historial de ventas). */
+  rowActions(r: ReceptionResult): RowAction[] {
+    return [
+      { label: 'Ver detalle', icon: 'fa-eye', run: () => this.openDetail(r) },
+      { label: 'Reimprimir etiquetas', icon: 'fa-print', run: () => this.printLabels(r) },
+    ];
+  }
 
   printLabels(r: ReceptionResult): void {
     const items = r.items.map(it => ({

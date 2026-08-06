@@ -27,6 +27,7 @@ export interface Product {
   tax_rate?: string | null;
   discount_percent?: string | null;
   on_offer?: boolean;
+  kind?: string;
   gender: 'UNISEX' | 'MEN' | 'WOMEN' | 'KIDS';
   status: 'DRAFT' | 'PUBLISHED' | 'PAUSED' | 'ARCHIVED';
   tag: '' | 'NEW' | 'DROP' | 'SALE' | 'EXCLUSIVE';

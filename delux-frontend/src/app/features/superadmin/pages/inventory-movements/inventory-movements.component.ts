@@ -7,11 +7,12 @@ import { FormsModule } from '@angular/forms';
 import { ActivatedRoute, RouterLink } from '@angular/router';
 import { InventoryService, StockMovement } from '@features/superadmin/services/inventory.service';
 import { AdminService, AdminBranch } from '@features/superadmin/services/admin.service';
+import { DlxPaginationComponent } from '@shared/ui/pagination.component';
 
 @Component({
   selector: 'dlx-inventory-movements',
   standalone: true,
-  imports: [DlxEmptyStateComponent, ImgFallbackDirective, CommonModule, FormsModule, RouterLink],
+  imports: [DlxEmptyStateComponent, ImgFallbackDirective, CommonModule, FormsModule, RouterLink, DlxPaginationComponent],
   changeDetection: ChangeDetectionStrategy.OnPush,
   template: `
     <div class="flex items-center gap-2 text-xs text-slate-500 mb-1">
@@ -129,6 +130,11 @@ import { AdminService, AdminBranch } from '@features/superadmin/services/admin.s
       }
     </div>
 
+    @if (total() > pageSize()) {
+      <dlx-pagination class="block mt-4" [page]="page()" [pageSize]="pageSize()" [total]="total()"
+                      (pageChange)="onPage($event)" (pageSizeChange)="onSize($event)" />
+    }
+
     <!-- Drawer: Detalle del movimiento -->
     @if (selected(); as m) {
       <div class="fixed inset-0 z-50 flex justify-end">
@@ -216,6 +222,9 @@ export class InventoryMovementsComponent implements OnInit {
   productId = signal<number | null>(null);
   productName = signal<string>('');
   productImage = signal<string>('');
+  page = signal(1);
+  pageSize = signal(25);
+  total = signal(0);
   branchFilter: number | null = null;
   typeFilter = '';
 
@@ -235,15 +244,19 @@ export class InventoryMovementsComponent implements OnInit {
     });
   }
 
-  reload(): void {
+  reload(): void { this.page.set(1); this.fetch(); }
+
+  private fetch(): void {
     this.loading.set(true);
     this.svc.movements({
       branch: this.branchFilter || undefined,
       product: this.productId() || undefined,
       type: this.typeFilter || undefined,
+      page: this.page(), page_size: this.pageSize(),
     }).subscribe({
       next: r => {
         this.items.set(r.results);
+        this.total.set(r.count);
         if (this.productId() && r.results.length) {
           if (!this.productName()) this.productName.set(r.results[0].product_name);
           this.productImage.set(r.results[0].product_main_image || '');
@@ -253,6 +266,9 @@ export class InventoryMovementsComponent implements OnInit {
       error: () => this.loading.set(false),
     });
   }
+
+  onPage(p: number): void { this.page.set(p); this.fetch(); }
+  onSize(s: number): void { this.pageSize.set(s); this.page.set(1); this.fetch(); }
 
   open(m: StockMovement): void { this.selected.set(m); }
   close(): void { this.selected.set(null); }
