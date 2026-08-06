@@ -171,7 +171,7 @@ import { PrinterSetupGuideComponent } from '@shared/components/printer-setup-gui
         }
       </div>
 
-      @if (total() > pageSize()) {
+      @if (total() > 0) {
         <dlx-pagination [page]="page()" [pageSize]="pageSize()" [total]="total()"
                         (pageChange)="onPage($event)" (pageSizeChange)="onSize($event)" />
       }

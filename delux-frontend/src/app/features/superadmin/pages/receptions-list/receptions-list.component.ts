@@ -13,11 +13,12 @@ import { printProductLabels } from '@shared/utils/print-labels';
 import { exportReceptionsPdf, ReceptionReportRow } from '@shared/utils/reception-report.util';
 import { RowActionsComponent, RowAction } from '@shared/ui/row-actions.component';
 import { DlxPaginationComponent } from '@shared/ui/pagination.component';
+import { DlxReloadButtonComponent } from '@shared/ui/reload-button.component';
 
 @Component({
   selector: 'dlx-receptions-list',
   standalone: true,
-  imports: [DlxEmptyStateComponent, CommonModule, RouterLink, DatePipe, DlxExportMenuComponent, FormsModule, RowActionsComponent, DlxPaginationComponent],
+  imports: [DlxEmptyStateComponent, CommonModule, RouterLink, DatePipe, DlxExportMenuComponent, FormsModule, RowActionsComponent, DlxPaginationComponent, DlxReloadButtonComponent],
   changeDetection: ChangeDetectionStrategy.OnPush,
   template: `
     <div class="mb-5 flex items-start justify-between gap-3 flex-wrap">
@@ -60,7 +61,7 @@ import { DlxPaginationComponent } from '@shared/ui/pagination.component';
         <button class="btn-secondary text-sm !h-9" (click)="clearFilters()"><i class="fa-solid fa-xmark"></i> Limpiar</button>
       }
       <div class="ml-auto flex items-end gap-2">
-        <button class="btn-secondary text-sm !h-9" (click)="reload()"><i class="fa-solid fa-arrows-rotate"></i> Recargar</button>
+        <dlx-reload-button [loading]="loading()" (reload)="reload()" />
       </div>
     </div>
 
@@ -124,7 +125,7 @@ import { DlxPaginationComponent } from '@shared/ui/pagination.component';
         }
       </div>
 
-      @if (total() > pageSize()) {
+      @if (total() > 0) {
         <dlx-pagination class="block mt-4" [page]="page()" [pageSize]="pageSize()" [total]="total()"
                         (pageChange)="onPage($event)" (pageSizeChange)="onSize($event)" />
       }

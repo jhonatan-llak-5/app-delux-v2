@@ -85,12 +85,13 @@ class AdminStockViewSet(viewsets.ReadOnlyModelViewSet):
                     pass
                 qs = qs.filter(cond)
 
-        # Scoping por rol: gerente ve toda su tienda; vendedor/bodeguero solo su sucursal.
+        # Scoping por rol: solo el superadmin ve todas las sucursales. Gerente,
+        # vendedor y bodeguero quedan acotados a SU sucursal asignada.
         user = self.request.user
         if getattr(user, 'role', None) and user.role != 'SUPERADMIN':
             if user.tenant_id:
                 qs = qs.filter(tenant_id=user.tenant_id)
-            if user.role in ('SALESPERSON', 'WAREHOUSE') and user.branch_id:
+            if user.role in ('BRANCH_MANAGER', 'SALESPERSON', 'WAREHOUSE') and user.branch_id:
                 qs = qs.filter(branch_id=user.branch_id)
         return qs
 
@@ -235,6 +236,7 @@ class AdminStockViewSet(viewsets.ReadOnlyModelViewSet):
                     'category_name': p.category.name if p.category_id else '',
                     'product_main_image': p.main_image_url or '',
                     'product_status': p.status,
+                    'online_visible': p.online_visible,
                     'on_offer': p.on_offer,
                     'discount_percent': float(p.discount_percent or 0),
                     'variants_count': 0,
@@ -408,8 +410,8 @@ class AdminMovementViewSet(viewsets.ReadOnlyModelViewSet):
         # Aislar por tienda (tenant) salvo superadmin.
         if role != 'SUPERADMIN':
             qs = qs.filter(tenant_id=getattr(user, 'tenant_id', None))
-        # Vendedor/Bodeguero: solo su sucursal (gerente ve toda la tienda).
-        if role in ('SALESPERSON', 'WAREHOUSE') and getattr(user, 'branch_id', None):
+        # Gerente/Vendedor/Bodeguero: solo su sucursal (solo el superadmin ve todas).
+        if role in ('BRANCH_MANAGER', 'SALESPERSON', 'WAREHOUSE') and getattr(user, 'branch_id', None):
             qs = qs.filter(stock__branch_id=user.branch_id)
         params = self.request.query_params
         if params.get('branch'):  qs = qs.filter(stock__branch_id=params['branch'])

@@ -69,6 +69,15 @@ class Product(TenantOwnedModel):
 
     is_featured = models.BooleanField(default=False)
 
+    # Visibilidad en el sitio web público. True = aparece en la tienda en línea
+    # (catálogo, buscador, chatbot, PDF). False = "vender solo en tienda física":
+    # se oculta de la web pero SIGUE disponible en POS y en el kiosko. Es
+    # independiente del `status` (un producto Publicado puede estar oculto de la web).
+    online_visible = models.BooleanField(
+        default=True, db_index=True,
+        help_text='Si está desactivado, el producto no aparece en el sitio web '
+                  'pero sigue vendiéndose en tienda física (POS) y kiosko.')
+
     # Dimensiones de variante personalizadas (estilo Treinta). Lista de
     # {"name": "Talla", "values": ["38","39","40"]}. Vacío = producto simple o
     # con las dimensiones clásicas talla/color.

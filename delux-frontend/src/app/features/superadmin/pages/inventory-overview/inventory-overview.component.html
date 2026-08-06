@@ -131,10 +131,10 @@
                     <div class="flex flex-wrap items-center gap-2">
                       <span class="text-sm font-semibold text-[var(--dash-primary)]">{{ selected().size }} seleccionado(s)</span>
                       <div class="flex-1"></div>
-                      <button type="button" (click)="bulkSetStatus('PUBLISHED')" title="Visible y a la venta"
-                              class="px-3 h-9 rounded-lg text-sm font-semibold bg-emerald-600 text-white hover:bg-emerald-700 inline-flex items-center gap-1.5"><i class="fa-solid fa-eye"></i> Activar</button>
-                      <button type="button" (click)="bulkSetStatus('PAUSED')" title="Ocultar de la tienda y del POS"
-                              class="px-3 h-9 rounded-lg text-sm font-semibold bg-amber-500 text-white hover:bg-amber-600 inline-flex items-center gap-1.5"><i class="fa-solid fa-eye-slash"></i> Desactivar</button>
+                      <button type="button" (click)="bulkSetOnline(true)" title="Se muestran en el sitio web (siguen en POS y kiosko)"
+                              class="px-3 h-9 rounded-lg text-sm font-semibold bg-emerald-600 text-white hover:bg-emerald-700 inline-flex items-center gap-1.5"><i class="fa-solid fa-globe"></i> Mostrar en tienda en línea</button>
+                      <button type="button" (click)="bulkSetOnline(false)" title="Se ocultan del sitio web pero siguen a la venta en tienda física (POS) y kiosko"
+                              class="px-3 h-9 rounded-lg text-sm font-semibold bg-amber-500 text-white hover:bg-amber-600 inline-flex items-center gap-1.5"><i class="fa-solid fa-eye-slash"></i> Ocultar de tienda en línea</button>
                       <button type="button" (click)="bulkDelete()"
                               class="px-3 h-9 rounded-lg text-sm font-semibold bg-rose-600 text-white hover:bg-rose-700 inline-flex items-center gap-1.5"><i class="fa-solid fa-trash"></i> Eliminar</button>
                       <button type="button" (click)="clearSel()" class="px-3 h-9 rounded-lg text-sm font-semibold text-slate-500 hover:text-ink-950 dark:hover:text-white">Cancelar</button>
@@ -174,12 +174,14 @@
                       <div class="min-w-0">
                         <p class="font-semibold truncate flex items-center gap-1.5">
                           <span class="truncate">{{ g.product_name }}</span>
-                          @if (!isActiveGroup(g)) { <span class="shrink-0 px-1.5 py-0.5 rounded-md text-[10px] font-bold uppercase tracking-wide bg-slate-200 text-slate-500 dark:bg-white/10 dark:text-white/50">Inactivo</span> }
                           @if (g.on_offer) { <span class="shrink-0 px-1.5 py-0.5 rounded-md text-[10px] font-bold uppercase tracking-wide bg-rose-100 text-rose-700 dark:bg-rose-500/15 dark:text-rose-400"><i class="fa-solid fa-tag mr-0.5"></i>Oferta{{ g.discount_percent ? ' -' + g.discount_percent + '%' : '' }}</span> }
                           @if (g.low_count > 0) { <span class="shrink-0 px-1.5 py-0.5 rounded-md text-[10px] font-bold uppercase tracking-wide bg-amber-100 text-amber-700">Stock bajo</span> }
                         </p>
                         <p class="text-[11px] text-slate-500 truncate">{{ g.category_name }} · {{ g.brand_name }}</p>
                         <p class="text-[11px] text-slate-400 mt-0.5">{{ g.variants_count }} variante(s)</p>
+                        @if (!g.online_visible) {
+                          <span class="inline-flex items-center gap-1 mt-1 px-1.5 py-0.5 rounded-md text-[10px] font-bold uppercase tracking-wide bg-orange-100 text-orange-700 dark:bg-orange-500/15 dark:text-orange-400"><i class="fa-solid fa-eye-slash"></i>Oculto en tienda en línea</span>
+                        }
                       </div>
                     </button>
                   </td>
@@ -217,7 +219,6 @@
                         <div class="min-w-0">
                           <p class="font-semibold truncate flex items-center gap-1.5">
                             <span class="truncate">{{ g.product_name }}</span>
-                            @if (!isActiveGroup(g)) { <span class="shrink-0 px-1.5 py-0.5 rounded-md text-[10px] font-bold uppercase tracking-wide bg-slate-200 text-slate-500 dark:bg-white/10 dark:text-white/50">Inactivo</span> }
                             @if (g.on_offer) { <span class="shrink-0 px-1.5 py-0.5 rounded-md text-[10px] font-bold uppercase tracking-wide bg-rose-100 text-rose-700 dark:bg-rose-500/15 dark:text-rose-400"><i class="fa-solid fa-tag mr-0.5"></i>Oferta{{ g.discount_percent ? ' -' + g.discount_percent + '%' : '' }}</span> }
                             @if (g.low_count > 0) { <span class="shrink-0 px-1.5 py-0.5 rounded-md text-[10px] font-bold uppercase tracking-wide bg-amber-100 text-amber-700">Stock bajo</span> }
                           </p>
@@ -228,6 +229,9 @@
                             </p>
                           }
                           <p class="text-[11px] text-slate-400 font-mono mt-0.5">{{ s.variant_sku }}</p>
+                          @if (!g.online_visible) {
+                            <span class="inline-flex items-center gap-1 mt-1 px-1.5 py-0.5 rounded-md text-[10px] font-bold uppercase tracking-wide bg-orange-100 text-orange-700 dark:bg-orange-500/15 dark:text-orange-400"><i class="fa-solid fa-eye-slash"></i>Oculto en tienda en línea</span>
+                          }
                         </div>
                       </div>
                     </td>

@@ -130,7 +130,7 @@ import { DlxPaginationComponent } from '@shared/ui/pagination.component';
       }
     </div>
 
-    @if (total() > pageSize()) {
+    @if (total() > 0) {
       <dlx-pagination class="block mt-4" [page]="page()" [pageSize]="pageSize()" [total]="total()"
                       (pageChange)="onPage($event)" (pageSizeChange)="onSize($event)" />
     }

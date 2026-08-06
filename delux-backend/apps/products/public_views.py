@@ -10,7 +10,9 @@ from .models import Product, ProductStatus
 
 
 def filter_products(request):
-    qs = Product.objects.filter(status=ProductStatus.PUBLISHED, deleted_at__isnull=True).select_related('brand', 'category')
+    qs = Product.objects.filter(
+        status=ProductStatus.PUBLISHED, deleted_at__isnull=True, online_visible=True
+    ).select_related('brand', 'category')
 
     params = request.query_params
     q = params.get('q')
@@ -227,7 +229,8 @@ class SearchAutocompleteView(APIView):
         if len(q) < 2:
             return Response({'products': [], 'brands': [], 'categories': []})
         products = Product.objects.filter(
-            status=ProductStatus.PUBLISHED, deleted_at__isnull=True, name__icontains=q
+            status=ProductStatus.PUBLISHED, deleted_at__isnull=True, online_visible=True,
+            name__icontains=q,
         ).select_related('brand')[:6]
         brands = Brand.objects.filter(is_active=True, name__icontains=q)[:4]
         cats = Category.objects.filter(is_active=True, name__icontains=q)[:4]
@@ -252,7 +255,7 @@ class ProductFacetsView(APIView):
         # Queryset base de productos disponibles. Si viene ?province= se limita a
         # los que tienen stock (>0) en alguna sucursal de esa provincia (mismo
         # criterio estricto que filter_products); si no, todos los publicados.
-        qs = Product.objects.filter(status=ProductStatus.PUBLISHED, deleted_at__isnull=True)
+        qs = Product.objects.filter(status=ProductStatus.PUBLISHED, deleted_at__isnull=True, online_visible=True)
         if prov:
             qs = qs.filter(
                 variants__stocks__branch__province__iexact=prov,
@@ -297,6 +300,7 @@ class ProductFacetsView(APIView):
             is_active=True,
             product__status=ProductStatus.PUBLISHED,
             product__deleted_at__isnull=True,
+            product__online_visible=True,
         )
         if prov:
             vqs = vqs.filter(
@@ -337,7 +341,7 @@ class PublicProductDetailView(APIView):
         from apps.reviews.models import Review, ReviewStatus
 
         p = (Product.objects
-             .filter(pk=pk, status=ProductStatus.PUBLISHED, deleted_at__isnull=True)
+             .filter(pk=pk, status=ProductStatus.PUBLISHED, deleted_at__isnull=True, online_visible=True)
              .select_related('brand', 'category')
              .prefetch_related('images')
              .first())

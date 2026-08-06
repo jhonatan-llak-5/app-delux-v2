@@ -164,6 +164,41 @@ class AdminProductViewSet(viewsets.ModelViewSet):
         p.save(update_fields=['status', 'updated_at'])
         return Response({'detail': 'Producto publicado.', 'status': p.status})
 
+    def _visibility_qs(self):
+        """Productos sobre los que el usuario puede cambiar la visibilidad web.
+        La visibilidad en el sitio es una propiedad del PRODUCTO (no depende del
+        stock por sucursal), así que solo se acota por tienda — NO por sucursal ni
+        por stock. Evita el 404 al ocultar un producto sin stock en la sucursal."""
+        qs = Product.objects.filter(deleted_at__isnull=True)
+        user = self.request.user
+        if getattr(user, 'role', None) and user.role != 'SUPERADMIN' and user.tenant_id:
+            qs = qs.filter(tenant_id=user.tenant_id)
+        return qs
+
+    @action(detail=True, methods=['post'], url_path='toggle-online')
+    def toggle_online(self, request, pk=None):
+        """Muestra/oculta un producto del sitio web (tienda en línea). Oculto =
+        no aparece en la web pero SIGUE en POS y kiosko."""
+        p = self._visibility_qs().filter(pk=pk).first()
+        if p is None:
+            return Response({'detail': 'Producto no encontrado.'}, status=status.HTTP_404_NOT_FOUND)
+        p.online_visible = not p.online_visible
+        p.save(update_fields=['online_visible', 'updated_at'])
+        return Response({
+            'detail': ('Producto visible en la tienda en línea.' if p.online_visible
+                       else 'Producto oculto de la tienda en línea.'),
+            'online_visible': p.online_visible,
+        })
+
+    @action(detail=False, methods=['post'], url_path='bulk-online')
+    def bulk_online(self, request):
+        """Muestra/oculta varios productos del sitio web a la vez.
+        Body: {product_ids: [...], online_visible: true|false}."""
+        ids = request.data.get('product_ids') or []
+        visible = bool(request.data.get('online_visible'))
+        updated = self._visibility_qs().filter(pk__in=ids).update(online_visible=visible)
+        return Response({'updated': updated, 'online_visible': visible})
+
     @action(detail=True, methods=['post'])
     def archive(self, request, pk=None):
         p = self.get_object()

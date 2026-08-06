@@ -26,8 +26,8 @@ class ExpenseViewSet(viewsets.ModelViewSet):
         qs = Expense.objects.select_related('branch', 'created_by')
         if getattr(user, 'role', None) != 'SUPERADMIN' and user.tenant_id:
             qs = qs.filter(tenant_id=user.tenant_id)
-        # Vendedor: solo su sucursal (gerente ve toda la tienda).
-        if getattr(user, 'role', None) == 'SALESPERSON' and user.branch_id:
+        # Gerente/Vendedor: solo su sucursal (solo el superadmin ve todas).
+        if getattr(user, 'role', None) in ('BRANCH_MANAGER', 'SALESPERSON') and user.branch_id:
             qs = qs.filter(branch_id=user.branch_id)
         return qs
 
@@ -43,8 +43,8 @@ class ExpenseViewSet(viewsets.ModelViewSet):
     def perform_create(self, serializer):
         user = self.request.user
         branch = serializer.validated_data.get('branch')
-        # Vendedor: se fuerza su propia sucursal (gerente puede elegir).
-        if getattr(user, 'role', None) == 'SALESPERSON' and user.branch_id:
+        # Gerente/Vendedor: se fuerza su propia sucursal (solo el superadmin elige).
+        if getattr(user, 'role', None) in ('BRANCH_MANAGER', 'SALESPERSON') and user.branch_id:
             branch = Branch.objects.filter(id=user.branch_id).first()
         # El tenant sale de la sucursal; si no hay, se resuelve del usuario.
         tenant = branch.tenant if branch is not None else resolve_tenant(user)

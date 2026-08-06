@@ -42,6 +42,7 @@ export interface ProductGroup {
   category_name: string;
   product_main_image: string;
   product_status: string;
+  online_visible: boolean;
   variants_count: number;
   total_qty: number;
   low_count: number;

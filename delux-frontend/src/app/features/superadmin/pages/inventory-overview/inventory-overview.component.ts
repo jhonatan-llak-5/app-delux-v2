@@ -91,15 +91,18 @@ export class InventoryOverviewComponent implements OnInit {
   priceRange(g: ProductGroup): string { return this.fmtRange(g.price_min, g.price_max); }
   costRange(g: ProductGroup): string { return this.fmtRange(g.cost_min, g.cost_max); }
 
-  bulkSetStatus(status: 'PUBLISHED' | 'PAUSED'): void {
+  /** Muestra/oculta del sitio web varios productos seleccionados a la vez.
+   * Ocultar = no aparece en la tienda en línea; sigue en POS y kiosko. */
+  bulkSetOnline(visible: boolean): void {
     const pids = this.selectedProductIds();
     if (!pids.length) return;
-    this.productSvc.bulkStatus(pids, status).subscribe({
+    this.productSvc.bulkOnline(pids, visible).subscribe({
       next: r => {
-        this.notify.success(`${r.updated} producto(s) ${status === 'PUBLISHED' ? 'activado(s)' : 'desactivado(s)'}.`);
+        this.notify.success(
+          `${r.updated} producto(s) ${visible ? 'visible(s) en la tienda en línea' : 'oculto(s) de la tienda en línea'}.`);
         this.clearSel(); this.reload();
       },
-      error: e => this.notify.error(parseApiError(e).message || 'No se pudo actualizar el estado.'),
+      error: e => this.notify.error(parseApiError(e).message || 'No se pudo actualizar la visibilidad.'),
     });
   }
   async bulkDelete(): Promise<void> {
@@ -267,8 +270,24 @@ export class InventoryOverviewComponent implements OnInit {
     return [
       { label: 'Editar producto', icon: 'fa-pen-to-square', run: () => this.router.navigate(['/app/admin/products', g.product_id]) },
       { label: 'Ver historial', icon: 'fa-clock-rotate-left', run: () => this.router.navigate(['/app/admin/inventory/movements'], { queryParams: { product: g.product_id, name: g.product_name } }) },
+      g.online_visible
+        ? { label: 'Ocultar de tienda en línea', icon: 'fa-eye-slash', run: () => this.toggleOnline(g) }
+        : { label: 'Mostrar en tienda en línea', icon: 'fa-globe', run: () => this.toggleOnline(g) },
       { label: 'Eliminar producto', icon: 'fa-trash', variant: 'danger', run: () => this.deleteProduct(g) },
     ];
+  }
+
+  /** Muestra/oculta del sitio web un solo producto (sigue en POS y kiosko). */
+  toggleOnline(g: ProductGroup): void {
+    this.productSvc.toggleOnline(g.product_id).subscribe({
+      next: r => {
+        this.notify.success(
+          r.online_visible ? `"${g.product_name}" ahora es visible en la tienda en línea.`
+                           : `"${g.product_name}" quedó oculto de la tienda en línea (sigue en POS y kiosko).`);
+        this.reload();
+      },
+      error: e => this.notify.error(parseApiError(e).message || 'No se pudo actualizar la visibilidad.'),
+    });
   }
 
   /** Acciones a nivel de VARIANTE (línea dentro del producto). */

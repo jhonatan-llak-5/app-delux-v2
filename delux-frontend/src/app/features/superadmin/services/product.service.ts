@@ -123,6 +123,16 @@ export class ProductService {
     return this.http.post<{ deleted: number; skipped: number }>(`${this.base}/bulk-delete/`, { product_ids });
   }
 
+  /** Muestra/oculta un producto del sitio web (sigue en POS y kiosko). */
+  toggleOnline(id: number) {
+    return this.http.post<{ detail: string; online_visible: boolean }>(`${this.base}/${id}/toggle-online/`, {});
+  }
+  /** Muestra/oculta varios productos del sitio web a la vez. */
+  bulkOnline(product_ids: number[], online_visible: boolean) {
+    return this.http.post<{ updated: number; online_visible: boolean }>(
+      `${this.base}/bulk-online/`, { product_ids, online_visible });
+  }
+
   /** ¿El código de barras ya existe en la empresa? Devuelve el producto dueño. */
   checkBarcode(code: string) {
     return this.http.get<{ exists: boolean; product_id?: number; product_name?: string; sku?: string }>(

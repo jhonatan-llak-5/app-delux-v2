@@ -18,8 +18,10 @@ export class BranchContextService {
   readonly current = computed(() => this._current());
 
   readonly canSwitch = computed(() => {
+    // Solo el superadmin puede navegar entre sucursales. El gerente, vendedor y
+    // bodeguero quedan acotados a SU sucursal asignada (ven una etiqueta fija).
     const r = this.auth.user()?.role;
-    return r === 'SUPERADMIN' || r === 'BRANCH_MANAGER';
+    return r === 'SUPERADMIN';
   });
 
   /** Admin/superadmin ven un SELECTOR; gerente/vendedor ven solo una ETIQUETA
