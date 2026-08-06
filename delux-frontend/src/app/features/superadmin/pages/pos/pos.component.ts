@@ -123,7 +123,7 @@ export class PosComponent implements OnInit, OnDestroy {
   myName = this.auth.user()?.full_name || this.auth.user()?.username || 'Yo';
   isManager = computed(() => {
     const r = this.auth.user()?.role;
-    return r === 'SUPERADMIN' || r === 'TENANT_ADMIN' || r === 'BRANCH_MANAGER';
+    return r === 'SUPERADMIN' || r === 'BRANCH_MANAGER';
   });
   sellersForBranch = computed(() =>
     this.sellers().filter(u => u.id !== this.myId && (!this.branchId() || u.branch_id === this.branchId())));

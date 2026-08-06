@@ -16,7 +16,7 @@ import { ZoneService } from '@shared/services/zone.service';
   templateUrl: './public-navbar.component.html',
 })
 export class PublicNavbarComponent {
-  private readonly STAFF_ROLES = ['SUPERADMIN', 'TENANT_ADMIN', 'BRANCH_MANAGER', 'SALESPERSON'];
+  private readonly STAFF_ROLES = ['SUPERADMIN', 'BRANCH_MANAGER', 'SALESPERSON', 'WAREHOUSE'];
 
   theme = inject(ThemeService);
   cart = inject(CartService);
@@ -68,6 +68,7 @@ export class PublicNavbarComponent {
   panelRoute = computed(() => {
     const r = this.auth.user()?.role;
     if (r === 'SALESPERSON') return '/app/admin/seller';
+    if (r === 'WAREHOUSE') return '/app/admin/inventory';
     if (r === 'AFFILIATE') return '/app/affiliate';
     return '/app/admin/overview';
   });
@@ -78,8 +79,8 @@ export class PublicNavbarComponent {
   roleLabel = computed(() => {
     const r = this.auth.user()?.role;
     return ({
-      SUPERADMIN: 'Superadmin', TENANT_ADMIN: 'Admin tienda',
-      BRANCH_MANAGER: 'Gerente sucursal', SALESPERSON: 'Vendedor', AFFILIATE: 'Afiliado',
+      SUPERADMIN: 'Superadmin',
+      BRANCH_MANAGER: 'Gerente', SALESPERSON: 'Vendedor', WAREHOUSE: 'Bodeguero', AFFILIATE: 'Afiliado',
     } as Record<string, string>)[r ?? ''] ?? 'Cliente';
   });
 

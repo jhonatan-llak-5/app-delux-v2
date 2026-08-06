@@ -4,9 +4,9 @@ from django.db import models
 
 class Role(models.TextChoices):
     SUPERADMIN     = 'SUPERADMIN',     'Superadmin'
-    TENANT_ADMIN   = 'TENANT_ADMIN',   'Admin Tenant'
-    BRANCH_MANAGER = 'BRANCH_MANAGER', 'Gerente Sucursal'
+    BRANCH_MANAGER = 'BRANCH_MANAGER', 'Gerente'
     SALESPERSON    = 'SALESPERSON',    'Vendedor'
+    WAREHOUSE      = 'WAREHOUSE',      'Bodeguero'
     CUSTOMER       = 'CUSTOMER',       'Cliente'
     AFFILIATE      = 'AFFILIATE',      'Vendedor Afiliado'
 

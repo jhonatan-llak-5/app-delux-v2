@@ -147,7 +147,7 @@ export class SaleDetailComponent implements OnInit, OnDestroy {
   }
   canManage() {
     const r = this.auth.user()?.role;
-    return r === 'SUPERADMIN' || r === 'TENANT_ADMIN' || r === 'BRANCH_MANAGER';
+    return r === 'SUPERADMIN' || r === 'BRANCH_MANAGER';
   }
   isFinal(s: string) { return s === 'CANCELLED' || s === 'REFUNDED'; }
   // Estados que cierran/bloquean el selector del pedido (venta cerrada).

@@ -4,7 +4,7 @@ from rest_framework import filters, permissions, status, viewsets
 from rest_framework.decorators import action
 from rest_framework.response import Response
 
-from apps.accounts.permissions import IsBranchManager, IsStaffReadOrManager
+from apps.accounts.permissions import IsBranchManager, IsStaff
 from .models import Product, ProductImage
 from .serializers import (
     ProductSerializer,
@@ -14,7 +14,7 @@ from .serializers import (
 
 
 class AdminProductViewSet(viewsets.ModelViewSet):
-    permission_classes = [permissions.IsAuthenticated, IsStaffReadOrManager]
+    permission_classes = [permissions.IsAuthenticated, IsStaff]
     filter_backends = [filters.OrderingFilter]
     ordering_fields = ['name', 'base_price', 'created_at']
     ordering = ['-created_at']

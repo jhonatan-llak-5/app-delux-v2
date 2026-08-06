@@ -35,9 +35,9 @@ const ROLE_TYPES: Record<string, string[]> = {
   CUSTOMER: ['order_status'],
   AFFILIATE: ['order_status', 'affiliate_commission', 'affiliate_payout'],
   SALESPERSON: ['order_status', 'sale', 'order', 'order_paid', 'low_stock', 'return', 'review', 'customer_new'],
-  BRANCH_MANAGER: ['order_status', 'sale', 'order', 'order_paid', 'low_stock', 'return', 'review', 'customer_new'],
+  WAREHOUSE: ['low_stock', 'order'],
 };
-// TENANT_ADMIN y SUPERADMIN ven todos los tipos.
+// GERENTE (BRANCH_MANAGER) y SUPERADMIN ven todos los tipos.
 
 @Component({
   selector: 'dlx-notifications-center',

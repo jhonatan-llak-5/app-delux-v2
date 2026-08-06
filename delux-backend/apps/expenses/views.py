@@ -6,7 +6,7 @@ from rest_framework import viewsets, permissions, filters
 from rest_framework.decorators import action
 from rest_framework.response import Response
 
-from apps.accounts.permissions import IsStaff
+from apps.accounts.permissions import IsSalesStaff
 from apps.inventory.services import resolve_tenant
 from apps.branches.models import Branch
 from .models import Expense, ExpenseCategory
@@ -17,7 +17,7 @@ class ExpenseViewSet(viewsets.ModelViewSet):
     """CRUD de gastos + resumen. Vendedor/gerente ven y registran solo su
     sucursal; admin/dueno ve todo (consolidado) y puede filtrar por sucursal."""
     serializer_class = ExpenseSerializer
-    permission_classes = [permissions.IsAuthenticated, IsStaff]
+    permission_classes = [permissions.IsAuthenticated, IsSalesStaff]
     filter_backends = [filters.OrderingFilter]
     ordering = ['-date', '-created_at']
 
@@ -26,7 +26,8 @@ class ExpenseViewSet(viewsets.ModelViewSet):
         qs = Expense.objects.select_related('branch', 'created_by')
         if getattr(user, 'role', None) != 'SUPERADMIN' and user.tenant_id:
             qs = qs.filter(tenant_id=user.tenant_id)
-        if getattr(user, 'role', None) in ('BRANCH_MANAGER', 'SALESPERSON') and user.branch_id:
+        # Vendedor: solo su sucursal (gerente ve toda la tienda).
+        if getattr(user, 'role', None) == 'SALESPERSON' and user.branch_id:
             qs = qs.filter(branch_id=user.branch_id)
         return qs
 
@@ -42,8 +43,8 @@ class ExpenseViewSet(viewsets.ModelViewSet):
     def perform_create(self, serializer):
         user = self.request.user
         branch = serializer.validated_data.get('branch')
-        # Gerente/Vendedor: se fuerza su propia sucursal.
-        if getattr(user, 'role', None) in ('BRANCH_MANAGER', 'SALESPERSON') and user.branch_id:
+        # Vendedor: se fuerza su propia sucursal (gerente puede elegir).
+        if getattr(user, 'role', None) == 'SALESPERSON' and user.branch_id:
             branch = Branch.objects.filter(id=user.branch_id).first()
         # El tenant sale de la sucursal; si no hay, se resuelve del usuario.
         tenant = branch.tenant if branch is not None else resolve_tenant(user)

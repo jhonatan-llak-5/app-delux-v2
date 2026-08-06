@@ -19,14 +19,14 @@ export class BranchContextService {
 
   readonly canSwitch = computed(() => {
     const r = this.auth.user()?.role;
-    return r === 'SUPERADMIN' || r === 'TENANT_ADMIN';
+    return r === 'SUPERADMIN' || r === 'BRANCH_MANAGER';
   });
 
   /** Admin/superadmin ven un SELECTOR; gerente/vendedor ven solo una ETIQUETA
    * estática con su sucursal (informativa, no cambian de sucursal). */
   readonly showWidget = computed(() => {
     const r = this.auth.user()?.role;
-    return r === 'SUPERADMIN' || r === 'TENANT_ADMIN' || r === 'BRANCH_MANAGER' || r === 'SALESPERSON';
+    return r === 'SUPERADMIN' || r === 'BRANCH_MANAGER' || r === 'SALESPERSON' || r === 'WAREHOUSE';
   });
 
   readonly currentName = computed(() => {

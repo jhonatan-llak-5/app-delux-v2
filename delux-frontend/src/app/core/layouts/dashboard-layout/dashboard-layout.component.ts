@@ -149,8 +149,9 @@ export class DashboardLayoutComponent implements AfterViewInit, OnDestroy {
   roleLabel = computed(() => {
     const r = this.auth.user()?.role;
     return ({
-      SUPERADMIN: 'Superadmin', TENANT_ADMIN: 'Admin Delux',
-      BRANCH_MANAGER: 'Gerente Sucursal', SALESPERSON: 'Vendedor', CUSTOMER: 'Cliente',
+      SUPERADMIN: 'Superadmin',
+      BRANCH_MANAGER: 'Gerente', SALESPERSON: 'Vendedor',
+      WAREHOUSE: 'Bodeguero', CUSTOMER: 'Cliente',
     } as Record<string, string>)[r ?? ''] ?? 'Admin';
   });
 
@@ -161,9 +162,9 @@ export class DashboardLayoutComponent implements AfterViewInit, OnDestroy {
     const r = this.auth.user()?.role ?? 'CUSTOMER';
     const map: Record<string, { label: string; icon: string; cls: string }> = {
       SUPERADMIN:     { label: 'Superadmin', icon: 'fa-crown',         cls: 'bg-violet-100 text-violet-700 dark:bg-violet-500/20 dark:text-violet-300' },
-      TENANT_ADMIN:   { label: 'Admin',      icon: 'fa-shield-halved', cls: 'bg-sky-100 text-sky-700 dark:bg-sky-500/20 dark:text-sky-300' },
       BRANCH_MANAGER: { label: 'Gerente',    icon: 'fa-user-tie',      cls: 'bg-emerald-100 text-emerald-700 dark:bg-emerald-500/20 dark:text-emerald-300' },
       SALESPERSON:    { label: 'Vendedor',   icon: 'fa-user-tag',      cls: 'bg-amber-100 text-amber-700 dark:bg-amber-500/20 dark:text-amber-300' },
+      WAREHOUSE:      { label: 'Bodeguero',  icon: 'fa-boxes-packing', cls: 'bg-teal-100 text-teal-700 dark:bg-teal-500/20 dark:text-teal-300' },
       CUSTOMER:       { label: 'Cliente',    icon: 'fa-user',          cls: 'bg-pink-100 text-pink-700 dark:bg-pink-500/20 dark:text-pink-300' },
     };
     return map[r] ?? map['CUSTOMER'];
@@ -173,16 +174,16 @@ export class DashboardLayoutComponent implements AfterViewInit, OnDestroy {
   );
 
   readonly allGroups: NavGroup[] = [
-    // ═══════════ SUPERADMIN + ADMIN DE TIENDA ═══════════
-    { title: 'Principal', roles: ['SUPERADMIN', 'TENANT_ADMIN'], items: [
+    // ═══════════ SUPERADMIN + GERENTE (acceso total) ═══════════
+    { title: 'Principal', roles: ['SUPERADMIN', 'BRANCH_MANAGER'], items: [
       { label: 'Panel', icon: 'fa-shield-halved', route: '/app/admin/overview' },
     ] },
-    { title: 'Ventas', roles: ['SUPERADMIN', 'TENANT_ADMIN'], items: [
+    { title: 'Ventas', roles: ['SUPERADMIN', 'BRANCH_MANAGER'], items: [
       { label: 'Ventas',       icon: 'fa-cash-register', route: '/app/admin/pos' },
       { label: 'Devoluciones', icon: 'fa-rotate-left',   route: '/app/admin/returns' },
       { label: 'Kiosko',       icon: 'fa-qrcode',        route: '/kiosko' },
     ] },
-    { title: 'Inventario', roles: ['SUPERADMIN', 'TENANT_ADMIN'], items: [
+    { title: 'Inventario', roles: ['SUPERADMIN', 'BRANCH_MANAGER'], items: [
       { label: 'Inventario',  icon: 'fa-boxes-stacked', route: '/app/admin/inventory', exact: true },
       { label: 'Etiquetas',   icon: 'fa-barcode',       route: '/app/admin/labels' },
       { label: 'Proveedores', icon: 'fa-truck-field',   route: '/app/admin/inventory/suppliers' },
@@ -190,72 +191,66 @@ export class DashboardLayoutComponent implements AfterViewInit, OnDestroy {
       { label: 'Marcas',      icon: 'fa-tags',          route: '/app/admin/brands' },
       { label: 'Cupones',     icon: 'fa-ticket',        route: '/app/admin/coupons' },
     ] },
-    { title: 'Finanzas', roles: ['SUPERADMIN', 'TENANT_ADMIN'], items: [
+    { title: 'Finanzas', roles: ['SUPERADMIN', 'BRANCH_MANAGER'], items: [
       { label: 'Balance general', icon: 'fa-scale-balanced',      route: '/app/admin/finanzas' },
       { label: 'Gastos',    icon: 'fa-wallet',              route: '/app/admin/gastos' },
       { label: 'Nómina',    icon: 'fa-money-check-dollar',  route: '/app/admin/payroll' },
       { label: 'Afiliados', icon: 'fa-hand-holding-dollar', route: '/app/admin/affiliates' },
     ] },
-    { title: 'Análisis', roles: ['SUPERADMIN', 'TENANT_ADMIN'], items: [
+    { title: 'Análisis', roles: ['SUPERADMIN', 'BRANCH_MANAGER'], items: [
       { label: 'Reportes',     icon: 'fa-chart-line',         route: '/app/admin/reports' },
       { label: 'Reseñas',      icon: 'fa-comment-dots',       route: '/app/admin/reviews' },
       { label: 'Mensajes',     icon: 'fa-inbox',              route: '/app/admin/messages' },
       { label: 'Suscriptores', icon: 'fa-envelope-open-text', route: '/app/admin/subscribers' },
     ] },
-    { title: 'Administración', roles: ['SUPERADMIN', 'TENANT_ADMIN'], items: [
+    { title: 'Administración', roles: ['SUPERADMIN', 'BRANCH_MANAGER'], items: [
       { label: 'Usuarios',   icon: 'fa-users',      route: '/app/admin/users' },
       { label: 'Clientes',   icon: 'fa-user-group', route: '/app/admin/customers' },
       { label: 'Tiendas',    icon: 'fa-store', route: '/app/admin/tenants', only: ['SUPERADMIN'] },
       { label: 'Sucursales', icon: 'fa-store', route: '/app/admin/sucursales', only: ['SUPERADMIN'] },
     ] },
-    { title: 'Configuración', roles: ['SUPERADMIN', 'TENANT_ADMIN'], items: [
-      { label: 'Configuración', icon: 'fa-gear',  route: '/app/admin/store-config', only: ['TENANT_ADMIN'] },
-      { label: 'Configuración', icon: 'fa-gear',  route: '/app/admin/settings' },
-    ] },
-
-    // ═══════════ GERENTE DE SUCURSAL ═══════════
-    { title: 'Principal', roles: ['BRANCH_MANAGER'], items: [
-      { label: 'Panel', icon: 'fa-gauge-high', route: '/app/admin/overview' },
-    ] },
-    { title: 'Ventas', roles: ['BRANCH_MANAGER'], items: [
-      { label: 'Ventas',       icon: 'fa-cash-register', route: '/app/admin/pos' },
-      { label: 'Devoluciones', icon: 'fa-rotate-left',   route: '/app/admin/returns' },
-      { label: 'Kiosko',       icon: 'fa-qrcode',        route: '/kiosko' },
-    ] },
-    { title: 'Inventario', roles: ['BRANCH_MANAGER'], items: [
-      { label: 'Inventario',  icon: 'fa-boxes-stacked', route: '/app/admin/inventory', exact: true },
-      { label: 'Etiquetas',   icon: 'fa-barcode',       route: '/app/admin/labels' },
-      { label: 'Proveedores', icon: 'fa-truck-field',   route: '/app/admin/inventory/suppliers' },
-    ] },
-    { title: 'Finanzas', roles: ['BRANCH_MANAGER'], items: [
-      { label: 'Balance general', icon: 'fa-scale-balanced',      route: '/app/admin/finanzas' },
-      { label: 'Gastos',    icon: 'fa-wallet',              route: '/app/admin/gastos' },
-      { label: 'Nómina',    icon: 'fa-money-check-dollar',  route: '/app/admin/payroll' },
-      { label: 'Afiliados', icon: 'fa-hand-holding-dollar', route: '/app/admin/affiliates' },
-    ] },
-    { title: 'Análisis', roles: ['BRANCH_MANAGER'], items: [
-      { label: 'Reportes', icon: 'fa-chart-line',   route: '/app/admin/reports' },
-      { label: 'Reseñas',  icon: 'fa-comment-dots', route: '/app/admin/reviews' },
-    ] },
-    { title: 'Equipo', roles: ['BRANCH_MANAGER'], items: [
-      { label: 'Usuarios', icon: 'fa-users',      route: '/app/admin/users' },
-      { label: 'Clientes', icon: 'fa-user-group', route: '/app/admin/customers' },
-    ] },
-    { title: 'Configuración', roles: ['BRANCH_MANAGER'], items: [
-      { label: 'Configuración', icon: 'fa-gear',  route: '/app/admin/store-config' },
+    { title: 'Configuración', roles: ['SUPERADMIN', 'BRANCH_MANAGER'], items: [
+      { label: 'Configuración', icon: 'fa-gear',  route: '/app/admin/store-config', only: ['BRANCH_MANAGER'] },
+      { label: 'Configuración', icon: 'fa-gear',  route: '/app/admin/settings', only: ['SUPERADMIN'] },
     ] },
 
     // ═══════════ VENDEDOR ═══════════
     { title: 'Principal', roles: ['SALESPERSON'], items: [
       { label: 'Mi panel', icon: 'fa-gauge-high', route: '/app/admin/seller', exact: true },
     ] },
-    { title: 'Operación', roles: ['SALESPERSON'], items: [
-      { label: 'Ventas',     icon: 'fa-cash-register', route: '/app/admin/pos' },
-      { label: 'Inventario', icon: 'fa-boxes-stacked', route: '/app/admin/inventory', exact: true },
-      { label: 'Gastos',     icon: 'fa-wallet',        route: '/app/admin/gastos' },
+    { title: 'Ventas', roles: ['SALESPERSON'], items: [
+      { label: 'Ventas',       icon: 'fa-cash-register', route: '/app/admin/pos' },
+      { label: 'Devoluciones', icon: 'fa-rotate-left',   route: '/app/admin/returns' },
+      { label: 'Kiosko',       icon: 'fa-qrcode',        route: '/kiosko' },
+      { label: 'Cupones',      icon: 'fa-ticket',        route: '/app/admin/coupons' },
+    ] },
+    { title: 'Inventario', roles: ['SALESPERSON'], items: [
+      { label: 'Inventario',  icon: 'fa-boxes-stacked', route: '/app/admin/inventory', exact: true },
+      { label: 'Etiquetas',   icon: 'fa-barcode',       route: '/app/admin/labels' },
+      { label: 'Proveedores', icon: 'fa-truck-field',   route: '/app/admin/inventory/suppliers' },
+      { label: 'Categorías',  icon: 'fa-folder-tree',   route: '/app/admin/categories' },
+      { label: 'Marcas',      icon: 'fa-tags',          route: '/app/admin/brands' },
+    ] },
+    { title: 'Finanzas', roles: ['SALESPERSON'], items: [
+      { label: 'Gastos', icon: 'fa-wallet', route: '/app/admin/gastos' },
     ] },
     { title: 'Mi cuenta', roles: ['SALESPERSON'], items: [
-      { label: 'Mi perfil',     icon: 'fa-id-card', route: '/app/profile' },
+      { label: 'Mi perfil', icon: 'fa-id-card', route: '/app/profile' },
+    ] },
+
+    // ═══════════ BODEGUERO ═══════════
+    { title: 'Principal', roles: ['WAREHOUSE'], items: [
+      { label: 'Panel', icon: 'fa-gauge-high', route: '/app/admin/overview' },
+    ] },
+    { title: 'Inventario', roles: ['WAREHOUSE'], items: [
+      { label: 'Inventario',  icon: 'fa-boxes-stacked', route: '/app/admin/inventory', exact: true },
+      { label: 'Etiquetas',   icon: 'fa-barcode',       route: '/app/admin/labels' },
+      { label: 'Proveedores', icon: 'fa-truck-field',   route: '/app/admin/inventory/suppliers' },
+      { label: 'Categorías',  icon: 'fa-folder-tree',   route: '/app/admin/categories' },
+      { label: 'Marcas',      icon: 'fa-tags',          route: '/app/admin/brands' },
+    ] },
+    { title: 'Mi cuenta', roles: ['WAREHOUSE'], items: [
+      { label: 'Mi perfil', icon: 'fa-id-card', route: '/app/profile' },
     ] },
 
     // ═══════════ AFILIADO ═══════════

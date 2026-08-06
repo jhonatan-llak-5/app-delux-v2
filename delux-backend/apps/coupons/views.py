@@ -4,13 +4,13 @@ from rest_framework import filters, permissions, viewsets
 from rest_framework.decorators import action
 from rest_framework.response import Response
 
-from apps.accounts.permissions import IsBranchManager
+from apps.accounts.permissions import IsSalesStaff
 from .models import Coupon
 from .serializers import CouponSerializer, CouponCreateSerializer, CouponValidateSerializer
 
 
 class AdminCouponViewSet(viewsets.ModelViewSet):
-    permission_classes = [permissions.IsAuthenticated, IsBranchManager]
+    permission_classes = [permissions.IsAuthenticated, IsSalesStaff]
     filter_backends = [filters.SearchFilter, filters.OrderingFilter]
     search_fields = ['code']
     ordering_fields = ['code', 'created_at', 'times_used']

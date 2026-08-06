@@ -7,7 +7,7 @@ from rest_framework.response import Response
 from rest_framework.views import APIView
 
 from apps.accounts.models import Role, User
-from apps.accounts.permissions import IsBranchManager, IsStaff, IsStaffReadOrManager
+from apps.accounts.permissions import IsManager
 from apps.orders.models import Order, OrderItem, OrderStatus
 from .models import Commission, CommissionStatus, CommissionPayout
 from .serializers import (
@@ -167,7 +167,7 @@ class MyAffiliateProductsView(APIView):
 class AdminAffiliateViewSet(viewsets.ViewSet):
     """Gestion admin: lista de afiliados con comisiones acumuladas.
     Visible para todo el staff (afiliados son globales, sin sucursal)."""
-    permission_classes = [permissions.IsAuthenticated, IsStaff]
+    permission_classes = [permissions.IsAuthenticated, IsManager]
 
     def list(self, request):
         # Los afiliados son una bolsa GLOBAL (tenant=None): venden en cualquier
@@ -211,7 +211,7 @@ class AdminAffiliateViewSet(viewsets.ViewSet):
 class AdminCommissionViewSet(viewsets.ReadOnlyModelViewSet):
     """Todas las comisiones de afiliados (globales), con filtros."""
     serializer_class = CommissionSerializer
-    permission_classes = [permissions.IsAuthenticated, IsStaff]
+    permission_classes = [permissions.IsAuthenticated, IsManager]
     filter_backends = [filters.OrderingFilter]
     ordering = ['-created_at']
 
@@ -231,7 +231,7 @@ class AdminPayoutViewSet(viewsets.ReadOnlyModelViewSet):
     """Historial de pagos de comisiones + registro de pago manual.
     El vendedor puede VER el historial pero no registrar pagos."""
     serializer_class = PayoutSerializer
-    permission_classes = [permissions.IsAuthenticated, IsStaffReadOrManager]
+    permission_classes = [permissions.IsAuthenticated, IsManager]
     filter_backends = [filters.OrderingFilter]
     ordering = ['-created_at']
 

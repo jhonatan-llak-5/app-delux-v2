@@ -245,18 +245,11 @@ class AdminUserViewSet(viewsets.ModelViewSet):
         elif kind == 'system':
             qs = qs.exclude(role='CUSTOMER')
 
-        # Alcance por rol: superadmin ve todo; admin su tienda; gerente su
-        # sucursal (staff) + los clientes de su tienda.
-        from django.db.models import Q
+        # Alcance por rol: superadmin ve todo; gerente ve toda su tienda.
         u = self.request.user
         role_u = getattr(u, 'role', None)
-        if role_u == 'TENANT_ADMIN' and u.tenant_id:
+        if role_u == 'BRANCH_MANAGER' and u.tenant_id:
             qs = qs.filter(tenant_id=u.tenant_id)
-        elif role_u == 'BRANCH_MANAGER':
-            cond = Q(branch_id=u.branch_id)
-            if u.tenant_id:
-                cond = cond | Q(role='CUSTOMER', tenant_id=u.tenant_id)
-            qs = qs.filter(cond)
         return qs
 
     def create(self, request, *args, **kwargs):

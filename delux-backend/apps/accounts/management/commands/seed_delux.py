@@ -120,14 +120,14 @@ class Command(BaseCommand):
         tenant_admin, _ = User.objects.get_or_create(
             email='delux@gmail.com',
             defaults={
-                'username': 'delux@gmail.com', 'full_name': 'Admin Delux',
-                'role': Role.TENANT_ADMIN, 'tenant': tenant,
+                'username': 'delux@gmail.com', 'full_name': 'Gerente Delux',
+                'role': Role.BRANCH_MANAGER, 'tenant': tenant,
                 'is_active': True, 'is_email_verified': True,
             },
         )
         tenant_admin.set_password('12345678')
         tenant_admin.tenant = tenant
-        tenant_admin.role = Role.TENANT_ADMIN
+        tenant_admin.role = Role.BRANCH_MANAGER
         tenant_admin.is_active = True
         tenant_admin.is_email_verified = True
         tenant_admin.save()

@@ -73,10 +73,12 @@ export class LoginComponent {
       next: r => {
         this.loading.set(false);
         const role = r.user.role;
-        if (role === 'SUPERADMIN' || role === 'TENANT_ADMIN' || role === 'BRANCH_MANAGER') {
+        if (role === 'SUPERADMIN' || role === 'BRANCH_MANAGER') {
           this.router.navigate(['/app/admin/overview']);
         } else if (role === 'SALESPERSON') {
           this.router.navigate(['/app/admin/seller']);
+        } else if (role === 'WAREHOUSE') {
+          this.router.navigate(['/app/admin/inventory']);
         } else if (role === 'AFFILIATE') {
           this.router.navigate(['/app/affiliate']);
         } else {

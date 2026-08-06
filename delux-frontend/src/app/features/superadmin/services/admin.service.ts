@@ -9,7 +9,7 @@ export interface AdminUser {
   full_name: string;
   phone?: string;
   document_id?: string;
-  role: 'SUPERADMIN' | 'TENANT_ADMIN' | 'BRANCH_MANAGER' | 'SALESPERSON' | 'AFFILIATE' | 'CUSTOMER';
+  role: 'SUPERADMIN' | 'BRANCH_MANAGER' | 'SALESPERSON' | 'WAREHOUSE' | 'AFFILIATE' | 'CUSTOMER';
   tenant_id: number | null;
   tenant_name: string | null;
   branch_id: number | null;

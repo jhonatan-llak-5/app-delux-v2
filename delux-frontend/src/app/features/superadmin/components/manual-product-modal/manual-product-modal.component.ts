@@ -38,17 +38,18 @@ export interface Lote {
   selSizes: string[];
   newColor: string;
   newSizeText: string;
-  cost: number;
-  price: number;
+  cost: number | null;
+  price: number | null;
   qtyMap: Record<string, number>;
-  bulkQty: number;
+  bulkQty: number | null;
   /** El costo ingresado ya incluye IVA (por defecto sí). Independiente por lote. */
   costIncludesIva: boolean;
 }
 
 /** Snapshot completo del formulario embebido (para persistir el borrador). */
 export interface ManualDraft {
-  nf: Omit<ManualProduct, 'images' | 'tax_rate' | 'compare_at_price' | 'discount_percent' | 'attributes' | 'variant_options'>;
+  nf: Omit<ManualProduct, 'images' | 'tax_rate' | 'compare_at_price' | 'discount_percent' | 'attributes' | 'variant_options' | 'cost' | 'price'>
+    & { cost: number | null; price: number | null };
   images: DlxImageItem[];
   taxRate: number | null;
   onOffer: boolean;
@@ -58,7 +59,7 @@ export interface ManualDraft {
   lotes: Lote[];
   dims: { name: string; values: string[] }[];
   comboQty: Record<string, number>;
-  simpleQty: number;
+  simpleQty: number | null;
 }
 
 /** Datos para prellenar el formulario al EDITAR un producto. */
@@ -137,8 +138,8 @@ export class ManualProductModalComponent implements OnInit {
   hasVariants = signal(false);
   variantMode = signal<'classic' | 'custom'>('classic');
   private readonly SEP = '¦';
-  bulkQty = 1;
-  simpleQty = 1;                       // cantidad cuando el producto NO tiene variantes
+  bulkQty: number | null = null;
+  simpleQty: number | null = null;     // cantidad cuando el producto NO tiene variantes
   private dimsV = signal(0);           // fuerza recomputar combos en el template
 
   toggleVariants(v: boolean): void {
@@ -155,13 +156,13 @@ export class ManualProductModalComponent implements OnInit {
   // ── Modo CLÁSICO: lotes (cada lote = talla×color + costo + precio + cantidad) ──
   lotes: Lote[] = [this.emptyLote()];
   private emptyLote(): Lote {
-    return { selColors: [], selSizes: [], newColor: '', newSizeText: '', cost: 0, price: 0, qtyMap: {}, bulkQty: 1, costIncludesIva: true };
+    return { selColors: [], selSizes: [], newColor: '', newSizeText: '', cost: null, price: null, qtyMap: {}, bulkQty: null, costIncludesIva: true };
   }
   addLote(): void { this.lotes = [...this.lotes, this.emptyLote()]; this.changed.emit(); }
   /** ¿El lote tiene algún dato cargado (colores, tallas, costo, precio o cantidad)? */
   loteHasContent(l: Lote): boolean {
     return (l.selColors?.length || 0) > 0 || (l.selSizes?.length || 0) > 0
-      || (+l.cost || 0) > 0 || (+l.price || 0) > 0
+      || (+(l.cost ?? 0) || 0) > 0 || (+(l.price ?? 0) || 0) > 0
       || Object.values(l.qtyMap || {}).some(v => (+v || 0) > 0)
       || !!(l.newColor || '').trim() || !!(l.newSizeText || '').trim();
   }
@@ -185,8 +186,17 @@ export class ManualProductModalComponent implements OnInit {
   loteColorsOrDefault(l: Lote): string[] { return l.selColors.length ? l.selColors : ['']; }
   loteSizesOrDefault(l: Lote): string[] { return l.selSizes.length ? l.selSizes : ['']; }
   private lkey(c: string, sz: string): string { return c + '|' + sz; }
-  getLoteQty(l: Lote, c: string, sz: string): number { return l.qtyMap[this.lkey(c, sz)] ?? 0; }
-  setLoteQty(l: Lote, c: string, sz: string, v: any): void { l.qtyMap[this.lkey(c, sz)] = Math.max(0, +v || 0); this.changed.emit(); }
+  /** Valor para el input (null = vacío, muestra placeholder en vez de 0). */
+  getLoteQty(l: Lote, c: string, sz: string): number | null {
+    const v = l.qtyMap[this.lkey(c, sz)];
+    return v == null ? null : v;
+  }
+  setLoteQty(l: Lote, c: string, sz: string, v: any): void {
+    const key = this.lkey(c, sz);
+    if (v === null || v === undefined || v === '') delete l.qtyMap[key];
+    else l.qtyMap[key] = Math.max(0, Math.floor(+v || 0));
+    this.changed.emit();
+  }
   toggleLoteColor(l: Lote, c: string): void { const i = l.selColors.indexOf(c); if (i >= 0) l.selColors.splice(i, 1); else l.selColors.push(c); this.changed.emit(); }
   addLoteColor(l: Lote): void { const v = l.newColor.trim(); if (v && !l.selColors.includes(v)) l.selColors.push(v); l.newColor = ''; this.changed.emit(); }
   toggleLoteSize(l: Lote, sz: string): void { const i = l.selSizes.indexOf(sz); if (i >= 0) l.selSizes.splice(i, 1); else l.selSizes.push(sz); this.changed.emit(); }
@@ -204,7 +214,7 @@ export class ManualProductModalComponent implements OnInit {
     return parts.length ? parts.join(' · ') : 'Cantidad';
   }
   applyLoteBulk(l: Lote): void {
-    const q = Math.max(0, +l.bulkQty || 0);
+    const q = Math.max(0, +(l.bulkQty ?? 0) || 0);
     for (const c of this.loteColorsOrDefault(l)) for (const sz of this.loteSizesOrDefault(l)) l.qtyMap[this.lkey(c, sz)] = q;
     this.changed.emit();
   }
@@ -216,7 +226,7 @@ export class ManualProductModalComponent implements OnInit {
     for (const c of this.loteColorsOrDefault(l)) for (const sz of this.loteSizesOrDefault(l)) out.push({ color: c, size: sz });
     return out;
   }
-  loteUnits(l: Lote): number { return this.loteAllCombos(l).reduce((a, x) => a + this.getLoteQty(l, x.color, x.size), 0); }
+  loteUnits(l: Lote): number { return this.loteAllCombos(l).reduce((a, x) => a + (this.getLoteQty(l, x.color, x.size) ?? 0), 0); }
   loteComboCount(l: Lote): number { return this.loteAllCombos(l).length; }
   /** Variantes a emitir: TODAS las seleccionadas, con su cantidad (aunque sea 0,
    * para poder ajustarla luego en el Paso 2). */
@@ -224,9 +234,9 @@ export class ManualProductModalComponent implements OnInit {
     const out: { color: string; size: string; qty: number; cost: number; price: number }[] = [];
     for (const l of this.lotes) {
       // El costo se guarda SIEMPRE con IVA; cada lote decide si ya lo incluía.
-      const cost = this.costWithIva(+l.cost || 0, l.costIncludesIva);
+      const cost = this.costWithIva(+(l.cost ?? 0) || 0, l.costIncludesIva);
       for (const x of this.loteAllCombos(l)) {
-        out.push({ color: x.color, size: x.size, qty: this.getLoteQty(l, x.color, x.size), cost, price: +l.price || 0 });
+        out.push({ color: x.color, size: x.size, qty: this.getLoteQty(l, x.color, x.size) ?? 0, cost, price: +(l.price ?? 0) || 0 });
       }
     }
     return out;
@@ -265,11 +275,15 @@ export class ManualProductModalComponent implements OnInit {
       return { key: parts.join(this.SEP), attrs, label: parts.join(' · ') };
     });
   }
-  comboQtyOf(key: string): number { return this.comboQty[key] ?? 0; }
-  setComboQty(key: string, v: any): void { this.comboQty[key] = Math.max(0, +v || 0); this.dimsV.update(x => x + 1); this.changed.emit(); }
+  comboQtyOf(key: string): number | null { const v = this.comboQty[key]; return v == null ? null : v; }
+  setComboQty(key: string, v: any): void {
+    if (v === null || v === undefined || v === '') delete this.comboQty[key];
+    else this.comboQty[key] = Math.max(0, Math.floor(+v || 0));
+    this.dimsV.update(x => x + 1); this.changed.emit();
+  }
   /** "Aplicar a todas" en modo personalizado. */
   applyBulk(): void {
-    const q = Math.max(0, +this.bulkQty || 0);
+    const q = Math.max(0, +(this.bulkQty ?? 0) || 0);
     for (const c of this.combos()) this.comboQty[c.key] = q;
     this.dimsV.update(x => x + 1); this.changed.emit();
   }
@@ -277,7 +291,7 @@ export class ManualProductModalComponent implements OnInit {
   // ── Totales (según el modo activo) ──
   totalUnits(): number {
     return this.variantMode() === 'custom'
-      ? this.combos().reduce((a, c) => a + this.comboQtyOf(c.key), 0)
+      ? this.combos().reduce((a, c) => a + (this.comboQtyOf(c.key) ?? 0), 0)
       : this.lotes.reduce((a, l) => a + this.loteUnits(l), 0);
   }
   comboCount(): number {
@@ -297,10 +311,10 @@ export class ManualProductModalComponent implements OnInit {
   readonly taxOptions = SRI_IVA_OPTIONS;
 
   // ── Precio con IVA (nf.price = precio de venta con IVA incluido) ──
-  netPrice(): number { const b = +this.nf.price || 0; const r = this.effectiveIva(); return r ? b / (1 + r / 100) : b; }
-  ivaAmount(): number { return (+this.nf.price || 0) - this.netPrice(); }
-  margin(): number { return (this.finalPrice()) - (+this.nf.cost || 0); }
-  marginPct(): number { const c = +this.nf.cost || 0; return c > 0 ? (this.margin() / c) * 100 : 0; }
+  netPrice(): number { const b = +(this.nf.price ?? 0) || 0; const r = this.effectiveIva(); return r ? b / (1 + r / 100) : b; }
+  ivaAmount(): number { return (+(this.nf.price ?? 0) || 0) - this.netPrice(); }
+  margin(): number { return (this.finalPrice()) - (+(this.nf.cost ?? 0) || 0); }
+  marginPct(): number { const c = +(this.nf.cost ?? 0) || 0; return c > 0 ? (this.margin() / c) * 100 : 0; }
   money(v: number): string { return '$' + (Math.round((v || 0) * 100) / 100).toFixed(2); }
 
   // ── Costo con/sin IVA ──
@@ -326,11 +340,11 @@ export class ManualProductModalComponent implements OnInit {
   toggleOffer(v: boolean): void { this.onOffer = v; if (!v) this.discount = 0; }
   offerPrice(): number {
     const d = Math.min(99, Math.max(0, +this.discount || 0));
-    return (+this.nf.price || 0) * (1 - d / 100);
+    return (+(this.nf.price ?? 0) || 0) * (1 - d / 100);
   }
   /** Precio que realmente se cobra (base_price a guardar). */
-  finalPrice(): number { return this.onOffer && +this.discount > 0 ? this.offerPrice() : (+this.nf.price || 0); }
-  compareAtPrice(): number | null { return this.onOffer && +this.discount > 0 ? (+this.nf.price || 0) : null; }
+  finalPrice(): number { return this.onOffer && +this.discount > 0 ? this.offerPrice() : (+(this.nf.price ?? 0) || 0); }
+  compareAtPrice(): number | null { return this.onOffer && +this.discount > 0 ? (+(this.nf.price ?? 0) || 0) : null; }
   /** % de descuento de la oferta global (0 si no está en oferta). */
   offerDiscount(): number { return this.onOffer && +this.discount > 0 ? Math.min(99, +this.discount) : 0; }
 
@@ -383,9 +397,10 @@ export class ManualProductModalComponent implements OnInit {
   };
   colorHex(name: string): string { return this.colorHexMap[name] || '#cbd5e1'; }
   readonly kinds = Object.entries(KIND_PRESETS).map(([value, v]) => ({ value, label: v.label }));
-  nf: Omit<ManualProduct, 'images' | 'tax_rate' | 'compare_at_price' | 'discount_percent' | 'attributes' | 'variant_options'> = {
+  nf: Omit<ManualProduct, 'images' | 'tax_rate' | 'compare_at_price' | 'discount_percent' | 'attributes' | 'variant_options' | 'cost' | 'price'>
+    & { cost: number | null; price: number | null } = {
     product_name: '', brand: '', category: '', kind: 'CALZADO',
-    color: '', size: '', barcode: '', cost: 0, price: 0, quantity: 1, description: '',
+    color: '', size: '', barcode: '', cost: null, price: null, quantity: 1, description: '',
   };
 
   ngOnInit(): void {
@@ -408,14 +423,14 @@ export class ManualProductModalComponent implements OnInit {
         ? d.lotes.map(l => ({
             selColors: [...(l.selColors || [])], selSizes: [...(l.selSizes || [])],
             newColor: l.newColor || '', newSizeText: l.newSizeText || '',
-            cost: +l.cost || 0, price: +l.price || 0,
-            qtyMap: { ...(l.qtyMap || {}) }, bulkQty: +l.bulkQty || 1,
+            cost: l.cost ?? null, price: l.price ?? null,
+            qtyMap: { ...(l.qtyMap || {}) }, bulkQty: l.bulkQty ?? null,
             costIncludesIva: l.costIncludesIva ?? true,
           }))
         : [this.emptyLote()];
       this.dims = Array.isArray(d.dims) && d.dims.length ? d.dims.map(x => ({ name: x.name, values: [...(x.values || [])] })) : [{ name: 'Talla', values: [] }];
       this.comboQty = d.comboQty && typeof d.comboQty === 'object' ? { ...d.comboQty } : {};
-      this.simpleQty = +d.simpleQty || 1;
+      this.simpleQty = d.simpleQty ?? null;
       this.dimsV.update(x => x + 1);
     } catch { /* borrador corrupto */ }
   }
@@ -447,7 +462,7 @@ export class ManualProductModalComponent implements OnInit {
     const n = this.nf;
     if ((n.product_name || '').trim() || (n.brand || '').trim() || (n.category || '').trim()
         || (n.barcode || '').trim() || (n.description || '').trim()) return true;
-    if ((+n.cost || 0) > 0 || (+n.price || 0) > 0) return true;
+    if ((+(n.cost ?? 0) || 0) > 0 || (+(n.price ?? 0) || 0) > 0) return true;
     if (this.images.length) return true;
     if (this.lotes.some(l => l.selColors.length || l.selSizes.length) || this.activeDims().length) return true;
     if (this.onOffer && +this.discount > 0) return true;
@@ -486,11 +501,11 @@ export class ManualProductModalComponent implements OnInit {
   private resetForm(): void {
     const keepKind = this.nf.kind;
     this.nf = { product_name: '', brand: '', category: '', kind: keepKind,
-      color: '', size: '', barcode: '', cost: 0, price: 0, quantity: 1, description: '' };
+      color: '', size: '', barcode: '', cost: null, price: null, quantity: 1, description: '' };
     this.images = [];
     this.lotes = [this.emptyLote()];
     this.dims = [{ name: 'Talla', values: [] }];
-    this.newVal = {}; this.comboQty = {}; this.bulkQty = 1; this.simpleQty = 1;
+    this.newVal = {}; this.comboQty = {}; this.bulkQty = null; this.simpleQty = null;
     this.variantMode.set('classic');
     this.dimsV.update(x => x + 1);
     this.hasVariants.set(false);
@@ -510,9 +525,9 @@ export class ManualProductModalComponent implements OnInit {
     const classicVariants = this.hasVariants() && this.variantMode() === 'classic';
     // En edición con precio por variante (oculto) no se exige el precio de arriba.
     const priceRequired = !classicVariants && this.showPrice;
-    if (priceRequired && (+this.nf.price || 0) <= 0) errs['price'] = 'Ingresa un precio válido.';
-    if (!classicVariants && !this.isEdit() && (+this.nf.cost || 0) <= 0) errs['cost'] = 'Ingresa un costo válido.';
-    if (!this.isEdit() && !this.hasVariants() && (+this.simpleQty || 0) <= 0) errs['qty'] = 'Ingresa la cantidad.';
+    if (priceRequired && (+(this.nf.price ?? 0) || 0) <= 0) errs['price'] = 'Ingresa un precio válido.';
+    if (!classicVariants && !this.isEdit() && (+(this.nf.cost ?? 0) || 0) <= 0) errs['cost'] = 'Ingresa un costo válido.';
+    if (!this.isEdit() && !this.hasVariants() && (+(this.simpleQty ?? 0) || 0) <= 0) errs['qty'] = 'Ingresa la cantidad.';
     this.fieldErrors.set(errs);
     if (Object.keys(errs).length) return;
 
@@ -586,7 +601,7 @@ export class ManualProductModalComponent implements OnInit {
       }
       this.add.emit([{
         ...baseItem, color: '', size: '', barcode: bc,
-        quantity: Math.max(0, +this.simpleQty || 0),
+        quantity: Math.max(0, +(this.simpleQty ?? 0) || 0),
       }]);
       if (this.embedded) this.afterAddReset();
       return;
@@ -595,7 +610,7 @@ export class ManualProductModalComponent implements OnInit {
     if (this.variantMode() === 'custom') {
       // Modo personalizado: producto cartesiano de las dimensiones libres.
       const opts = this.activeDims().map(d => ({ name: d.name.trim(), values: [...d.values] }));
-      const combos = this.combos().filter(c => this.comboQtyOf(c.key) > 0);
+      const combos = this.combos().filter(c => (this.comboQtyOf(c.key) ?? 0) > 0);
       if (!combos.length) { this.error.set('Agrega al menos una cantidad en alguna variante.'); return; }
       const single = combos.length === 1;
       this.add.emit(combos.map(c => {
@@ -604,7 +619,7 @@ export class ManualProductModalComponent implements OnInit {
           ...baseItem,
           size: vals[0] || '', color: vals[1] || '',
           barcode: single ? this.nf.barcode.trim() : '',
-          quantity: this.comboQtyOf(c.key),
+          quantity: this.comboQtyOf(c.key) ?? 0,
           attributes: c.attrs, variant_options: opts,
         };
       }));

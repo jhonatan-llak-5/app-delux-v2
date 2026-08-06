@@ -46,7 +46,8 @@ class FinanceViewSet(viewsets.ViewSet):
 
     def _scope_branch(self, request):
         user = request.user
-        if getattr(user, 'role', None) in ('BRANCH_MANAGER', 'SALESPERSON') and user.branch_id:
+        # Gerente ve toda su tienda; puede filtrar por sucursal vía query param.
+        if getattr(user, 'role', None) == 'SALESPERSON' and user.branch_id:
             return user.branch_id
         b = request.query_params.get('branch')
         return int(b) if b else None

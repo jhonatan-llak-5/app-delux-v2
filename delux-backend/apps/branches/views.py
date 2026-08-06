@@ -30,12 +30,12 @@ class AdminBranchViewSet(viewsets.ModelViewSet):
         if tenant_slug:
             qs = qs.filter(tenant__slug=tenant_slug)
 
-        # Alcance por rol: admin de tienda ve su tienda; gerente solo su sucursal.
+        # Alcance por rol: gerente ve toda su tienda; vendedor/bodeguero solo su sucursal.
         u = self.request.user
         role_u = getattr(u, 'role', None)
-        if role_u == 'TENANT_ADMIN' and u.tenant_id:
+        if role_u == 'BRANCH_MANAGER' and u.tenant_id:
             qs = qs.filter(tenant_id=u.tenant_id)
-        elif role_u in ('BRANCH_MANAGER', 'SALESPERSON') and u.branch_id:
+        elif role_u in ('SALESPERSON', 'WAREHOUSE') and u.branch_id:
             qs = qs.filter(id=u.branch_id)
         return qs
 

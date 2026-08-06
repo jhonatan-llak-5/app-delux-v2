@@ -102,8 +102,8 @@ export class ProfileComponent implements OnInit {
   });
 
   roleLabel = computed(() => ({
-    SUPERADMIN: 'Superadmin', TENANT_ADMIN: 'Admin', BRANCH_MANAGER: 'Gerente',
-    SALESPERSON: 'Vendedor', CUSTOMER: 'Cliente',
+    SUPERADMIN: 'Superadmin', BRANCH_MANAGER: 'Gerente',
+    SALESPERSON: 'Vendedor', WAREHOUSE: 'Bodeguero', CUSTOMER: 'Cliente',
   } as Record<string, string>)[this.auth.user()?.role || ''] || '');
 
   ngOnInit(): void {

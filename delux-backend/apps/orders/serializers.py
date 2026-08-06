@@ -118,7 +118,7 @@ class POSCheckoutSerializer(serializers.Serializer):
         # - Gerente/Admin/Superadmin -> pueden elegir un vendedor o dejarla anonima (mostrador).
         seller = user if getattr(user, 'is_authenticated', False) else None
         role = getattr(user, 'role', None)
-        if role in ('SUPERADMIN', 'TENANT_ADMIN', 'BRANCH_MANAGER') and 'seller_id' in validated_data:
+        if role in ('SUPERADMIN', 'BRANCH_MANAGER') and 'seller_id' in validated_data:
             sid = validated_data.get('seller_id')
             if sid:
                 from apps.accounts.models import User as _User

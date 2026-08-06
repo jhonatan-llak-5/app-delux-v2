@@ -17,9 +17,9 @@ from apps.accounts.models import Role
 # Rol -> nombre de Grupo
 ROLE_GROUP = {
     Role.SUPERADMIN: 'Superadmin',
-    Role.TENANT_ADMIN: 'Admin Tienda',
     Role.BRANCH_MANAGER: 'Gerente Sucursal',
     Role.SALESPERSON: 'Vendedor',
+    Role.WAREHOUSE: 'Bodeguero',
     Role.CUSTOMER: 'Cliente',
 }
 
@@ -48,9 +48,8 @@ def ensure_groups() -> dict[str, Group]:
 
     all_perms = list(Permission.objects.all())
 
-    # Superadmin y Admin Tienda: todos los permisos.
+    # Superadmin: todos los permisos.
     groups['Superadmin'].permissions.set(all_perms)
-    groups['Admin Tienda'].permissions.set(all_perms)
 
     # Gerente de sucursal: CRUD sobre apps operativas (no config/tenants).
     groups['Gerente Sucursal'].permissions.set(
@@ -66,6 +65,13 @@ def ensure_groups() -> dict[str, Group]:
         + _perms_for_apps(['orders', 'payments'], ['view', 'add'])
     )
     groups['Vendedor'].permissions.set(seller_perms)
+
+    # Bodeguero: gestión de inventario/catálogo (sin ventas ni finanzas).
+    warehouse_perms = _perms_for_apps(
+        ['products', 'variants', 'inventory', 'brands', 'categories'],
+        ['view', 'add', 'change', 'delete'],
+    ) + _perms_for_apps(['branches'], ['view'])
+    groups['Bodeguero'].permissions.set(warehouse_perms)
 
     # Cliente: sin permisos de administración.
     groups['Cliente'].permissions.clear()

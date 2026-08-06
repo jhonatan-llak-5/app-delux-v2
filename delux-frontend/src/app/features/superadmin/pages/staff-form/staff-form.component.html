@@ -73,19 +73,6 @@
           <div>
             <label class="eg-label">Rol *</label>
             <div class="grid grid-cols-1 gap-2">
-              <button type="button" (click)="payload.role = 'TENANT_ADMIN'"
-                      class="px-3 py-3 rounded-lg border text-sm font-semibold transition text-left flex items-center gap-3"
-                      [class.bg-blue-100]="payload.role === 'TENANT_ADMIN'"
-                      [class.border-blue-400]="payload.role === 'TENANT_ADMIN'"
-                      [class.text-blue-700]="payload.role === 'TENANT_ADMIN'"
-                      [class.border-slate-200]="payload.role !== 'TENANT_ADMIN'"
-                      [class.text-slate-600]="payload.role !== 'TENANT_ADMIN'">
-                <i class="fa-solid fa-shield-halved w-5 text-center"></i>
-                <span>
-                  <span class="block">Admin de tienda</span>
-                  <span class="block text-[11px] font-normal opacity-70">Acceso total excepto Configuración del sitio</span>
-                </span>
-              </button>
               <button type="button" (click)="payload.role = 'BRANCH_MANAGER'"
                       class="px-3 py-3 rounded-lg border text-sm font-semibold transition text-left flex items-center gap-3"
                       [class.bg-violet-100]="payload.role === 'BRANCH_MANAGER'"
@@ -96,7 +83,7 @@
                 <i class="fa-solid fa-user-tie w-5 text-center"></i>
                 <span>
                   <span class="block">Gerente</span>
-                  <span class="block text-[11px] font-normal opacity-70">Gestiona su sucursal: equipo, stock y ventas</span>
+                  <span class="block text-[11px] font-normal opacity-70">Acceso total: equipo, stock, ventas y configuración</span>
                 </span>
               </button>
               <button type="button" (click)="payload.role = 'SALESPERSON'"
@@ -109,14 +96,26 @@
                 <i class="fa-solid fa-user-tag w-5 text-center"></i>
                 <span>
                   <span class="block">Vendedor</span>
-                  <span class="block text-[11px] font-normal opacity-70">Acceso al punto de venta de su sucursal</span>
+                  <span class="block text-[11px] font-normal opacity-70">Ventas, devoluciones e inventario de su sucursal</span>
+                </span>
+              </button>
+              <button type="button" (click)="payload.role = 'WAREHOUSE'"
+                      class="px-3 py-3 rounded-lg border text-sm font-semibold transition text-left flex items-center gap-3"
+                      [class.bg-teal-100]="payload.role === 'WAREHOUSE'"
+                      [class.border-teal-400]="payload.role === 'WAREHOUSE'"
+                      [class.text-teal-700]="payload.role === 'WAREHOUSE'"
+                      [class.border-slate-200]="payload.role !== 'WAREHOUSE'"
+                      [class.text-slate-600]="payload.role !== 'WAREHOUSE'">
+                <i class="fa-solid fa-boxes-packing w-5 text-center"></i>
+                <span>
+                  <span class="block">Bodeguero</span>
+                  <span class="block text-[11px] font-normal opacity-70">Inventario, etiquetas, proveedores, categorías y marcas</span>
                 </span>
               </button>
             </div>
           </div>
 
-          @if (payload.role !== 'TENANT_ADMIN') {
-            <div>
+          <div>
               <label class="eg-label">Sucursal asignada *</label>
               @if (auth.multiBranch()) {
                 <select [(ngModel)]="payload.branch" name="branch" required
@@ -131,7 +130,6 @@
                 </p>
               }
             </div>
-          }
 
           <div class="pt-2"></div>
           <dlx-input label="Fecha de ingreso" type="date" [(ngModel)]="payload.hire_date" name="hire_date" />
@@ -155,7 +153,7 @@
             </div>
           }
 
-          @if (payload.role === 'SALESPERSON' || payload.role === 'BRANCH_MANAGER') {
+          @if (payload.role === 'SALESPERSON' || payload.role === 'BRANCH_MANAGER' || payload.role === 'WAREHOUSE') {
             <div>
               <label class="eg-label">Sueldo mensual ($)</label>
               <dlx-price-input [(ngModel)]="payload.monthly_salary" name="monthly_salary" extraClass="w-full" />

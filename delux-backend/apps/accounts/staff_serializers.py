@@ -27,7 +27,7 @@ class StaffSerializer(serializers.ModelSerializer):
 class StaffCreateSerializer(serializers.ModelSerializer):
     password = serializers.CharField(write_only=True, required=False, min_length=8)
     role = serializers.ChoiceField(
-        choices=[('TENANT_ADMIN', 'Admin de tienda'), ('BRANCH_MANAGER', 'Gerente'), ('SALESPERSON', 'Vendedor')]
+        choices=[('BRANCH_MANAGER', 'Gerente'), ('SALESPERSON', 'Vendedor'), ('WAREHOUSE', 'Bodeguero')]
     )
 
     class Meta:

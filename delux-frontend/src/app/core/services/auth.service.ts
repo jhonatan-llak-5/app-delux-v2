@@ -50,7 +50,7 @@ export class AuthService {
   readonly multiBranch = computed(() => {
     const u = this._user();
     if (!u) return false;
-    if (u.role === 'SUPERADMIN' || u.role === 'TENANT_ADMIN') return true;
+    if (u.role === 'SUPERADMIN' || u.role === 'BRANCH_MANAGER') return true;
     return !u.branch_id;
   });
 

@@ -197,7 +197,7 @@ export class PayrollDetailComponent implements OnInit {
 
   monthName(m: number): string { return this.months[m - 1] || String(m); }
   roleLabel(r: string): string {
-    return ({ SUPERADMIN: 'Superadmin', TENANT_ADMIN: 'Admin', BRANCH_MANAGER: 'Gerente', SALESPERSON: 'Vendedor' } as Record<string, string>)[r] || r;
+    return ({ SUPERADMIN: 'Superadmin', BRANCH_MANAGER: 'Gerente', SALESPERSON: 'Vendedor', WAREHOUSE: 'Bodeguero' } as Record<string, string>)[r] || r;
   }
   money(v: number | string): string { return '$' + (Math.round((+v || 0) * 100) / 100).toLocaleString('es-EC', { minimumFractionDigits: 2, maximumFractionDigits: 2 }); }
   label(st: string): string { return st === 'PAID' ? 'Pagada' : st === 'PARTIAL' ? 'Parcial' : 'Pendiente'; }

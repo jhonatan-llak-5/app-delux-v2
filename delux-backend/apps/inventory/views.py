@@ -85,12 +85,12 @@ class AdminStockViewSet(viewsets.ReadOnlyModelViewSet):
                     pass
                 qs = qs.filter(cond)
 
-        # Scoping por rol: gerente de sucursal solo ve el stock de su sucursal.
+        # Scoping por rol: gerente ve toda su tienda; vendedor/bodeguero solo su sucursal.
         user = self.request.user
         if getattr(user, 'role', None) and user.role != 'SUPERADMIN':
             if user.tenant_id:
                 qs = qs.filter(tenant_id=user.tenant_id)
-            if user.role in ('BRANCH_MANAGER', 'SALESPERSON') and user.branch_id:
+            if user.role in ('SALESPERSON', 'WAREHOUSE') and user.branch_id:
                 qs = qs.filter(branch_id=user.branch_id)
         return qs
 
@@ -408,8 +408,8 @@ class AdminMovementViewSet(viewsets.ReadOnlyModelViewSet):
         # Aislar por tienda (tenant) salvo superadmin.
         if role != 'SUPERADMIN':
             qs = qs.filter(tenant_id=getattr(user, 'tenant_id', None))
-        # Gerente/Vendedor: solo su sucursal.
-        if role in ('BRANCH_MANAGER', 'SALESPERSON') and getattr(user, 'branch_id', None):
+        # Vendedor/Bodeguero: solo su sucursal (gerente ve toda la tienda).
+        if role in ('SALESPERSON', 'WAREHOUSE') and getattr(user, 'branch_id', None):
             qs = qs.filter(stock__branch_id=user.branch_id)
         params = self.request.query_params
         if params.get('branch'):  qs = qs.filter(stock__branch_id=params['branch'])

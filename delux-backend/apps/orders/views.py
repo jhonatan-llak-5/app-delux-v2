@@ -4,14 +4,14 @@ from rest_framework import filters, permissions, status, viewsets
 from rest_framework.decorators import action
 from rest_framework.response import Response
 
-from apps.accounts.permissions import IsBranchManager, IsStaff
+from apps.accounts.permissions import IsBranchManager, IsSalesStaff
 from .models import Order, OrderStatus
 from .serializers import OrderSerializer, POSCheckoutSerializer
 
 
 class AdminOrderViewSet(viewsets.ReadOnlyModelViewSet):
     serializer_class = OrderSerializer
-    permission_classes = [permissions.IsAuthenticated, IsStaff]
+    permission_classes = [permissions.IsAuthenticated, IsSalesStaff]
     filter_backends = [filters.SearchFilter, filters.OrderingFilter]
     search_fields = ['code', 'customer__full_name', 'customer__email']
     ordering_fields = ['created_at', 'total', 'code']

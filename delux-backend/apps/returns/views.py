@@ -7,7 +7,7 @@ from rest_framework.decorators import action
 from rest_framework.response import Response
 from rest_framework.views import APIView
 
-from apps.accounts.permissions import IsBranchManager
+from apps.accounts.permissions import IsSalesStaff
 from apps.customers.me_views import get_or_create_customer_for_user
 from apps.orders.models import Order, OrderItem, OrderStatus
 from apps.inventory.models import Stock, StockMovement
@@ -58,7 +58,7 @@ class MeReturnsView(APIView):
 
 class AdminReturnViewSet(viewsets.ModelViewSet):
     serializer_class = ReturnSerializer
-    permission_classes = [permissions.IsAuthenticated, IsBranchManager]
+    permission_classes = [permissions.IsAuthenticated, IsSalesStaff]
     filter_backends = [filters.SearchFilter, filters.OrderingFilter]
     search_fields = ['code', 'order__code', 'customer__full_name']
     ordering = ['-created_at']
@@ -123,7 +123,7 @@ class AdminSaleChangeViewSet(viewsets.ReadOnlyModelViewSet):
     """Historial admin de CAMBIOS (return-to-stock parcial ligado a la venta,
     SIN reembolso ni anulación). Solo lectura."""
     serializer_class = SaleChangeSerializer
-    permission_classes = [permissions.IsAuthenticated, IsBranchManager]
+    permission_classes = [permissions.IsAuthenticated, IsSalesStaff]
     filter_backends = [filters.SearchFilter, filters.OrderingFilter]
     search_fields = ['code', 'order__code', 'product_name', 'descripcion']
     ordering = ['-created_at']

@@ -445,7 +445,7 @@ export class SalesListComponent implements OnInit {
   /** Solo roles de gestión pueden registrar cambios / cancelar (no el vendedor). */
   canManage(): boolean {
     const r = this.auth.user()?.role;
-    return r === 'SUPERADMIN' || r === 'TENANT_ADMIN' || r === 'BRANCH_MANAGER';
+    return r === 'SUPERADMIN' || r === 'BRANCH_MANAGER';
   }
   /** Cuenta superadmin de la plataforma (única que ve la columna Sucursal). */
   isSuperAdmin(): boolean { return this.auth.user()?.role === 'SUPERADMIN'; }

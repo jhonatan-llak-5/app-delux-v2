@@ -75,7 +75,7 @@ export class DlxExportMenuComponent {
   /** Exportar solo para superadmin, admin de tienda y gerente de sucursal. */
   readonly canExport = computed(() => {
     const r = this.auth.user()?.role;
-    return r === 'SUPERADMIN' || r === 'TENANT_ADMIN' || r === 'BRANCH_MANAGER';
+    return r === 'SUPERADMIN' || r === 'BRANCH_MANAGER';
   });
   open = signal(false);
   busy = signal(false);

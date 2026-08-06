@@ -23,11 +23,11 @@ class StaffViewSet(viewsets.ModelViewSet):
 
     def get_queryset(self):
         qs = User.objects.select_related('branch', 'tenant').filter(
-            role__in=['TENANT_ADMIN', 'BRANCH_MANAGER', 'SALESPERSON', 'AFFILIATE']
+            role__in=['BRANCH_MANAGER', 'SALESPERSON', 'WAREHOUSE', 'AFFILIATE']
         )
         user = self.request.user
-        if user.role == 'BRANCH_MANAGER':
-            qs = qs.filter(branch=user.branch)
+        if user.role == 'BRANCH_MANAGER' and user.tenant_id:
+            qs = qs.filter(tenant_id=user.tenant_id)
         params = self.request.query_params
         if params.get('branch'): qs = qs.filter(branch_id=params['branch'])
         if params.get('role'):   qs = qs.filter(role=params['role'])

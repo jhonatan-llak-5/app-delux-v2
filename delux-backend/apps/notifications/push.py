@@ -74,7 +74,6 @@ def staff_recipients(tenant, branch=None):
 
     conds = Q(role=Role.SUPERADMIN)
     if tenant is not None:
-        conds |= (Q(role=Role.TENANT_ADMIN) & Q(tenant=tenant))
         mgr = Q(role=Role.BRANCH_MANAGER) & Q(tenant=tenant)
         if branch is not None:
             mgr &= Q(branch=branch)
@@ -89,8 +88,8 @@ def admin_recipients(tenant=None):
     from apps.accounts.models import User, Role
 
     conds = Q(role=Role.SUPERADMIN)
-    ta = Q(role=Role.TENANT_ADMIN)
+    mgr = Q(role=Role.BRANCH_MANAGER)
     if tenant is not None:
-        ta &= Q(tenant=tenant)
-    conds |= ta
+        mgr &= Q(tenant=tenant)
+    conds |= mgr
     return list(User.objects.filter(Q(is_active=True) & conds).distinct())
