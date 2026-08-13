@@ -3,17 +3,29 @@ from rest_framework import filters, permissions, viewsets
 from rest_framework.decorators import action
 from rest_framework.response import Response
 
-from apps.accounts.permissions import IsBranchManager
+from apps.accounts.permissions import IsStaff, IsSalesStaff, IsManager
 from .models import Customer
 from .serializers import CustomerSerializer, CustomerCreateSerializer
 
 
 class AdminCustomerViewSet(viewsets.ModelViewSet):
-    permission_classes = [permissions.IsAuthenticated, IsBranchManager]
+    permission_classes = [permissions.IsAuthenticated, IsStaff]
     filter_backends = [filters.SearchFilter, filters.OrderingFilter]
     search_fields = ['full_name', 'email', 'phone', 'document_id']
     ordering_fields = ['full_name', 'created_at']
     ordering = ['-created_at']
+
+    def get_permissions(self):
+        # Buscar/consultar clientes: todo el staff (POS de vendedor y bodeguero,
+        # además de gerente y superadmin). El POS necesita buscar el cliente frecuente.
+        if self.request.method in permissions.SAFE_METHODS:
+            return [permissions.IsAuthenticated(), IsStaff()]
+        # Eliminar cliente: solo gerente/superadmin.
+        if self.request.method == 'DELETE':
+            return [permissions.IsAuthenticated(), IsManager()]
+        # Crear/editar: personal de ventas (gerente + vendedor). Un vendedor puede
+        # dar de alta un cliente en el momento de la venta.
+        return [permissions.IsAuthenticated(), IsSalesStaff()]
 
     def get_queryset(self):
         from django.db.models import Q

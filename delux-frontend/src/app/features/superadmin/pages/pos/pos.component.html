@@ -269,7 +269,7 @@
               }
               <div class="flex justify-between items-center">
                 <span class="text-slate-500 text-sm">Descuento</span>
-                <dlx-price-input [ngModel]="discount()" (ngModelChange)="discount.set(+$event || 0)"
+                <dlx-price-input [ngModel]="discount()" (ngModelChange)="discount.set($event)" [nullable]="true"
                                  extraClass="!h-8 w-28 text-right text-sm" />
               </div>
               <div class="flex justify-between items-center pt-3 mt-1 border-t border-slate-100 dark:border-white/10">

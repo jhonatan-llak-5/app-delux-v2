@@ -81,7 +81,7 @@ export class PosComponent implements OnInit, OnDestroy {
   view = signal<ViewMode>(readViewPref('dlx_pos_view', this.auth.user()?.id));
   scanCode = '';
   scanMsg = signal<{ ok: boolean; text: string } | null>(null);
-  discount = signal(0);
+  discount = signal<number | null>(null);
   saving = signal(false);
   confirmOpen = signal(false);
   paidWith: number | null = null;   // efectivo recibido (calculadora de vuelto)
@@ -139,7 +139,7 @@ export class PosComponent implements OnInit, OnDestroy {
   netSubtotal = computed(() => { const r = this.taxRate(); return r ? this.subtotal() / (1 + r / 100) : this.subtotal(); });
   /** IVA contenido en el subtotal. */
   taxAmount = computed(() => this.subtotal() - this.netSubtotal());
-  total = computed(() => Math.max(0, this.subtotal() - this.discount()));
+  total = computed(() => Math.max(0, this.subtotal() - (this.discount() ?? 0)));
   /** Precio unitario (ya incluye IVA). */
   unitWithTax(i: CartItem): number { return i.unit_price; }
   canCheckout = computed(() => this.cart().length > 0 && !!this.branchId());
@@ -246,7 +246,7 @@ export class PosComponent implements OnInit, OnDestroy {
     });
     if (!ok) return;
     this.cart.set([]);
-    this.discount.set(0);
+    this.discount.set(null);
     this.appliedCoupon.set(null);
     this.couponError.set(null);
     this.customerData = this.blankCustomer();
@@ -401,7 +401,7 @@ export class PosComponent implements OnInit, OnDestroy {
         this.validatingCoupon.set(false);
         if (r.valid) {
           this.appliedCoupon.set(r);
-          this.discount.set(+(r.discount || 0));
+          this.discount.set(r.discount ? +r.discount : null);
           this.couponInput = '';
         } else {
           this.couponError.set(r.detail || 'Cupón inválido');
@@ -416,7 +416,7 @@ export class PosComponent implements OnInit, OnDestroy {
 
   removeCoupon() {
     this.appliedCoupon.set(null);
-    this.discount.set(0);
+    this.discount.set(null);
     this.couponError.set(null);
   }
 
@@ -439,7 +439,7 @@ export class PosComponent implements OnInit, OnDestroy {
     const payload = {
       branch_id: this.branchId()!,
       items: this.cart().map(i => ({ variant_id: i.variant_id, quantity: i.quantity })),
-      discount: this.discount(),
+      discount: this.discount() ?? 0,
       customer_id: this.customerId() ?? undefined,
       // Se envían siempre los datos: si hay cliente seleccionado, el backend los
       // actualiza (por si el vendedor los editó); si no, crea/reutiliza el cliente.
@@ -521,7 +521,7 @@ export class PosComponent implements OnInit, OnDestroy {
   newSale() {
     this.stopInvoicePolling();
     this.cart.set([]);
-    this.discount.set(0);
+    this.discount.set(null);
     this.paidWith = null;
     this.paymentForm.set('01');
     this.aCredito.set(false);
