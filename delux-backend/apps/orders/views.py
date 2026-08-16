@@ -12,8 +12,7 @@ from .serializers import OrderSerializer, POSCheckoutSerializer
 class AdminOrderViewSet(viewsets.ReadOnlyModelViewSet):
     serializer_class = OrderSerializer
     permission_classes = [permissions.IsAuthenticated, IsSalesStaff]
-    filter_backends = [filters.SearchFilter, filters.OrderingFilter]
-    search_fields = ['code', 'customer__full_name', 'customer__email']
+    filter_backends = [filters.OrderingFilter]
     ordering_fields = ['created_at', 'total', 'code']
     ordering = ['-created_at']
 
@@ -25,6 +24,29 @@ class AdminOrderViewSet(viewsets.ReadOnlyModelViewSet):
             .annotate(items_count=Count('items'))
         )
         params = self.request.query_params
+
+        # Búsqueda: por código de venta, cliente, o por código/nombre del
+        # producto vendido (subquery de IDs para no duplicar filas ni alterar
+        # items_count).
+        search = (params.get('search') or '').strip()
+        if search:
+            from .models import OrderItem
+            prod_order_ids = (
+                OrderItem.objects
+                .filter(
+                    Q(product_name__icontains=search)
+                    | Q(sku__icontains=search)
+                    | Q(variant__barcode__icontains=search)
+                )
+                .values_list('order_id', flat=True)
+            )
+            qs = qs.filter(
+                Q(code__icontains=search)
+                | Q(customer__full_name__icontains=search)
+                | Q(customer__email__icontains=search)
+                | Q(id__in=prod_order_ids)
+            )
+
         if params.get('branch'):   qs = qs.filter(branch_id=params['branch'])
         if params.get('status'):   qs = qs.filter(status=params['status'])
         if params.get('channel'):  qs = qs.filter(channel=params['channel'])

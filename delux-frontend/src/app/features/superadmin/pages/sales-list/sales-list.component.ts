@@ -72,7 +72,7 @@ import { DlxCancelSaleModalComponent } from '@shared/ui/cancel-sale-modal.compon
     </div>
 
     <div class="card p-4 mb-4 flex flex-wrap gap-3 items-center filter-bar">
-      <dlx-search-input [fluid]="true" [value]="search()" (valueChange)="onSearch($event)" placeholder="Buscar por código, cliente..." class="flex-1 min-w-64" />
+      <dlx-search-input [fluid]="true" [value]="search()" (valueChange)="onSearch($event)" placeholder="Buscar por código, cliente o producto..." class="flex-1 min-w-64" />
       <select [(ngModel)]="statusFilter" (change)="onFilter()"
               class="eg-input border-transparent">
         <option value="">Todos los estados</option>
