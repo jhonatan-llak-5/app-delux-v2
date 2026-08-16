@@ -56,8 +56,6 @@ class AdminOrderViewSet(viewsets.ReadOnlyModelViewSet):
         """Cancela/anula la venta (interno de DLUX). Registra el motivo y, si se
         pide, devuelve el stock al inventario. NO emite nota de crédito: eso se
         gestiona aparte en NovaFactura."""
-        if request.user.role == 'SALESPERSON':
-            return Response({'detail': 'No autorizado.'}, status=status.HTTP_403_FORBIDDEN)
         order = self.get_object()
         if order.status in (OrderStatus.CANCELLED, OrderStatus.REFUNDED):
             return Response({'detail': 'Ya estaba cancelada.'}, status=400)
@@ -101,9 +99,6 @@ class AdminOrderViewSet(viewsets.ReadOnlyModelViewSet):
         anula pero su total NETO baja (total_changes += valor_devuelto) para las
         estadísticas, y queda un registro en el historial. Puede haber varios
         cambios por venta."""
-        if request.user.role == 'SALESPERSON':
-            return Response({'detail': 'No autorizado.'}, status=status.HTTP_403_FORBIDDEN)
-
         order = self.get_object()
         if order.status == OrderStatus.CANCELLED:
             return Response({'detail': 'La venta está cancelada.'}, status=400)

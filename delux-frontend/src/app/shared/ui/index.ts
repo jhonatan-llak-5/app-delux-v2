@@ -20,6 +20,7 @@ export * from './modal.component';
 export * from './confirm-dialog.component';
 export * from './pagination.component';
 export * from './reload-button.component';
+export * from './cancel-sale-modal.component';
 export * from './table.component';
 export * from './image-uploader.component';
 export * from './notifications-bell.component';

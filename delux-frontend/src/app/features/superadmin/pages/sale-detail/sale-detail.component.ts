@@ -14,11 +14,12 @@ import { NotifyService } from '@shared/services/notify.service';
 import { StoreSettingsService } from '@features/superadmin/services/store-settings.service';
 import { BrandingService } from '@core/services/branding.service';
 import { EmitInvoiceComponent } from '@features/superadmin/components/emit-invoice/emit-invoice.component';
+import { DlxCancelSaleModalComponent } from '@shared/ui/cancel-sale-modal.component';
 
 @Component({
   selector: 'dlx-sale-detail',
   standalone: true,
-  imports: [OrderStatusLabelPipe, OrderStatusClassPipe, ImgFallbackDirective, CommonModule, FormsModule, RouterLink, EmitInvoiceComponent],
+  imports: [OrderStatusLabelPipe, OrderStatusClassPipe, ImgFallbackDirective, CommonModule, FormsModule, RouterLink, EmitInvoiceComponent, DlxCancelSaleModalComponent],
   changeDetection: ChangeDetectionStrategy.OnPush,
   templateUrl: './sale-detail.component.html',
 })
@@ -145,9 +146,17 @@ export class SaleDetailComponent implements OnInit, OnDestroy {
     }
     return opts;
   }
+  /** Gestión de pedido web, factura electrónica y validación de comprobantes:
+   * solo gerente/superadmin (el backend también lo restringe así). */
   canManage() {
     const r = this.auth.user()?.role;
     return r === 'SUPERADMIN' || r === 'BRANCH_MANAGER';
+  }
+  /** Acciones de venta (registrar cambio / cancelar): también el vendedor.
+   * Las acciones de pedido web, factura SRI y comprobantes siguen en canManage. */
+  canChange() {
+    const r = this.auth.user()?.role;
+    return r === 'SUPERADMIN' || r === 'BRANCH_MANAGER' || r === 'SALESPERSON';
   }
   isFinal(s: string) { return s === 'CANCELLED' || s === 'REFUNDED'; }
   // Estados que cierran/bloquean el selector del pedido (venta cerrada).
@@ -158,18 +167,15 @@ export class SaleDetailComponent implements OnInit, OnDestroy {
     const digits = (phone || '').replace(/[^0-9]/g, '');
     return 'https://wa.me/' + digits;
   }
-  // Cancelar venta (motivo + opción de devolver stock).
+  // Cancelar venta (modal reutilizable dlx-cancel-sale-modal).
   cancelOpen = signal(false);
-  cancelReason = signal('');
-  cancelRestore = signal(true);
   cancelling = signal(false);
-  openCancel() { this.cancelReason.set(''); this.cancelRestore.set(true); this.cancelOpen.set(true); }
-  confirmCancel() {
+  openCancel() { this.cancelOpen.set(true); }
+  confirmCancel(ev: { reason: string; restoreStock: boolean }) {
     const o = this.order();
-    const reason = this.cancelReason().trim();
-    if (!o || !reason) return;
+    if (!o || !ev.reason || this.cancelling()) return;
     this.cancelling.set(true);
-    this.svc.cancel(o.id, reason, this.cancelRestore()).subscribe({
+    this.svc.cancel(o.id, ev.reason, ev.restoreStock).subscribe({
       next: () => {
         this.cancelling.set(false);
         this.cancelOpen.set(false);

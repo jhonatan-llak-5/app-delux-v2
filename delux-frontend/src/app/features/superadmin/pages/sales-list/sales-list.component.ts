@@ -20,11 +20,12 @@ import { AdminService, AdminBranch } from '@features/superadmin/services/admin.s
 import { printVoucherPDF } from '@shared/utils/voucher-pdf.util';
 import { BrandingService } from '@core/services/branding.service';
 import { DlxPaginationComponent } from '@shared/ui/pagination.component';
+import { DlxCancelSaleModalComponent } from '@shared/ui/cancel-sale-modal.component';
 
 @Component({
   selector: 'dlx-sales-list',
   standalone: true,
-  imports: [DlxEmptyStateComponent, OrderStatusLabelPipe, OrderStatusClassPipe, DlxStatCardComponent, DlxSearchInputComponent, CommonModule, FormsModule, RouterLink, RowActionsComponent, DlxPaginationComponent, DlxExportMenuComponent],
+  imports: [DlxEmptyStateComponent, OrderStatusLabelPipe, OrderStatusClassPipe, DlxStatCardComponent, DlxSearchInputComponent, CommonModule, FormsModule, RouterLink, RowActionsComponent, DlxPaginationComponent, DlxExportMenuComponent, DlxCancelSaleModalComponent],
   changeDetection: ChangeDetectionStrategy.OnPush,
   template: `
     <div class="flex items-end justify-between gap-4 mb-6">
@@ -78,6 +79,22 @@ import { DlxPaginationComponent } from '@shared/ui/pagination.component';
         <option value="CANCELLED">Canceladas</option>
         <option value="REFUNDED">Devueltas</option>
       </select>
+      <div class="flex items-center gap-1.5">
+        <span class="text-xs font-semibold text-slate-500">Desde</span>
+        <input type="date" [(ngModel)]="dateFrom" (ngModelChange)="onFilter()"
+               class="eg-input !h-11 border-transparent text-sm" />
+      </div>
+      <div class="flex items-center gap-1.5">
+        <span class="text-xs font-semibold text-slate-500">Hasta</span>
+        <input type="date" [(ngModel)]="dateTo" (ngModelChange)="onFilter()"
+               class="eg-input !h-11 border-transparent text-sm" />
+      </div>
+      @if (dateFrom || dateTo) {
+        <button type="button" (click)="clearDates()"
+                class="px-3 h-11 rounded-lg text-sm font-semibold text-slate-500 hover:text-ink-950 dark:hover:text-white border border-slate-200 dark:border-white/10">
+          <i class="fa-solid fa-xmark mr-1"></i>Fechas
+        </button>
+      }
       <label class="flex items-center gap-2 px-3 h-11 rounded-lg cursor-pointer select-none transition text-sm font-semibold border"
              [ngClass]="onlyMine()
                 ? 'bg-[var(--dash-primary)] text-white border-[var(--dash-primary)]'
@@ -189,54 +206,8 @@ import { DlxPaginationComponent } from '@shared/ui/pagination.component';
 
     <!-- Modal: cancelar venta con motivo + devolver stock (POS y web) -->
     @if (cancelOrder(); as co) {
-      <div class="fixed inset-0 z-50 grid place-items-center bg-black/50 backdrop-blur-sm p-4 animate-fade-in"
-           (click)="cancelOrder.set(null)">
-        <div class="w-full max-w-md rounded-2xl bg-white dark:bg-ink-900 shadow-2xl overflow-hidden"
-             (click)="$event.stopPropagation()">
-          <div class="p-5 border-b border-slate-100 dark:border-white/10">
-            <h3 class="font-bold text-lg text-slate-900 dark:text-white flex items-center gap-2">
-              <i class="fa-solid fa-ban text-rose-500"></i> Cancelar venta {{ co.code }}
-            </h3>
-            <p class="text-xs text-slate-500 dark:text-slate-400 mt-1">
-              Anula la venta internamente. La nota de crédito, si aplica, se emite aparte en NovaFactura.
-            </p>
-          </div>
-          <div class="p-5 space-y-4">
-            <label class="block">
-              <span class="eg-label">Motivo <span class="text-rose-400">*</span></span>
-              <select class="eg-input" [(ngModel)]="cancelReason">
-                <option value="">Selecciona un motivo…</option>
-                <option value="Devolución">Devolución</option>
-                <option value="Producto defectuoso">Producto defectuoso</option>
-                <option value="Error de registro">Error de registro</option>
-                <option value="Cliente se arrepintió">Cliente se arrepintió</option>
-                <option value="Otro">Otro</option>
-              </select>
-            </label>
-            @if (cancelReason === 'Otro') {
-              <input class="eg-input" [(ngModel)]="cancelDetail" placeholder="Describe el motivo…" />
-            }
-            <label class="flex items-start gap-2 cursor-pointer">
-              <input type="checkbox" [(ngModel)]="cancelRestoreStock" class="w-4 h-4 mt-0.5" />
-              <span class="text-sm text-slate-700 dark:text-slate-200">
-                Devolver los productos al inventario
-                <span class="block text-[11px] text-slate-400">Actívalo si la mercadería vuelve al stock (no la marques si está defectuosa o no revendible).</span>
-              </span>
-            </label>
-          </div>
-          <div class="p-5 pt-0 flex gap-2">
-            <button (click)="confirmCancel()" [disabled]="!effectiveCancelReason() || cancelling()"
-                    class="flex-1 py-2.5 rounded-xl bg-rose-600 hover:bg-rose-700 text-white text-sm font-bold disabled:opacity-40 flex items-center justify-center gap-2 transition">
-              @if (cancelling()) { <i class="fa-solid fa-spinner fa-spin"></i> } @else { <i class="fa-solid fa-ban"></i> }
-              Cancelar venta
-            </button>
-            <button (click)="cancelOrder.set(null)" [disabled]="cancelling()"
-                    class="px-5 py-2.5 rounded-xl bg-slate-100 dark:bg-white/5 hover:bg-slate-200 dark:hover:bg-white/10 text-slate-600 dark:text-slate-300 text-sm font-semibold transition">
-              Volver
-            </button>
-          </div>
-        </div>
-      </div>
+      <dlx-cancel-sale-modal [code]="co.code" [saving]="cancelling()"
+                             (confirm)="confirmCancel($event)" (close)="cancelOrder.set(null)" />
     }
 
     <!-- Modal: registrar cambio (reutiliza el flujo del detalle de venta) -->
@@ -357,6 +328,8 @@ export class SalesListComponent implements OnInit {
   branchFilter: number | null = null;
   statusFilter = '';
   channelFilter = '';
+  dateFrom = '';
+  dateTo = '';
   onlyMine = signal(false);
 
   ngOnInit() {
@@ -373,6 +346,8 @@ export class SalesListComponent implements OnInit {
       status: this.statusFilter || undefined,
       channel: this.channelFilter || undefined,
       mine: this.onlyMine() || undefined,
+      date_from: this.dateFrom || undefined,
+      date_to: this.dateTo || undefined,
       page: this.page(), page_size: this.pageSize(),
     }).subscribe({
       next: r => { this.orders.set(r.results); this.total.set(r.count); this.loading.set(false); },
@@ -388,6 +363,7 @@ export class SalesListComponent implements OnInit {
   setChannel(c: string) { this.channelFilter = c; this.page.set(1); this.reload(); }
   onSearch(v: string) { this.search.set(v); this.page.set(1); this.reload(); }
   onFilter() { this.page.set(1); this.reload(); }
+  clearDates() { this.dateFrom = ''; this.dateTo = ''; this.page.set(1); this.reload(); }
   toggleMine() { this.onlyMine.update(v => !v); this.page.set(1); this.reload(); }
 
   private statusEs(s: string): string {
@@ -415,6 +391,8 @@ export class SalesListComponent implements OnInit {
       status: this.statusFilter || undefined,
       channel: this.channelFilter || undefined,
       mine: this.onlyMine() || undefined,
+      date_from: this.dateFrom || undefined,
+      date_to: this.dateTo || undefined,
       page: 1, page_size: 2000,
     }));
     return r.results || [];
@@ -442,11 +420,13 @@ export class SalesListComponent implements OnInit {
   }
 
 
-  /** Solo roles de gestión pueden registrar cambios / cancelar (no el vendedor). */
+  /** Acciones de venta (registrar cambio / cancelar): gerente, superadmin y
+   * también el vendedor. */
   canManage(): boolean {
     const r = this.auth.user()?.role;
-    return r === 'SUPERADMIN' || r === 'BRANCH_MANAGER';
+    return r === 'SUPERADMIN' || r === 'BRANCH_MANAGER' || r === 'SALESPERSON';
   }
+  canChange(): boolean { return this.canManage(); }
   /** Cuenta superadmin de la plataforma (única que ve la columna Sucursal). */
   isSuperAdmin(): boolean { return this.auth.user()?.role === 'SUPERADMIN'; }
 
@@ -454,7 +434,7 @@ export class SalesListComponent implements OnInit {
     return [
       { label: 'Ver', icon: 'fa-eye', link: ['/app/admin/sales', o.id] },
       { label: 'Imprimir comprobante', icon: 'fa-print', run: () => this.printVoucher(o) },
-      { label: 'Registrar cambio', icon: 'fa-right-left', hidden: !this.canManage() || o.status !== 'PAID' || +(o.total_changes || 0) > 0, run: () => this.openChange(o) },
+      { label: 'Registrar cambio', icon: 'fa-right-left', hidden: !this.canChange() || o.status !== 'PAID' || +(o.total_changes || 0) > 0, run: () => this.openChange(o) },
       { label: 'Cancelar venta', icon: 'fa-ban', variant: 'danger', hidden: !this.canManage() || o.status === 'CANCELLED' || o.status === 'REFUNDED', run: () => this.cancel(o) },
     ];
   }
@@ -478,31 +458,17 @@ export class SalesListComponent implements OnInit {
     });
   }
 
-  // ── Cancelar venta (modal con motivo + devolver stock) ──
+  // ── Cancelar venta (modal reutilizable dlx-cancel-sale-modal) ──
   cancelOrder = signal<Order | null>(null);
-  cancelReason = '';
-  cancelDetail = '';
-  cancelRestoreStock = false;
   cancelling = signal(false);
 
-  /** Motivo final: si eligió "Otro", usa el detalle escrito. */
-  effectiveCancelReason(): string {
-    return this.cancelReason === 'Otro' ? this.cancelDetail.trim() : this.cancelReason;
-  }
+  cancel(o: Order) { this.cancelOrder.set(o); }
 
-  cancel(o: Order) {
-    this.cancelReason = '';
-    this.cancelDetail = '';
-    this.cancelRestoreStock = false;
-    this.cancelOrder.set(o);
-  }
-
-  confirmCancel() {
+  confirmCancel(ev: { reason: string; restoreStock: boolean }) {
     const o = this.cancelOrder();
-    const reason = this.effectiveCancelReason();
-    if (!o || !reason || this.cancelling()) return;
+    if (!o || !ev.reason || this.cancelling()) return;
     this.cancelling.set(true);
-    this.svc.cancel(o.id, reason, this.cancelRestoreStock).subscribe({
+    this.svc.cancel(o.id, ev.reason, ev.restoreStock).subscribe({
       next: r => {
         this.cancelling.set(false);
         this.cancelOrder.set(null);
