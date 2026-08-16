@@ -12,7 +12,8 @@ import { Router, RouterLink } from '@angular/router';
 
 import { firstValueFrom } from 'rxjs';
 import { DlxExportMenuComponent } from '@shared/ui/export-menu.component';
-import { ExportColumn } from '@shared/utils/export.util';
+import { ExportColumn, PdfLogo } from '@shared/utils/export.util';
+import { exportSalesPdf } from '@shared/utils/sales-report.util';
 import { Order, OrderService, OrderSummary } from '@features/superadmin/services/order.service';
 import { ConfirmService } from '@shared/components/confirm/confirm.service';
 import { NotifyService } from '@shared/services/notify.service';
@@ -39,6 +40,7 @@ import { DlxCancelSaleModalComponent } from '@shared/ui/cancel-sale-modal.compon
       </div>
       <div class="flex items-center gap-2">
         <dlx-export-menu [columns]="exportColumns" [rows]="orders()" [loader]="fetchAllForExport"
+                         [pdfHandler]="onExportPdf"
                          filename="ventas" title="Historial de ventas" orientation="l" />
         <a routerLink="/app/admin/pos"
            class="px-4 py-2.5 rounded-lg bg-[#1e40af] text-white text-sm font-semibold hover:bg-[#1e3a8a] transition flex items-center gap-2">
@@ -397,6 +399,37 @@ export class SalesListComponent implements OnInit {
     }));
     return r.results || [];
   };
+
+  /** PDF con formato de reporte (estilo Balance general): resumen + detalle de
+   * ventas del período filtrado, mostrando devoluciones (cambios) y totales.
+   * Excluye ventas canceladas/anuladas (no son ventas reales). */
+  onExportPdf = async ({ logo, brandName }: { logo: PdfLogo | null; brandName: string }): Promise<void> => {
+    const all = await this.fetchAllForExport();
+    const sales = all.filter(o => o.status !== 'CANCELLED' && o.status !== 'REFUNDED');
+    const rows = sales.map(o => {
+      const total = Number(o.total || 0);
+      const returned = Number(o.total_changes || 0);
+      const net = o.net_total != null ? Number(o.net_total) : (total - returned);
+      const products = (o.items || [])
+        .map(it => `${it.product_name}${it.quantity > 1 ? ` (${it.quantity})` : ''}`)
+        .join('\n');
+      return { date: o.created_at, code: o.code, party: o.customer_name || 'Mostrador', channel: o.channel, products, total, returned, net };
+    });
+    const totalGross = rows.reduce((s, r) => s + r.total, 0);
+    const totalReturned = rows.reduce((s, r) => s + r.returned, 0);
+    const totalNet = rows.reduce((s, r) => s + r.net, 0);
+    const dates = rows.map(r => (r.date || '').slice(0, 10)).filter(Boolean).sort();
+    const range = {
+      from: this.dateFrom || dates[0] || '',
+      to: this.dateTo || dates[dates.length - 1] || '',
+    };
+    exportSalesPdf({
+      storeName: this.branchCtx.currentName(),
+      brandName, logo, range, rows,
+      totalGross, totalReturned, totalNet, count: rows.length,
+    });
+  };
+
   onPage(p: number) { this.page.set(p); this.reload(); }
   onSize(s: number) { this.pageSize.set(s); this.page.set(1); this.reload(); }
   waLink(phone: string) { return 'https://wa.me/' + (phone || '').replace(/[^0-9]/g, ''); }

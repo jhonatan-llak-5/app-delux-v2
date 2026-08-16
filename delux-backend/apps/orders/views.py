@@ -481,7 +481,7 @@ class AdminOrderViewSet(viewsets.ReadOnlyModelViewSet):
     def summary(self, request):
         params = request.query_params
         qs = self.get_queryset()
-        today = timezone.now().date()
+        today = timezone.localdate()   # fecha local, igual que created_at__date
         today_qs = qs.filter(created_at__date=today)
         # Revenue NETO: total facturado menos los cambios devueltos.
         _tot = qs.filter(status=OrderStatus.PAID).aggregate(

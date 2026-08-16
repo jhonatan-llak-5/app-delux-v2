@@ -17,7 +17,7 @@ from apps.orders.models import Order, OrderItem, OrderStatus
 
 def parse_range(request):
     """Lee `from` y `to` de la query (YYYY-MM-DD). Default: últimos 30 días."""
-    now = timezone.now().date()
+    now = timezone.localdate()
     to_str = request.query_params.get('to')
     from_str = request.query_params.get('from')
     to_d = timezone.datetime.fromisoformat(to_str).date() if to_str else now
@@ -62,7 +62,10 @@ class ReportsViewSet(ViewSet):
         items_sold = OrderItem.objects.filter(order__in=qs).aggregate(t=Sum('quantity'))['t'] or 0
         aov = (total_revenue / total_orders) if total_orders else Decimal('0')
 
-        today = timezone.now().date()
+        # localdate(): fecha de HOY en la zona horaria local, igual que el
+        # truncado de created_at__date. Con now().date() (UTC) no coincidían en
+        # las tardes/noches y "hoy" salía en 0.
+        today = timezone.localdate()
         today_qs = base.filter(created_at__date=today)
         _tagg = today_qs.aggregate(t=Sum('total'), c=Sum('total_changes'))
         today_revenue = (_tagg['t'] or Decimal('0')) - (_tagg['c'] or Decimal('0'))

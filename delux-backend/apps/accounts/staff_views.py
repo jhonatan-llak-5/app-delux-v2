@@ -100,7 +100,7 @@ class StaffViewSet(viewsets.ModelViewSet):
         u = self.get_object()
         from apps.orders.models import Order, OrderStatus
         qs = Order.objects.filter(seller=u, status=OrderStatus.PAID)
-        today = timezone.now().date()
+        today = timezone.localdate()   # fecha local, igual que created_at__date
         today_qs = qs.filter(created_at__date=today)
         return Response({
             'total_sales': qs.count(),
