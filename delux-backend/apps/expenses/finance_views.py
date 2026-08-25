@@ -75,7 +75,7 @@ class FinanceViewSet(viewsets.ViewSet):
         tenant_id = self._tenant_id(request)
         branch_id = self._scope_branch(request)
         cq = SaleChange.objects.filter(created_at__date__gte=from_d,
-                                       created_at__date__lte=to_d)
+                                       created_at__date__lte=to_d, annulled=False)
         if tenant_id: cq = cq.filter(tenant_id=tenant_id)
         if branch_id: cq = cq.filter(branch_id=branch_id)
         return cq

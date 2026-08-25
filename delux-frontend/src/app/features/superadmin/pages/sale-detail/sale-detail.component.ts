@@ -221,6 +221,21 @@ export class SaleDetailComponent implements OnInit, OnDestroy {
     const pf = this.order()?.payment_form || '';
     return this.PAYMENT_LABELS[pf] || 'Efectivo';
   }
+  // ── Editar forma de pago (ajuste interno) ──
+  editPay = signal(false);
+  payForm = signal('01');
+  payingSaving = signal(false);
+  startEditPay() { this.payForm.set(this.order()?.payment_form || '01'); this.editPay.set(true); }
+  savePay() {
+    const o = this.order();
+    if (!o) return;
+    this.payingSaving.set(true);
+    this.svc.setPaymentForm(o.id, this.payForm()).subscribe({
+      next: updated => { this.payingSaving.set(false); this.editPay.set(false); this.order.set(updated); this.notify.success('Forma de pago actualizada'); },
+      error: e => { this.payingSaving.set(false); this.notify.fromServerError(e, 'No se pudo actualizar la forma de pago.'); },
+    });
+  }
+
   openChange() { this.changeOpen.set(true); }
 
   confirmChange(ev: {

@@ -44,6 +44,7 @@ export interface SaleChangeMini {
   returned_value: string;
   delivered_value: string;
   difference: string;
+  annulled: boolean;
   returned_items: SaleChangeLineMini[];
   delivered_items: SaleChangeLineMini[];
 }
@@ -153,6 +154,11 @@ export class OrderService {
 
   setStatus(id: number, status: string, notes?: string): Observable<Order> {
     return this.http.post<Order>(`${this.base}/${id}/set-status/`, { status, notes });
+  }
+
+  /** Edita SOLO la forma de pago (ajuste interno; no altera una factura ya emitida en SRI). */
+  setPaymentForm(id: number, payment_form: string): Observable<Order> {
+    return this.http.post<Order>(`${this.base}/${id}/set-payment-form/`, { payment_form });
   }
 
   cancel(id: number, reason: string, restoreStock: boolean) {

@@ -47,7 +47,7 @@ class SaleChangeSerializer(serializers.ModelSerializer):
                   'tipo', 'tipo_label', 'descripcion', 'branch_name',
                   'actor_name', 'created_at',
                   'returned_value', 'delivered_value', 'difference',
-                  'delivered_summary')
+                  'delivered_summary', 'annulled', 'annulled_at')
 
     def get_delivered_summary(self, obj):
         """Resumen de lo entregado a cambio: 'Gorra (1), Zapatilla (2)'."""

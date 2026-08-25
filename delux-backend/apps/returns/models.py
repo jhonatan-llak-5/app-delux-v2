@@ -97,6 +97,15 @@ class SaleChange(TenantOwnedModel):
     delivered_value = models.DecimalField(max_digits=10, decimal_places=2, default=0)
     difference = models.DecimalField(max_digits=10, decimal_places=2, default=0)
 
+    # Anulación (deshacer): NO se borra el registro; se marca como anulado y se
+    # revierte stock + balance, para conservar el rastro de auditoría.
+    annulled = models.BooleanField(default=False, db_index=True)
+    annulled_at = models.DateTimeField(null=True, blank=True)
+    annulled_by = models.ForeignKey(
+        'accounts.User', on_delete=models.SET_NULL, null=True, blank=True,
+        related_name='+'
+    )
+
     class Meta:
         ordering = ['-created_at']
 

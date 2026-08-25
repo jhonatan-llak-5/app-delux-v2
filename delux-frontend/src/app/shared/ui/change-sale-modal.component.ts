@@ -45,7 +45,7 @@ interface DeliverLine { variant: DeliverableVariant; qty: number; }
         <div class="p-5 space-y-5 overflow-y-auto">
           <!-- 1. Productos que DEVUELVE -->
           <div>
-            <div class="eg-label flex items-center justify-between">
+            <div class="eg-label flex items-center justify-between gap-3">
               <span>1. Productos que devuelve el cliente</span>
               <span class="text-[11px] font-semibold px-2 py-0.5 rounded-full"
                     [class]="returnedCount() > 0 ? 'bg-amber-100 text-amber-700' : 'bg-slate-100 text-slate-500'">
@@ -76,7 +76,7 @@ interface DeliverLine { variant: DeliverableVariant; qty: number; }
 
           <!-- 2. Productos que se LLEVA a cambio -->
           <div>
-            <div class="eg-label flex items-center justify-between">
+            <div class="eg-label flex items-center justify-between gap-3">
               <span>2. Productos que se lleva a cambio</span>
               <span class="text-[11px] font-semibold px-2 py-0.5 rounded-full"
                     [class]="deliveredCount() === returnedCount() && deliveredCount() > 0
@@ -217,9 +217,11 @@ export class DlxChangeSaleModalComponent implements OnInit {
   private buildReturnUnits(): void {
     const o = this.order;
     if (!o) { this.returnUnits.set([]); return; }
-    // Unidades ya devueltas por order_item en cambios previos.
+    // Unidades ya devueltas por order_item en cambios previos ACTIVOS
+    // (los cambios anulados no cuentan: sus unidades volvieron a estar disponibles).
     const already = new Map<number, number>();
     for (const ch of o.changes || []) {
+      if (ch.annulled) continue;
       for (const li of ch.returned_items || []) {
         if (li.order_item != null) already.set(li.order_item, (already.get(li.order_item) || 0) + li.quantity);
       }

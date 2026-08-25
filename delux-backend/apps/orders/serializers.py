@@ -49,6 +49,7 @@ class SaleChangeMiniSerializer(serializers.Serializer):
     returned_value = serializers.DecimalField(max_digits=10, decimal_places=2, read_only=True)
     delivered_value = serializers.DecimalField(max_digits=10, decimal_places=2, read_only=True)
     difference = serializers.DecimalField(max_digits=10, decimal_places=2, read_only=True)
+    annulled = serializers.BooleanField(read_only=True)
     returned_items = serializers.SerializerMethodField()
     delivered_items = serializers.SerializerMethodField()
 

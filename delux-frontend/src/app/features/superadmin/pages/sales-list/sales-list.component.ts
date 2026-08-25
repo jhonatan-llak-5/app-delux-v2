@@ -169,7 +169,7 @@ import { DlxChangeSaleModalComponent } from '@shared/ui/change-sale-modal.compon
                 </td>
                 <td class="px-5 py-3 text-right font-bold">\${{ o.total }}</td>
                 <td class="px-5 py-3 text-center">
-                  @if ((o.changes?.length || 0) > 0 || +(o.total_changes || 0) > 0) {
+                  @if (hasActiveChange(o) || +(o.total_changes || 0) > 0) {
                     <span class="inline-flex items-center px-2 py-0.5 rounded-md text-[11px] font-bold uppercase bg-amber-100 text-amber-700 dark:bg-amber-500/15 dark:text-amber-400"
                           title="Esta venta tiene un cambio de producto registrado">
                       Con cambio
@@ -471,6 +471,8 @@ export class SalesListComponent implements OnInit {
     '01': 'Efectivo', '16': 'Tarjeta de débito', '19': 'Tarjeta de crédito', '20': 'Transferencia',
   };
   paymentLabel(o: Order): string { return this.PAYMENT_LABELS[o.payment_form || ''] || '—'; }
+  /** ¿La venta tiene algún cambio NO anulado? (para el badge "Con cambio"). */
+  hasActiveChange(o: Order): boolean { return (o.changes || []).some(c => !c.annulled); }
 
   /** Abre el modal y carga el detalle de la venta para poblar los ítems. */
   openChange(o: Order) {

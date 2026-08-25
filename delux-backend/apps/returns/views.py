@@ -144,3 +144,52 @@ class AdminSaleChangeViewSet(viewsets.ReadOnlyModelViewSet):
         if branch:
             qs = qs.filter(branch_id=branch)
         return qs
+
+    @action(detail=True, methods=['post'])
+    def undo(self, request, pk=None):
+        """Deshace (anula) un cambio: revierte el stock (lo devuelto sale, lo
+        entregado entra), lo excluye del balance y lo marca como anulado. NO
+        borra el registro: queda en el historial para auditoría."""
+        change = self.get_object()
+        if change.annulled:
+            return Response({'detail': 'Este cambio ya está anulado.'}, status=400)
+
+        from django.db import transaction
+        from .models import SaleChangeLine
+        with transaction.atomic():
+            branch_id = change.branch_id
+            for line in change.lines.select_related('variant').all():
+                if not line.variant_id or not branch_id:
+                    continue
+                stock = Stock.objects.select_for_update().filter(
+                    variant_id=line.variant_id, branch_id=branch_id).first()
+                before = stock.quantity if stock else 0
+                if line.direction == SaleChangeLine.RETURN:
+                    # Lo devuelto había ENTRADO al stock → al deshacer, SALE.
+                    if not stock:
+                        stock = Stock.objects.create(
+                            tenant=change.tenant, variant_id=line.variant_id,
+                            branch_id=branch_id, quantity=0)
+                    stock.quantity = before - line.quantity
+                    mtype = StockMovement.TYPE_OUT
+                else:
+                    # Lo entregado había SALIDO del stock → al deshacer, ENTRA.
+                    if not stock:
+                        stock = Stock.objects.create(
+                            tenant=change.tenant, variant_id=line.variant_id,
+                            branch_id=branch_id, quantity=0)
+                    stock.quantity = before + line.quantity
+                    mtype = StockMovement.TYPE_IN
+                stock.save(update_fields=['quantity', 'updated_at'])
+                StockMovement.objects.create(
+                    tenant=change.tenant, stock=stock, type=mtype,
+                    quantity=line.quantity,
+                    note=f'Anulación cambio {change.code}: {line.product_name[:80]}',
+                    actor=request.user if request.user.is_authenticated else None,
+                    qty_before=before, qty_after=stock.quantity)
+
+            change.annulled = True
+            change.annulled_at = timezone.now()
+            change.annulled_by = request.user if request.user.is_authenticated else None
+            change.save(update_fields=['annulled', 'annulled_at', 'annulled_by'])
+        return Response(SaleChangeSerializer(change).data)

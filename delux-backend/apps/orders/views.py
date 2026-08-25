@@ -153,8 +153,11 @@ class AdminOrderViewSet(viewsets.ReadOnlyModelViewSet):
         # ── Normaliza y valida los ítems DEVUELTOS (contra la venta) ──
         return_rows = []   # (order_item, qty)
         already = {}       # order_item_id -> qty ya devuelta en cambios previos
-        from apps.returns.models import SaleChangeLine
-        for l in SaleChangeLine.objects.filter(change__order=order, direction=SaleChangeLine.RETURN):
+        from apps.returns.models import SaleChange, SaleChangeLine
+        # Excluye los cambios ANULADOS: sus unidades volvieron a estar disponibles.
+        for l in SaleChangeLine.objects.filter(
+                change__order=order, change__annulled=False,
+                direction=SaleChangeLine.RETURN):
             if l.order_item_id:
                 already[l.order_item_id] = already.get(l.order_item_id, 0) + l.quantity
         pending_qty = {}
@@ -301,6 +304,20 @@ class AdminOrderViewSet(viewsets.ReadOnlyModelViewSet):
                 update_fields.append('created_at')
             change.save(update_fields=update_fields)
 
+        return Response(OrderSerializer(order).data)
+
+    @action(detail=True, methods=['post'], url_path='set-payment-form')
+    def set_payment_form(self, request, pk=None):
+        """Edita SOLO la forma de pago de la venta (código SRI tabla 24). Es un
+        ajuste INTERNO del negocio: no modifica una factura ya emitida en el SRI
+        (esa es inmutable). Disponible para todo el staff de ventas."""
+        order = self.get_object()
+        pf = (request.data.get('payment_form') or '').strip()
+        valid = {'01', '16', '19', '20'}
+        if pf not in valid:
+            return Response({'detail': 'Forma de pago inválida.'}, status=400)
+        order.payment_form = pf
+        order.save(update_fields=['payment_form', 'updated_at'])
         return Response(OrderSerializer(order).data)
 
     @action(detail=True, methods=['post'], url_path='set-status')

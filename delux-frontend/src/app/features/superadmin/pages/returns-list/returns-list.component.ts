@@ -7,6 +7,8 @@ import { RouterLink } from '@angular/router';
 import { ReturnsService, SaleChange } from '@shared/services/returns.service';
 import { DlxPaginationComponent } from '@shared/ui/pagination.component';
 import { BranchContextService } from '@core/services/branch-context.service';
+import { ConfirmService } from '@shared/components/confirm/confirm.service';
+import { NotifyService } from '@shared/services/notify.service';
 
 @Component({
   selector: 'dlx-returns-list',
@@ -52,8 +54,14 @@ import { BranchContextService } from '@core/services/branch-context.service';
           </thead>
           <tbody>
             @for (c of items(); track c.id) {
-              <tr class="border-t border-slate-100 dark:border-white/5 hover:bg-slate-50/60 dark:hover:bg-white/[0.04] transition-colors">
-                <td class="px-4 py-3 font-mono text-xs font-semibold whitespace-nowrap text-slate-700 dark:text-slate-200">{{ c.code }}</td>
+              <tr class="border-t border-slate-100 dark:border-white/5 hover:bg-slate-50/60 dark:hover:bg-white/[0.04] transition-colors"
+                  [class.opacity-50]="c.annulled">
+                <td class="px-4 py-3 font-mono text-xs font-semibold whitespace-nowrap text-slate-700 dark:text-slate-200">
+                  {{ c.code }}
+                  @if (c.annulled) {
+                    <span class="block mt-1 inline-flex items-center px-1.5 py-0.5 rounded text-[10px] font-bold uppercase bg-slate-200 text-slate-500 dark:bg-white/10 dark:text-slate-400 line-through-none">Anulado</span>
+                  }
+                </td>
                 <td class="px-4 py-3 font-mono text-xs whitespace-nowrap text-slate-500 dark:text-slate-400">{{ c.order_code }}</td>
                 <td class="px-4 py-3">
                   <div class="flex items-center gap-2 flex-wrap">
@@ -84,13 +92,24 @@ import { BranchContextService } from '@core/services/branch-context.service';
                   <td class="px-4 py-3 text-xs text-slate-600 dark:text-slate-300">{{ c.branch_name || '—' }}</td>
                 }
                 <td class="px-4 py-3 text-xs text-slate-600 dark:text-slate-300">{{ c.actor_name || '—' }}</td>
-                <td class="px-4 py-3 text-xs text-slate-500 dark:text-slate-400 whitespace-nowrap">{{ c.created_at | date:'short' }}</td>
-                <td class="px-4 py-3 text-center">
-                  <a [routerLink]="['/app/admin/sales', c.order]"
-                     class="inline-flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg text-xs font-semibold text-indigo-600 dark:text-indigo-300 hover:bg-indigo-50 dark:hover:bg-indigo-500/10 transition"
-                     title="Ir a la venta">
-                    <i class="fa-solid fa-arrow-up-right-from-square"></i> Ver venta
-                  </a>
+                <td class="px-4 py-3 text-xs text-slate-500 dark:text-slate-400 whitespace-nowrap">{{ c.created_at | date:'dd/MM/yyyy' }}</td>
+                <td class="px-4 py-3">
+                  <div class="flex items-center justify-center gap-1">
+                    <a [routerLink]="['/app/admin/sales', c.order]"
+                       class="inline-flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg text-xs font-semibold text-indigo-600 dark:text-indigo-300 hover:bg-indigo-50 dark:hover:bg-indigo-500/10 transition"
+                       title="Ir a la venta">
+                      <i class="fa-solid fa-arrow-up-right-from-square"></i> Ver venta
+                    </a>
+                    @if (!c.annulled) {
+                      <button type="button" (click)="undo(c)" [disabled]="undoing() === c.id"
+                              class="inline-flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg text-xs font-semibold text-rose-600 dark:text-rose-300 hover:bg-rose-50 dark:hover:bg-rose-500/10 transition disabled:opacity-40"
+                              title="Deshacer el cambio (revierte stock y balance)">
+                        @if (undoing() === c.id) { <i class="fa-solid fa-spinner fa-spin"></i> }
+                        @else { <i class="fa-solid fa-rotate-left"></i> }
+                        Deshacer
+                      </button>
+                    }
+                  </div>
                 </td>
               </tr>
             }
@@ -111,12 +130,15 @@ import { BranchContextService } from '@core/services/branch-context.service';
 export class ReturnsListComponent implements OnInit {
   private svc = inject(ReturnsService);
   private branchCtx = inject(BranchContextService);
+  private confirm = inject(ConfirmService);
+  private notify = inject(NotifyService);
 
   items = signal<SaleChange[]>([]);
   total = signal(0);
   page = signal(1);
   pageSize = signal(25);
   search = signal('');
+  undoing = signal<number | null>(null);
 
   /** Oculta la columna Sucursal cuando el negocio tiene una sola sucursal. */
   // Solo muestra la columna Sucursal si el perfil ve/gestiona más de una sucursal.
@@ -132,6 +154,25 @@ export class ReturnsListComponent implements OnInit {
   onSize(s: number) { this.pageSize.set(s); this.page.set(1); this.reload(); }
 
   valorTotal(): string {
-    return this.items().reduce((sum, c) => sum + (+c.valor_devuelto || 0), 0).toFixed(2);
+    return this.items()
+      .filter(c => !c.annulled)
+      .reduce((sum, c) => sum + (+c.valor_devuelto || 0), 0).toFixed(2);
+  }
+
+  /** Deshace un cambio: revierte stock + balance y lo marca anulado (con rastro). */
+  async undo(c: SaleChange) {
+    const ok = await this.confirm.ask({
+      title: `Deshacer cambio ${c.code}`,
+      message: 'Se revertirá el stock (lo devuelto sale, lo entregado vuelve a entrar) y la diferencia en el balance. El registro no se borra: queda marcado como anulado para auditoría. ¿Continuar?',
+      confirmText: 'Sí, deshacer',
+      cancelText: 'Cancelar',
+      variant: 'danger',
+    });
+    if (!ok) return;
+    this.undoing.set(c.id);
+    this.svc.undoChange(c.id).subscribe({
+      next: () => { this.undoing.set(null); this.notify.success('Cambio deshecho'); this.reload(); },
+      error: e => { this.undoing.set(null); this.notify.fromServerError(e, 'No se pudo deshacer el cambio.'); },
+    });
   }
 }

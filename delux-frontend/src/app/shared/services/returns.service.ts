@@ -24,6 +24,8 @@ export interface SaleChange {
   delivered_value?: string;
   difference?: string;
   delivered_summary?: string;
+  annulled?: boolean;
+  annulled_at?: string | null;
 }
 
 export interface ReturnItem {
@@ -80,6 +82,8 @@ export class ReturnsService {
     Object.entries(params).forEach(([k, v]) => { if (v) p = p.set(k, String(v)); });
     return this.http.get<{ count: number; results: SaleChange[] }>(`${this.base}/admin/sale-changes/`, { params: p });
   }
+  /** Deshace (anula) un cambio: revierte stock + balance y lo marca anulado. */
+  undoChange(id: number) { return this.http.post<SaleChange>(`${this.base}/admin/sale-changes/${id}/undo/`, {}); }
   approve(id: number, admin_note = '') { return this.http.post<ReturnRequest>(`${this.base}/admin/returns/${id}/approve/`, { admin_note }); }
   reject(id: number, admin_note = '') { return this.http.post<ReturnRequest>(`${this.base}/admin/returns/${id}/reject/`, { admin_note }); }
   refund(id: number) { return this.http.post<ReturnRequest>(`${this.base}/admin/returns/${id}/refund/`, {}); }

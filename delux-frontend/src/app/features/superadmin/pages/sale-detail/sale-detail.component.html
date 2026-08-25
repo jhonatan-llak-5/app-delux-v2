@@ -109,55 +109,81 @@
 
           @if (o.changes && o.changes.length) {
             <div class="card p-5">
-              <h3 class="font-semibold text-sm mb-3 flex items-center gap-2">
-                <i class="fa-solid fa-right-left text-slate-400"></i> Cambios registrados
+              <h3 class="font-semibold text-sm mb-4 flex items-center gap-2">
+                <i class="fa-solid fa-right-left text-slate-400"></i> Historial de cambios
+                <span class="ml-auto text-xs font-normal text-slate-400">{{ o.changes.length }}</span>
               </h3>
-              <ul class="divide-y divide-slate-100 dark:divide-white/10">
+
+              <!-- Línea de tiempo -->
+              <ol class="relative border-s border-slate-200 dark:border-white/10 ms-2 space-y-5">
                 @for (c of o.changes; track c.id) {
-                  <li class="py-3 first:pt-0 last:pb-0">
-                    <p class="text-xs text-slate-500 mb-2">
-                      <span class="font-mono">{{ c.code }}</span> · {{ c.created_at | date:'short' }}
-                    </p>
+                  <li class="ms-5" [class.opacity-50]="c.annulled">
+                    <!-- Nodo -->
+                    <span class="absolute -start-[7px] mt-1 flex h-3.5 w-3.5 items-center justify-center rounded-full ring-4 ring-white dark:ring-[#0f1524]"
+                          [class]="c.annulled ? 'bg-slate-400' : 'bg-amber-500'"></span>
+
+                    <!-- Cabecera compacta -->
+                    <div class="flex items-center gap-2 flex-wrap">
+                      <span class="font-mono text-[11px] font-semibold text-slate-600 dark:text-slate-300">{{ c.code }}</span>
+                      <span class="text-[11px] text-slate-400">{{ c.created_at | date:'short' }}</span>
+                      @if (c.annulled) {
+                        <span class="text-[10px] font-bold uppercase px-1.5 py-0.5 rounded bg-slate-200 text-slate-500 dark:bg-white/10 dark:text-slate-400">Anulado</span>
+                      }
+                    </div>
+
                     @if (c.returned_items?.length || c.delivered_items?.length) {
-                      <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
-                        <!-- Devolvió -->
-                        <div class="rounded-lg bg-rose-50 dark:bg-rose-500/10 p-2.5">
-                          <p class="text-[10px] font-bold uppercase text-rose-500 mb-1">Devolvió</p>
+                      <!-- Devolvió → Se llevó en una línea con chips -->
+                      <div class="flex items-center gap-2 flex-wrap mt-2">
+                        <div class="flex flex-col gap-1">
                           @for (r of c.returned_items; track $index) {
-                            <p class="text-xs text-slate-700 dark:text-slate-200">{{ r.quantity }}× {{ r.product_name }} <span class="text-slate-400">{{ r.size }} {{ r.color }}</span></p>
+                            <span class="inline-flex items-center gap-1 px-2 py-0.5 rounded-md text-xs bg-rose-50 text-rose-700 dark:bg-rose-500/10 dark:text-rose-300">
+                              <i class="fa-solid fa-arrow-left text-[9px]"></i>{{ r.quantity }}× {{ r.product_name }} <span class="opacity-60">{{ r.size }} {{ r.color }}</span>
+                            </span>
                           }
                         </div>
-                        <!-- Se llevó -->
-                        <div class="rounded-lg bg-emerald-50 dark:bg-emerald-500/10 p-2.5">
-                          <p class="text-[10px] font-bold uppercase text-emerald-600 mb-1">Se llevó</p>
+                        <i class="fa-solid fa-arrow-right-arrow-left text-slate-300 dark:text-slate-600 text-xs"></i>
+                        <div class="flex flex-col gap-1">
                           @for (d of c.delivered_items; track $index) {
-                            <p class="text-xs text-slate-700 dark:text-slate-200">{{ d.quantity }}× {{ d.product_name }} <span class="text-slate-400">{{ d.size }} {{ d.color }}</span></p>
+                            <span class="inline-flex items-center gap-1 px-2 py-0.5 rounded-md text-xs bg-emerald-50 text-emerald-700 dark:bg-emerald-500/10 dark:text-emerald-300">
+                              {{ d.quantity }}× {{ d.product_name }} <span class="opacity-60">{{ d.size }} {{ d.color }}</span><i class="fa-solid fa-arrow-right text-[9px]"></i>
+                            </span>
                           }
                         </div>
                       </div>
-                      <div class="flex items-center justify-between mt-2 text-xs">
-                        <span class="text-slate-500">Devuelto ${{ c.returned_value }} · Entregado ${{ c.delivered_value }}</span>
+                      <!-- Diferencia como pill -->
+                      <div class="mt-2">
                         @if (+c.difference > 0) {
-                          <span class="font-bold text-emerald-600">Cliente pagó +${{ c.difference }}</span>
+                          <span class="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-bold bg-emerald-100 text-emerald-700 dark:bg-emerald-500/15 dark:text-emerald-300">
+                            <i class="fa-solid fa-arrow-down"></i> Cliente pagó ${{ c.difference }}
+                          </span>
                         } @else if (+c.difference < 0) {
-                          <span class="font-bold text-rose-600">Devuelto al cliente ${{ -(+c.difference) | number:'1.2-2' }}</span>
+                          <span class="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-bold bg-rose-100 text-rose-700 dark:bg-rose-500/15 dark:text-rose-300">
+                            <i class="fa-solid fa-arrow-up"></i> Devuelto al cliente ${{ -(+c.difference) | number:'1.2-2' }}
+                          </span>
                         } @else {
-                          <span class="font-semibold text-slate-500">Sin diferencia</span>
+                          <span class="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-semibold bg-slate-100 text-slate-500 dark:bg-white/5 dark:text-slate-400">
+                            <i class="fa-solid fa-equals"></i> Sin diferencia
+                          </span>
                         }
                       </div>
                     } @else {
                       <!-- Registro antiguo (sin desglose) -->
-                      <div class="flex items-start justify-between gap-3">
-                        <p class="text-sm font-semibold">{{ c.product_name }} <span class="text-xs text-slate-400">{{ c.quantity }}×</span></p>
-                        <p class="font-bold text-amber-600">-${{ c.valor_devuelto }}</p>
+                      <div class="flex items-center justify-between gap-3 mt-2">
+                        <span class="inline-flex items-center gap-1 px-2 py-0.5 rounded-md text-xs bg-rose-50 text-rose-700 dark:bg-rose-500/10 dark:text-rose-300">
+                          <i class="fa-solid fa-arrow-left text-[9px]"></i>{{ c.quantity }}× {{ c.product_name }}
+                        </span>
+                        <span class="text-sm font-bold text-amber-600">-${{ c.valor_devuelto }}</span>
                       </div>
                     }
+
                     @if (c.descripcion) {
-                      <p class="text-xs text-slate-500 mt-1.5 italic">{{ c.descripcion }}</p>
+                      <p class="text-xs text-slate-400 mt-1.5 italic flex items-start gap-1.5">
+                        <i class="fa-solid fa-quote-left text-[9px] mt-1"></i>{{ c.descripcion }}
+                      </p>
                     }
                   </li>
                 }
-              </ul>
+              </ol>
             </div>
           }
 
@@ -217,10 +243,40 @@
               <p class="font-semibold text-sm mt-0.5">{{ o.seller_name || '—' }}</p>
             </div>
             <div>
-              <p class="text-[10px] uppercase tracking-widest text-slate-500 font-semibold">Forma de pago</p>
-              <p class="font-semibold text-sm mt-0.5">
-                <i class="fa-solid fa-credit-card text-slate-400"></i> {{ paymentLabel() }}
-              </p>
+              <div class="flex items-center justify-between">
+                <p class="text-[10px] uppercase tracking-widest text-slate-500 font-semibold">Forma de pago</p>
+                @if (canChange() && !editPay()) {
+                  <button type="button" (click)="startEditPay()"
+                          class="text-[11px] font-semibold text-indigo-600 dark:text-indigo-300 hover:underline">
+                    <i class="fa-solid fa-pen text-[10px]"></i> Editar
+                  </button>
+                }
+              </div>
+              @if (!editPay()) {
+                <p class="font-semibold text-sm mt-0.5">
+                  <i class="fa-solid fa-credit-card text-slate-400"></i> {{ paymentLabel() }}
+                </p>
+              } @else {
+                <select [ngModel]="payForm()" (ngModelChange)="payForm.set($event)" class="eg-input mt-1 w-full text-sm">
+                  <option value="01">Efectivo</option>
+                  <option value="16">Tarjeta de débito</option>
+                  <option value="19">Tarjeta de crédito</option>
+                  <option value="20">Transferencia</option>
+                </select>
+                <p class="text-[11px] text-slate-400 mt-1">
+                  <i class="fa-solid fa-circle-info"></i> Edición interna del negocio: no modifica una factura ya emitida en el SRI.
+                </p>
+                <div class="flex gap-2 mt-2">
+                  <button type="button" (click)="savePay()" [disabled]="payingSaving()"
+                          class="px-3 py-1.5 rounded-lg bg-indigo-600 hover:bg-indigo-700 text-white text-xs font-semibold disabled:opacity-40">
+                    @if (payingSaving()) { <i class="fa-solid fa-spinner fa-spin"></i> } Guardar
+                  </button>
+                  <button type="button" (click)="editPay.set(false)" [disabled]="payingSaving()"
+                          class="px-3 py-1.5 rounded-lg bg-slate-100 dark:bg-white/5 text-slate-600 dark:text-slate-300 text-xs font-semibold">
+                    Cancelar
+                  </button>
+                </div>
+              }
             </div>
           </div>
 
