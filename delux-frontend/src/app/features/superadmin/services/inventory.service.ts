@@ -4,6 +4,19 @@ import { Observable } from 'rxjs';
 import { map } from 'rxjs/operators';
 import { environment } from '@env/environment';
 
+export interface DeliverableVariant {
+  id: number;
+  sku: string;
+  barcode: string;
+  size: string;
+  color: string;
+  price: number;          // precio de venta con IVA
+  branch_qty: number;     // stock disponible en la sucursal
+  product_id: number;
+  product_name: string;
+  images: string[];
+}
+
 export interface Stock {
   id: number;
   variant: number;
@@ -241,6 +254,14 @@ export class InventoryService {
   variantSearch(q: string): Observable<{ results: NonNullable<ScanResult['variant']>[] }> {
     return this.http.get<{ results: NonNullable<ScanResult['variant']>[] }>(
       `${this.base}/stocks/variant-search/`, { params: new HttpParams().set('q', q) });
+  }
+
+  /** Busca variantes entregables (para cambios): incluye precio con IVA y stock
+   * disponible en la sucursal indicada. */
+  variantSearchDeliverable(q: string, branch: number): Observable<{ results: DeliverableVariant[] }> {
+    const p = new HttpParams().set('q', q).set('branch', String(branch));
+    return this.http.get<{ results: DeliverableVariant[] }>(
+      `${this.base}/stocks/variant-search/`, { params: p });
   }
 
   listSuppliers(search = ''): Observable<Paged<Supplier>> {

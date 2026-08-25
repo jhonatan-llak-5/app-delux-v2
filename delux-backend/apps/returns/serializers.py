@@ -38,12 +38,24 @@ class SaleChangeSerializer(serializers.ModelSerializer):
     size = serializers.SerializerMethodField()
     color = serializers.SerializerMethodField()
 
+    delivered_summary = serializers.SerializerMethodField()
+
     class Meta:
         model = SaleChange
         fields = ('id', 'code', 'order', 'order_code', 'product_name',
                   'sku', 'size', 'color', 'quantity', 'valor_devuelto',
                   'tipo', 'tipo_label', 'descripcion', 'branch_name',
-                  'actor_name', 'created_at')
+                  'actor_name', 'created_at',
+                  'returned_value', 'delivered_value', 'difference',
+                  'delivered_summary')
+
+    def get_delivered_summary(self, obj):
+        """Resumen de lo entregado a cambio: 'Gorra (1), Zapatilla (2)'."""
+        lines = [l for l in obj.lines.all() if l.direction == 'DELIVER']
+        if not lines:
+            return ''
+        return ', '.join(f'{l.product_name}' + (f' ({l.quantity})' if l.quantity > 1 else '')
+                         for l in lines)
 
     def get_branch_name(self, obj):
         return getattr(obj.branch, 'name', None) if obj.branch_id else None

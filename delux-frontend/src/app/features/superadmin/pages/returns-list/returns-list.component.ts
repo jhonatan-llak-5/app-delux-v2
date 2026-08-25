@@ -3,6 +3,7 @@ import { DlxEmptyStateComponent } from '@shared/ui/empty-state.component';
 import { DlxStatCardComponent } from '@shared/ui';
 import { DlxSearchInputComponent } from '@shared/ui/search-input.component';
 import { CommonModule } from '@angular/common';
+import { RouterLink } from '@angular/router';
 import { ReturnsService, SaleChange } from '@shared/services/returns.service';
 import { DlxPaginationComponent } from '@shared/ui/pagination.component';
 import { BranchContextService } from '@core/services/branch-context.service';
@@ -10,7 +11,7 @@ import { BranchContextService } from '@core/services/branch-context.service';
 @Component({
   selector: 'dlx-returns-list',
   standalone: true,
-  imports: [DlxEmptyStateComponent, DlxStatCardComponent, DlxSearchInputComponent, CommonModule, DlxPaginationComponent],
+  imports: [DlxEmptyStateComponent, DlxStatCardComponent, DlxSearchInputComponent, CommonModule, RouterLink, DlxPaginationComponent],
   changeDetection: ChangeDetectionStrategy.OnPush,
   template: `
     <div class="mb-6">
@@ -35,45 +36,62 @@ import { BranchContextService } from '@core/services/branch-context.service';
     <div class="card overflow-hidden">
       <div class="overflow-x-auto">
         <table class="w-full text-sm">
-          <thead class="bg-slate-50 dark:bg-white/5 text-slate-500">
+          <thead class="bg-slate-50 dark:bg-white/5 text-slate-500 dark:text-slate-400 border-b border-slate-200 dark:border-white/10">
             <tr class="text-left">
               <th class="px-4 py-3 font-semibold">Código</th>
               <th class="px-4 py-3 font-semibold">Venta</th>
-              <th class="px-4 py-3 font-semibold">Producto</th>
-              <th class="px-4 py-3 font-semibold">Detalle</th>
-              <th class="px-4 py-3 font-semibold text-right">Valor</th>
-              <th class="px-4 py-3 font-semibold text-center">Tipo</th>
+              <th class="px-4 py-3 font-semibold">Devolvió → Se llevó</th>
+              <th class="px-4 py-3 font-semibold text-right">Diferencia</th>
               @if (showBranchCol()) {
                 <th class="px-4 py-3 font-semibold">Sucursal</th>
               }
               <th class="px-4 py-3 font-semibold">Registrado por</th>
               <th class="px-4 py-3 font-semibold">Fecha</th>
+              <th class="px-4 py-3 font-semibold text-center">Acción</th>
             </tr>
           </thead>
           <tbody>
             @for (c of items(); track c.id) {
-              <tr class="border-t border-slate-100 dark:border-white/5 hover:bg-slate-50/60 dark:hover:bg-white/5">
-                <td class="px-4 py-2.5 font-mono text-xs font-semibold whitespace-nowrap">{{ c.code }}</td>
-                <td class="px-4 py-2.5 font-mono text-xs whitespace-nowrap">{{ c.order_code }}</td>
-                <td class="px-4 py-2.5">
-                  <p class="font-semibold">
-                    <span class="text-slate-500">{{ c.quantity }}×</span> {{ c.product_name }}
-                    @if (c.size || c.color) {
-                      <span class="text-slate-500">({{ c.size || '—' }}/{{ c.color || '—' }})</span>
+              <tr class="border-t border-slate-100 dark:border-white/5 hover:bg-slate-50/60 dark:hover:bg-white/[0.04] transition-colors">
+                <td class="px-4 py-3 font-mono text-xs font-semibold whitespace-nowrap text-slate-700 dark:text-slate-200">{{ c.code }}</td>
+                <td class="px-4 py-3 font-mono text-xs whitespace-nowrap text-slate-500 dark:text-slate-400">{{ c.order_code }}</td>
+                <td class="px-4 py-3">
+                  <div class="flex items-center gap-2 flex-wrap">
+                    <span class="inline-flex items-center gap-1 px-2 py-0.5 rounded-md text-xs bg-rose-50 text-rose-700 dark:bg-rose-500/10 dark:text-rose-300">
+                      <i class="fa-solid fa-arrow-left text-[10px]"></i>{{ c.quantity }}× {{ c.product_name }}
+                    </span>
+                    @if (c.delivered_summary) {
+                      <i class="fa-solid fa-arrow-right text-slate-300 dark:text-slate-600 text-[10px]"></i>
+                      <span class="inline-flex items-center gap-1 px-2 py-0.5 rounded-md text-xs bg-emerald-50 text-emerald-700 dark:bg-emerald-500/10 dark:text-emerald-300">
+                        {{ c.delivered_summary }}
+                      </span>
                     }
-                  </p>
-                  @if (c.sku) { <p class="text-[11px] text-slate-500 font-mono mt-0.5">{{ c.sku }}</p> }
+                  </div>
+                  @if (c.descripcion) { <p class="text-[11px] text-slate-400 mt-1 italic">{{ c.descripcion }}</p> }
                 </td>
-                <td class="px-4 py-2.5 text-xs text-slate-600 dark:text-slate-300 max-w-xs">{{ c.descripcion || '—' }}</td>
-                <td class="px-4 py-2.5 text-right font-bold text-amber-600 dark:text-amber-400 whitespace-nowrap">-\${{ c.valor_devuelto | number:'1.2-2' }}</td>
-                <td class="px-4 py-2.5 text-center">
-                  <span class="inline-flex items-center px-2 py-0.5 rounded-md text-[11px] font-bold uppercase bg-slate-100 text-slate-700 dark:bg-white/10 dark:text-slate-300">{{ c.tipo_label }}</span>
+                <td class="px-4 py-3 text-right whitespace-nowrap">
+                  @if (+(c.difference || 0) > 0) {
+                    <span class="font-bold text-emerald-600 dark:text-emerald-400">+\${{ c.difference | number:'1.2-2' }}</span>
+                    <span class="block text-[10px] text-slate-400">cliente pagó</span>
+                  } @else if (+(c.difference || 0) < 0) {
+                    <span class="font-bold text-rose-600 dark:text-rose-400">-\${{ -(+(c.difference || 0)) | number:'1.2-2' }}</span>
+                    <span class="block text-[10px] text-slate-400">devuelto</span>
+                  } @else {
+                    <span class="text-slate-400">—</span>
+                  }
                 </td>
                 @if (showBranchCol()) {
-                  <td class="px-4 py-2.5 text-xs">{{ c.branch_name || '—' }}</td>
+                  <td class="px-4 py-3 text-xs text-slate-600 dark:text-slate-300">{{ c.branch_name || '—' }}</td>
                 }
-                <td class="px-4 py-2.5 text-xs">{{ c.actor_name || '—' }}</td>
-                <td class="px-4 py-2.5 text-xs text-slate-600 dark:text-slate-300 whitespace-nowrap">{{ c.created_at | date:'short' }}</td>
+                <td class="px-4 py-3 text-xs text-slate-600 dark:text-slate-300">{{ c.actor_name || '—' }}</td>
+                <td class="px-4 py-3 text-xs text-slate-500 dark:text-slate-400 whitespace-nowrap">{{ c.created_at | date:'short' }}</td>
+                <td class="px-4 py-3 text-center">
+                  <a [routerLink]="['/app/admin/sales', c.order]"
+                     class="inline-flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg text-xs font-semibold text-indigo-600 dark:text-indigo-300 hover:bg-indigo-50 dark:hover:bg-indigo-500/10 transition"
+                     title="Ir a la venta">
+                    <i class="fa-solid fa-arrow-up-right-from-square"></i> Ver venta
+                  </a>
+                </td>
               </tr>
             }
           </tbody>

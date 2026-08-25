@@ -20,6 +20,19 @@ class OrderItemSerializer(serializers.ModelSerializer):
         read_only_fields = ('id', 'subtotal')
 
 
+class SaleChangeLineMiniSerializer(serializers.Serializer):
+    """Línea de un cambio: ítem devuelto o entregado."""
+    direction = serializers.CharField(read_only=True)
+    order_item = serializers.IntegerField(source='order_item_id', read_only=True)
+    product_name = serializers.CharField(read_only=True)
+    sku = serializers.CharField(read_only=True)
+    size = serializers.CharField(read_only=True)
+    color = serializers.CharField(read_only=True)
+    quantity = serializers.IntegerField(read_only=True)
+    unit_price = serializers.DecimalField(max_digits=10, decimal_places=2, read_only=True)
+    subtotal = serializers.DecimalField(max_digits=10, decimal_places=2, read_only=True)
+
+
 class SaleChangeMiniSerializer(serializers.Serializer):
     """Serializer ligero de un CAMBIO, embebido en el detalle de la venta.
     Definido inline para evitar imports circulares con apps.returns."""
@@ -32,6 +45,24 @@ class SaleChangeMiniSerializer(serializers.Serializer):
     tipo_label = serializers.CharField(source='get_tipo_display', read_only=True)
     descripcion = serializers.CharField(read_only=True)
     created_at = serializers.DateTimeField(read_only=True)
+    # Cambio producto-por-producto
+    returned_value = serializers.DecimalField(max_digits=10, decimal_places=2, read_only=True)
+    delivered_value = serializers.DecimalField(max_digits=10, decimal_places=2, read_only=True)
+    difference = serializers.DecimalField(max_digits=10, decimal_places=2, read_only=True)
+    returned_items = serializers.SerializerMethodField()
+    delivered_items = serializers.SerializerMethodField()
+
+    def _lines(self, obj, direction):
+        lines = getattr(obj, '_prefetched_lines', None)
+        if lines is None:
+            lines = list(obj.lines.all()) if hasattr(obj, 'lines') else []
+        return [l for l in lines if l.direction == direction]
+
+    def get_returned_items(self, obj):
+        return SaleChangeLineMiniSerializer(self._lines(obj, 'RETURN'), many=True).data
+
+    def get_delivered_items(self, obj):
+        return SaleChangeLineMiniSerializer(self._lines(obj, 'DELIVER'), many=True).data
 
 
 class OrderSerializer(serializers.ModelSerializer):
@@ -52,7 +83,8 @@ class OrderSerializer(serializers.ModelSerializer):
         return str(obj.net_total)
 
     def get_changes(self, obj):
-        return SaleChangeMiniSerializer(obj.changes.all(), many=True).data
+        return SaleChangeMiniSerializer(
+            obj.changes.all().prefetch_related('lines'), many=True).data
 
     class Meta:
         model = Order

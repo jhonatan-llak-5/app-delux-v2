@@ -19,6 +19,18 @@ export interface Payment {
   updated_at: string;
 }
 
+export interface SaleChangeLineMini {
+  direction: 'RETURN' | 'DELIVER';
+  order_item: number | null;
+  product_name: string;
+  sku: string;
+  size: string;
+  color: string;
+  quantity: number;
+  unit_price: string;
+  subtotal: string;
+}
+
 export interface SaleChangeMini {
   id: number;
   code: string;
@@ -29,6 +41,11 @@ export interface SaleChangeMini {
   tipo_label: string;
   descripcion: string;
   created_at: string;
+  returned_value: string;
+  delivered_value: string;
+  difference: string;
+  returned_items: SaleChangeLineMini[];
+  delivered_items: SaleChangeLineMini[];
 }
 
 export interface OrderItem {
@@ -143,8 +160,14 @@ export class OrderService {
       `${this.base}/${id}/cancel/`, { reason, restore_stock: restoreStock });
   }
 
-  /** Registra un cambio en una venta (producto vuelve a stock, baja el total neto). */
-  registerChange(id: number, body: { order_item_id: number; quantity: number; valor_devuelto: number; tipo: 'PARCIAL' | 'TOTAL'; descripcion: string }): Observable<Order> {
+  /** Registra un CAMBIO producto-por-producto: el cliente devuelve ítems y se
+   * lleva otros a cambio. Devuelto vuelve al stock, entregado sale del stock. */
+  registerChange(id: number, body: {
+    returned: { order_item_id: number; quantity: number }[];
+    delivered: { variant_id: number; quantity: number }[];
+    descripcion: string;
+    change_date?: string;
+  }): Observable<Order> {
     return this.http.post<Order>(`${this.base}/${id}/register-change/`, body);
   }
 

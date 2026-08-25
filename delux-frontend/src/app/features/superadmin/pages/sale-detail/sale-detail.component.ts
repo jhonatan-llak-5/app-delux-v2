@@ -15,11 +15,12 @@ import { StoreSettingsService } from '@features/superadmin/services/store-settin
 import { BrandingService } from '@core/services/branding.service';
 import { EmitInvoiceComponent } from '@features/superadmin/components/emit-invoice/emit-invoice.component';
 import { DlxCancelSaleModalComponent } from '@shared/ui/cancel-sale-modal.component';
+import { DlxChangeSaleModalComponent } from '@shared/ui/change-sale-modal.component';
 
 @Component({
   selector: 'dlx-sale-detail',
   standalone: true,
-  imports: [OrderStatusLabelPipe, OrderStatusClassPipe, ImgFallbackDirective, CommonModule, FormsModule, RouterLink, EmitInvoiceComponent, DlxCancelSaleModalComponent],
+  imports: [OrderStatusLabelPipe, OrderStatusClassPipe, ImgFallbackDirective, CommonModule, FormsModule, RouterLink, EmitInvoiceComponent, DlxCancelSaleModalComponent, DlxChangeSaleModalComponent],
   changeDetection: ChangeDetectionStrategy.OnPush,
   templateUrl: './sale-detail.component.html',
 })
@@ -191,21 +192,11 @@ export class SaleDetailComponent implements OnInit, OnDestroy {
   obsText = '';
   private pendingStatus: string | null = null;
 
-  // ── Registrar cambio (producto vuelve a stock, baja el total neto) ──
+  // ── Registrar cambio producto-por-producto (modal reusable) ──
   changeOpen = signal(false);
-  changeItemId = signal<number | null>(null);
-  changeQty = signal(1);
-  changeValue = signal(0);
-  changeTipo = signal<'PARCIAL' | 'TOTAL'>('PARCIAL');
-  changeDesc = signal('');
   changeSaving = signal(false);
 
-  changeMaxQty(): number {
-    const o = this.order();
-    const it = o?.items.find(i => i.id === this.changeItemId());
-    return it ? it.quantity : 1;
-  }
-  /** Total de la venta (tope del valor devuelto). */
+  /** Total de la venta. */
   orderTotalNum(): number { return +(this.order()?.total || 0); }
 
   // ── Desglose fiscal (mismo criterio que el comprobante impreso) ──
@@ -230,50 +221,18 @@ export class SaleDetailComponent implements OnInit, OnDestroy {
     const pf = this.order()?.payment_form || '';
     return this.PAYMENT_LABELS[pf] || 'Efectivo';
   }
-  /** Tipo automático: Total si el valor devuelto iguala el total; Parcial si es menor. */
-  changeTipoAuto(): 'TOTAL' | 'PARCIAL' { return this.changeValue() >= this.orderTotalNum() ? 'TOTAL' : 'PARCIAL'; }
-  changeTipoAutoLabel(): string { return this.changeTipoAuto() === 'TOTAL' ? 'Total' : 'Parcial'; }
-  /** Valida que el valor devuelto sea > 0 y ≤ total de la venta. */
-  changeValueValid(): boolean { const v = this.changeValue(); return v > 0 && v <= this.orderTotalNum(); }
+  openChange() { this.changeOpen.set(true); }
 
-  openChange() {
-    this.changeItemId.set(null);
-    this.changeQty.set(1);
-    this.changeValue.set(0);
-    this.changeTipo.set('PARCIAL');
-    this.changeDesc.set('');
-    this.changeOpen.set(true);
-  }
-
-  cancelChange() { this.changeOpen.set(false); }
-
-  onChangeItem(id: number) {
+  confirmChange(ev: {
+    returned: { order_item_id: number; quantity: number }[];
+    delivered: { variant_id: number; quantity: number }[];
+    descripcion: string;
+    change_date: string;
+  }) {
     const o = this.order();
-    this.changeItemId.set(id);
-    const it = o?.items.find(i => i.id === id);
-    if (it) {
-      const sub = +it.subtotal || (+it.unit_price * it.quantity);
-      this.changeValue.set(sub);
-      this.changeQty.set(1);
-    }
-  }
-
-  confirmChange() {
-    const o = this.order();
-    const itemId = this.changeItemId();
-    if (!o || itemId == null) return;
-    const qty = this.changeQty();
-    const value = this.changeValue();
-    const desc = this.changeDesc().trim();
-    if (qty < 1 || !this.changeValueValid()) return;
+    if (!o) return;
     this.changeSaving.set(true);
-    this.svc.registerChange(o.id, {
-      order_item_id: itemId,
-      quantity: qty,
-      valor_devuelto: value,
-      tipo: this.changeTipoAuto(),
-      descripcion: desc,
-    }).subscribe({
+    this.svc.registerChange(o.id, ev).subscribe({
       next: updated => {
         this.changeSaving.set(false);
         this.changeOpen.set(false);

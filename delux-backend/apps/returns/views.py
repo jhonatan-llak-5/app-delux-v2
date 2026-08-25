@@ -130,7 +130,7 @@ class AdminSaleChangeViewSet(viewsets.ReadOnlyModelViewSet):
 
     def get_queryset(self):
         qs = SaleChange.objects.select_related(
-            'order', 'order_item', 'branch', 'actor')
+            'order', 'order_item', 'branch', 'actor').prefetch_related('lines')
         user = self.request.user
         if getattr(user, 'role', None) and user.role != 'SUPERADMIN':
             if getattr(user, 'tenant_id', None):

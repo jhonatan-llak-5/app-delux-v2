@@ -20,6 +20,10 @@ export interface SaleChange {
   branch_name: string | null;
   actor_name: string | null;
   created_at: string;
+  returned_value?: string;
+  delivered_value?: string;
+  difference?: string;
+  delivered_summary?: string;
 }
 
 export interface ReturnItem {

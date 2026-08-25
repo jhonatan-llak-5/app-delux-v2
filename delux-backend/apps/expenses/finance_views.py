@@ -68,6 +68,18 @@ class FinanceViewSet(viewsets.ViewSet):
         if branch_id: oq = oq.filter(branch_id=branch_id)
         return oq
 
+    def _changes_qs(self, request, from_d, to_d):
+        """Cambios producto-por-producto en el periodo. Su DIFERENCIA (entregado -
+        devuelto) es un ingreso (cliente paga) o egreso (tienda devuelve)."""
+        from apps.returns.models import SaleChange
+        tenant_id = self._tenant_id(request)
+        branch_id = self._scope_branch(request)
+        cq = SaleChange.objects.filter(created_at__date__gte=from_d,
+                                       created_at__date__lte=to_d)
+        if tenant_id: cq = cq.filter(tenant_id=tenant_id)
+        if branch_id: cq = cq.filter(branch_id=branch_id)
+        return cq
+
     def _compute(self, request, from_d, to_d):
         tenant_id = self._tenant_id(request)
         branch_id = self._scope_branch(request)
@@ -101,15 +113,20 @@ class FinanceViewSet(viewsets.ViewSet):
             for r in eq.values('category').annotate(total=Sum('amount')).order_by('-total')
         ]
 
-        # Ganancia = Ventas - Gastos (menú Gastos). Las COMPRAS de mercadería NO
-        # restan la ganancia: son inversión en inventario (ingreso de mercadería),
-        # no un gasto operativo.
-        ganancia = ventas - gastos
+        # Diferencia neta de los cambios producto-por-producto: si el cliente pagó
+        # extra suma, si la tienda devolvió resta. Cuadra la caja del cambio.
+        cambios_diff = _dec(self._changes_qs(request, from_d, to_d)
+                            .aggregate(t=Sum('difference'))['t'])
+
+        # Ganancia = Ventas - Gastos (menú Gastos) + diferencia de cambios. Las
+        # COMPRAS de mercadería NO restan la ganancia: son inversión en inventario
+        # (ingreso de mercadería), no un gasto operativo.
+        ganancia = ventas - gastos + cambios_diff
         orders = oq.count()
         return {
             'ventas': ventas, 'ventas_web': ventas_web, 'ventas_pos': ventas_pos,
             'compras': compras, 'compras_units': int(compras_units),
-            'gastos': gastos, 'ganancia': ganancia,
+            'gastos': gastos, 'ganancia': ganancia, 'cambios': cambios_diff,
             'orders': orders, 'gastos_by_cat': gastos_by_cat,
         }
 
@@ -228,6 +245,30 @@ class FinanceViewSet(viewsets.ViewSet):
                     'ref': o.code,
                     'amount': str(_dec(o.total) - _dec(getattr(o, 'total_changes', 0))),
                 })
+
+        # ── Diferencia de CAMBIOS producto-por-producto ──
+        # Cada cambio con diferencia ≠ 0 es un movimiento: ingreso si el cliente
+        # pagó extra, egreso si la tienda le devolvió dinero.
+        for ch in self._changes_qs(request, from_d, to_d).select_related('order'):
+            diff = _dec(ch.difference)
+            if diff == 0:
+                continue
+            is_income = diff > 0
+            if is_income and kind == 'EGRESO':
+                continue
+            if (not is_income) and kind == 'INGRESO':
+                continue
+            ref_code = getattr(ch.order, 'code', '') or ch.code
+            rows.append({
+                'id': f'C{ch.id}',
+                'kind': 'INGRESO' if is_income else 'EGRESO',
+                'date': ch.created_at.isoformat(),
+                'concept': f'Cambio {ch.code}' + (f' (venta {ref_code})' if ref_code else ''),
+                'party': '',
+                'method': 'Cobrado en cambio' if is_income else 'Devuelto en cambio',
+                'ref': ch.code,
+                'amount': str(abs(diff)),
+            })
 
         # ── EGRESOS: gastos operativos ──
         if kind != 'INGRESO':

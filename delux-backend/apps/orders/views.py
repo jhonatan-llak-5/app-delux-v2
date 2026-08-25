@@ -116,86 +116,190 @@ class AdminOrderViewSet(viewsets.ReadOnlyModelViewSet):
 
     @action(detail=True, methods=['post'], url_path='register-change')
     def register_change(self, request, pk=None):
-        """Registra un CAMBIO (return-to-stock parcial) sobre una venta ya
-        realizada. El producto vuelve al stock (+cantidad), la venta NO se
-        anula pero su total NETO baja (total_changes += valor_devuelto) para las
-        estadísticas, y queda un registro en el historial. Puede haber varios
-        cambios por venta."""
+        """Registra un CAMBIO producto-por-producto sobre una venta ya realizada.
+        El cliente DEVUELVE uno o más ítems (vuelven al stock) y se lleva a cambio
+        uno o más ítems NUEVOS (salen del stock). La cantidad devuelta debe ser
+        igual a la entregada. Si hay diferencia de precio, se registra como
+        ingreso (el cliente paga) o egreso (la tienda devuelve) en el balance.
+        La venta NO se anula. Puede haber varios cambios por venta."""
+        from decimal import Decimal, InvalidOperation
         order = self.get_object()
         if order.status == OrderStatus.CANCELLED:
             return Response({'detail': 'La venta está cancelada.'}, status=400)
 
-        order_item_id = request.data.get('order_item_id')
-        try:
-            quantity = int(request.data.get('quantity', 1))
-        except (TypeError, ValueError):
-            return Response({'detail': 'Cantidad inválida.'}, status=400)
-        if quantity < 1:
-            return Response({'detail': 'La cantidad debe ser al menos 1.'}, status=400)
-
-        from decimal import Decimal, InvalidOperation
-        try:
-            valor_devuelto = Decimal(str(request.data.get('valor_devuelto', 0)))
-        except (InvalidOperation, TypeError, ValueError):
-            return Response({'detail': 'Valor devuelto inválido.'}, status=400)
-        if valor_devuelto <= 0:
-            return Response({'detail': 'El valor devuelto debe ser mayor a cero.'}, status=400)
-        order_total = order.total or Decimal('0')
-        if valor_devuelto > order_total:
-            return Response(
-                {'detail': 'El valor devuelto no puede superar el total de la venta.'}, status=400)
-
-        from apps.returns.models import SaleChange, SaleChangeType
-        # Tipo AUTOMÁTICO: TOTAL si se devuelve el total de la venta; PARCIAL si es menor.
-        tipo = SaleChangeType.TOTAL if valor_devuelto >= order_total else SaleChangeType.PARCIAL
+        returned = request.data.get('returned') or []
+        delivered = request.data.get('delivered') or []
         descripcion = (request.data.get('descripcion') or '').strip()
 
-        order_item = order.items.filter(pk=order_item_id).first()
-        if not order_item:
-            return Response({'detail': 'El ítem no pertenece a esta venta.'}, status=400)
-        if quantity > order_item.quantity:
-            return Response(
-                {'detail': 'La cantidad supera lo vendido en ese ítem.'}, status=400)
+        # Fecha del cambio (opcional): permite registrar un cambio de días atrás.
+        # Si viene vacía se usa la fecha/hora actual.
+        change_dt = None
+        raw_date = (request.data.get('change_date') or '').strip()
+        if raw_date:
+            import datetime as _dt
+            try:
+                d = _dt.date.fromisoformat(raw_date[:10])
+            except ValueError:
+                return Response({'detail': 'Fecha del cambio inválida.'}, status=400)
+            now = timezone.localtime()
+            naive = _dt.datetime.combine(d, now.timetz().replace(tzinfo=None))
+            change_dt = timezone.make_aware(naive, timezone.get_current_timezone())
+
+        if not isinstance(returned, list) or not returned:
+            return Response({'detail': 'Selecciona al menos un producto que el cliente devuelve.'}, status=400)
+        if not isinstance(delivered, list) or not delivered:
+            return Response({'detail': 'Selecciona al menos un producto que se entrega a cambio.'}, status=400)
+
+        # ── Normaliza y valida los ítems DEVUELTOS (contra la venta) ──
+        return_rows = []   # (order_item, qty)
+        already = {}       # order_item_id -> qty ya devuelta en cambios previos
+        from apps.returns.models import SaleChangeLine
+        for l in SaleChangeLine.objects.filter(change__order=order, direction=SaleChangeLine.RETURN):
+            if l.order_item_id:
+                already[l.order_item_id] = already.get(l.order_item_id, 0) + l.quantity
+        pending_qty = {}
+        for r in returned:
+            try:
+                oi_id = int(r.get('order_item_id'))
+                qty = int(r.get('quantity', 1))
+            except (TypeError, ValueError, AttributeError):
+                return Response({'detail': 'Ítem devuelto inválido.'}, status=400)
+            if qty < 1:
+                return Response({'detail': 'La cantidad devuelta debe ser al menos 1.'}, status=400)
+            oi = order.items.filter(pk=oi_id).first()
+            if not oi:
+                return Response({'detail': 'Un ítem devuelto no pertenece a esta venta.'}, status=400)
+            pending_qty[oi_id] = pending_qty.get(oi_id, 0) + qty
+            disponible = oi.quantity - already.get(oi_id, 0)
+            if pending_qty[oi_id] > disponible:
+                return Response(
+                    {'detail': f'«{oi.product_name}»: no puedes devolver más de lo vendido/disponible.'},
+                    status=400)
+            return_rows.append((oi, qty))
+
+        # ── Normaliza y valida los ítems ENTREGADOS (variantes por barcode) ──
+        from apps.variants.models import Variant
+        deliver_rows = []  # (variant, qty)
+        branch_id = order.branch_id
+        for d in delivered:
+            try:
+                v_id = int(d.get('variant_id'))
+                qty = int(d.get('quantity', 1))
+            except (TypeError, ValueError, AttributeError):
+                return Response({'detail': 'Ítem entregado inválido.'}, status=400)
+            if qty < 1:
+                return Response({'detail': 'La cantidad entregada debe ser al menos 1.'}, status=400)
+            variant = (Variant.objects.select_related('product')
+                       .filter(pk=v_id, tenant=order.tenant).first())
+            if not variant:
+                return Response({'detail': 'Un producto entregado no existe.'}, status=400)
+            deliver_rows.append((variant, qty))
+
+        # ── Regla clave: cantidad devuelta == cantidad entregada ──
+        total_returned_qty = sum(q for _, q in return_rows)
+        total_delivered_qty = sum(q for _, q in deliver_rows)
+        if total_returned_qty != total_delivered_qty:
+            return Response({
+                'detail': f'Las cantidades no coinciden: el cliente devuelve '
+                          f'{total_returned_qty} y se le entregan {total_delivered_qty}. '
+                          f'Deben ser iguales.'
+            }, status=400)
 
         import secrets
         from django.db import transaction
         from apps.inventory.models import Stock, StockMovement
+
+        def _delivered_unit_price(variant):
+            prod = variant.product
+            base = variant.price_override or prod.base_price
+            return prod.offer_price(base)   # IVA incluido, igual que el POS
+
         with transaction.atomic():
-            branch_id = order_item.branch_id or order.branch_id
-            stock = None
-            if order_item.variant_id and branch_id:
-                stock = Stock.objects.select_for_update().filter(
-                    variant_id=order_item.variant_id, branch_id=branch_id,
-                ).first()
-                if stock:
-                    before = stock.quantity
-                    stock.quantity += quantity
-                    stock.save(update_fields=['quantity', 'updated_at'])
-                else:
-                    stock = Stock.objects.create(
-                        tenant=order.tenant, variant_id=order_item.variant_id,
-                        branch_id=branch_id, quantity=quantity,
-                    )
-                    before = 0
-                StockMovement.objects.create(
-                    tenant=order.tenant, stock=stock,
-                    type=StockMovement.TYPE_IN, quantity=quantity,
-                    note=f'Cambio venta {order.code}: {descripcion[:120]}',
-                    actor=request.user if request.user.is_authenticated else None,
-                    qty_before=before, qty_after=stock.quantity,
-                )
+            # Validar stock de los entregados ANTES de mover nada.
+            for variant, qty in deliver_rows:
+                st = Stock.objects.select_for_update().filter(
+                    variant=variant, branch_id=branch_id).first()
+                have = st.quantity if st else 0
+                if have < qty:
+                    return Response({
+                        'detail': f'Stock insuficiente de «{variant.product.name}» '
+                                  f'({variant.size or ""} {variant.color or ""}): hay {have}, '
+                                  f'necesitas {qty}.'
+                    }, status=400)
 
             code = f'CMB-{timezone.now().strftime("%Y%m%d")}-{secrets.token_hex(3).upper()}'
-            SaleChange.objects.create(
-                tenant=order.tenant, code=code, order=order, order_item=order_item,
-                variant_id=order_item.variant_id, branch_id=branch_id,
-                product_name=order_item.product_name, quantity=quantity,
-                valor_devuelto=valor_devuelto, tipo=tipo, descripcion=descripcion,
+            change = SaleChange.objects.create(
+                tenant=order.tenant, code=code, order=order, branch_id=branch_id,
+                quantity=total_returned_qty, descripcion=descripcion,
                 actor=request.user if request.user.is_authenticated else None,
+                # legacy: primer ítem devuelto
+                order_item=return_rows[0][0], variant_id=return_rows[0][0].variant_id,
+                product_name=return_rows[0][0].product_name,
             )
 
-            order.total_changes = (order.total_changes or 0) + valor_devuelto
-            order.save(update_fields=['total_changes', 'updated_at'])
+            returned_value = Decimal('0')
+            # DEVUELTOS: vuelven al stock (+)
+            for oi, qty in return_rows:
+                unit = Decimal(str(oi.unit_price or 0))
+                sub = (unit * qty).quantize(Decimal('0.01'))
+                returned_value += sub
+                if oi.variant_id and branch_id:
+                    st = Stock.objects.select_for_update().filter(
+                        variant_id=oi.variant_id, branch_id=branch_id).first()
+                    if st:
+                        before = st.quantity
+                        st.quantity += qty
+                        st.save(update_fields=['quantity', 'updated_at'])
+                    else:
+                        st = Stock.objects.create(
+                            tenant=order.tenant, variant_id=oi.variant_id,
+                            branch_id=branch_id, quantity=qty)
+                        before = 0
+                    StockMovement.objects.create(
+                        tenant=order.tenant, stock=st, type=StockMovement.TYPE_IN,
+                        quantity=qty, note=f'Cambio {code}: devolución {oi.product_name[:80]}',
+                        actor=request.user if request.user.is_authenticated else None,
+                        qty_before=before, qty_after=st.quantity)
+                SaleChangeLine.objects.create(
+                    tenant=order.tenant, change=change, direction=SaleChangeLine.RETURN,
+                    order_item=oi, variant_id=oi.variant_id, product_name=oi.product_name,
+                    sku=oi.sku, size=oi.size, color=oi.color, quantity=qty,
+                    unit_price=unit, subtotal=sub)
+
+            delivered_value = Decimal('0')
+            # ENTREGADOS: salen del stock (−)
+            for variant, qty in deliver_rows:
+                unit = Decimal(str(_delivered_unit_price(variant) or 0))
+                sub = (unit * qty).quantize(Decimal('0.01'))
+                delivered_value += sub
+                if branch_id:
+                    st = Stock.objects.select_for_update().filter(
+                        variant=variant, branch_id=branch_id).first()
+                    before = st.quantity if st else 0
+                    st.quantity = before - qty
+                    st.save(update_fields=['quantity', 'updated_at'])
+                    StockMovement.objects.create(
+                        tenant=order.tenant, stock=st, type=StockMovement.TYPE_OUT,
+                        quantity=qty, note=f'Cambio {code}: entrega {variant.product.name[:80]}',
+                        actor=request.user if request.user.is_authenticated else None,
+                        qty_before=before, qty_after=st.quantity)
+                SaleChangeLine.objects.create(
+                    tenant=order.tenant, change=change, direction=SaleChangeLine.DELIVER,
+                    variant=variant, product_name=variant.product.name, sku=variant.sku,
+                    size=variant.size, color=variant.color, quantity=qty,
+                    unit_price=unit, subtotal=sub)
+
+            difference = (delivered_value - returned_value).quantize(Decimal('0.01'))
+            change.returned_value = returned_value
+            change.delivered_value = delivered_value
+            change.difference = difference
+            change.valor_devuelto = returned_value   # compat
+            update_fields = ['returned_value', 'delivered_value', 'difference', 'valor_devuelto']
+            # Fecha retroactiva del cambio (si se indicó una).
+            if change_dt is not None:
+                change.created_at = change_dt
+                update_fields.append('created_at')
+            change.save(update_fields=update_fields)
 
         return Response(OrderSerializer(order).data)
 

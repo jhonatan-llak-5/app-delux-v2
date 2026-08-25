@@ -293,16 +293,29 @@ class AdminStockViewSet(viewsets.ReadOnlyModelViewSet):
             )
         vs = (qs.select_related('product', 'product__brand', 'product__category')
               .prefetch_related('product__images')[:15])
-        results = [{
-            'id': v.id, 'sku': v.sku, 'barcode': v.barcode,
-            'size': v.size, 'color': v.color,
-            'cost': v.cost, 'price_override': v.price_override,
-            'product_id': v.product_id, 'product_name': v.product.name,
-            'kind': v.product.kind, 'base_price': v.product.base_price,
-            'brand_id': v.product.brand_id, 'brand_name': v.product.brand.name,
-            'category_id': v.product.category_id, 'category_name': v.product.category.name,
-            'images': _product_images(v.product),
-        } for v in vs]
+        # Sucursal opcional: si viene, se agrega el stock disponible por variante
+        # y el precio de venta con IVA (para el flujo de cambio producto-por-producto).
+        branch_id = request.query_params.get('branch')
+        stock_by_variant = {}
+        if branch_id:
+            for st in Stock.objects.filter(variant__in=vs, branch_id=branch_id):
+                stock_by_variant[st.variant_id] = st.quantity
+        results = []
+        for v in vs:
+            base = v.price_override if v.price_override is not None else v.product.base_price
+            price = v.product.offer_price(base)
+            results.append({
+                'id': v.id, 'sku': v.sku, 'barcode': v.barcode,
+                'size': v.size, 'color': v.color,
+                'cost': v.cost, 'price_override': v.price_override,
+                'price': price,
+                'branch_qty': stock_by_variant.get(v.id, 0) if branch_id else None,
+                'product_id': v.product_id, 'product_name': v.product.name,
+                'kind': v.product.kind, 'base_price': v.product.base_price,
+                'brand_id': v.product.brand_id, 'brand_name': v.product.brand.name,
+                'category_id': v.product.category_id, 'category_name': v.product.category.name,
+                'images': _product_images(v.product),
+            })
         return Response({'results': results})
 
     @action(detail=False, methods=['get'], url_path='scan')
