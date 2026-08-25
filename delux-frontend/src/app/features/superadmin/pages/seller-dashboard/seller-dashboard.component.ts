@@ -145,12 +145,26 @@ export class SellerDashboardComponent implements OnInit {
         datasets: [{
           label: 'Ingresos', data: t.map(p => +p.revenue),
           borderColor: '#3b82f6', backgroundColor: 'rgba(59,130,246,0.12)',
-          fill: true, tension: 0.35, borderWidth: 2, pointRadius: 0, pointHoverRadius: 4,
+          fill: true, tension: 0.35, borderWidth: 2,
+          // Visible point on hover to locate the exact value.
+          pointRadius: 0, pointHoverRadius: 6, pointHitRadius: 20,
+          pointBackgroundColor: '#3b82f6', pointBorderColor: '#fff', pointBorderWidth: 2,
         }],
       },
       options: {
         responsive: true, maintainAspectRatio: false,
-        plugins: { legend: { display: false } },
+        // Hover anywhere on the column to highlight the nearest day's value.
+        interaction: { mode: 'index', intersect: false, axis: 'x' },
+        hover: { mode: 'index', intersect: false },
+        plugins: {
+          legend: { display: false },
+          tooltip: {
+            displayColors: false,
+            callbacks: {
+              label: (ctx) => 'Ingresos: $' + this.money(ctx.parsed.y),
+            },
+          },
+        },
         scales: {
           y: { beginAtZero: true, ticks: { callback: (v) => '$' + v }, grid: { color: 'rgba(148,163,184,0.15)' } },
           x: { grid: { display: false }, ticks: { maxTicksLimit: 8 } },

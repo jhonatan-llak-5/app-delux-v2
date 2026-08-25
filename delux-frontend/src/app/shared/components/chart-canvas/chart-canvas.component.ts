@@ -29,7 +29,30 @@ export class ChartCanvasComponent implements OnChanges, OnDestroy, AfterViewInit
 
   private render() {
     if (!this.cv || !this.config) return;
-    this.chart = new Chart(this.cv.nativeElement, this.config);
+    this.chart = new Chart(this.cv.nativeElement, this.withHoverDefaults(this.config));
+  }
+
+  /** Index-mode hover defaults so values are readable without hitting the line exactly. */
+  private withHoverDefaults(cfg: ChartConfiguration): ChartConfiguration {
+    const opts: any = { ...(cfg.options || {}) };
+    if (!opts.interaction) opts.interaction = { mode: 'index', intersect: false, axis: 'x' };
+    if (!opts.hover) opts.hover = { mode: 'index', intersect: false };
+
+    let data = cfg.data;
+    if (cfg.type === 'line' && data?.datasets) {
+      data = {
+        ...data,
+        datasets: data.datasets.map((ds: any) => ({
+          pointHoverRadius: ds.pointHoverRadius ?? 6,
+          pointHitRadius: ds.pointHitRadius ?? 20,
+          pointHoverBackgroundColor: ds.pointHoverBackgroundColor ?? ds.borderColor,
+          pointHoverBorderColor: ds.pointHoverBorderColor ?? '#fff',
+          pointHoverBorderWidth: ds.pointHoverBorderWidth ?? 2,
+          ...ds,
+        })),
+      };
+    }
+    return { ...cfg, data, options: opts };
   }
 
   ngOnDestroy() { this.chart?.destroy(); }
