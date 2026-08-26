@@ -240,7 +240,7 @@ export class SaleDetailComponent implements OnInit, OnDestroy {
 
   confirmChange(ev: {
     returned: { order_item_id: number; quantity: number }[];
-    delivered: { variant_id: number; quantity: number }[];
+    delivered: { variant_id?: number; manual?: boolean; name?: string; price?: number; quantity: number }[];
     descripcion: string;
     change_date: string;
   }) {

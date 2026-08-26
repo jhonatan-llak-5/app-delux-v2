@@ -180,27 +180,47 @@ class AdminOrderViewSet(viewsets.ReadOnlyModelViewSet):
                     status=400)
             return_rows.append((oi, qty))
 
-        # ── Normaliza y valida los ítems ENTREGADOS (variantes por barcode) ──
+        # ── Normaliza y valida los ítems ENTREGADOS ──
+        # Pueden ser variantes de INVENTARIO (variant_id) o productos MANUALES
+        # fuera de inventario (name + price). Los manuales NO descuentan stock:
+        # solo se registran en el historial y cuentan para la diferencia/balance.
+        from decimal import Decimal as _D, InvalidOperation as _IO
         from apps.variants.models import Variant
-        deliver_rows = []  # (variant, qty)
+        deliver_rows = []  # ('stock', variant, qty) | ('manual', {name, price}, qty)
         branch_id = order.branch_id
         for d in delivered:
             try:
-                v_id = int(d.get('variant_id'))
                 qty = int(d.get('quantity', 1))
             except (TypeError, ValueError, AttributeError):
                 return Response({'detail': 'Ítem entregado inválido.'}, status=400)
             if qty < 1:
                 return Response({'detail': 'La cantidad entregada debe ser al menos 1.'}, status=400)
-            variant = (Variant.objects.select_related('product')
-                       .filter(pk=v_id, tenant=order.tenant).first())
-            if not variant:
-                return Response({'detail': 'Un producto entregado no existe.'}, status=400)
-            deliver_rows.append((variant, qty))
+            is_manual = bool(d.get('manual')) or not d.get('variant_id')
+            if is_manual:
+                name = (d.get('name') or '').strip()
+                try:
+                    price = _D(str(d.get('price', 0)))
+                except (_IO, TypeError, ValueError):
+                    return Response({'detail': 'Precio del producto fuera de inventario inválido.'}, status=400)
+                if not name:
+                    return Response({'detail': 'Escribe el nombre del producto fuera de inventario.'}, status=400)
+                if price <= 0:
+                    return Response({'detail': 'El precio del producto fuera de inventario debe ser mayor a 0.'}, status=400)
+                deliver_rows.append(('manual', {'name': name[:200], 'price': price}, qty))
+            else:
+                try:
+                    v_id = int(d.get('variant_id'))
+                except (TypeError, ValueError):
+                    return Response({'detail': 'Ítem entregado inválido.'}, status=400)
+                variant = (Variant.objects.select_related('product')
+                           .filter(pk=v_id, tenant=order.tenant).first())
+                if not variant:
+                    return Response({'detail': 'Un producto entregado no existe.'}, status=400)
+                deliver_rows.append(('stock', variant, qty))
 
         # ── Regla clave: cantidad devuelta == cantidad entregada ──
         total_returned_qty = sum(q for _, q in return_rows)
-        total_delivered_qty = sum(q for _, q in deliver_rows)
+        total_delivered_qty = sum(q for _, _, q in deliver_rows)
         if total_returned_qty != total_delivered_qty:
             return Response({
                 'detail': f'Las cantidades no coinciden: el cliente devuelve '
@@ -218,8 +238,11 @@ class AdminOrderViewSet(viewsets.ReadOnlyModelViewSet):
             return prod.offer_price(base)   # IVA incluido, igual que el POS
 
         with transaction.atomic():
-            # Validar stock de los entregados ANTES de mover nada.
-            for variant, qty in deliver_rows:
+            # Validar stock SOLO de los entregados de inventario (los manuales no).
+            for kind, obj, qty in deliver_rows:
+                if kind != 'stock':
+                    continue
+                variant = obj
                 st = Stock.objects.select_for_update().filter(
                     variant=variant, branch_id=branch_id).first()
                 have = st.quantity if st else 0
@@ -270,27 +293,39 @@ class AdminOrderViewSet(viewsets.ReadOnlyModelViewSet):
                     unit_price=unit, subtotal=sub)
 
             delivered_value = Decimal('0')
-            # ENTREGADOS: salen del stock (−)
-            for variant, qty in deliver_rows:
-                unit = Decimal(str(_delivered_unit_price(variant) or 0))
-                sub = (unit * qty).quantize(Decimal('0.01'))
-                delivered_value += sub
-                if branch_id:
-                    st = Stock.objects.select_for_update().filter(
-                        variant=variant, branch_id=branch_id).first()
-                    before = st.quantity if st else 0
-                    st.quantity = before - qty
-                    st.save(update_fields=['quantity', 'updated_at'])
-                    StockMovement.objects.create(
-                        tenant=order.tenant, stock=st, type=StockMovement.TYPE_OUT,
-                        quantity=qty, note=f'Cambio {code}: entrega {variant.product.name[:80]}',
-                        actor=request.user if request.user.is_authenticated else None,
-                        qty_before=before, qty_after=st.quantity)
-                SaleChangeLine.objects.create(
-                    tenant=order.tenant, change=change, direction=SaleChangeLine.DELIVER,
-                    variant=variant, product_name=variant.product.name, sku=variant.sku,
-                    size=variant.size, color=variant.color, quantity=qty,
-                    unit_price=unit, subtotal=sub)
+            # ENTREGADOS
+            for kind, obj, qty in deliver_rows:
+                if kind == 'stock':
+                    variant = obj
+                    unit = Decimal(str(_delivered_unit_price(variant) or 0))
+                    sub = (unit * qty).quantize(Decimal('0.01'))
+                    delivered_value += sub
+                    # De inventario: sale del stock (−)
+                    if branch_id:
+                        st = Stock.objects.select_for_update().filter(
+                            variant=variant, branch_id=branch_id).first()
+                        before = st.quantity if st else 0
+                        st.quantity = before - qty
+                        st.save(update_fields=['quantity', 'updated_at'])
+                        StockMovement.objects.create(
+                            tenant=order.tenant, stock=st, type=StockMovement.TYPE_OUT,
+                            quantity=qty, note=f'Cambio {code}: entrega {variant.product.name[:80]}',
+                            actor=request.user if request.user.is_authenticated else None,
+                            qty_before=before, qty_after=st.quantity)
+                    SaleChangeLine.objects.create(
+                        tenant=order.tenant, change=change, direction=SaleChangeLine.DELIVER,
+                        variant=variant, product_name=variant.product.name, sku=variant.sku,
+                        size=variant.size, color=variant.color, quantity=qty,
+                        unit_price=unit, subtotal=sub)
+                else:
+                    # MANUAL (fuera de inventario): NO toca stock, solo se registra.
+                    unit = Decimal(str(obj['price']))
+                    sub = (unit * qty).quantize(Decimal('0.01'))
+                    delivered_value += sub
+                    SaleChangeLine.objects.create(
+                        tenant=order.tenant, change=change, direction=SaleChangeLine.DELIVER,
+                        variant=None, product_name=obj['name'], sku='', size='', color='',
+                        quantity=qty, unit_price=unit, subtotal=sub)
 
             difference = (delivered_value - returned_value).quantize(Decimal('0.01'))
             change.returned_value = returned_value

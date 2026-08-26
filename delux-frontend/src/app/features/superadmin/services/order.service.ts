@@ -170,7 +170,7 @@ export class OrderService {
    * lleva otros a cambio. Devuelto vuelve al stock, entregado sale del stock. */
   registerChange(id: number, body: {
     returned: { order_item_id: number; quantity: number }[];
-    delivered: { variant_id: number; quantity: number }[];
+    delivered: { variant_id?: number; manual?: boolean; name?: string; price?: number; quantity: number }[];
     descripcion: string;
     change_date?: string;
   }): Observable<Order> {

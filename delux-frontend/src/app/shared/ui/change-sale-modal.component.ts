@@ -19,7 +19,9 @@ import { Order, OrderItem } from '@features/superadmin/services/order.service';
  * la llamada real a la API con el payload emitido en `confirm`.
  */
 interface ReturnUnit { key: string; orderItemId: number; label: string; sku: string; unitPrice: number; }
-interface DeliverLine { variant: DeliverableVariant; qty: number; }
+interface StockDeliverLine { kind: 'stock'; variant: DeliverableVariant; qty: number; }
+interface ManualDeliverLine { kind: 'manual'; name: string; price: number; qty: number; }
+type DeliverLine = StockDeliverLine | ManualDeliverLine;
 
 @Component({
   selector: 'dlx-change-sale-modal',
@@ -110,21 +112,50 @@ interface DeliverLine { variant: DeliverableVariant; qty: number; }
               </div>
             }
 
+            <!-- Producto FUERA DE INVENTARIO (manual) -->
+            @if (!showManual()) {
+              <button type="button" (click)="showManual.set(true)"
+                      class="mt-2 text-xs font-semibold text-indigo-600 dark:text-indigo-300 hover:underline inline-flex items-center gap-1.5">
+                <i class="fa-solid fa-plus"></i> Agregar producto fuera de inventario
+              </button>
+            } @else {
+              <div class="mt-2 p-3 rounded-xl border border-dashed border-indigo-300 dark:border-indigo-500/40 bg-indigo-50/50 dark:bg-indigo-500/10">
+                <p class="text-[11px] text-slate-500 dark:text-slate-300 mb-2">
+                  <i class="fa-solid fa-circle-info"></i> Se registra solo en el historial (no descuenta stock) y entra al cálculo y al balance.
+                </p>
+                <div class="flex flex-col sm:flex-row gap-2">
+                  <input [ngModel]="manualName()" (ngModelChange)="manualName.set($event)" placeholder="Nombre del producto…"
+                         class="eg-input flex-1 text-sm" />
+                  <input type="number" min="0.01" step="0.01" [ngModel]="manualPrice()" (ngModelChange)="manualPrice.set($event)" placeholder="Precio"
+                         class="eg-input w-full sm:w-28 text-sm" />
+                  <button type="button" (click)="addManual()" [disabled]="!manualName().trim() || !(manualPrice()! > 0)"
+                          class="px-3 py-2 rounded-lg bg-indigo-600 hover:bg-indigo-700 text-white text-sm font-semibold disabled:opacity-40">Agregar</button>
+                  <button type="button" (click)="showManual.set(false)" class="px-3 py-2 rounded-lg bg-slate-100 dark:bg-white/5 text-slate-500 text-sm">Cancelar</button>
+                </div>
+              </div>
+            }
+
             @if (delivered().length > 0) {
               <div class="mt-3 space-y-1.5">
-                @for (d of delivered(); track d.variant.id) {
-                  <div class="flex items-center gap-3 p-2.5 rounded-xl border border-emerald-300 bg-emerald-50 dark:bg-emerald-500/10">
+                @for (d of delivered(); track $index) {
+                  <div class="flex items-center gap-3 p-2.5 rounded-xl border"
+                       [class]="d.kind === 'manual' ? 'border-indigo-300 bg-indigo-50 dark:bg-indigo-500/10' : 'border-emerald-300 bg-emerald-50 dark:bg-emerald-500/10'">
                     <span class="flex-1 text-sm text-slate-800 dark:text-slate-100">
-                      {{ d.variant.product_name }}
-                      <span class="block text-[11px] text-slate-400">{{ d.variant.size }} {{ d.variant.color }} · SKU {{ d.variant.sku }}</span>
+                      {{ d.kind === 'stock' ? d.variant.product_name : d.name }}
+                      @if (d.kind === 'stock') {
+                        <span class="block text-[11px] text-slate-400">{{ d.variant.size }} {{ d.variant.color }} · SKU {{ d.variant.sku }}</span>
+                      } @else {
+                        <span class="block text-[11px] text-indigo-500"><i class="fa-solid fa-box-open"></i> Fuera de inventario · {{ d.price | currency:'USD':'symbol':'1.2-2' }} c/u</span>
+                      }
                     </span>
                     <div class="flex items-center gap-1.5">
-                      <button type="button" (click)="decDeliver(d)" class="w-6 h-6 rounded-lg bg-white dark:bg-white/10 border border-slate-200 dark:border-white/10 text-slate-600">−</button>
+                      <button type="button" (click)="decDeliver(d)" [disabled]="d.qty <= 1"
+                              class="w-6 h-6 rounded-lg bg-white dark:bg-white/10 border border-slate-200 dark:border-white/10 text-slate-600 disabled:opacity-30">−</button>
                       <span class="w-6 text-center text-sm font-semibold">{{ d.qty }}</span>
-                      <button type="button" (click)="incDeliver(d)" [disabled]="d.qty >= d.variant.branch_qty"
+                      <button type="button" (click)="incDeliver(d)" [disabled]="d.kind === 'stock' && d.qty >= d.variant.branch_qty"
                               class="w-6 h-6 rounded-lg bg-white dark:bg-white/10 border border-slate-200 dark:border-white/10 text-slate-600 disabled:opacity-30">+</button>
                     </div>
-                    <span class="w-20 text-right text-sm font-semibold text-slate-700 dark:text-slate-200">{{ d.variant.price * d.qty | currency:'USD':'symbol':'1.2-2' }}</span>
+                    <span class="w-20 text-right text-sm font-semibold text-slate-700 dark:text-slate-200">{{ (d.kind === 'stock' ? d.variant.price : d.price) * d.qty | currency:'USD':'symbol':'1.2-2' }}</span>
                     <button type="button" (click)="removeDeliver(d)" class="text-rose-400 hover:text-rose-600"><i class="fa-solid fa-trash-can text-sm"></i></button>
                   </div>
                 }
@@ -190,7 +221,7 @@ export class DlxChangeSaleModalComponent implements OnInit {
   @Input() saving = false;
   @Output() confirm = new EventEmitter<{
     returned: { order_item_id: number; quantity: number }[];
-    delivered: { variant_id: number; quantity: number }[];
+    delivered: { variant_id?: number; manual?: boolean; name?: string; price?: number; quantity: number }[];
     descripcion: string;
     change_date: string;
   }>();
@@ -205,6 +236,10 @@ export class DlxChangeSaleModalComponent implements OnInit {
   searchTerm = signal('');
   results = signal<DeliverableVariant[]>([]);
   searching = signal(false);
+  // Producto fuera de inventario (manual)
+  showManual = signal(false);
+  manualName = signal('');
+  manualPrice = signal<number | null>(null);
 
   private search$ = new Subject<string>();
 
@@ -271,19 +306,28 @@ export class DlxChangeSaleModalComponent implements OnInit {
   addDeliver(v: DeliverableVariant): void {
     if (v.branch_qty <= 0) return;
     const list = [...this.delivered()];
-    const found = list.find(d => d.variant.id === v.id);
+    const found = list.find(d => d.kind === 'stock' && d.variant.id === v.id) as StockDeliverLine | undefined;
     if (found) { if (found.qty < v.branch_qty) found.qty++; }
-    else list.push({ variant: v, qty: 1 });
+    else list.push({ kind: 'stock', variant: v, qty: 1 });
     this.delivered.set(list);
     this.searchTerm.set(''); this.results.set([]);
   }
+  /** Agrega un producto FUERA DE INVENTARIO (nombre + precio manual). No toca stock. */
+  addManual(): void {
+    const name = this.manualName().trim();
+    const price = Number(this.manualPrice() || 0);
+    if (!name || price <= 0) return;
+    this.delivered.set([...this.delivered(), { kind: 'manual', name, price, qty: 1 }]);
+    this.manualName.set(''); this.manualPrice.set(null); this.showManual.set(false);
+  }
+  private maxQty(d: DeliverLine): number { return d.kind === 'stock' ? d.variant.branch_qty : 9999; }
   incDeliver(d: DeliverLine): void {
-    if (d.qty >= d.variant.branch_qty) return;
-    this.delivered.set(this.delivered().map(x => x === d ? { ...x, qty: x.qty + 1 } : x));
+    if (d.qty >= this.maxQty(d)) return;
+    this.delivered.set(this.delivered().map(x => x === d ? { ...x, qty: x.qty + 1 } as DeliverLine : x));
   }
   decDeliver(d: DeliverLine): void {
-    const list = this.delivered().map(x => x === d ? { ...x, qty: x.qty - 1 } : x).filter(x => x.qty > 0);
-    this.delivered.set(list);
+    if (d.qty <= 1) return;   // no baja de 1; para quitar el ítem se usa la papelera
+    this.delivered.set(this.delivered().map(x => x === d ? { ...x, qty: x.qty - 1 } as DeliverLine : x));
   }
   removeDeliver(d: DeliverLine): void { this.delivered.set(this.delivered().filter(x => x !== d)); }
 
@@ -293,7 +337,7 @@ export class DlxChangeSaleModalComponent implements OnInit {
     const sel = this.selectedReturns();
     return this.returnUnits().filter(u => sel.has(u.key)).reduce((s, u) => s + u.unitPrice, 0);
   });
-  deliveredValue = computed(() => this.delivered().reduce((s, d) => s + d.variant.price * d.qty, 0));
+  deliveredValue = computed(() => this.delivered().reduce((s, d) => s + (d.kind === 'stock' ? d.variant.price : d.price) * d.qty, 0));
   difference = computed(() => +(this.deliveredValue() - this.returnedValue()).toFixed(2));
 
   canConfirm = computed(() =>
@@ -330,7 +374,9 @@ export class DlxChangeSaleModalComponent implements OnInit {
       if (sel.has(u.key)) byItem.set(u.orderItemId, (byItem.get(u.orderItemId) || 0) + 1);
     }
     const returned = Array.from(byItem.entries()).map(([order_item_id, quantity]) => ({ order_item_id, quantity }));
-    const delivered = this.delivered().map(d => ({ variant_id: d.variant.id, quantity: d.qty }));
+    const delivered = this.delivered().map(d => d.kind === 'stock'
+      ? { variant_id: d.variant.id, quantity: d.qty }
+      : { manual: true, name: d.name, price: d.price, quantity: d.qty });
     this.confirm.emit({ returned, delivered, descripcion: this.descripcion().trim(), change_date: this.changeDate() });
   }
 }
