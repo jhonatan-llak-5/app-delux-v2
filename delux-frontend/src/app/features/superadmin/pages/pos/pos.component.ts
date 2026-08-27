@@ -58,6 +58,7 @@ export class PosComponent implements OnInit, OnDestroy {
   private storeSet = inject(StoreSettingsService);
   cfEnabled = signal(false);   // "Consumidor Final" activado por la tienda
   einvoiceEnabled = signal(false);  // facturación electrónica activa
+  wantInvoice = signal(false);      // por venta: ¿generar factura de ESTA venta? (por defecto NO)
   cfMax = signal(50);          // tope $ para facturar como Consumidor Final
   private auth = inject(AuthService);
   branchCtx = inject(BranchContextService);
@@ -148,7 +149,7 @@ export class PosComponent implements OnInit, OnDestroy {
    *  Final (sin cédula/RUC), no se puede facturar desde el tope (def. $50).
    *  Se evalúa como método para reaccionar a los cambios del cliente en vivo. */
   cfBlock(): boolean {
-    if (!this.einvoiceEnabled()) return false;
+    if (!this.einvoiceEnabled() || !this.wantInvoice()) return false;
     const doc = (this.customerData?.['document_id'] || '').trim();
     const isCF = !doc || doc === '9999999999999';
     return isCF && this.total() >= this.cfMax();
@@ -449,6 +450,7 @@ export class PosComponent implements OnInit, OnDestroy {
       payment_form: this.paymentForm(),
       payment_plazo: this.aCredito() ? +this.plazo() : 0,
       payment_unidad: this.unidad(),
+      want_invoice: this.einvoiceEnabled() ? this.wantInvoice() : false,
     };
     this.ord.posCheckout(payload).subscribe({
       next: order => {
@@ -479,7 +481,8 @@ export class PosComponent implements OnInit, OnDestroy {
     const o = this.completedOrder();
     if (!o) return false;
     if (!this.einvoiceEnabled()) return true;
-    return o.invoice_status === 'AUTHORIZED';
+    const st = o.invoice_status || '';
+    return st !== 'PROCESSING' && st !== 'PENDING_SRI';
   }
 
   /** Navega al detalle de la venta (donde también se puede imprimir). */
@@ -495,7 +498,8 @@ export class PosComponent implements OnInit, OnDestroy {
   private startInvoicePolling(order: Order): void {
     this.stopInvoicePolling();
     // Sin factura electrónica o ya autorizada: no hace falta consultar.
-    if (!this.einvoiceEnabled() || order.invoice_status === 'AUTHORIZED') return;
+    const st0 = order.invoice_status || '';
+    if (!this.einvoiceEnabled() || (st0 !== 'PROCESSING' && st0 !== 'PENDING_SRI')) return;
     let attempts = 0;
     this.pollTimer = setInterval(() => {
       attempts++;

@@ -153,8 +153,14 @@ export class ReceptionComponent implements OnInit {
   saveState(): void {
     if (typeof window === 'undefined') return;
     try {
-      // Formulario de producto en progreso: solo se guarda si tiene contenido.
-      const productDraft = (this.manual && this.manual.hasContent()) ? this.manual.snapshot() : null;
+      // Formulario de producto en progreso. Si el modal existe, refleja su estado
+      // real (snapshot si hay contenido, null si esta vacio). Si el modal fue
+      // DESTRUIDO al cambiar de paso, conserva el ultimo borrador para
+      // reinyectarlo al volver (evita que se pierda al pasar de step 1 a 2 y volver).
+      if (this.manual) {
+        this.restoredManual = this.manual.hasContent() ? this.manual.snapshot() : null;
+      }
+      const productDraft = this.restoredManual;
       localStorage.setItem(this.STORAGE_KEY, JSON.stringify({
         items: this.items(),
         selectedBranches: this.selectedBranches(),

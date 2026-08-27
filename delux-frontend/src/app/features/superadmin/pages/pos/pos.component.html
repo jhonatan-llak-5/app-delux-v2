@@ -484,6 +484,28 @@
               }
             </div>
 
+            <!-- ¿Generar factura de esta venta? (solo si la facturación está activa) -->
+            @if (einvoiceEnabled()) {
+              <div class="mt-4 rounded-xl border p-4 text-left"
+                   [class.border-violet-300]="wantInvoice()" [class.bg-violet-50]="wantInvoice()"
+                   [class.dark:bg-violet-500/10]="wantInvoice()"
+                   [class.border-slate-200]="!wantInvoice()" [class.dark:border-white/10]="!wantInvoice()">
+                <label class="flex items-start gap-2.5 cursor-pointer">
+                  <input type="checkbox" [ngModel]="wantInvoice()" (ngModelChange)="wantInvoice.set($event)"
+                         class="mt-0.5 h-4 w-4 rounded border-slate-300 text-[var(--dash-primary)]" />
+                  <span class="text-sm font-semibold text-slate-800 dark:text-white">
+                    Generar factura de esta venta
+                    <span class="block text-[11px] font-normal text-slate-400">Desmárcalo si el cliente no requiere factura electrónica.</span>
+                  </span>
+                </label>
+                @if (!wantInvoice()) {
+                  <p class="text-[11px] text-amber-600 dark:text-amber-400 mt-2">
+                    <i class="fa-solid fa-circle-info"></i> Esta venta se registrará <b>sin factura electrónica</b> (solo comprobante interno).
+                  </p>
+                }
+              </div>
+            }
+
             <!-- Calculadora de vuelto (solo efectivo) -->
             @if (paymentForm() === '01') {
               <div class="mt-4 rounded-xl border border-slate-200 dark:border-white/10 p-4 text-left">

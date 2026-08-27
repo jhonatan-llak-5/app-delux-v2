@@ -124,6 +124,7 @@ export interface POSPayload {
   payment_form?: string;
   payment_plazo?: number;
   payment_unidad?: string;
+  want_invoice?: boolean;
 }
 
 export interface OrderSummary {

@@ -129,6 +129,9 @@ class POSCheckoutSerializer(serializers.Serializer):
     payment_form = serializers.CharField(max_length=2, required=False, default='01')
     payment_plazo = serializers.IntegerField(required=False, default=0)
     payment_unidad = serializers.CharField(max_length=8, required=False, default='dias')
+    # Por venta: el vendedor decide si se genera la factura electronica de esta
+    # venta. Solo tiene efecto si la facturacion esta activa en la config global.
+    want_invoice = serializers.BooleanField(required=False, default=True)
 
     def validate(self, attrs):
         if not attrs.get('items'):
@@ -136,6 +139,7 @@ class POSCheckoutSerializer(serializers.Serializer):
         return attrs
 
     def create(self, validated_data):
+        want_invoice = bool(validated_data.pop('want_invoice', True))
         request = self.context['request']
         user = request.user
         items_input = validated_data.pop('items')
@@ -311,7 +315,7 @@ class POSCheckoutSerializer(serializers.Serializer):
             # revierte el pedido y el descuento de stock.
             from apps.settings.models import PlatformSettings as _PScf
             _cfg = _PScf.load()
-            if getattr(_cfg, 'einvoice_enabled', False):
+            if want_invoice and getattr(_cfg, 'einvoice_enabled', False):
                 _ident = (getattr(customer, 'document_id', '') or '').strip() if customer else ''
                 _is_cf = (not _ident) or _ident == '9999999999999'
                 _limit = Decimal(str(getattr(_cfg, 'einvoice_consumidor_final_max', 50) or 50))
@@ -341,10 +345,11 @@ class POSCheckoutSerializer(serializers.Serializer):
 
         # Factura electrónica (NovaFactura), en segundo plano y sin bloquear el
         # cobro. Solo se dispara si la facturación está activa en la config.
-        try:
-            from apps.orders.einvoice import enqueue_invoice
-            enqueue_invoice(order)
-        except Exception as e:
-            print(f'[einvoice] {e}')
+        if want_invoice:
+            try:
+                from apps.orders.einvoice import enqueue_invoice
+                enqueue_invoice(order)
+            except Exception as e:
+                print(f'[einvoice] {e}')
 
         return order
