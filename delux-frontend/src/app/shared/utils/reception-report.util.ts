@@ -82,7 +82,18 @@ function ensureSpace(doc: jsPDF, y: number, needed: number): number {
   return y;
 }
 
+/** Descarga el PDF de recepciones. */
 export function exportReceptionsPdf(d: ReceptionReportData): void {
+  const stamp = new Date().toISOString().slice(0, 10);
+  buildReceptionsDoc(d).save(`recepciones_${stamp}.pdf`);
+}
+
+/** El mismo PDF como Blob, para compartirlo por la hoja nativa. */
+export function receptionsPdfBlob(d: ReceptionReportData): Blob {
+  return buildReceptionsDoc(d).output('blob');
+}
+
+function buildReceptionsDoc(d: ReceptionReportData): jsPDF {
   const doc = new jsPDF({ orientation: 'p', unit: 'mm', format: 'a4' });
   const pageW = doc.internal.pageSize.getWidth();
 
@@ -209,6 +220,5 @@ export function exportReceptionsPdf(d: ReceptionReportData): void {
     doc.text(`Página ${i} de ${pages}`, pageW - MARGIN, pageH - 8, { align: 'right' });
   }
 
-  const stamp = new Date().toISOString().slice(0, 10);
-  doc.save(`recepciones_${stamp}.pdf`);
+  return doc;
 }

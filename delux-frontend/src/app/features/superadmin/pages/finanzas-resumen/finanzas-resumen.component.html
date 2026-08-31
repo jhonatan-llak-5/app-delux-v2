@@ -11,7 +11,7 @@
     <div class="flex items-center gap-3">
       <dlx-export-menu [columns]="exportColumns" [rows]="exportRows()" filename="balance"
                        title="Balance general" [subtitle]="exportSubtitle()"
-                       [pdfHandler]="onExportPdf" />
+                       [pdfHandler]="onExportPdf" [pdfBlobHandler]="onSharePdf" />
       <a routerLink="/app/admin/pos"
          class="inline-flex items-center gap-2 px-4 py-2.5 rounded-xl bg-[var(--dash-primary)] hover:bg-[var(--dash-primary-d)] text-white font-semibold transition">
         <i class="fa-solid fa-plus"></i> Crear venta
@@ -76,6 +76,21 @@
       <p class="mt-1 text-3xl font-bold text-ink-950 dark:text-white">${{ money(data()?.compras || 0) }}</p>
       <p class="text-[11px] text-ink-400 dark:text-white/50 mt-1">{{ data()?.compras_units || 0 }} unidad(es) compradas · no afecta el balance</p>
     </div>
+  </div>
+
+  <!-- Ventas por forma de pago -->
+  <div class="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-4 gap-4">
+    @for (m of payMethods(); track m.method) {
+      <div class="rounded-2xl border border-ink-100 dark:border-white/10 bg-white dark:bg-slate-900 p-5">
+        <div class="flex items-center gap-2 text-xs uppercase tracking-wide text-ink-400 dark:text-white/50">
+          <i class="fa-solid" [ngClass]="payIcon(m.method)"></i> Ventas en {{ m.label.toLowerCase() }}
+        </div>
+        <p class="mt-1 text-3xl font-bold text-ink-950 dark:text-white">${{ money(m.total) }}</p>
+        <p class="text-[11px] text-ink-400 dark:text-white/50 mt-1">
+          {{ m.count }} venta(s) · {{ payShare(m) }}% del total
+        </p>
+      </div>
+    }
   </div>
 
   <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">

@@ -183,6 +183,11 @@ export class DashboardLayoutComponent implements AfterViewInit, OnDestroy {
       { label: 'Devoluciones', icon: 'fa-rotate-left',   route: '/app/admin/returns' },
       { label: 'Kiosko',       icon: 'fa-qrcode',        route: '/kiosko' },
     ] },
+    { title: 'Caja', roles: ['SUPERADMIN', 'BRANCH_MANAGER'], items: [
+      { label: 'Apertura',  icon: 'fa-lock-open',          route: '/app/admin/caja/apertura' },
+      { label: 'Cierre',    icon: 'fa-lock',               route: '/app/admin/caja/cierre' },
+      { label: 'Historial', icon: 'fa-clock-rotate-left',  route: '/app/admin/caja/historial' },
+    ] },
     { title: 'Inventario', roles: ['SUPERADMIN', 'BRANCH_MANAGER'], items: [
       { label: 'Inventario',  icon: 'fa-boxes-stacked', route: '/app/admin/inventory', exact: true },
       { label: 'Etiquetas',   icon: 'fa-barcode',       route: '/app/admin/labels' },
@@ -223,6 +228,11 @@ export class DashboardLayoutComponent implements AfterViewInit, OnDestroy {
       { label: 'Devoluciones', icon: 'fa-rotate-left',   route: '/app/admin/returns' },
       { label: 'Kiosko',       icon: 'fa-qrcode',        route: '/kiosko' },
       { label: 'Cupones',      icon: 'fa-ticket',        route: '/app/admin/coupons' },
+    ] },
+    { title: 'Caja', roles: ['SALESPERSON'], items: [
+      { label: 'Apertura',  icon: 'fa-lock-open',         route: '/app/admin/caja/apertura' },
+      { label: 'Cierre',    icon: 'fa-lock',              route: '/app/admin/caja/cierre' },
+      { label: 'Historial', icon: 'fa-clock-rotate-left', route: '/app/admin/caja/historial' },
     ] },
     { title: 'Inventario', roles: ['SALESPERSON'], items: [
       { label: 'Inventario',  icon: 'fa-boxes-stacked', route: '/app/admin/inventory', exact: true },

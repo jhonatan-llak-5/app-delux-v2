@@ -80,6 +80,45 @@ class FinanceViewSet(viewsets.ViewSet):
         if branch_id: cq = cq.filter(branch_id=branch_id)
         return cq
 
+    # Formas de pago agrupadas para los KPIs del balance.
+    #   POS  -> Order.payment_form (código SRI elegido por el vendedor).
+    #   WEB  -> método del Payment (el pedido web nace con payment_form '01' por
+    #           defecto, así que usarlo marcaría toda venta web como efectivo).
+    PAY_BUCKETS = [
+        ('efectivo', 'Efectivo'),
+        ('tarjeta', 'Tarjeta'),
+        ('transferencia', 'Transferencia'),
+        ('otros', 'Otros'),
+    ]
+    _FORM_BUCKET = {'01': 'efectivo', '16': 'tarjeta', '19': 'tarjeta', '20': 'transferencia'}
+    _METHOD_BUCKET = {
+        'CASH': 'efectivo',
+        'CARD': 'tarjeta', 'PAYPHONE': 'tarjeta',
+        'TRANSFER': 'transferencia', 'DEUNA': 'transferencia',
+    }
+
+    def _ventas_by_method(self, oq):
+        """Ventas netas y número de ventas por forma de pago."""
+        from apps.payments.models import Payment, PaymentStatus
+
+        rows = list(oq.values('id', 'channel', 'payment_form', 'total', 'total_changes'))
+        pay_by_order = {}
+        for p in (Payment.objects
+                  .filter(order_id__in=[r['id'] for r in rows], status=PaymentStatus.SUCCEEDED)
+                  .values('order_id', 'method').order_by('order_id', 'id')):
+            pay_by_order.setdefault(p['order_id'], p['method'])
+
+        totals = {k: Decimal('0') for k, _ in self.PAY_BUCKETS}
+        counts = {k: 0 for k, _ in self.PAY_BUCKETS}
+        for r in rows:
+            if r['channel'] == OrderChannel.WEB:
+                bucket = self._METHOD_BUCKET.get(pay_by_order.get(r['id'], ''), 'otros')
+            else:
+                bucket = self._FORM_BUCKET.get(r['payment_form'] or '', 'otros')
+            totals[bucket] += _dec(r['total']) - _dec(r['total_changes'])
+            counts[bucket] += 1
+        return totals, counts
+
     def _compute(self, request, from_d, to_d):
         tenant_id = self._tenant_id(request)
         branch_id = self._scope_branch(request)
@@ -123,11 +162,22 @@ class FinanceViewSet(viewsets.ViewSet):
         # (ingreso de mercadería), no un gasto operativo.
         ganancia = ventas - gastos + cambios_diff
         orders = oq.count()
+
+        pay_totals, pay_counts = self._ventas_by_method(oq)
         return {
             'ventas': ventas, 'ventas_web': ventas_web, 'ventas_pos': ventas_pos,
             'compras': compras, 'compras_units': int(compras_units),
             'gastos': gastos, 'ganancia': ganancia, 'cambios': cambios_diff,
             'orders': orders, 'gastos_by_cat': gastos_by_cat,
+            'ventas_efectivo': pay_totals['efectivo'],
+            'ventas_tarjeta': pay_totals['tarjeta'],
+            'ventas_transferencia': pay_totals['transferencia'],
+            'ventas_otros_pago': pay_totals['otros'],
+            'ventas_by_method': [
+                {'method': k, 'label': label,
+                 'total': str(pay_totals[k]), 'count': pay_counts[k]}
+                for k, label in self.PAY_BUCKETS
+            ],
         }
 
     @action(detail=False, methods=['get'])
@@ -145,11 +195,14 @@ class FinanceViewSet(viewsets.ViewSet):
                 return None
             return round(float((cur_v - prev_v) / prev_v * 100), 1)
 
-        keys = ['ventas', 'ventas_web', 'ventas_pos', 'compras', 'gastos', 'ganancia']
+        keys = ['ventas', 'ventas_web', 'ventas_pos', 'compras', 'gastos', 'ganancia',
+                'ventas_efectivo', 'ventas_tarjeta', 'ventas_transferencia',
+                'ventas_otros_pago']
         out = {k: str(cur[k]) for k in keys}
         out['orders'] = cur['orders']
         out['compras_units'] = cur['compras_units']
         out['gastos_by_cat'] = cur['gastos_by_cat']
+        out['ventas_by_method'] = cur['ventas_by_method']
         out['deltas'] = {k: delta(cur[k], prev[k]) for k in keys}
         out['range'] = {'from': from_d.isoformat(), 'to': to_d.isoformat()}
         out['prev_range'] = {'from': prev_from.isoformat(), 'to': prev_to.isoformat()}

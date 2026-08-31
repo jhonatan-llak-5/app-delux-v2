@@ -2,10 +2,12 @@ import { ChangeDetectionStrategy, Component, Input, computed, inject, signal } f
 import { CommonModule } from '@angular/common';
 import { BrandingService } from '@core/services/branding.service';
 import { AuthService } from '@core/services/auth.service';
-import { ExportColumn, PdfLogo, exportCsv, exportXlsx, exportPdf } from '@shared/utils/export.util';
+import { NotifyService } from '@shared/services/notify.service';
+import { shareFile } from '@shared/utils/share.util';
+import { ExportColumn, PdfLogo, exportCsv, exportXlsx, exportPdf, pdfBlob } from '@shared/utils/export.util';
 
 /**
- * Menú de exportación reutilizable (CSV / Excel / PDF).
+ * Menú de exportación reutilizable (CSV / Excel / PDF / Compartir).
  *
  * Uso:
  *   <dlx-export-menu [columns]="cols" [rows]="visibleRows"
@@ -14,6 +16,10 @@ import { ExportColumn, PdfLogo, exportCsv, exportXlsx, exportPdf } from '@shared
  * - `rows`: datos ya cargados (fallback).
  * - `loader`: función opcional que trae TODOS los registros (respetando filtros,
  *   sin paginación). Si se define, tiene prioridad sobre `rows`.
+ *
+ * "Compartir PDF" va DENTRO del desplegable a propósito: así no suma ancho al
+ * encabezado de cada página (que en móvil ya va justo) y aparece en los 11
+ * módulos que exportan sin tocar ninguno.
  */
 @Component({
   selector: 'dlx-export-menu',
@@ -49,6 +55,13 @@ import { ExportColumn, PdfLogo, exportCsv, exportXlsx, exportPdf } from '@shared
                   class="w-full flex items-center gap-3 px-4 py-2.5 text-sm hover:bg-slate-100 dark:hover:bg-white/5 text-left">
             <i class="fa-solid fa-file-pdf text-rose-600 w-4"></i> PDF
           </button>
+          @if (allowShare) {
+            <div class="border-t border-slate-200 dark:border-white/10"></div>
+            <button type="button" (click)="run('share')"
+                    class="w-full flex items-center gap-3 px-4 py-2.5 text-sm hover:bg-slate-100 dark:hover:bg-white/5 text-left">
+              <i class="fa-solid fa-share-nodes text-violet-600 w-4"></i> Compartir PDF
+            </button>
+          }
         </div>
       }
     </div>
@@ -69,9 +82,20 @@ export class DlxExportMenuComponent {
    * CSV/Excel siguen usando la utilidad compartida.
    */
   @Input() pdfHandler?: (o: { logo: PdfLogo | null; brandName: string }) => void | Promise<void>;
+  /**
+   * Devuelve el MISMO PDF de `pdfHandler` pero como Blob, para compartirlo.
+   * Solo hace falta en páginas con PDF propio; si no se define, se comparte el
+   * PDF genérico armado con `columns`.
+   */
+  @Input() pdfBlobHandler?: (o: { logo: PdfLogo | null; brandName: string }) => Blob | Promise<Blob>;
+  /** Oculta la opción "Compartir PDF" si alguna página no la quiere. */
+  @Input() allowShare = true;
+  /** Texto que acompaña al archivo al compartirlo. */
+  @Input() shareText = '';
 
   private branding = inject(BrandingService);
   private auth = inject(AuthService);
+  private notify = inject(NotifyService);
   /** Exportar solo para superadmin, admin de tienda y gerente de sucursal. */
   readonly canExport = computed(() => {
     const r = this.auth.user()?.role;
@@ -81,24 +105,43 @@ export class DlxExportMenuComponent {
   busy = signal(false);
   private logoCache: PdfLogo | null | undefined;
 
-  async run(fmt: 'csv' | 'xlsx' | 'pdf') {
+  async run(fmt: 'csv' | 'xlsx' | 'pdf' | 'share') {
     this.open.set(false);
     this.busy.set(true);
     try {
       const data = this.loader ? await this.loader() : this.rows;
-      if (fmt === 'csv') exportCsv(data, this.columns, this.filename);
-      else if (fmt === 'xlsx') exportXlsx(data, this.columns, this.filename);
-      else {
-        const logo = await this.loadLogo();
-        if (this.pdfHandler) {
-          await this.pdfHandler({ logo, brandName: this.branding.siteName() });
-        } else {
-          exportPdf(data, this.columns, this.filename, {
-            title: this.title || this.filename, subtitle: this.subtitle,
-            orientation: this.orientation, logo, brandName: this.branding.siteName(),
-          });
-        }
+      if (fmt === 'csv') { exportCsv(data, this.columns, this.filename); return; }
+      if (fmt === 'xlsx') { exportXlsx(data, this.columns, this.filename); return; }
+
+      const logo = await this.loadLogo();
+      const brandName = this.branding.siteName();
+      const opts = {
+        title: this.title || this.filename, subtitle: this.subtitle,
+        orientation: this.orientation, logo, brandName,
+      };
+
+      if (fmt === 'pdf') {
+        if (this.pdfHandler) await this.pdfHandler({ logo, brandName });
+        else exportPdf(data, this.columns, this.filename, opts);
+        return;
       }
+
+      // Compartir: se arma el mismo PDF pero en memoria.
+      const blob = this.pdfBlobHandler
+        ? await this.pdfBlobHandler({ logo, brandName })
+        : pdfBlob(data, this.columns, opts);
+      const result = await shareFile(blob, `${this.filename}.pdf`, {
+        title: this.title || this.filename,
+        text: this.shareText || `${this.title || this.filename} — ${brandName}`,
+      });
+      if (result === 'fallback') {
+        this.notify.info('Tu navegador no comparte archivos', {
+          description: 'Descargamos el PDF y abrimos WhatsApp: adjunta el archivo descargado.',
+          duration: 7000,
+        });
+      }
+    } catch {
+      this.notify.error('No se pudo generar el archivo.');
     } finally {
       this.busy.set(false);
     }

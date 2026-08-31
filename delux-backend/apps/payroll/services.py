@@ -61,8 +61,23 @@ def recompute_run_status(run):
     return run.status
 
 
+def _cash_out_for_payroll(item, user):
+    """Un sueldo pagado en efectivo sale del cajón: se registra en el turno
+    abierto para que el cierre cuadre."""
+    if (item.method or '') != 'CASH':
+        return
+    from apps.cashbox.models import CashMovement
+    from apps.cashbox.services import record_auto_movement
+    branch_id = item.run.branch_id or getattr(item.employee, 'branch_id', None)
+    record_auto_movement(
+        user=user, branch_id=branch_id,
+        type_=CashMovement.Type.OUT, amount=item.amount,
+        reason=f'Nómina {item.run.month:02d}/{item.run.year} — {item.employee_name}',
+    )
+
+
 @transaction.atomic
-def pay_item(item, method='CASH', notes=''):
+def pay_item(item, method='CASH', notes='', user=None):
     from django.utils import timezone
     item.status = PayItemStatus.PAID
     item.method = method or 'CASH'
@@ -70,6 +85,7 @@ def pay_item(item, method='CASH', notes=''):
     item.paid_at = timezone.now()
     item.save(update_fields=['status', 'method', 'notes', 'paid_at', 'updated_at'])
     recompute_run_status(item.run)
+    _cash_out_for_payroll(item, user)
     return item
 
 
@@ -84,10 +100,14 @@ def unpay_item(item):
 
 
 @transaction.atomic
-def pay_all(run, method='CASH'):
+def pay_all(run, method='CASH', user=None):
     from django.utils import timezone
     now = timezone.now()
+    pending = list(run.items.filter(status=PayItemStatus.PENDING))
     run.items.filter(status=PayItemStatus.PENDING).update(
         status=PayItemStatus.PAID, method=(method or 'CASH'), paid_at=now, updated_at=now)
     recompute_run_status(run)
+    for it in pending:
+        it.method = method or 'CASH'
+        _cash_out_for_payroll(it, user)
     return run

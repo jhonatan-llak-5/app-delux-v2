@@ -42,6 +42,12 @@ class Order(TenantOwnedModel):
         related_name='affiliate_orders',
         help_text='Vendedor afiliado atribuido a este pedido.')
     affiliate_ref = models.CharField(max_length=20, blank=True)
+
+    # Turno de caja al que se imputa la venta (solo POS). Null = venta web o
+    # venta de mostrador hecha sin caja abierta: no entra en ningún arqueo.
+    cash_session = models.ForeignKey(
+        'cashbox.CashSession', on_delete=models.SET_NULL, null=True, blank=True,
+        related_name='orders')
     channel = models.CharField(max_length=4, choices=OrderChannel.choices)
     fulfillment = models.CharField(max_length=10, choices=FulfillmentType.choices)
     status = models.CharField(max_length=12, choices=OrderStatus.choices,

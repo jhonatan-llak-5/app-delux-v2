@@ -243,6 +243,8 @@ export class SaleDetailComponent implements OnInit, OnDestroy {
     delivered: { variant_id?: number; manual?: boolean; name?: string; price?: number; quantity: number }[];
     descripcion: string;
     change_date: string;
+    refund_money?: boolean;
+    payment_method?: 'CASH' | 'CARD' | 'TRANSFER';
   }) {
     const o = this.order();
     if (!o) return;

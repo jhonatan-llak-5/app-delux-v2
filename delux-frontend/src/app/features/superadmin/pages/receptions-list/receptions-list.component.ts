@@ -10,7 +10,7 @@ import { BrandingService } from '@core/services/branding.service';
 import { NotifyService } from '@shared/services/notify.service';
 import { parseApiError } from '@shared/utils/api-error.util';
 import { printProductLabels } from '@shared/utils/print-labels';
-import { exportReceptionsPdf, ReceptionReportRow } from '@shared/utils/reception-report.util';
+import { exportReceptionsPdf, receptionsPdfBlob, ReceptionReportRow } from '@shared/utils/reception-report.util';
 import { RowActionsComponent, RowAction } from '@shared/ui/row-actions.component';
 import { DlxPaginationComponent } from '@shared/ui/pagination.component';
 import { DlxReloadButtonComponent } from '@shared/ui/reload-button.component';
@@ -27,7 +27,8 @@ import { DlxReloadButtonComponent } from '@shared/ui/reload-button.component';
         <p class="text-slate-500 text-sm mt-1">Todas las recepciones de mercadería confirmadas.</p>
       </div>
       <div class="flex gap-2">
-        <dlx-export-menu [columns]="exportColumns" [rows]="receptions()" [pdfHandler]="onExportPdf"
+        <dlx-export-menu [columns]="exportColumns" [rows]="receptions()"
+                         [pdfHandler]="onExportPdf" [pdfBlobHandler]="onSharePdf"
                          filename="recepciones" title="Historial de recepciones" orientation="l" />
         <a routerLink="/app/admin/inventory/reception" class="eg-btn-primary text-sm"><i class="fa-solid fa-plus"></i> Nueva recepción</a>
       </div>
@@ -254,9 +255,10 @@ export class ReceptionsListComponent implements OnInit {
   }
 
   /** Genera el PDF detallado con el logo cargado por el export-menu. */
-  onExportPdf = ({ logo, brandName }: { logo: PdfLogo | null; brandName: string }): void => {
+  /** Arma los datos del reporte; los comparten descargar y compartir. */
+  private buildReceptionsReport({ logo, brandName }: { logo: PdfLogo | null; brandName: string }) {
     const recs = this.receptions();
-    if (!recs.length) { this.notify.warning('No hay recepciones para exportar con esos filtros.'); return; }
+    if (!recs.length) { this.notify.warning('No hay recepciones para exportar con esos filtros.'); return null; }
     const rows: ReceptionReportRow[] = recs.map(r => {
       const items = (r.items || []).map(it => ({
         code: it.variant_sku,
@@ -277,7 +279,7 @@ export class ReceptionsListComponent implements OnInit {
         totalCost,
       };
     });
-    exportReceptionsPdf({
+    return {
       storeName: this.branding.siteName(),
       brandName,
       logo,
@@ -286,7 +288,19 @@ export class ReceptionsListComponent implements OnInit {
       receptions: rows,
       grandUnits: rows.reduce((a, r) => a + r.totalUnits, 0),
       grandCost: rows.reduce((a, r) => a + r.totalCost, 0),
-    });
+    };
+  }
+
+  /** Genera el PDF detallado con el logo cargado por el export-menu. */
+  onExportPdf = (o: { logo: PdfLogo | null; brandName: string }): void => {
+    const data = this.buildReceptionsReport(o);
+    if (data) exportReceptionsPdf(data);
+  };
+
+  onSharePdf = (o: { logo: PdfLogo | null; brandName: string }): Blob => {
+    const data = this.buildReceptionsReport(o);
+    if (!data) throw new Error('Sin recepciones para compartir.');
+    return receptionsPdfBlob(data);
   };
 
   openDetail(r: ReceptionResult): void { this.detail.set(r); }

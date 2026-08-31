@@ -57,6 +57,7 @@ LOCAL_APPS = [
     'apps.notifications',
     'apps.reports',
     'apps.expenses',
+    'apps.cashbox.apps.CashboxConfig',
     'apps.payroll.apps.PayrollConfig',
     'apps.settings.apps.SettingsConfig',
     'apps.superadmin',

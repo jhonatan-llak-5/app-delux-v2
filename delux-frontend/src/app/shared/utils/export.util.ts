@@ -76,7 +76,17 @@ export function exportXlsx<T>(rows: T[], columns: ExportColumn<T>[], filename: s
 
 /** Exporta a PDF con encabezado (título + fecha) y tabla formateada. */
 export function exportPdf<T>(rows: T[], columns: ExportColumn<T>[], filename: string, opts: PdfOptions = {}): void {
+  buildPdfDoc(rows, columns, opts).save(timestampedName(filename, 'pdf'));
+}
+
+/** El mismo PDF pero como Blob, para compartirlo sin pasar por el disco. */
+export function pdfBlob<T>(rows: T[], columns: ExportColumn<T>[], opts: PdfOptions = {}): Blob {
+  return buildPdfDoc(rows, columns, opts).output('blob');
+}
+
+function buildPdfDoc<T>(rows: T[], columns: ExportColumn<T>[], opts: PdfOptions = {}): jsPDF {
   const doc = new jsPDF({ orientation: opts.orientation || 'p', unit: 'mm', format: 'a4' });
+  const filename = opts.title || 'export';
   const title = opts.title || filename;
   let textX = 14;
   let startY = 26;
@@ -114,5 +124,5 @@ export function exportPdf<T>(rows: T[], columns: ExportColumn<T>[], filename: st
     margin: { left: 14, right: 14 },
   });
 
-  doc.save(timestampedName(filename, 'pdf'));
+  return doc;
 }

@@ -116,6 +116,19 @@ class AdminReturnViewSet(viewsets.ModelViewSet):
             rr.order.status = OrderStatus.REFUNDED
             rr.order.save(update_fields=['status', 'updated_at'])
             rr.save(update_fields=['status'])
+
+            # Reembolso en efectivo: sale del cajón abierto. Si la venta es del
+            # mismo turno, el cálculo ya la excluye al quedar REFUNDED, así que
+            # record_auto_movement no duplica el descuento.
+            if rr.order.payment_form == '01':
+                from apps.cashbox.models import CashMovement
+                from apps.cashbox.services import record_auto_movement
+                record_auto_movement(
+                    user=request.user, branch_id=rr.order.branch_id,
+                    type_=CashMovement.Type.OUT, amount=rr.refund_amount,
+                    reason=f'Devolución {rr.code} (venta {rr.order.code})',
+                    source_session_id=rr.order.cash_session_id,
+                )
         return Response(ReturnSerializer(rr).data)
 
 

@@ -1,0 +1,252 @@
+<dlx-page-header eyebrow="Caja" title="Historial de Caja"
+                 subtitle="Todos los turnos abiertos y cerrados, con su arqueo">
+  <dlx-export-menu [columns]="exportCols" [rows]="rows()" [loader]="loadAllForExport"
+                   [pdfHandler]="exportGroupPdf" [pdfBlobHandler]="sharePdfBlob"
+                   filename="arqueo-caja" title="Arqueo de Caja" orientation="l"
+                   [shareText]="'Arqueo de caja — ' + (stats()?.sessions || 0) + ' turno(s).'" />
+  <a routerLink="/app/admin/caja/apertura" class="eg-btn-secondary eg-btn-sm">
+    <i class="fa-solid fa-lock-open"></i> Apertura
+  </a>
+  <a routerLink="/app/admin/caja/cierre" class="eg-btn-primary eg-btn-sm">
+    <i class="fa-solid fa-lock"></i> Cierre
+  </a>
+</dlx-page-header>
+
+@if (stats(); as st) {
+  <div class="grid gap-4 sm:grid-cols-2 xl:grid-cols-4 mb-6">
+    <dlx-stat-card label="Turnos" [value]="st.sessions" icon="fa-calendar-check"
+                   [sub]="st.open + ' abiertos · ' + st.closed + ' cerrados'" />
+    <dlx-stat-card label="Ventas" [value]="money(st.sales_total)" icon="fa-cash-register"
+                   iconBg="bg-emerald-50 dark:bg-emerald-500/15" iconColor="text-emerald-600 dark:text-emerald-400"
+                   [sub]="money(st.cash_sales) + ' en efectivo'" />
+    <dlx-stat-card label="Efectivo contado" [value]="money(st.counted_amount)" icon="fa-sack-dollar"
+                   iconBg="bg-violet-50 dark:bg-violet-500/15" iconColor="text-violet-600 dark:text-violet-400"
+                   [sub]="'Esperado ' + money(st.expected_amount)" />
+    <dlx-stat-card label="Descuadre acumulado" [value]="money(st.difference)" icon="fa-scale-unbalanced"
+                   iconBg="bg-amber-50 dark:bg-amber-500/15" iconColor="text-amber-600 dark:text-amber-400"
+                   [sub]="st.mismatched + ' turnos con diferencia'" />
+  </div>
+}
+
+<!-- Filtros -->
+<div class="eg-card-padded mb-4">
+  <div class="grid gap-3 sm:grid-cols-2 lg:grid-cols-6 items-end">
+    @if (canPickBranch()) {
+      <div>
+        <label class="eg-label">Sucursal</label>
+        <select class="eg-input" [ngModel]="branchId()"
+                (ngModelChange)="onBranch($event === null ? null : +$event)">
+          <option [ngValue]="null">Todas</option>
+          @for (b of branches(); track b.id) { <option [ngValue]="b.id">{{ b.name }}</option> }
+        </select>
+      </div>
+    }
+    <div>
+      <label class="eg-label">Caja</label>
+      <select class="eg-input" [ngModel]="registerId()"
+              (ngModelChange)="registerId.set($event === null ? null : +$event); applyFilters()">
+        <option [ngValue]="null">Todas</option>
+        @for (r of registers(); track r.id) {
+          <option [ngValue]="r.id">{{ r.name }}@if (canPickBranch()) { · {{ r.branch_name }} }</option>
+        }
+      </select>
+    </div>
+    <div>
+      <label class="eg-label">Estado</label>
+      <select class="eg-input" [ngModel]="status()" (ngModelChange)="status.set($event); applyFilters()">
+        <option value="">Todos</option>
+        <option value="OPEN">Abierta</option>
+        <option value="CLOSED">Cerrada</option>
+      </select>
+    </div>
+    <div>
+      <label class="eg-label">Desde</label>
+      <input type="date" class="eg-input" [(ngModel)]="dateFrom" (change)="applyFilters()" />
+    </div>
+    <div>
+      <label class="eg-label">Hasta</label>
+      <input type="date" class="eg-input" [(ngModel)]="dateTo" (change)="applyFilters()" />
+    </div>
+    <div class="flex gap-2">
+      <button type="button" class="eg-btn-ghost w-full" (click)="clearFilters()">
+        <i class="fa-solid fa-eraser"></i> Limpiar
+      </button>
+      <button type="button" class="eg-btn-secondary" (click)="reload()" title="Actualizar">
+        <i class="fa-solid fa-rotate"></i>
+      </button>
+    </div>
+  </div>
+</div>
+
+<dlx-table [columns]="cols" [rows]="rows()" [total]="total()" [loading]="loading()"
+           [page]="page()" [pageSize]="size()" [rowClickable]="true"
+           emptyIcon="fa-cash-register" emptyTitle="Sin turnos de caja"
+           emptyDescription="Abre una caja para empezar a registrar el efectivo del mostrador."
+           (pageChange)="onPage($event)" (pageSizeChange)="onSize($event)"
+           (rowClick)="openDetail($event)">
+  <ng-template #cell let-row let-col="col">
+    @switch (col.key) {
+      @case ('code') {
+        <div>
+          <p class="font-semibold">{{ row.code }}</p>
+          <p class="text-[11px] text-[var(--dash-text-muted)]">{{ row.register_name || 'Caja' }}</p>
+        </div>
+      }
+      @case ('opened_at') { {{ row.opened_at | date:'dd/MM/yy HH:mm' }} }
+      @case ('closed_at') {
+        @if (row.closed_at) { {{ row.closed_at | date:'dd/MM/yy HH:mm' }} }
+        @else { <span class="text-[var(--dash-text-muted)]">—</span> }
+      }
+      @case ('sales_total') { <span class="tabular-nums">{{ money(row.sales_total) }}</span> }
+      @case ('expected_amount') { <span class="tabular-nums">{{ money(row.expected_amount) }}</span> }
+      @case ('counted_amount') { <span class="tabular-nums">{{ money(row.counted_amount) }}</span> }
+      @case ('difference') {
+        @if (row.status === 'CLOSED') {
+          <span class="tabular-nums font-semibold" [ngClass]="diffClass(row.difference)">
+            {{ money(row.difference) }}
+          </span>
+        } @else { <span class="text-[var(--dash-text-muted)]">—</span> }
+      }
+      @case ('status') {
+        <span class="eg-badge" [ngClass]="row.status === 'OPEN' ? 'eg-badge-success' : 'eg-badge-neutral'">
+          {{ row.status === 'OPEN' ? 'Abierta' : 'Cerrada' }}
+        </span>
+      }
+      @default { {{ row[col.key] }} }
+    }
+  </ng-template>
+
+  <ng-template #actions let-row>
+    <button type="button" class="eg-action-btn" title="Descargar arqueo en PDF"
+            (click)="exportRowPdf(row)" [disabled]="rowPdfBusy() === row.id">
+      @if (rowPdfBusy() === row.id) { <i class="fa-solid fa-spinner fa-spin"></i> }
+      @else { <i class="fa-solid fa-file-pdf text-rose-500"></i> }
+    </button>
+    <button type="button" class="eg-action-btn" title="Ver detalle" (click)="openDetail(row)">
+      <i class="fa-solid fa-eye"></i>
+    </button>
+  </ng-template>
+</dlx-table>
+
+<!-- Detalle del turno -->
+<dlx-modal [open]="!!detail()" [maxWidth]="880" [backdropClose]="true"
+           [title]="detail()?.code || 'Turno'"
+           [subtitle]="(detail()?.branch_name || '') + ' · ' + (detail()?.register_name || 'Caja') + ' · ' + (detail()?.opened_by_name || '')"
+           (closed)="closeDetail()">
+  @if (detail(); as d) {
+    <div class="space-y-6">
+      <!-- Acciones del comprobante -->
+      <div class="flex flex-wrap items-center gap-2 pb-4 border-b border-slate-100 dark:border-white/5">
+        <button type="button" class="eg-btn-secondary eg-btn-sm" (click)="exportOnePdf()">
+          <i class="fa-solid fa-file-pdf text-rose-500"></i> Descargar PDF
+        </button>
+        <dlx-share-button [blobFactory]="detailPdfBlob"
+                          [filename]="'arqueo-' + d.code + '.pdf'"
+                          [shareTitle]="'Arqueo ' + d.code"
+                          [text]="shareText()"
+                          btnClass="eg-btn-secondary eg-btn-sm" />
+        @if (detailLoading()) {
+          <span class="text-xs text-[var(--dash-text-muted)]">
+            <i class="fa-solid fa-spinner fa-spin"></i> Cargando detalle…
+          </span>
+        }
+      </div>
+
+      <div class="grid grid-cols-2 sm:grid-cols-4 gap-3 text-sm">
+        <div class="rounded-xl border border-slate-200 dark:border-white/10 px-4 py-3">
+          <p class="text-[10px] uppercase tracking-widest font-bold text-slate-400">Fondo inicial</p>
+          <p class="font-bold tabular-nums mt-0.5">{{ money(d.opening_amount) }}</p>
+        </div>
+        <div class="rounded-xl border border-slate-200 dark:border-white/10 px-4 py-3">
+          <p class="text-[10px] uppercase tracking-widest font-bold text-slate-400">Esperado</p>
+          <p class="font-bold tabular-nums mt-0.5">{{ money(d.totals?.expected_amount ?? d.expected_amount) }}</p>
+        </div>
+        <div class="rounded-xl border border-slate-200 dark:border-white/10 px-4 py-3">
+          <p class="text-[10px] uppercase tracking-widest font-bold text-slate-400">Contado</p>
+          <p class="font-bold tabular-nums mt-0.5">
+            @if (d.status === 'CLOSED') { {{ money(d.counted_amount) }} } @else { — }
+          </p>
+        </div>
+        <div class="rounded-xl border border-slate-200 dark:border-white/10 px-4 py-3">
+          <p class="text-[10px] uppercase tracking-widest font-bold text-slate-400">Diferencia</p>
+          <p class="font-bold tabular-nums mt-0.5" [ngClass]="diffClass(d.difference)">
+            @if (d.status === 'CLOSED') { {{ money(d.difference) }} } @else { — }
+          </p>
+        </div>
+      </div>
+
+      <div>
+        <h3 class="font-bold mb-3">Movimientos del turno</h3>
+        <dl class="text-sm grid sm:grid-cols-2 gap-x-8">
+          <div class="flex justify-between py-2 border-b border-slate-100 dark:border-white/5">
+            <dt class="text-[var(--dash-text-muted)]">Ventas ({{ d.totals?.sales_count ?? d.sales_count }})</dt>
+            <dd class="font-semibold tabular-nums">{{ money(d.totals?.sales_total ?? d.sales_total) }}</dd>
+          </div>
+          <div class="flex justify-between py-2 border-b border-slate-100 dark:border-white/5">
+            <dt class="text-[var(--dash-text-muted)]">Ventas en efectivo</dt>
+            <dd class="font-semibold tabular-nums">{{ money(d.totals?.cash_sales ?? d.cash_sales) }}</dd>
+          </div>
+          <div class="flex justify-between py-2 border-b border-slate-100 dark:border-white/5">
+            <dt class="text-[var(--dash-text-muted)]">Ventas con tarjeta</dt>
+            <dd class="font-semibold tabular-nums">{{ money(d.totals?.card_sales ?? d.card_sales) }}</dd>
+          </div>
+          <div class="flex justify-between py-2 border-b border-slate-100 dark:border-white/5">
+            <dt class="text-[var(--dash-text-muted)]">Transferencias</dt>
+            <dd class="font-semibold tabular-nums">{{ money(d.totals?.transfer_sales ?? d.transfer_sales) }}</dd>
+          </div>
+          <div class="flex justify-between py-2 border-b border-slate-100 dark:border-white/5">
+            <dt class="text-[var(--dash-text-muted)]">Gastos en efectivo</dt>
+            <dd class="font-semibold tabular-nums">{{ money(d.totals?.expenses_cash ?? d.expenses_cash) }}</dd>
+          </div>
+          <div class="flex justify-between py-2 border-b border-slate-100 dark:border-white/5">
+            <dt class="text-[var(--dash-text-muted)]">Ingresos / retiros</dt>
+            <dd class="font-semibold tabular-nums">
+              +{{ money(d.totals?.cash_in ?? d.cash_in) }} / −{{ money(d.totals?.cash_out ?? d.cash_out) }}
+            </dd>
+          </div>
+        </dl>
+
+        @if (d.movements?.length) {
+          <ul class="divide-y divide-slate-100 dark:divide-white/5 mt-3">
+            @for (m of d.movements; track m.id) {
+              <li class="flex items-center gap-3 py-2 text-sm">
+                <span class="w-7 h-7 rounded-lg grid place-items-center text-xs"
+                      [ngClass]="m.type === 'IN'
+                        ? 'bg-emerald-50 text-emerald-600 dark:bg-emerald-500/15'
+                        : 'bg-rose-50 text-rose-600 dark:bg-rose-500/15'">
+                  <i class="fa-solid" [ngClass]="m.type === 'IN' ? 'fa-arrow-down' : 'fa-arrow-up'"></i>
+                </span>
+                <span class="flex-1 min-w-0 truncate">
+                  {{ m.type_label }} · {{ m.reason || 'Sin motivo' }}
+                  <span class="text-[var(--dash-text-muted)]">— {{ m.created_by_name }}, {{ m.created_at | date:'dd/MM HH:mm' }}</span>
+                </span>
+                <span class="font-bold tabular-nums" [ngClass]="m.type === 'IN' ? 'text-emerald-600' : 'text-rose-600'">
+                  {{ m.type === 'IN' ? '+' : '−' }}{{ money(m.amount) }}
+                </span>
+              </li>
+            }
+          </ul>
+        }
+      </div>
+
+      <div>
+        <h3 class="font-bold mb-3">Conteo de apertura</h3>
+        <dlx-cash-count [value]="openingLines()" [readonly]="true" totalLabel="Total fondo inicial" />
+      </div>
+
+      @if (d.status === 'CLOSED') {
+        <div>
+          <h3 class="font-bold mb-3">Conteo de cierre</h3>
+          <dlx-cash-count [value]="closingLines()" [readonly]="true" totalLabel="Total contado al cierre" />
+        </div>
+      }
+
+      @if (d.opening_note || d.closing_note) {
+        <div class="rounded-xl bg-slate-50 dark:bg-white/5 px-4 py-3 text-sm space-y-1">
+          @if (d.opening_note) { <p><span class="font-semibold">Apertura:</span> {{ d.opening_note }}</p> }
+          @if (d.closing_note) { <p><span class="font-semibold">Cierre:</span> {{ d.closing_note }}</p> }
+        </div>
+      }
+    </div>
+  }
+</dlx-modal>

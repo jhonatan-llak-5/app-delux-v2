@@ -6,6 +6,7 @@ import { BarcodeScanDirective } from '@shared/directives/barcode-scan.directive'
 import { DlxProvinceSelectComponent } from '@shared/ui/province-select.component';
 import { DlxPhoneInputComponent } from '@shared/ui/phone-input.component';
 import { DlxPriceInputComponent } from '@shared/ui/price-input.component';
+import { DlxQtyInputComponent } from '@shared/ui/qty-input.component';
 import { AlertComponent } from '@shared/components/alert/alert.component';
 import { AuthService } from '@core/services/auth.service';
 import { BranchContextService } from '@core/services/branch-context.service';
@@ -23,6 +24,7 @@ import { CouponService, CouponValidation } from '@features/superadmin/services/c
 import { CategoryService, Category } from '@features/superadmin/services/category.service';
 import { CustomerService, Customer } from '@features/superadmin/services/customer.service';
 import { StoreSettingsService } from '@features/superadmin/services/store-settings.service';
+import { CashService, CashSession } from '@features/superadmin/services/cash.service';
 import { printVoucherPDF } from '@shared/utils/voucher-pdf.util';
 import { parseApiError } from '@shared/utils/api-error.util';
 import { imgOrPlaceholder, onImageError } from '@shared/utils/img-placeholder';
@@ -37,14 +39,15 @@ interface CartItem {
   size: string;
   color: string;
   unit_price: number;
-  quantity: number;
+  /** null mientras el vendedor deja el contador vacío: bloquea el cobro. */
+  quantity: number | null;
   max_stock: number;
 }
 
 @Component({
   selector: 'dlx-pos',
   standalone: true,
-  imports: [DlxEmptyStateComponent, ImgFallbackDirective, DlxSearchInputComponent, BarcodeScanDirective, CommonModule, FormsModule, RouterLink, DlxProvinceSelectComponent, DlxPhoneInputComponent, DlxPriceInputComponent, AlertComponent],
+  imports: [DlxEmptyStateComponent, ImgFallbackDirective, DlxSearchInputComponent, BarcodeScanDirective, CommonModule, FormsModule, RouterLink, DlxProvinceSelectComponent, DlxPhoneInputComponent, DlxPriceInputComponent, DlxQtyInputComponent, AlertComponent],
   changeDetection: ChangeDetectionStrategy.OnPush,
   templateUrl: './pos.component.html',
 })
@@ -56,6 +59,10 @@ export class PosComponent implements OnInit, OnDestroy {
   private catSvc = inject(CategoryService);
   private custSvc = inject(CustomerService);
   private storeSet = inject(StoreSettingsService);
+  private cashSvc = inject(CashService);
+  /** Turno de caja abierto (si lo hay): las ventas en efectivo se le imputan. */
+  cashSession = signal<CashSession | null>(null);
+  cashChecked = signal(false);
   cfEnabled = signal(false);   // "Consumidor Final" activado por la tienda
   einvoiceEnabled = signal(false);  // facturación electrónica activa
   wantInvoice = signal(false);      // por venta: ¿generar factura de ESTA venta? (por defecto NO)
@@ -134,7 +141,7 @@ export class PosComponent implements OnInit, OnDestroy {
   taxRate = computed(() => +this.branding.taxRate() || 0);
   /** Suma total (los precios YA incluyen IVA). */
   subtotal = computed(() =>
-    this.cart().reduce((sum, i) => sum + i.unit_price * i.quantity, 0)
+    this.cart().reduce((sum, i) => sum + i.unit_price * (i.quantity ?? 0), 0)
   );
   /** Base sin IVA (desglose informativo). */
   netSubtotal = computed(() => { const r = this.taxRate(); return r ? this.subtotal() / (1 + r / 100) : this.subtotal(); });
@@ -143,7 +150,16 @@ export class PosComponent implements OnInit, OnDestroy {
   total = computed(() => Math.max(0, this.subtotal() - (this.discount() ?? 0)));
   /** Precio unitario (ya incluye IVA). */
   unitWithTax(i: CartItem): number { return i.unit_price; }
-  canCheckout = computed(() => this.cart().length > 0 && !!this.branchId());
+  /** Total de una línea; una cantidad vacía cuenta como 0. */
+  lineTotal(i: CartItem): number { return i.unit_price * (i.quantity ?? 0); }
+
+  /** Líneas con la cantidad vacía, en 0 o por encima del stock: no se cobran. */
+  invalidQtyCount = computed(() =>
+    this.cart().filter(i => i.quantity == null || i.quantity < 1 || i.quantity > i.max_stock).length
+  );
+  canCheckout = computed(() =>
+    this.cart().length > 0 && !!this.branchId() && this.invalidQtyCount() === 0
+  );
 
   /** Regla SRI: si la facturación está activa y la venta va como Consumidor
    *  Final (sin cédula/RUC), no se puede facturar desde el tope (def. $50).
@@ -270,6 +286,15 @@ export class PosComponent implements OnInit, OnDestroy {
     if (this.isManager()) {
       this.adminSvc.listUsers({ role: 'SALESPERSON' }).subscribe(r => this.sellers.set(r.results || []));
     }
+    this.loadCashSession();
+  }
+
+  /** Estado de la caja para el indicador del encabezado. */
+  private loadCashSession(): void {
+    this.cashSvc.current(this.branchId()).subscribe({
+      next: r => { this.cashSession.set(r.session); this.cashChecked.set(true); },
+      error: () => { this.cashSession.set(null); this.cashChecked.set(true); },
+    });
   }
 
   reload() {
@@ -356,9 +381,11 @@ export class PosComponent implements OnInit, OnDestroy {
   addToCart(s: Stock) {
     const existing = this.cart().find(c => c.variant_id === s.variant);
     if (existing) {
-      if (existing.quantity < s.quantity) {
+      // Si el contador quedó vacío, volver a agregar el producto lo deja en 1.
+      const next = (existing.quantity ?? 0) + 1;
+      if (next <= s.quantity) {
         const list = this.cart().map(c =>
-          c.variant_id === s.variant ? { ...c, quantity: c.quantity + 1 } : c
+          c.variant_id === s.variant ? { ...c, quantity: next } : c
         );
         this.cart.set(list);
       }
@@ -377,13 +404,13 @@ export class PosComponent implements OnInit, OnDestroy {
     }]);
   }
 
-  changeQty(idx: number, delta: number) {
+  /** Cantidad escrita o pulsada en el contador. `null` = campo vacío: se guarda
+   *  tal cual para que la línea quede marcada y el cobro bloqueado. */
+  setQty(idx: number, qty: number | null) {
     const list = [...this.cart()];
     const item = list[idx];
-    const next = item.quantity + delta;
-    if (next < 1) return;
-    if (next > item.max_stock) return;
-    list[idx] = { ...item, quantity: next };
+    if (!item || item.quantity === qty) return;
+    list[idx] = { ...item, quantity: qty };
     this.cart.set(list);
   }
 
@@ -427,7 +454,11 @@ export class PosComponent implements OnInit, OnDestroy {
   }
 
   checkout() {
-    if (!this.canCheckout() || !this.branchId()) return;
+    if (!this.branchId() || this.cart().length === 0) return;
+    if (this.invalidQtyCount() > 0) {
+      this.error.set('Revisa las cantidades del carrito: hay líneas vacías o fuera del stock disponible.');
+      return;
+    }
     if (this.cfBlock()) {
       this.error.set(
         `Las ventas de $${this.cfMax().toFixed(2)} o más no pueden facturarse como ` +
@@ -439,7 +470,7 @@ export class PosComponent implements OnInit, OnDestroy {
     this.error.set(null);
     const payload = {
       branch_id: this.branchId()!,
-      items: this.cart().map(i => ({ variant_id: i.variant_id, quantity: i.quantity })),
+      items: this.cart().map(i => ({ variant_id: i.variant_id, quantity: i.quantity! })),
       discount: this.discount() ?? 0,
       customer_id: this.customerId() ?? undefined,
       // Se envían siempre los datos: si hay cliente seleccionado, el backend los

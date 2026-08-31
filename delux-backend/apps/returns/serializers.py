@@ -32,6 +32,9 @@ class SaleChangeSerializer(serializers.ModelSerializer):
     """Historial admin de CAMBIOS (return-to-stock parcial ligado a la venta)."""
     order_code = serializers.CharField(source='order.code', read_only=True)
     tipo_label = serializers.CharField(source='get_tipo_display', read_only=True)
+    payment_method_label = serializers.CharField(
+        source='get_payment_method_display', read_only=True)
+    is_refund = serializers.BooleanField(read_only=True)
     branch_name = serializers.SerializerMethodField()
     actor_name = serializers.SerializerMethodField()
     sku = serializers.SerializerMethodField()
@@ -44,8 +47,9 @@ class SaleChangeSerializer(serializers.ModelSerializer):
         model = SaleChange
         fields = ('id', 'code', 'order', 'order_code', 'product_name',
                   'sku', 'size', 'color', 'quantity', 'valor_devuelto',
-                  'tipo', 'tipo_label', 'descripcion', 'branch_name',
+                  'tipo', 'tipo_label', 'is_refund', 'descripcion', 'branch_name',
                   'actor_name', 'created_at',
+                  'payment_method', 'payment_method_label',
                   'returned_value', 'delivered_value', 'difference',
                   'delivered_summary', 'annulled', 'annulled_at')
 

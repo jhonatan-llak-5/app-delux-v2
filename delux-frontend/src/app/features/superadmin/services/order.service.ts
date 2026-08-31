@@ -174,6 +174,10 @@ export class OrderService {
     delivered: { variant_id?: number; manual?: boolean; name?: string; price?: number; quantity: number }[];
     descripcion: string;
     change_date?: string;
+    /** true = devolución de dinero: no se entrega nada a cambio. */
+    refund_money?: boolean;
+    /** Cómo se movió el dinero de la diferencia (solo CASH toca la caja). */
+    payment_method?: 'CASH' | 'CARD' | 'TRANSFER';
   }): Observable<Order> {
     return this.http.post<Order>(`${this.base}/${id}/register-change/`, body);
   }

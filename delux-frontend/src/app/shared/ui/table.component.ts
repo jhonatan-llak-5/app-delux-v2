@@ -1,6 +1,7 @@
 import { ChangeDetectionStrategy, Component, ContentChild, EventEmitter, Input, Output, TemplateRef } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { DlxPaginationComponent } from './pagination.component';
+import { DlxEmptyStateComponent } from './empty-state.component';
 
 export interface DlxTableColumn<T = any> {
   key: string;
@@ -37,7 +38,7 @@ export interface DlxTableColumn<T = any> {
 @Component({
   selector: 'dlx-table',
   standalone: true,
-  imports: [CommonModule, DlxPaginationComponent],
+  imports: [CommonModule, DlxPaginationComponent, DlxEmptyStateComponent],
   changeDetection: ChangeDetectionStrategy.OnPush,
   template: `
     <div class="eg-table-wrap">
@@ -45,15 +46,17 @@ export interface DlxTableColumn<T = any> {
         <table class="eg-table">
           <thead>
             <tr>
+              <!-- La alineación va como estilo inline a propósito: la regla
+                   .eg-table th fija text-align:left con más especificidad que
+                   las utilidades .text-right/.text-center, así que puestas como
+                   clase se ignorarían. -->
               @for (col of columns; track col.key) {
-                <th [style.width]="col.width || null"
-                    [class.text-center]="col.align === 'center'"
-                    [class.text-right]="col.align === 'right'">
+                <th [style.width]="col.width || null" [style.text-align]="col.align || 'left'">
                   {{ col.label }}
                 </th>
               }
               @if (actionsTpl) {
-                <th class="text-right" style="width:140px;">Acciones</th>
+                <th style="width:140px; text-align:right;">Acciones</th>
               }
             </tr>
           </thead>
@@ -68,13 +71,9 @@ export interface DlxTableColumn<T = any> {
               </tr>
             } @else if (!rows || rows.length === 0) {
               <tr>
-                <td [attr.colspan]="(columns.length + (actionsTpl ? 1 : 0))"
-                    class="text-center py-12 text-[var(--dash-text-muted)]">
-                  <i class="fa-solid {{ emptyIcon }} text-3xl mb-3 block"></i>
-                  <p class="font-semibold mb-1">{{ emptyTitle }}</p>
-                  @if (emptyDescription) {
-                    <p class="text-xs">{{ emptyDescription }}</p>
-                  }
+                <td [attr.colspan]="(columns.length + (actionsTpl ? 1 : 0))" class="!p-0">
+                  <dlx-empty-state variant="bare" [icon]="emptyIcon"
+                                   [title]="emptyTitle" [description]="emptyDescription" />
                 </td>
               </tr>
             } @else {
@@ -82,8 +81,7 @@ export interface DlxTableColumn<T = any> {
                 <tr [class.cursor-pointer]="rowClickable"
                     (click)="rowClickable ? rowClick.emit(row) : null">
                   @for (col of columns; track col.key) {
-                    <td [class.text-center]="col.align === 'center'"
-                        [class.text-right]="col.align === 'right'">
+                    <td [style.text-align]="col.align || 'left'">
                       @if (cellTpl) {
                         <ng-container
                           [ngTemplateOutlet]="cellTpl"
@@ -96,7 +94,7 @@ export interface DlxTableColumn<T = any> {
                     </td>
                   }
                   @if (actionsTpl) {
-                    <td class="text-right" (click)="$event.stopPropagation()">
+                    <td style="text-align:right" (click)="$event.stopPropagation()">
                       <div class="flex items-center justify-end gap-1">
                         <ng-container
                           [ngTemplateOutlet]="actionsTpl"

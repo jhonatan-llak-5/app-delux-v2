@@ -65,7 +65,8 @@ class PayrollViewSet(viewsets.ReadOnlyModelViewSet):
         item = PayrollItem.objects.filter(run=run, pk=request.data.get('item')).first()
         if not item:
             raise ValidationError({'detail': 'Renglon no encontrado.'})
-        pay_item(item, method=request.data.get('method', 'CASH'), notes=request.data.get('notes', ''))
+        pay_item(item, method=request.data.get('method', 'CASH'),
+                 notes=request.data.get('notes', ''), user=request.user)
         # Re-consultar fresco: el prefetch de items quedo en cache tras el pago.
         return Response(PayrollRunDetailSerializer(self.get_queryset().get(pk=run.pk)).data)
 
@@ -81,7 +82,7 @@ class PayrollViewSet(viewsets.ReadOnlyModelViewSet):
     @action(detail=True, methods=['post'], url_path='pay-all')
     def pay_all_action(self, request, pk=None):
         run = self.get_object()
-        pay_all(run, method=request.data.get('method', 'CASH'))
+        pay_all(run, method=request.data.get('method', 'CASH'), user=request.user)
         return Response(PayrollRunDetailSerializer(self.get_queryset().get(pk=run.pk)).data)
 
     @action(detail=False, methods=['get'])

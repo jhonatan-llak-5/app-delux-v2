@@ -51,7 +51,28 @@ class ExpenseViewSet(viewsets.ModelViewSet):
         kwargs = {'tenant': tenant, 'created_by': user}
         if branch is not None:
             kwargs['branch'] = branch
+            # Gasto en efectivo con la caja abierta: sale del cajón, así que se
+            # imputa al turno para que el cierre cuadre.
+            if serializer.validated_data.get('payment_method') == 'CASH':
+                from apps.cashbox.services import session_for_sale
+                kwargs['cash_session'] = session_for_sale(user, branch.id)
         serializer.save(**kwargs)
+
+    def perform_update(self, serializer):
+        """Si al editar el gasto cambia la forma de pago, se re-evalúa a qué
+        turno de caja pertenece: pasa a efectivo -> entra al cajón abierto; deja
+        de serlo -> se desliga."""
+        expense = serializer.save()
+        if expense.cash_session_id and expense.cash_session.status != 'OPEN':
+            return   # turno ya cerrado: su arqueo está congelado, no se toca
+        if expense.payment_method == 'CASH':
+            if not expense.cash_session_id and expense.branch_id:
+                from apps.cashbox.services import session_for_sale
+                expense.cash_session = session_for_sale(self.request.user, expense.branch_id)
+                expense.save(update_fields=['cash_session'])
+        elif expense.cash_session_id:
+            expense.cash_session = None
+            expense.save(update_fields=['cash_session'])
 
     @action(detail=False, methods=['get'])
     def categories(self, request):

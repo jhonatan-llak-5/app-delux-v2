@@ -231,6 +231,10 @@ class POSCheckoutSerializer(serializers.Serializer):
         if _unidad not in ('dias', 'meses'):
             _unidad = 'dias'
 
+        # Turno de caja al que se imputa la venta (si hay caja abierta).
+        from apps.cashbox.services import session_for_sale
+        cash_session = session_for_sale(user, branch_id)
+
         with transaction.atomic():
             today = timezone.now().strftime('%Y%m%d')
             seq = Order.objects.filter(
@@ -242,6 +246,7 @@ class POSCheckoutSerializer(serializers.Serializer):
                 tenant=tenant, code=code, branch_id=branch_id,
                 customer=customer,
                 seller=seller,
+                cash_session=cash_session,
                 channel=OrderChannel.POS,
                 fulfillment=FulfillmentType.PICKUP,
                 status=OrderStatus.PAID,

@@ -9,11 +9,31 @@
           Escanea o busca un producto, agrégalo al carrito y cobra. El stock se descuenta al instante.
         </p>
       </div>
-      <a routerLink="/app/admin/sales"
-         class="shrink-0 inline-flex items-center gap-2 px-4 h-10 rounded-xl bg-emerald-500 hover:bg-emerald-600 text-white text-sm font-semibold shadow-sm transition">
-        <i class="fa-solid fa-receipt"></i>
-        <span class="hidden sm:inline">Historial de ventas</span>
-      </a>
+      <div class="shrink-0 flex items-center gap-2">
+        <!-- Estado de la caja: sin turno abierto, la venta no entra en ningún arqueo -->
+        @if (cashSession(); as cs) {
+          <a routerLink="/app/admin/caja/cierre" title="Caja abierta — ver cierre"
+             class="inline-flex items-center gap-2 px-3 h-10 rounded-xl bg-emerald-50 dark:bg-emerald-500/15
+                    text-emerald-700 dark:text-emerald-300 border border-emerald-200 dark:border-emerald-500/25
+                    text-sm font-semibold transition hover:bg-emerald-100">
+            <i class="fa-solid fa-lock-open"></i>
+            <span class="hidden md:inline">Caja abierta</span>
+          </a>
+        } @else if (cashChecked()) {
+          <a routerLink="/app/admin/caja/apertura" title="No hay caja abierta"
+             class="inline-flex items-center gap-2 px-3 h-10 rounded-xl bg-amber-50 dark:bg-amber-500/15
+                    text-amber-700 dark:text-amber-300 border border-amber-200 dark:border-amber-500/25
+                    text-sm font-semibold transition hover:bg-amber-100">
+            <i class="fa-solid fa-triangle-exclamation"></i>
+            <span class="hidden md:inline">Abrir caja</span>
+          </a>
+        }
+        <a routerLink="/app/admin/sales"
+           class="inline-flex items-center gap-2 px-4 h-10 rounded-xl bg-emerald-500 hover:bg-emerald-600 text-white text-sm font-semibold shadow-sm transition">
+          <i class="fa-solid fa-receipt"></i>
+          <span class="hidden sm:inline">Historial de ventas</span>
+        </a>
+      </div>
     </div>
 
     @if (!branchId()) {
@@ -216,15 +236,16 @@
                     </div>
                     <p class="text-[10px] text-slate-500 font-mono truncate">{{ item.sku }} · {{ item.size }}/{{ item.color }}</p>
                     <div class="flex items-center gap-2 mt-1.5">
-                      <div class="flex items-center gap-1 bg-white dark:bg-white/10 rounded-lg border border-slate-200 dark:border-white/10 p-0.5">
-                        <button (click)="changeQty(i, -1)"
-                                class="w-6 h-6 rounded-md grid place-items-center hover:bg-slate-100 dark:hover:bg-white/10 text-sm font-bold">−</button>
-                        <span class="text-sm font-bold w-7 text-center">{{ item.quantity }}</span>
-                        <button (click)="changeQty(i, 1)" [disabled]="item.quantity >= item.max_stock"
-                                class="w-6 h-6 rounded-md grid place-items-center hover:bg-slate-100 dark:hover:bg-white/10 text-sm font-bold disabled:opacity-30">+</button>
-                      </div>
-                      <span class="ml-auto text-sm font-bold">${{ (unitWithTax(item) * item.quantity).toFixed(2) }}</span>
+                      <dlx-qty-input [ngModel]="item.quantity" (ngModelChange)="setQty(i, $event)"
+                                     [max]="item.max_stock" inputClass="w-12"
+                                     [ariaLabel]="'Cantidad de ' + item.product_name" />
+                      <span class="ml-auto text-sm font-bold">${{ lineTotal(item).toFixed(2) }}</span>
                     </div>
+                    @if (item.quantity == null || item.quantity < 1) {
+                      <p class="text-[10px] text-rose-600 mt-1">
+                        <i class="fa-solid fa-circle-exclamation"></i> Escribe una cantidad para cobrar.
+                      </p>
+                    }
                   </div>
                 </li>
               }
@@ -525,7 +546,7 @@
             }
           </div>
           <div class="p-5 pt-0 space-y-2">
-            <button (click)="confirmSale()" [disabled]="saving()"
+            <button (click)="confirmSale()" [disabled]="saving() || !canCheckout()"
                     class="w-full py-3 rounded-xl bg-[var(--dash-primary)] hover:bg-[var(--dash-primary-d)] text-white text-sm font-bold uppercase tracking-widest transition disabled:opacity-40 flex items-center justify-center gap-2">
               @if (saving()) { <i class="fa-solid fa-spinner fa-spin"></i> Procesando... }
               @else { <i class="fa-solid fa-check"></i> Sí, cobrar ${{ total().toFixed(2) }} }

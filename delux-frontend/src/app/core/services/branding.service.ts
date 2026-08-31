@@ -166,19 +166,63 @@ export class BrandingService {
   load(): void {
     this.http.get<BrandConfig>(`${environment.apiUrl}/admin/settings/public-config/`)
       .subscribe({
-        next: cfg => { this._cfg.set(cfg); this.applyFavicon(cfg.site_favicon_url || null); },
+        next: cfg => {
+          this._cfg.set(cfg);
+          this.applyFavicon(cfg.site_favicon_url || null);
+          this.applyDocumentTitle(cfg);
+        },
         error: () => {},
       });
   }
 
+  /**
+   * Aplica el nombre configurado a la pestaña del navegador y al meta
+   * description. El <title> de index.html es solo el texto que se ve ANTES de
+   * que Angular arranque; sin esto, cambiar "Nombre del sitio" en Configuración
+   * no se reflejaba nunca en la pestaña.
+   */
+  private applyDocumentTitle(cfg: BrandConfig): void {
+    if (typeof document === 'undefined') return;
+    const name = (cfg.site_name || '').trim();
+    if (!name) return;
+    const tagline = (cfg.platform_tagline || '').trim();
+    document.title = tagline ? `${name} — ${tagline}` : name;
+
+    const meta = document.querySelector("meta[name='description']") as HTMLMetaElement | null;
+    if (meta && tagline) meta.content = `${name} — ${tagline}`;
+  }
+
+  /**
+   * Reemplaza el favicon por el subido en Configuración → Marca.
+   *
+   * Hay que QUITAR los <link rel="icon"> del index.html, no solo cambiarle el
+   * href al primero: index declara varios (SVG + PNG de respaldo) y el
+   * navegador elige entre todos. Si al del SVG se le pone un PNG, el
+   * type="image/svg+xml" no cuadra, lo descarta y cae al PNG de respaldo — que
+   * es el logo por defecto. Por eso seguía apareciendo el icono viejo.
+   */
   private applyFavicon(url: string | null): void {
     if (!url || typeof document === 'undefined') return;
-    let link = document.querySelector("link[rel~='icon']") as HTMLLinkElement | null;
-    if (!link) {
-      link = document.createElement('link');
-      link.rel = 'icon';
-      document.head.appendChild(link);
-    }
+
+    document.querySelectorAll("link[rel~='icon']").forEach(el => el.remove());
+
+    const link = document.createElement('link');
+    link.rel = 'icon';
+    const type = this.mimeFromUrl(url);
+    if (type) link.type = type;
     link.href = url;
+    document.head.appendChild(link);
+
+    // El icono de iOS/Android también sigue al configurado.
+    const apple = document.querySelector("link[rel='apple-touch-icon']") as HTMLLinkElement | null;
+    if (apple) apple.href = url;
+  }
+
+  private mimeFromUrl(url: string): string {
+    const ext = (url.split('?')[0].split('.').pop() || '').toLowerCase();
+    return ({
+      svg: 'image/svg+xml', png: 'image/png', ico: 'image/x-icon',
+      jpg: 'image/jpeg', jpeg: 'image/jpeg', webp: 'image/webp',
+    } as Record<string, string>)[ext] || '';
   }
 }

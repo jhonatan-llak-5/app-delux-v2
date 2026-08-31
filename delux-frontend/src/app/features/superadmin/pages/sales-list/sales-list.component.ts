@@ -13,7 +13,7 @@ import { Router, RouterLink } from '@angular/router';
 import { firstValueFrom } from 'rxjs';
 import { DlxExportMenuComponent } from '@shared/ui/export-menu.component';
 import { ExportColumn, PdfLogo } from '@shared/utils/export.util';
-import { exportSalesPdf } from '@shared/utils/sales-report.util';
+import { exportSalesPdf, salesPdfBlob } from '@shared/utils/sales-report.util';
 import { Order, OrderService, OrderSummary } from '@features/superadmin/services/order.service';
 import { ConfirmService } from '@shared/components/confirm/confirm.service';
 import { NotifyService } from '@shared/services/notify.service';
@@ -41,7 +41,7 @@ import { DlxChangeSaleModalComponent } from '@shared/ui/change-sale-modal.compon
       </div>
       <div class="flex items-center gap-2">
         <dlx-export-menu [columns]="exportColumns" [rows]="orders()" [loader]="fetchAllForExport"
-                         [pdfHandler]="onExportPdf"
+                         [pdfHandler]="onExportPdf" [pdfBlobHandler]="onSharePdf"
                          filename="ventas" title="Historial de ventas" orientation="l" />
         <a routerLink="/app/admin/pos"
            class="px-4 py-2.5 rounded-lg bg-[#1e40af] text-white text-sm font-semibold hover:bg-[#1e3a8a] transition flex items-center gap-2">
@@ -336,7 +336,8 @@ export class SalesListComponent implements OnInit {
   /** PDF con formato de reporte (estilo Balance general): resumen + detalle de
    * ventas del período filtrado, mostrando devoluciones (cambios) y totales.
    * Excluye ventas canceladas/anuladas (no son ventas reales). */
-  onExportPdf = async ({ logo, brandName }: { logo: PdfLogo | null; brandName: string }): Promise<void> => {
+  /** Arma los datos del reporte; lo comparten descargar y compartir. */
+  private async buildSalesReport({ logo, brandName }: { logo: PdfLogo | null; brandName: string }) {
     const all = await this.fetchAllForExport();
     const sales = all.filter(o => o.status !== 'CANCELLED' && o.status !== 'REFUNDED');
     const rows = sales.map(o => {
@@ -356,12 +357,19 @@ export class SalesListComponent implements OnInit {
       from: this.dateFrom || dates[0] || '',
       to: this.dateTo || dates[dates.length - 1] || '',
     };
-    exportSalesPdf({
+    return {
       storeName: this.branchCtx.currentName(),
       brandName, logo, range, rows,
       totalGross, totalReturned, totalNet, count: rows.length,
-    });
+    };
+  }
+
+  onExportPdf = async (o: { logo: PdfLogo | null; brandName: string }): Promise<void> => {
+    exportSalesPdf(await this.buildSalesReport(o));
   };
+
+  onSharePdf = async (o: { logo: PdfLogo | null; brandName: string }): Promise<Blob> =>
+    salesPdfBlob(await this.buildSalesReport(o));
 
   onPage(p: number) { this.page.set(p); this.reload(); }
   onSize(s: number) { this.pageSize.set(s); this.page.set(1); this.reload(); }
@@ -496,6 +504,8 @@ export class SalesListComponent implements OnInit {
     delivered: { variant_id?: number; manual?: boolean; name?: string; price?: number; quantity: number }[];
     descripcion: string;
     change_date: string;
+    refund_money?: boolean;
+    payment_method?: 'CASH' | 'CARD' | 'TRANSFER';
   }) {
     const o = this.changeOrder();
     if (!o) return;

@@ -39,6 +39,11 @@ class Expense(TenantOwnedModel):
         'branches.Branch', on_delete=models.SET_NULL, null=True, blank=True,
         related_name='expenses')
     receipt_url = models.URLField(blank=True)
+    # Turno de caja del que salió el dinero (solo gastos en efectivo hechos con
+    # la caja abierta). Se usa para cuadrar el cierre.
+    cash_session = models.ForeignKey(
+        'cashbox.CashSession', on_delete=models.SET_NULL, null=True, blank=True,
+        related_name='expenses')
     created_by = models.ForeignKey(
         'accounts.User', on_delete=models.SET_NULL, null=True, blank=True,
         related_name='created_expenses')

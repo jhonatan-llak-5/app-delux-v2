@@ -2,15 +2,20 @@ import { ChangeDetectionStrategy, Component, Input } from '@angular/core';
 import { CommonModule } from '@angular/common';
 
 /**
- * Estado vacío reutilizable. Dos estilos:
+ * Estado vacío reutilizable. Tres estilos:
  *  - variant="panel" (default): tarjeta del panel admin (colores slate).
  *  - variant="store": estilo tienda (colores ink), para páginas de cliente.
- * El botón de acción (opcional) va como contenido proyectado.
+ *  - variant="bare": sin tarjeta, para incrustarlo donde ya hay un contenedor
+ *    (lo usa <dlx-table> dentro de la celda vacía).
  *
  *   <dlx-empty-state icon="fa-inbox" title="No hay datos" />
  *   <dlx-empty-state variant="store" icon="fa-cart-arrow-down" title="Tu carrito está vacío">
  *     <a routerLink="/shop" class="btn-accent">Explorar catálogo</a>
  *   </dlx-empty-state>
+ *
+ * El ícono va SIEMPRE dentro de un contenedor con centrado explícito: desde
+ * FontAwesome 7 los íconos traen `width: 1.25em`, así que centrarlos con
+ * `block` + `text-center` heredado los deja pegados a la izquierda.
  */
 @Component({
   selector: 'dlx-empty-state',
@@ -30,7 +35,7 @@ import { CommonModule } from '@angular/common';
         <ng-content />
       </div>
     } @else {
-      <div class="eg-card-padded text-center py-12">
+      <div [class]="variant === 'bare' ? 'text-center py-12' : 'eg-card-padded text-center py-12'">
         <div class="w-14 h-14 mx-auto rounded-full bg-slate-100 dark:bg-white/[0.05] grid place-items-center mb-4">
           <i class="fa-solid {{ icon }} text-slate-400 dark:text-white/35 text-[20px]"></i>
         </div>
@@ -47,5 +52,5 @@ export class DlxEmptyStateComponent {
   @Input() icon = 'fa-inbox';
   @Input({ required: true }) title = '';
   @Input() description = '';
-  @Input() variant: 'panel' | 'store' = 'panel';
+  @Input() variant: 'panel' | 'store' | 'bare' = 'panel';
 }

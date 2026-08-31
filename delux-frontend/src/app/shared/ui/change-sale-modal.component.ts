@@ -13,15 +13,24 @@ import { Order, OrderItem } from '@features/superadmin/services/order.service';
  * <dlx-change-sale-modal [order]="order()" [saving]="saving()"
  *   (confirm)="doChange($event)" (close)="close()" />
  *
- * El cliente DEVUELVE ítems (checks, un check por unidad) y se lleva a cambio
- * ítems NUEVOS (buscador con lector de barras). Las cantidades deben coincidir.
- * Se muestra la diferencia de precio (cliente paga / devolver). El padre maneja
- * la llamada real a la API con el payload emitido en `confirm`.
+ * Tiene dos modos:
+ *
+ * 1. CAMBIO: el cliente DEVUELVE ítems (un check por unidad) y se lleva a cambio
+ *    ítems NUEVOS (buscador con lector de barras). Las cantidades deben coincidir.
+ * 2. DEVOLUCIÓN DE DINERO: se marca el check "Devolver el dinero al cliente" y
+ *    no se entrega nada; el producto vuelve al stock y se le regresa el total.
+ *
+ * En ambos se elige la FORMA DE PAGO de la diferencia (efectivo / tarjeta /
+ * transferencia): solo el efectivo entra o sale del cajón de la caja.
+ * El padre maneja la llamada real a la API con el payload emitido en `confirm`.
  */
 interface ReturnUnit { key: string; orderItemId: number; label: string; sku: string; unitPrice: number; }
 interface StockDeliverLine { kind: 'stock'; variant: DeliverableVariant; qty: number; }
 interface ManualDeliverLine { kind: 'manual'; name: string; price: number; qty: number; }
 type DeliverLine = StockDeliverLine | ManualDeliverLine;
+
+/** Forma en que se mueve el dinero de la diferencia del cambio. */
+export type PayMethod = 'CASH' | 'CARD' | 'TRANSFER';
 
 @Component({
   selector: 'dlx-change-sale-modal',
@@ -76,7 +85,28 @@ type DeliverLine = StockDeliverLine | ManualDeliverLine;
             }
           </div>
 
+          <!-- Devolución de dinero: en vez de llevarse otro producto, el
+               cliente recibe su plata de vuelta. -->
+          <label class="flex items-start gap-3 p-3 rounded-xl cursor-pointer transition border"
+                 [class]="refundMoney()
+                   ? 'bg-rose-50 dark:bg-rose-500/10 border-rose-300 dark:border-rose-500/40'
+                   : 'bg-slate-50 dark:bg-white/5 border-slate-200 dark:border-white/10 hover:bg-slate-100'">
+            <input type="checkbox" [checked]="refundMoney()"
+                   (change)="toggleRefund($any($event.target).checked)"
+                   class="mt-0.5 w-4 h-4 accent-rose-600 cursor-pointer" />
+            <span class="min-w-0">
+              <span class="block text-sm font-bold text-slate-800 dark:text-slate-100">
+                Devolver el dinero al cliente
+              </span>
+              <span class="block text-[11px] text-slate-500 dark:text-slate-400 mt-0.5">
+                No se lleva nada a cambio: el producto vuelve al stock y se le regresa
+                el total de lo devuelto. Queda registrado como egreso en el balance.
+              </span>
+            </span>
+          </label>
+
           <!-- 2. Productos que se LLEVA a cambio -->
+          @if (!refundMoney()) {
           <div>
             <div class="eg-label flex items-center justify-between gap-3">
               <span>2. Productos que se lleva a cambio</span>
@@ -163,18 +193,48 @@ type DeliverLine = StockDeliverLine | ManualDeliverLine;
             }
           </div>
 
+          }
+
           <!-- Diferencia -->
           <div class="rounded-xl p-4 flex items-center justify-between"
                [class]="diffClass()">
             <div>
-              <p class="text-xs opacity-70">Valor devuelto {{ returnedValue() | currency:'USD':'symbol':'1.2-2' }} · Valor entregado {{ deliveredValue() | currency:'USD':'symbol':'1.2-2' }}</p>
+              <p class="text-xs opacity-70">
+                Valor devuelto {{ returnedValue() | currency:'USD':'symbol':'1.2-2' }}
+                @if (!refundMoney()) {
+                  · Valor entregado {{ deliveredValue() | currency:'USD':'symbol':'1.2-2' }}
+                }
+              </p>
               <p class="font-bold text-base mt-0.5">{{ diffMessage() }}</p>
             </div>
             <i class="fa-solid text-2xl opacity-80" [class]="diffIcon()"></i>
           </div>
 
+          <!-- Forma de pago: cómo entra o sale el dinero de la diferencia -->
+          @if (difference() !== 0) {
+            <div>
+              <span class="eg-label">{{ payLabel() }}</span>
+              <div class="grid grid-cols-3 gap-2 mt-2">
+                @for (m of payMethods; track m.value) {
+                  <button type="button" (click)="paymentMethod.set(m.value)"
+                          class="flex flex-col items-center gap-1.5 py-3 rounded-xl border text-xs font-semibold transition"
+                          [class]="paymentMethod() === m.value
+                            ? 'border-[var(--dash-primary)] bg-[var(--dash-primary)]/10 text-[var(--dash-primary)]'
+                            : 'border-slate-200 dark:border-white/10 text-slate-500 dark:text-slate-400 hover:bg-slate-50 dark:hover:bg-white/5'">
+                    <i class="fa-solid {{ m.icon }} text-base"></i>
+                    {{ m.label }}
+                  </button>
+                }
+              </div>
+              <p class="text-[11px] text-slate-400 mt-1.5">
+                Solo el efectivo entra o sale de la caja; tarjeta y transferencia
+                se registran en el balance pero no en el arqueo.
+              </p>
+            </div>
+          }
+
           <!-- Aviso de validación -->
-          @if (returnedCount() > 0 && deliveredCount() > 0 && returnedCount() !== deliveredCount()) {
+          @if (!refundMoney() && returnedCount() > 0 && deliveredCount() > 0 && returnedCount() !== deliveredCount()) {
             <div class="rounded-xl p-3 bg-rose-50 dark:bg-rose-500/10 text-rose-700 dark:text-rose-300 text-xs flex items-center gap-2">
               <i class="fa-solid fa-triangle-exclamation"></i>
               El cliente devuelve {{ returnedCount() }} producto(s), debes entregarle {{ returnedCount() }}. Ahora tienes {{ deliveredCount() }}.
@@ -201,9 +261,12 @@ type DeliverLine = StockDeliverLine | ManualDeliverLine;
         <!-- Acciones -->
         <div class="p-5 pt-0 flex gap-2 border-t border-slate-100 dark:border-white/10 mt-auto pt-4">
           <button (click)="emitConfirm()" [disabled]="!canConfirm()"
-                  class="flex-1 py-2.5 rounded-xl bg-amber-600 hover:bg-amber-700 text-white text-sm font-bold disabled:opacity-40 flex items-center justify-center gap-2 transition">
-            @if (saving) { <i class="fa-solid fa-spinner fa-spin"></i> } @else { <i class="fa-solid fa-right-left"></i> }
-            Registrar cambio
+                  class="flex-1 py-2.5 rounded-xl text-white text-sm font-bold disabled:opacity-40 flex items-center justify-center gap-2 transition"
+                  [class]="refundMoney() ? 'bg-rose-600 hover:bg-rose-700' : 'bg-amber-600 hover:bg-amber-700'">
+            @if (saving) { <i class="fa-solid fa-spinner fa-spin"></i> }
+            @else if (refundMoney()) { <i class="fa-solid fa-hand-holding-dollar"></i> }
+            @else { <i class="fa-solid fa-right-left"></i> }
+            {{ refundMoney() ? 'Devolver el dinero' : 'Registrar cambio' }}
           </button>
           <button (click)="close.emit()" [disabled]="saving"
                   class="px-5 py-2.5 rounded-xl bg-slate-100 dark:bg-white/5 hover:bg-slate-200 dark:hover:bg-white/10 text-slate-600 dark:text-slate-300 text-sm font-semibold transition">
@@ -224,8 +287,30 @@ export class DlxChangeSaleModalComponent implements OnInit {
     delivered: { variant_id?: number; manual?: boolean; name?: string; price?: number; quantity: number }[];
     descripcion: string;
     change_date: string;
+    /** true = devolución de dinero: no se entrega nada a cambio. */
+    refund_money: boolean;
+    /** Cómo se movió el dinero de la diferencia. */
+    payment_method: PayMethod;
   }>();
   @Output() close = new EventEmitter<void>();
+
+  /** Modo devolución: el cliente devuelve el producto y se le regresa su plata. */
+  refundMoney = signal(false);
+  paymentMethod = signal<PayMethod>('CASH');
+  readonly payMethods: { value: PayMethod; label: string; icon: string }[] = [
+    { value: 'CASH',     label: 'Efectivo',      icon: 'fa-money-bill-wave' },
+    { value: 'CARD',     label: 'Tarjeta',       icon: 'fa-credit-card' },
+    { value: 'TRANSFER', label: 'Transferencia', icon: 'fa-arrow-right-arrow-left' },
+  ];
+
+  /** Al activar la devolución se limpia lo entregado: no aplica. */
+  toggleRefund(on: boolean): void {
+    this.refundMoney.set(on);
+    if (on) {
+      this.delivered.set([]);
+      this.showManual.set(false);
+    }
+  }
 
   returnUnits = signal<ReturnUnit[]>([]);
   selectedReturns = signal<Set<string>>(new Set());
@@ -338,25 +423,48 @@ export class DlxChangeSaleModalComponent implements OnInit {
     return this.returnUnits().filter(u => sel.has(u.key)).reduce((s, u) => s + u.unitPrice, 0);
   });
   deliveredValue = computed(() => this.delivered().reduce((s, d) => s + (d.kind === 'stock' ? d.variant.price : d.price) * d.qty, 0));
-  difference = computed(() => +(this.deliveredValue() - this.returnedValue()).toFixed(2));
+  // En una devolución no se entrega nada: lo entregado vale 0 y la diferencia
+  // es todo el valor devuelto en negativo (sale dinero de la tienda).
+  difference = computed(() => this.refundMoney()
+    ? -this.returnedValue()
+    : +(this.deliveredValue() - this.returnedValue()).toFixed(2));
 
-  canConfirm = computed(() =>
-    !this.saving && this.returnedCount() > 0 && this.deliveredCount() > 0 &&
-    this.returnedCount() === this.deliveredCount());
+  canConfirm = computed(() => {
+    if (this.saving || this.returnedCount() === 0) return false;
+    if (this.refundMoney()) return true;   // basta con elegir qué se devuelve
+    return this.deliveredCount() > 0 && this.returnedCount() === this.deliveredCount();
+  });
+
+  /** ¿Falta elegir productos para poder calcular la diferencia? */
+  private incompleto(): boolean {
+    if (this.returnedCount() === 0) return true;
+    return !this.refundMoney() && this.deliveredCount() === 0;
+  }
 
   diffMessage(): string {
     const d = this.difference();
-    if (this.returnedCount() === 0 || this.deliveredCount() === 0) return 'Selecciona los productos del cambio';
+    if (this.incompleto()) {
+      return this.refundMoney()
+        ? 'Selecciona los productos que devuelve el cliente'
+        : 'Selecciona los productos del cambio';
+    }
+    if (this.refundMoney()) return `Debes devolver ${Math.abs(d).toFixed(2)} al cliente`;
     if (d > 0) return `El cliente debe pagar ${d.toFixed(2)} adicional`;
     if (d < 0) return `Debes devolver ${Math.abs(d).toFixed(2)} al cliente`;
     return 'Sin diferencia de precio';
   }
   diffClass(): string {
     const d = this.difference();
-    if (this.returnedCount() === 0 || this.deliveredCount() === 0) return 'bg-slate-100 dark:bg-white/5 text-slate-500';
+    if (this.incompleto()) return 'bg-slate-100 dark:bg-white/5 text-slate-500';
     if (d > 0) return 'bg-emerald-50 dark:bg-emerald-500/10 text-emerald-700 dark:text-emerald-300';
     if (d < 0) return 'bg-rose-50 dark:bg-rose-500/10 text-rose-700 dark:text-rose-300';
     return 'bg-slate-100 dark:bg-white/5 text-slate-600 dark:text-slate-300';
+  }
+  /** Etiqueta del selector: el dinero entra o sale según el signo. */
+  payLabel(): string {
+    return this.difference() > 0
+      ? '¿Cómo paga el cliente la diferencia?'
+      : '¿Cómo se le devuelve el dinero?';
   }
   diffIcon(): string {
     const d = this.difference();
@@ -374,9 +482,15 @@ export class DlxChangeSaleModalComponent implements OnInit {
       if (sel.has(u.key)) byItem.set(u.orderItemId, (byItem.get(u.orderItemId) || 0) + 1);
     }
     const returned = Array.from(byItem.entries()).map(([order_item_id, quantity]) => ({ order_item_id, quantity }));
-    const delivered = this.delivered().map(d => d.kind === 'stock'
+    const delivered = this.refundMoney() ? [] : this.delivered().map(d => d.kind === 'stock'
       ? { variant_id: d.variant.id, quantity: d.qty }
       : { manual: true, name: d.name, price: d.price, quantity: d.qty });
-    this.confirm.emit({ returned, delivered, descripcion: this.descripcion().trim(), change_date: this.changeDate() });
+    this.confirm.emit({
+      returned, delivered,
+      descripcion: this.descripcion().trim(),
+      change_date: this.changeDate(),
+      refund_money: this.refundMoney(),
+      payment_method: this.paymentMethod(),
+    });
   }
 }

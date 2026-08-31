@@ -8,9 +8,10 @@ import { PdfLogo } from './export.util';
  * Diseño en BLANCO Y NEGRO / escala de grises, organizado por secciones con
  * encabezado propio (no repite el nombre de sección en cada fila):
  *   1. RESUMEN
- *   2. TRANSACCIONES  (con subtotales de ingresos / egresos / balance)
- *   3. PRODUCTOS MÁS VENDIDOS
- *   4. RECEPCIÓN DE MERCADERÍA
+ *   2. VENTAS POR FORMA DE PAGO  (efectivo / tarjeta / transferencia)
+ *   3. TRANSACCIONES  (con subtotales de ingresos / egresos / balance)
+ *   4. PRODUCTOS MÁS VENDIDOS
+ *   5. RECEPCIÓN DE MERCADERÍA
  *
  * No modifica ni depende de la utilidad genérica `exportPdf`; sólo reutiliza
  * el tipo `PdfLogo` para incrustar el logo tal como lo hace el resto de la app.
@@ -20,6 +21,12 @@ export interface BalanceTopProduct {
   product: string;
   qty: number;
   revenue: number;
+}
+
+export interface BalancePayMethod {
+  label: string;
+  total: number;
+  count: number;
 }
 
 export interface BalanceTxnRow {
@@ -46,6 +53,8 @@ export interface BalanceReportData {
   compras: number;
   comprasUnits: number;
   topProducts: BalanceTopProduct[];
+  /** Ventas desglosadas por forma de pago. Opcional por compatibilidad. */
+  payMethods?: BalancePayMethod[];
   txns: BalanceTxnRow[];
   ingresosTotal: number;
   egresosTotal: number;
@@ -116,7 +125,17 @@ function timestampedName(base: string): string {
 }
 
 /** Genera y descarga el PDF del Balance general. */
+/** Descarga el PDF del Balance general. */
 export function exportBalancePdf(d: BalanceReportData): void {
+  buildBalanceDoc(d).save(timestampedName('balance'));
+}
+
+/** El mismo PDF como Blob, para compartirlo por la hoja nativa. */
+export function balancePdfBlob(d: BalanceReportData): Blob {
+  return buildBalanceDoc(d).output('blob');
+}
+
+function buildBalanceDoc(d: BalanceReportData): jsPDF {
   const doc = new jsPDF({ orientation: 'p', unit: 'mm', format: 'a4' });
   const pageW = doc.internal.pageSize.getWidth();
   const rightX = pageW - MARGIN;
@@ -191,7 +210,38 @@ export function exportBalancePdf(d: BalanceReportData): void {
   doc.text('Nota: la recepción de mercadería es inversión en inventario y no afecta el balance.', MARGIN, y);
   y += 8;
 
-  // ── 2. TRANSACCIONES ──
+  // ── 2. VENTAS POR FORMA DE PAGO ──
+  const pays = (d.payMethods ?? []).filter(p => p.count > 0 || p.total !== 0);
+  if (pays.length) {
+    y = ensureSpace(doc, y, 40);
+    y = sectionBar(doc, 'Ventas por forma de pago', y);
+    const payTotal = pays.reduce((a, p) => a + p.total, 0);
+    autoTable(doc, {
+      startY: y,
+      theme: tableTheme,
+      head: [['Forma de pago', 'N.º de ventas', '% del total', 'Total']],
+      body: pays.map(p => [
+        p.label,
+        String(p.count),
+        payTotal ? ((p.total / payTotal) * 100).toFixed(1) + '%' : '0%',
+        money(p.total),
+      ]),
+      foot: [['Total', String(pays.reduce((a, p) => a + p.count, 0)), '100%', money(payTotal)]],
+      showFoot: 'lastPage',
+      styles: baseStyles,
+      headStyles,
+      footStyles: { fillColor: [235, 235, 235], textColor: C_TEXT, fontStyle: 'bold', halign: 'right' },
+      alternateRowStyles: { fillColor: C_ALT },
+      margin: { left: MARGIN, right: MARGIN, top: TOP_CONT },
+      columnStyles: {
+        0: { cellWidth: (pageW - MARGIN * 2) * 0.4, fontStyle: 'bold' },
+        1: { halign: 'right' }, 2: { halign: 'right' }, 3: { halign: 'right' },
+      },
+    });
+    y = (doc as any).lastAutoTable.finalY + 8;
+  }
+
+  // ── 3. TRANSACCIONES ──
   y = ensureSpace(doc, y, 40);
   y = sectionBar(doc, 'Transacciones', y);
   const txnBody = d.txns.map(t => [
@@ -291,5 +341,5 @@ export function exportBalancePdf(d: BalanceReportData): void {
     doc.text(`Página ${i} de ${total}`, rightX, pageH - 8, { align: 'right' });
   }
 
-  doc.save(timestampedName('balance'));
+  return doc;
 }

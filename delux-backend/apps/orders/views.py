@@ -112,17 +112,39 @@ class AdminOrderViewSet(viewsets.ReadOnlyModelViewSet):
             order.status = OrderStatus.CANCELLED
             order.cancel_reason = reason[:200]
             order.save(update_fields=['status', 'cancel_reason', 'updated_at'])
+
+            # Si la venta fue en EFECTIVO, al anularla el dinero sale del cajón.
+            # Solo se registra cuando la venta es de otro turno (o web): si es del
+            # turno abierto, el propio cálculo ya la descuenta al excluirla.
+            if order.payment_form == '01':
+                from apps.cashbox.models import CashMovement
+                from apps.cashbox.services import record_auto_movement
+                record_auto_movement(
+                    user=request.user, branch_id=order.branch_id,
+                    type_=CashMovement.Type.OUT, amount=order.net_total,
+                    reason=f'Anulación venta {order.code}: {reason}'[:200],
+                    source_session_id=order.cash_session_id,
+                )
         return Response({'detail': 'Venta cancelada.', 'restored_stock': restore_stock})
 
     @action(detail=True, methods=['post'], url_path='register-change')
     def register_change(self, request, pk=None):
-        """Registra un CAMBIO producto-por-producto sobre una venta ya realizada.
-        El cliente DEVUELVE uno o más ítems (vuelven al stock) y se lleva a cambio
-        uno o más ítems NUEVOS (salen del stock). La cantidad devuelta debe ser
-        igual a la entregada. Si hay diferencia de precio, se registra como
-        ingreso (el cliente paga) o egreso (la tienda devuelve) en el balance.
-        La venta NO se anula. Puede haber varios cambios por venta."""
+        """Registra un CAMBIO sobre una venta ya realizada. Dos modalidades:
+
+        1. CAMBIO (por defecto): el cliente DEVUELVE uno o más ítems (vuelven al
+           stock) y se lleva a cambio otros NUEVOS (salen del stock). Las
+           cantidades devuelta y entregada deben coincidir. La diferencia de
+           precio se registra como ingreso o egreso.
+
+        2. DEVOLUCIÓN DE DINERO (`refund_money: true`): el cliente devuelve el
+           producto y se le regresa su plata. No se entrega nada a cambio, así
+           que la diferencia es todo el valor devuelto en negativo (egreso).
+
+        En ambas, `payment_method` indica cómo se movió el dinero (efectivo,
+        tarjeta o transferencia). La venta NO se anula; puede haber varios
+        cambios por venta."""
         from decimal import Decimal, InvalidOperation
+        from apps.returns.models import SaleChangePayMethod, SaleChangeType
         order = self.get_object()
         if order.status == OrderStatus.CANCELLED:
             return Response({'detail': 'La venta está cancelada.'}, status=400)
@@ -130,6 +152,14 @@ class AdminOrderViewSet(viewsets.ReadOnlyModelViewSet):
         returned = request.data.get('returned') or []
         delivered = request.data.get('delivered') or []
         descripcion = (request.data.get('descripcion') or '').strip()
+        refund_money = bool(request.data.get('refund_money'))
+        pay_method = (request.data.get('payment_method') or SaleChangePayMethod.CASH)
+        if pay_method not in SaleChangePayMethod.values:
+            return Response({'detail': 'Forma de pago no válida.'}, status=400)
+        # En una devolución de dinero no se entrega nada: se ignora cualquier
+        # ítem entregado que llegue por error.
+        if refund_money:
+            delivered = []
 
         # Fecha del cambio (opcional): permite registrar un cambio de días atrás.
         # Si viene vacía se usa la fecha/hora actual.
@@ -147,7 +177,7 @@ class AdminOrderViewSet(viewsets.ReadOnlyModelViewSet):
 
         if not isinstance(returned, list) or not returned:
             return Response({'detail': 'Selecciona al menos un producto que el cliente devuelve.'}, status=400)
-        if not isinstance(delivered, list) or not delivered:
+        if not refund_money and (not isinstance(delivered, list) or not delivered):
             return Response({'detail': 'Selecciona al menos un producto que se entrega a cambio.'}, status=400)
 
         # ── Normaliza y valida los ítems DEVUELTOS (contra la venta) ──
@@ -221,7 +251,9 @@ class AdminOrderViewSet(viewsets.ReadOnlyModelViewSet):
         # ── Regla clave: cantidad devuelta == cantidad entregada ──
         total_returned_qty = sum(q for _, q in return_rows)
         total_delivered_qty = sum(q for _, _, q in deliver_rows)
-        if total_returned_qty != total_delivered_qty:
+        # La paridad de cantidades solo aplica al CAMBIO. En una devolución de
+        # dinero no se entrega nada, así que no hay nada que cuadrar.
+        if not refund_money and total_returned_qty != total_delivered_qty:
             return Response({
                 'detail': f'Las cantidades no coinciden: el cliente devuelve '
                           f'{total_returned_qty} y se le entregan {total_delivered_qty}. '
@@ -258,6 +290,8 @@ class AdminOrderViewSet(viewsets.ReadOnlyModelViewSet):
                 tenant=order.tenant, code=code, order=order, branch_id=branch_id,
                 quantity=total_returned_qty, descripcion=descripcion,
                 actor=request.user if request.user.is_authenticated else None,
+                tipo=(SaleChangeType.REFUND if refund_money else SaleChangeType.PARCIAL),
+                payment_method=pay_method,
                 # legacy: primer ítem devuelto
                 order_item=return_rows[0][0], variant_id=return_rows[0][0].variant_id,
                 product_name=return_rows[0][0].product_name,
@@ -332,7 +366,12 @@ class AdminOrderViewSet(viewsets.ReadOnlyModelViewSet):
             change.delivered_value = delivered_value
             change.difference = difference
             change.valor_devuelto = returned_value   # compat
-            update_fields = ['returned_value', 'delivered_value', 'difference', 'valor_devuelto']
+            # La diferencia entra o sale del cajón que está abierto AHORA, no del
+            # turno de la venta original (que puede ser de otro día).
+            from apps.cashbox.services import session_for_sale
+            change.cash_session = session_for_sale(request.user, branch_id or order.branch_id)
+            update_fields = ['returned_value', 'delivered_value', 'difference',
+                             'valor_devuelto', 'cash_session']
             # Fecha retroactiva del cambio (si se indicó una).
             if change_dt is not None:
                 change.created_at = change_dt
@@ -404,15 +443,32 @@ class AdminOrderViewSet(viewsets.ReadOnlyModelViewSet):
     def _settle_paid(self, order, user):
         """Confirma pagos pendientes y descuenta stock (idempotente) al cerrar
         la venta como PAGADA."""
+        from decimal import Decimal
         from django.db import transaction
         from apps.payments.models import Payment, PaymentStatus
         from apps.inventory.models import Stock, StockMovement
+        from .models import OrderChannel
         with transaction.atomic():
+            cash_confirmed = Decimal('0')
             for p in order.payments.filter(status=PaymentStatus.PENDING):
                 p.status = PaymentStatus.SUCCEEDED
                 p.raw_payload = {**(p.raw_payload or {}),
                                  'validated_by': user.id, 'via': 'set_status'}
                 p.save(update_fields=['status', 'raw_payload'])
+                if p.method == 'CASH':
+                    cash_confirmed += Decimal(str(p.amount or 0))
+
+            # Pedido WEB cobrado en efectivo en el mostrador (retiro en tienda):
+            # esa plata entra al cajón abierto. Las ventas POS no pasan por aquí
+            # (nacen pagadas y ya se imputan al turno por su FK).
+            if cash_confirmed > 0 and order.channel == OrderChannel.WEB:
+                from apps.cashbox.models import CashMovement
+                from apps.cashbox.services import record_auto_movement
+                record_auto_movement(
+                    user=user, branch_id=order.branch_id,
+                    type_=CashMovement.Type.IN, amount=cash_confirmed,
+                    reason=f'Cobro en efectivo pedido web {order.code}',
+                )
             already_out = StockMovement.objects.filter(
                 type=StockMovement.TYPE_OUT, note__icontains=order.code
             ).exists()

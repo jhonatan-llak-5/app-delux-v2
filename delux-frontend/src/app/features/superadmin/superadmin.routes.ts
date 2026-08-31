@@ -98,6 +98,26 @@ export const SUPERADMIN_ROUTES: Routes = [
         loadComponent: () =>
           import('./pages/sales-list/sales-list.component').then(m => m.SalesListComponent),
       },
+      // Caja de mostrador: apertura, cierre e historial de turnos.
+      { path: 'caja', pathMatch: 'full', redirectTo: 'caja/apertura' },
+      {
+        path: 'caja/apertura',
+        canActivate: [roleGuard(SALES)],
+        loadComponent: () =>
+          import('./pages/cash-open/cash-open.component').then(m => m.CashOpenComponent),
+      },
+      {
+        path: 'caja/cierre',
+        canActivate: [roleGuard(SALES)],
+        loadComponent: () =>
+          import('./pages/cash-close/cash-close.component').then(m => m.CashCloseComponent),
+      },
+      {
+        path: 'caja/historial',
+        canActivate: [roleGuard(SALES)],
+        loadComponent: () =>
+          import('./pages/cash-history/cash-history.component').then(m => m.CashHistoryComponent),
+      },
       {
         path: 'sales/:id',
         canActivate: [roleGuard(SALES)],

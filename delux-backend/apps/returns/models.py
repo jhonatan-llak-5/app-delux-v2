@@ -52,6 +52,17 @@ class ReturnItem(TenantOwnedModel):
 class SaleChangeType(models.TextChoices):
     PARCIAL = 'PARCIAL', 'Cambio parcial'
     TOTAL   = 'TOTAL',   'Cambio total'
+    # El cliente devuelve el producto y se le devuelve SU DINERO: no se lleva
+    # nada a cambio. La venta original no se anula; el egreso queda registrado
+    # como la diferencia negativa del cambio.
+    REFUND  = 'REFUND',  'Devolución de dinero'
+
+
+class SaleChangePayMethod(models.TextChoices):
+    """Cómo entró o salió el dinero de la diferencia del cambio."""
+    CASH     = 'CASH',     'Efectivo'
+    CARD     = 'CARD',     'Tarjeta'
+    TRANSFER = 'TRANSFER', 'Transferencia'
 
 
 class SaleChange(TenantOwnedModel):
@@ -96,6 +107,24 @@ class SaleChange(TenantOwnedModel):
     returned_value = models.DecimalField(max_digits=10, decimal_places=2, default=0)
     delivered_value = models.DecimalField(max_digits=10, decimal_places=2, default=0)
     difference = models.DecimalField(max_digits=10, decimal_places=2, default=0)
+
+    # Forma en que se movió el dinero de la diferencia (cobrado al cliente o
+    # devuelto a él). Solo el EFECTIVO afecta al cajón de la caja; tarjeta y
+    # transferencia se registran en el balance pero no en el arqueo.
+    payment_method = models.CharField(
+        max_length=10, choices=SaleChangePayMethod.choices,
+        default=SaleChangePayMethod.CASH)
+
+    # Turno de caja en el que se REGISTRA el cambio (no el de la venta original):
+    # la diferencia entra o sale del cajón que está abierto ahora.
+    cash_session = models.ForeignKey(
+        'cashbox.CashSession', on_delete=models.SET_NULL, null=True, blank=True,
+        related_name='sale_changes')
+
+    @property
+    def is_refund(self) -> bool:
+        """Devolución de dinero pura: no se entregó nada a cambio."""
+        return self.tipo == SaleChangeType.REFUND
 
     # Anulación (deshacer): NO se borra el registro; se marca como anulado y se
     # revierte stock + balance, para conservar el rastro de auditoría.

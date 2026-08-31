@@ -26,6 +26,7 @@ urlpatterns = [
     path('',           include('apps.payments.urls')),
     path('',           include('apps.reports.urls')),
     path('',           include('apps.expenses.urls')),
+    path('',           include('apps.cashbox.urls')),
     path('',           include('apps.payroll.urls')),
     path('settings/',  include('apps.settings.urls')),
 ]

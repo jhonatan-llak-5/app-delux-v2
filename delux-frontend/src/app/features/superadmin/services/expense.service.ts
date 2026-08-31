@@ -29,11 +29,23 @@ export interface ExpenseSummary {
 export interface FinanceDeltas {
   ventas: number | null; ventas_web: number | null; ventas_pos: number | null;
   compras: number | null; gastos: number | null; ganancia: number | null;
+  ventas_efectivo?: number | null; ventas_tarjeta?: number | null;
+  ventas_transferencia?: number | null; ventas_otros_pago?: number | null;
+}
+/** Ventas agrupadas por forma de pago (efectivo / tarjeta / transferencia / otros). */
+export interface FinancePayMethod {
+  method: 'efectivo' | 'tarjeta' | 'transferencia' | 'otros';
+  label: string;
+  total: string;
+  count: number;
 }
 export interface FinanceSummary {
   ventas: string; ventas_web: string; ventas_pos: string;
   compras: string; gastos: string; ganancia: string; orders: number;
   compras_units?: number;
+  ventas_efectivo: string; ventas_tarjeta: string;
+  ventas_transferencia: string; ventas_otros_pago: string;
+  ventas_by_method: FinancePayMethod[];
   gastos_by_cat: { category: string; label: string; total: string }[];
   deltas: FinanceDeltas;
   range: { from: string; to: string };

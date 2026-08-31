@@ -1,0 +1,436 @@
+<div>
+  <dlx-page-header eyebrow="Caja" title="Cierre de Caja"
+                   subtitle="Finaliza el turno y registra el resumen de movimientos">
+    <a routerLink="/app/admin/caja/historial" class="eg-btn-ghost eg-btn-sm">
+      <i class="fa-solid fa-clock-rotate-left"></i> Historial
+    </a>
+  </dlx-page-header>
+
+  @if (loading()) {
+    <div class="eg-card-padded text-center py-16 text-[var(--dash-text-muted)]">
+      <i class="fa-solid fa-spinner fa-spin text-2xl"></i>
+    </div>
+  }
+
+  <!-- Resultado del cierre -->
+  @else if (closed(); as c) {
+    <section class="eg-card-padded text-center py-12">
+      <div class="w-16 h-16 rounded-2xl grid place-items-center mx-auto mb-4"
+           [ngClass]="+c.difference === 0
+             ? 'bg-emerald-50 dark:bg-emerald-500/15 text-emerald-600'
+             : 'bg-amber-50 dark:bg-amber-500/15 text-amber-600'">
+        <i class="fa-solid text-2xl" [ngClass]="+c.difference === 0 ? 'fa-circle-check' : 'fa-triangle-exclamation'"></i>
+      </div>
+      <h2 class="text-xl font-bold">Caja cerrada</h2>
+      <p class="text-sm text-[var(--dash-text-muted)] mt-1">
+        {{ c.code }} · {{ c.register_name || 'Caja' }} · cerrada {{ c.closed_at | date:'dd/MM/yyyy HH:mm' }}
+      </p>
+
+      <div class="grid grid-cols-1 sm:grid-cols-3 gap-3 max-w-2xl mx-auto mt-6 text-left">
+        <div class="rounded-xl border border-slate-200 dark:border-white/10 px-4 py-3">
+          <p class="text-[10px] uppercase tracking-widest font-bold text-slate-400">Esperado</p>
+          <p class="text-lg font-bold tabular-nums mt-0.5">{{ money(c.expected_amount) }}</p>
+        </div>
+        <div class="rounded-xl border border-slate-200 dark:border-white/10 px-4 py-3">
+          <p class="text-[10px] uppercase tracking-widest font-bold text-slate-400">Contado</p>
+          <p class="text-lg font-bold tabular-nums mt-0.5">{{ money(c.counted_amount) }}</p>
+        </div>
+        <div class="rounded-xl px-4 py-3 border"
+             [ngClass]="+c.difference === 0
+               ? 'border-emerald-200 bg-emerald-50 dark:bg-emerald-500/10 dark:border-emerald-500/25'
+               : 'border-amber-200 bg-amber-50 dark:bg-amber-500/10 dark:border-amber-500/25'">
+          <p class="text-[10px] uppercase tracking-widest font-bold text-slate-400">Diferencia</p>
+          <p class="text-lg font-bold tabular-nums mt-0.5"
+             [ngClass]="+c.difference === 0 ? 'text-emerald-700 dark:text-emerald-300' : 'text-amber-700 dark:text-amber-300'">
+            {{ money(c.difference) }}
+          </p>
+        </div>
+      </div>
+
+      <div class="flex items-center justify-center gap-3 mt-8">
+        <a routerLink="/app/admin/caja/historial" class="eg-btn-secondary">
+          <i class="fa-solid fa-clock-rotate-left"></i> Ver historial
+        </a>
+        <a routerLink="/app/admin/caja/apertura" class="eg-btn-primary">
+          <i class="fa-solid fa-lock-open"></i> Abrir nueva caja
+        </a>
+      </div>
+    </section>
+  }
+
+  <!-- Sin caja abierta -->
+  @else if (!session()) {
+    <section class="eg-card-padded text-center py-14">
+      <div class="w-16 h-16 rounded-2xl bg-slate-100 dark:bg-white/5 text-slate-400
+                  grid place-items-center mx-auto mb-4">
+        <i class="fa-solid fa-cash-register text-2xl"></i>
+      </div>
+      <h2 class="text-xl font-bold">No tienes una caja abierta</h2>
+      <p class="text-sm text-[var(--dash-text-muted)] mt-1 max-w-sm mx-auto">
+        Abre la caja con su fondo inicial para poder registrar ventas en efectivo y cerrarla al final del turno.
+      </p>
+      <a routerLink="/app/admin/caja/apertura" class="eg-btn-primary mt-6 inline-flex">
+        <i class="fa-solid fa-lock-open"></i> Abrir caja
+      </a>
+    </section>
+  }
+
+  @else if (session(); as s) {
+    <div class="eg-card-padded mb-4">
+      <dlx-stepper [steps]="steps" [current]="step()" (stepClick)="step.set($event)" />
+    </div>
+
+    @if (error()) {
+      <div class="eg-card-padded mb-4 border border-rose-200 bg-rose-50 text-rose-700 text-sm">
+        <i class="fa-solid fa-circle-exclamation"></i> {{ error() }}
+      </div>
+    }
+
+    <!-- PASO 1 · Resumen -->
+    @if (step() === 0) {
+      <section class="eg-card-padded mb-4">
+        <div class="flex items-start justify-between gap-4 mb-5">
+          <div>
+            <h2 class="font-bold text-lg">Información general</h2>
+            <p class="text-sm text-[var(--dash-text-muted)]">{{ s.code }}</p>
+          </div>
+          <button type="button" class="eg-btn-ghost eg-btn-sm" (click)="refresh()">
+            <i class="fa-solid fa-rotate"></i> Actualizar
+          </button>
+        </div>
+
+        <div class="grid grid-cols-2 lg:grid-cols-4 gap-4 text-sm">
+          <div>
+            <p class="text-[10px] uppercase tracking-widest font-bold text-slate-400">Sucursal</p>
+            <p class="font-semibold mt-0.5">{{ s.branch_name }}</p>
+          </div>
+          <div>
+            <p class="text-[10px] uppercase tracking-widest font-bold text-slate-400">Caja / Punto de venta</p>
+            <p class="font-semibold mt-0.5">{{ s.register_name || 'Caja' }}</p>
+          </div>
+          <div>
+            <p class="text-[10px] uppercase tracking-widest font-bold text-slate-400">Usuario</p>
+            <p class="font-semibold mt-0.5">{{ s.opened_by_name }}</p>
+          </div>
+          <div>
+            <p class="text-[10px] uppercase tracking-widest font-bold text-slate-400">Apertura</p>
+            <p class="font-semibold mt-0.5">{{ s.opened_at | date:'dd/MM/yyyy HH:mm' }}</p>
+          </div>
+          <div>
+            <p class="text-[10px] uppercase tracking-widest font-bold text-slate-400">Fondo inicial</p>
+            <p class="font-semibold mt-0.5 tabular-nums">{{ money(s.opening_amount) }}</p>
+          </div>
+          <div>
+            <p class="text-[10px] uppercase tracking-widest font-bold text-slate-400">Tiempo de uso</p>
+            <p class="font-semibold mt-0.5">{{ elapsed() }}</p>
+          </div>
+          <div>
+            <p class="text-[10px] uppercase tracking-widest font-bold text-slate-400">Ventas</p>
+            <p class="font-semibold mt-0.5 tabular-nums">{{ totals()?.sales_count || 0 }}</p>
+          </div>
+          <div>
+            <p class="text-[10px] uppercase tracking-widest font-bold text-slate-400">Estado</p>
+            <p class="mt-0.5"><span class="eg-badge eg-badge-success">Abierta</span></p>
+          </div>
+        </div>
+      </section>
+
+      <section class="eg-card-padded mb-4">
+        <h2 class="font-bold text-lg mb-4">Resumen de movimientos</h2>
+
+        <div class="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
+          <div class="rounded-xl border border-slate-200 dark:border-white/10 px-4 py-3 flex items-center gap-3">
+            <span class="w-9 h-9 rounded-lg bg-emerald-50 dark:bg-emerald-500/15 text-emerald-600 grid place-items-center">
+              <i class="fa-solid fa-money-bill-wave text-sm"></i></span>
+            <div class="min-w-0">
+              <p class="text-[10px] uppercase tracking-widest font-bold text-slate-400">Ventas en efectivo</p>
+              <p class="font-bold tabular-nums">{{ money(totals()?.cash_sales) }}</p>
+            </div>
+          </div>
+          <div class="rounded-xl border border-slate-200 dark:border-white/10 px-4 py-3 flex items-center gap-3">
+            <span class="w-9 h-9 rounded-lg bg-blue-50 dark:bg-blue-500/15 text-blue-600 grid place-items-center">
+              <i class="fa-regular fa-credit-card text-sm"></i></span>
+            <div class="min-w-0">
+              <p class="text-[10px] uppercase tracking-widest font-bold text-slate-400">Ventas con tarjeta</p>
+              <p class="font-bold tabular-nums">{{ money(totals()?.card_sales) }}</p>
+            </div>
+          </div>
+          <div class="rounded-xl border border-slate-200 dark:border-white/10 px-4 py-3 flex items-center gap-3">
+            <span class="w-9 h-9 rounded-lg bg-violet-50 dark:bg-violet-500/15 text-violet-600 grid place-items-center">
+              <i class="fa-solid fa-arrow-right-arrow-left text-sm"></i></span>
+            <div class="min-w-0">
+              <p class="text-[10px] uppercase tracking-widest font-bold text-slate-400">Transferencias</p>
+              <p class="font-bold tabular-nums">{{ money(totals()?.transfer_sales) }}</p>
+            </div>
+          </div>
+          <div class="rounded-xl border border-slate-200 dark:border-white/10 px-4 py-3 flex items-center gap-3">
+            <span class="w-9 h-9 rounded-lg bg-rose-50 dark:bg-rose-500/15 text-rose-600 grid place-items-center">
+              <i class="fa-solid fa-rotate-left text-sm"></i></span>
+            <div class="min-w-0">
+              <p class="text-[10px] uppercase tracking-widest font-bold text-slate-400">Cambios devueltos</p>
+              <p class="font-bold tabular-nums">{{ money(totals()?.change_out) }}</p>
+            </div>
+          </div>
+          <div class="rounded-xl border border-slate-200 dark:border-white/10 px-4 py-3 flex items-center gap-3">
+            <span class="w-9 h-9 rounded-lg bg-amber-50 dark:bg-amber-500/15 text-amber-600 grid place-items-center">
+              <i class="fa-solid fa-wallet text-sm"></i></span>
+            <div class="min-w-0">
+              <p class="text-[10px] uppercase tracking-widest font-bold text-slate-400">Gastos en efectivo</p>
+              <p class="font-bold tabular-nums">{{ money(totals()?.expenses_cash) }}</p>
+            </div>
+          </div>
+          <div class="rounded-xl border border-slate-200 dark:border-white/10 px-4 py-3 flex items-center gap-3">
+            <span class="w-9 h-9 rounded-lg bg-teal-50 dark:bg-teal-500/15 text-teal-600 grid place-items-center">
+              <i class="fa-solid fa-arrow-down text-sm"></i></span>
+            <div class="min-w-0">
+              <p class="text-[10px] uppercase tracking-widest font-bold text-slate-400">Ingresos manuales</p>
+              <p class="font-bold tabular-nums">{{ money(totals()?.cash_in) }}</p>
+            </div>
+          </div>
+          <div class="rounded-xl border border-slate-200 dark:border-white/10 px-4 py-3 flex items-center gap-3">
+            <span class="w-9 h-9 rounded-lg bg-orange-50 dark:bg-orange-500/15 text-orange-600 grid place-items-center">
+              <i class="fa-solid fa-arrow-up text-sm"></i></span>
+            <div class="min-w-0">
+              <p class="text-[10px] uppercase tracking-widest font-bold text-slate-400">Retiros</p>
+              <p class="font-bold tabular-nums">{{ money(totals()?.cash_out) }}</p>
+            </div>
+          </div>
+          <div class="rounded-xl px-4 py-3 flex items-center gap-3
+                      border border-[var(--dash-primary)]/30 bg-[var(--dash-primary)]/8">
+            <span class="w-9 h-9 rounded-lg bg-[var(--dash-primary)]/15 text-[var(--dash-primary)] grid place-items-center">
+              <i class="fa-solid fa-sack-dollar text-sm"></i></span>
+            <div class="min-w-0">
+              <p class="text-[10px] uppercase tracking-widest font-bold text-slate-400">Efectivo esperado</p>
+              <p class="font-bold tabular-nums text-[var(--dash-primary)]">{{ money(totals()?.expected_amount) }}</p>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <section class="eg-card-padded">
+        <div class="flex items-center justify-between gap-3 mb-4">
+          <div>
+            <h2 class="font-bold text-lg">Movimientos de efectivo</h2>
+            <p class="text-sm text-[var(--dash-text-muted)]">Retiros a bóveda, ingreso de sencillo, etc.</p>
+          </div>
+          <div class="flex items-center gap-2">
+            <button type="button" class="eg-btn-secondary eg-btn-sm" (click)="openMovement('IN')">
+              <i class="fa-solid fa-plus"></i> Ingreso
+            </button>
+            <button type="button" class="eg-btn-secondary eg-btn-sm" (click)="openMovement('OUT')">
+              <i class="fa-solid fa-minus"></i> Retiro
+            </button>
+          </div>
+        </div>
+
+        @if (!s.movements?.length) {
+          <p class="text-sm text-[var(--dash-text-muted)] text-center py-6">
+            Sin movimientos manuales en este turno.
+          </p>
+        } @else {
+          <ul class="divide-y divide-slate-100 dark:divide-white/5">
+            @for (m of s.movements; track m.id) {
+              <li class="flex items-center gap-3 py-2.5">
+                <span class="w-8 h-8 rounded-lg grid place-items-center text-xs"
+                      [ngClass]="m.type === 'IN'
+                        ? 'bg-emerald-50 text-emerald-600 dark:bg-emerald-500/15'
+                        : 'bg-rose-50 text-rose-600 dark:bg-rose-500/15'">
+                  <i class="fa-solid" [ngClass]="m.type === 'IN' ? 'fa-arrow-down' : 'fa-arrow-up'"></i>
+                </span>
+                <div class="flex-1 min-w-0">
+                  <p class="text-sm font-semibold">{{ m.type_label }}</p>
+                  <p class="text-xs text-[var(--dash-text-muted)] truncate">
+                    {{ m.reason || 'Sin motivo' }} · {{ m.created_by_name }} · {{ m.created_at | date:'HH:mm' }}
+                  </p>
+                </div>
+                <span class="font-bold tabular-nums"
+                      [ngClass]="m.type === 'IN' ? 'text-emerald-600' : 'text-rose-600'">
+                  {{ m.type === 'IN' ? '+' : '−' }}{{ money(m.amount) }}
+                </span>
+              </li>
+            }
+          </ul>
+        }
+      </section>
+    }
+
+    <!-- PASO 2 · Conteo -->
+    @if (step() === 1) {
+      <section class="eg-card-padded">
+        <h2 class="font-bold text-lg mb-1">Conteo de efectivo</h2>
+        <p class="text-sm text-[var(--dash-text-muted)] mb-5">
+          Cuenta el dinero que queda físicamente en la caja. Aún no se compara con lo esperado.
+        </p>
+        <dlx-cash-count [value]="lines()" (valueChange)="lines.set($event)"
+                        (totalChange)="counted.set($event)"
+                        totalLabel="Total contado"
+                        totalHint="Efectivo real que hay en el cajón ahora mismo." />
+      </section>
+    }
+
+    <!-- PASO 3 · Resultado -->
+    @if (step() === 2) {
+      <section class="eg-card-padded">
+        <h2 class="font-bold text-lg mb-1">Resultado del cierre</h2>
+        <p class="text-sm text-[var(--dash-text-muted)] mb-5">Así queda el arqueo del turno.</p>
+
+        <dl class="text-sm max-w-3xl">
+          <div class="flex justify-between py-2.5 border-b border-slate-100 dark:border-white/5">
+            <dt class="text-[var(--dash-text-muted)]">Fondo inicial</dt>
+            <dd class="font-semibold tabular-nums">{{ money(s.opening_amount) }}</dd>
+          </div>
+          <div class="flex justify-between py-2.5 border-b border-slate-100 dark:border-white/5">
+            <dt class="text-[var(--dash-text-muted)]">(+) Ventas en efectivo</dt>
+            <dd class="font-semibold tabular-nums">{{ money(totals()?.cash_sales) }}</dd>
+          </div>
+          <div class="flex justify-between py-2.5 border-b border-slate-100 dark:border-white/5">
+            <dt class="text-[var(--dash-text-muted)]">(+) Ingresos manuales</dt>
+            <dd class="font-semibold tabular-nums">{{ money(totals()?.cash_in) }}</dd>
+          </div>
+          <div class="flex justify-between py-2.5 border-b border-slate-100 dark:border-white/5">
+            <dt class="text-[var(--dash-text-muted)]">(+) Diferencias de cambios cobradas</dt>
+            <dd class="font-semibold tabular-nums">{{ money(totals()?.change_in) }}</dd>
+          </div>
+          <div class="flex justify-between py-2.5 border-b border-slate-100 dark:border-white/5">
+            <dt class="text-[var(--dash-text-muted)]">(−) Gastos en efectivo</dt>
+            <dd class="font-semibold tabular-nums">{{ money(totals()?.expenses_cash) }}</dd>
+          </div>
+          <div class="flex justify-between py-2.5 border-b border-slate-100 dark:border-white/5">
+            <dt class="text-[var(--dash-text-muted)]">(−) Retiros</dt>
+            <dd class="font-semibold tabular-nums">{{ money(totals()?.cash_out) }}</dd>
+          </div>
+          <div class="flex justify-between py-2.5 border-b border-slate-100 dark:border-white/5">
+            <dt class="text-[var(--dash-text-muted)]">(−) Cambios devueltos al cliente</dt>
+            <dd class="font-semibold tabular-nums">{{ money(totals()?.change_out) }}</dd>
+          </div>
+          <div class="flex justify-between py-3 border-b-2 border-slate-200 dark:border-white/10">
+            <dt class="font-bold text-[var(--dash-primary)]">Total esperado</dt>
+            <dd class="font-bold tabular-nums text-[var(--dash-primary)]">{{ money(expected()) }}</dd>
+          </div>
+          <div class="flex justify-between py-3">
+            <dt class="font-bold">Efectivo contado</dt>
+            <dd class="font-bold tabular-nums">{{ money(counted()) }}</dd>
+          </div>
+        </dl>
+
+        <div class="mt-2 max-w-3xl rounded-xl px-5 py-4 border text-center"
+             [ngClass]="isBalanced()
+               ? 'border-emerald-200 bg-emerald-50 dark:bg-emerald-500/10 dark:border-emerald-500/25'
+               : (difference() > 0
+                   ? 'border-blue-200 bg-blue-50 dark:bg-blue-500/10 dark:border-blue-500/25'
+                   : 'border-rose-200 bg-rose-50 dark:bg-rose-500/10 dark:border-rose-500/25')">
+          <div class="flex items-center justify-between gap-4">
+            <span class="font-bold">Diferencia</span>
+            <span class="text-2xl font-display font-bold tabular-nums"
+                  [ngClass]="isBalanced() ? 'text-emerald-700 dark:text-emerald-300'
+                             : (difference() > 0 ? 'text-blue-700 dark:text-blue-300'
+                                                 : 'text-rose-700 dark:text-rose-300')">
+              {{ difference() > 0 ? '+' : (difference() < 0 ? '−' : '') }}{{ money(abs(difference())) }}
+            </span>
+          </div>
+          <p class="text-sm font-semibold mt-2"
+             [ngClass]="isBalanced() ? 'text-emerald-700 dark:text-emerald-300'
+                        : (difference() > 0 ? 'text-blue-700 dark:text-blue-300'
+                                            : 'text-rose-700 dark:text-rose-300')">
+            @if (isBalanced()) {
+              <i class="fa-solid fa-circle-check"></i> Cuadre correcto
+            } @else if (difference() > 0) {
+              <i class="fa-solid fa-circle-info"></i> Sobrante: hay más efectivo del esperado
+            } @else {
+              <i class="fa-solid fa-triangle-exclamation"></i> Faltante: hay menos efectivo del esperado
+            }
+          </p>
+        </div>
+
+        <div class="mt-5 max-w-3xl">
+          <label class="eg-label">Observaciones (opcional)</label>
+          <textarea class="eg-input" rows="3" [(ngModel)]="note" maxlength="300"
+                    placeholder="Escribe alguna observación del cierre…"></textarea>
+        </div>
+      </section>
+    }
+
+    <!-- PASO 4 · Confirmación -->
+    @if (step() === 3) {
+      <section class="eg-card-padded text-center py-10">
+        <div class="w-16 h-16 rounded-2xl bg-[var(--dash-primary)]/10 text-[var(--dash-primary)]
+                    grid place-items-center mx-auto mb-4">
+          <i class="fa-solid fa-lock text-2xl"></i>
+        </div>
+        <h2 class="text-xl font-bold">¿Cerrar la caja {{ s.code }}?</h2>
+        <p class="text-sm text-[var(--dash-text-muted)] mt-1 max-w-md mx-auto">
+          Al cerrar se congela el resumen del turno. Las ventas que se registren después
+          necesitarán una caja nueva.
+        </p>
+
+        <div class="grid grid-cols-1 sm:grid-cols-3 gap-3 max-w-2xl mx-auto mt-6 text-left">
+          <div class="rounded-xl border border-slate-200 dark:border-white/10 px-4 py-3">
+            <p class="text-[10px] uppercase tracking-widest font-bold text-slate-400">Esperado</p>
+            <p class="text-lg font-bold tabular-nums mt-0.5">{{ money(expected()) }}</p>
+          </div>
+          <div class="rounded-xl border border-slate-200 dark:border-white/10 px-4 py-3">
+            <p class="text-[10px] uppercase tracking-widest font-bold text-slate-400">Contado</p>
+            <p class="text-lg font-bold tabular-nums mt-0.5">{{ money(counted()) }}</p>
+          </div>
+          <div class="rounded-xl border px-4 py-3"
+               [ngClass]="isBalanced()
+                 ? 'border-emerald-200 bg-emerald-50 dark:bg-emerald-500/10 dark:border-emerald-500/25'
+                 : 'border-amber-200 bg-amber-50 dark:bg-amber-500/10 dark:border-amber-500/25'">
+            <p class="text-[10px] uppercase tracking-widest font-bold text-slate-400">Diferencia</p>
+            <p class="text-lg font-bold tabular-nums mt-0.5">{{ money(difference()) }}</p>
+          </div>
+        </div>
+      </section>
+    }
+
+    <!-- Navegación -->
+    <div class="flex items-center justify-between gap-3 mt-4">
+      @if (step() === 0) {
+        <a routerLink="/app/admin/pos" class="eg-btn-ghost">Cancelar</a>
+      } @else {
+        <button type="button" class="eg-btn-secondary" (click)="back()">
+          <i class="fa-solid fa-arrow-left"></i> Atrás
+        </button>
+      }
+
+      @if (step() < steps.length - 1) {
+        <button type="button" class="eg-btn-primary" (click)="next()">
+          Siguiente <i class="fa-solid fa-arrow-right"></i>
+        </button>
+      } @else {
+        <button type="button" class="eg-btn-primary" (click)="close()" [disabled]="saving()">
+          @if (saving()) { <i class="fa-solid fa-spinner fa-spin"></i> Cerrando… }
+          @else { <i class="fa-solid fa-lock"></i> Cerrar caja }
+        </button>
+      }
+    </div>
+  }
+
+  <!-- Modal de movimiento manual -->
+  <dlx-modal [open]="movOpen()" [maxWidth]="440"
+             [title]="movType() === 'IN' ? 'Registrar ingreso' : 'Registrar retiro'"
+             [subtitle]="movType() === 'IN'
+               ? 'Dinero que entra al cajón y no viene de una venta.'
+               : 'Dinero que sale del cajón (bóveda, depósito, etc.).'"
+             (closed)="movOpen.set(false)">
+    <div class="space-y-4">
+      <div>
+        <label class="eg-label">Monto <span class="text-rose-500">*</span></label>
+        <dlx-price-input [(ngModel)]="movAmount" [nullable]="true" extraClass="w-full" />
+      </div>
+      <div>
+        <label class="eg-label">Motivo</label>
+        <input class="eg-input" [(ngModel)]="movReason" maxlength="200"
+               placeholder="Ej: Depósito a bóveda" />
+      </div>
+      <div class="flex items-center justify-end gap-2 pt-2">
+        <button type="button" class="eg-btn-ghost" (click)="movOpen.set(false)">Cancelar</button>
+        <button type="button" class="eg-btn-primary" (click)="saveMovement()"
+                [disabled]="movSaving() || !movAmount || movAmount <= 0">
+          @if (movSaving()) { <i class="fa-solid fa-spinner fa-spin"></i> Guardando… }
+          @else { Registrar }
+        </button>
+      </div>
+    </div>
+  </dlx-modal>
+</div>

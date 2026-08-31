@@ -7,7 +7,7 @@ import { BranchContextService } from '@core/services/branch-context.service';
 import { DlxExportMenuComponent } from '@shared/ui/export-menu.component';
 import { DlxSearchInputComponent } from '@shared/ui/search-input.component';
 import { ExportColumn, PdfLogo } from '@shared/utils/export.util';
-import { exportBalancePdf } from '@shared/utils/balance-report.util';
+import { balancePdfBlob, exportBalancePdf } from '@shared/utils/balance-report.util';
 import {
   ExpenseService, FinanceSummary, FinanceTopProduct, FinanceTxn, FinanceTxnPage,
 } from '@features/superadmin/services/expense.service';
@@ -137,6 +137,28 @@ export class FinanzasResumenComponent {
   nextPage(): void { if (this.page() < this.totalPages()) this.page.update(v => v + 1); }
 
   // Exportación: resumen (Balance/Ventas/Gastos) + productos más vendidos
+  /** Ventas por forma de pago. "Otros" solo se muestra si tiene movimiento,
+   *  para no ensuciar la fila de KPIs con una tarjeta siempre en cero. */
+  payMethods = computed(() =>
+    (this.data()?.ventas_by_method ?? [])
+      .filter(m => m.method !== 'otros' || Number(m.total) !== 0 || m.count > 0));
+
+  payIcon(method: string): string {
+    return ({
+      efectivo: 'fa-money-bill-wave text-emerald-500',
+      tarjeta: 'fa-credit-card text-blue-500',
+      transferencia: 'fa-arrow-right-arrow-left text-violet-500',
+      otros: 'fa-ellipsis text-slate-400',
+    } as Record<string, string>)[method] ?? 'fa-ellipsis text-slate-400';
+  }
+
+  /** % que representa una forma de pago sobre las ventas del período. */
+  payShare(m: { total: string }): string {
+    const total = Number(this.data()?.ventas || 0);
+    if (!total) return '0';
+    return ((Number(m.total || 0) / total) * 100).toFixed(1);
+  }
+
   readonly exportColumns: ExportColumn<{ seccion: string; concepto: string; valor: string }>[] = [
     { header: 'Sección', key: 'seccion' },
     { header: 'Concepto', key: 'concepto' },
@@ -150,6 +172,13 @@ export class FinanzasResumenComponent {
     rows.push({ seccion: 'RESUMEN', concepto: 'Gastos totales', valor: $(d.gastos) });
     rows.push({ seccion: 'RESUMEN', concepto: 'Balance', valor: $(this.balance()) });
     rows.push({ seccion: 'RESUMEN', concepto: 'Número de ventas', valor: String(d.orders ?? 0) });
+    for (const m of (d.ventas_by_method ?? [])) {
+      rows.push({
+        seccion: 'VENTAS POR FORMA DE PAGO',
+        concepto: `${m.label} (${m.count} venta(s))`,
+        valor: $(m.total),
+      });
+    }
     for (const p of this.topProducts()) rows.push({ seccion: 'PRODUCTOS MÁS VENDIDOS', concepto: p.product, valor: p.qty + ' u · ' + $(p.revenue) });
     return rows;
   });
@@ -163,11 +192,11 @@ export class FinanzasResumenComponent {
    * Se conecta a la opción "PDF" del menú de exportación; CSV/Excel siguen usando
    * la utilidad genérica con `exportColumns`/`exportRows`.
    */
-  onExportPdf = async ({ logo, brandName }: { logo: PdfLogo | null; brandName: string }): Promise<void> => {
+  private async buildBalanceReport({ logo, brandName }: { logo: PdfLogo | null; brandName: string }) {
     const d = this.data();
-    if (!d) return;
+    if (!d) return null;
     const r = this.range();
-    if (!this.validRange(r)) return;
+    if (!this.validRange(r)) return null;
 
     // Trae TODAS las transacciones del período (sin paginar, sin filtro de tipo/búsqueda).
     let page: FinanceTxnPage | null = null;
@@ -183,7 +212,7 @@ export class FinanzasResumenComponent {
       party: t.party, method: t.method, amount: Number(t.amount || 0),
     }));
 
-    exportBalancePdf({
+    return {
       storeName: this.ctx.currentName(),
       brandName,
       logo,
@@ -195,11 +224,25 @@ export class FinanzasResumenComponent {
       compras: Number(d.compras || 0),
       comprasUnits: d.compras_units ?? 0,
       topProducts: this.topProducts().map(p => ({ product: p.product, qty: p.qty, revenue: Number(p.revenue || 0) })),
+      payMethods: (d.ventas_by_method ?? []).map(m => ({
+        label: m.label, total: Number(m.total || 0), count: m.count,
+      })),
       txns,
       ingresosTotal: Number(page?.ingresos_total || 0),
       egresosTotal: Number(page?.egresos_total || 0),
       txnBalance: page ? Number(page.balance || 0) : this.balance(),
-    });
+    };
+  }
+
+  onExportPdf = async (o: { logo: PdfLogo | null; brandName: string }): Promise<void> => {
+    const data = await this.buildBalanceReport(o);
+    if (data) exportBalancePdf(data);
+  };
+
+  onSharePdf = async (o: { logo: PdfLogo | null; brandName: string }): Promise<Blob> => {
+    const data = await this.buildBalanceReport(o);
+    if (!data) throw new Error('Sin datos del balance para compartir.');
+    return balancePdfBlob(data);
   };
 
   money(n: string | number | undefined): string { return Number(n || 0).toLocaleString('es-EC', { minimumFractionDigits: 2, maximumFractionDigits: 2 }); }

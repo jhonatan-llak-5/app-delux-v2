@@ -474,6 +474,14 @@ html.dark .eg-switch.is-on { background-color: var(--dash-primary); }
 /* FontAwesome */
 .fa, .fas, .fab, .fa-solid, .fa-brands { line-height: 1; }
 
+/* FontAwesome 7 fija `width: var(--fa-width, 1.25em)` en el icono. Cuando se le
+ * pone `block` (para apilarlo encima de un texto, como en los estados vacios),
+ * ese ancho fijo lo deja pegado a la izquierda en vez de centrarse con el
+ * text-align del contenedor. Si es de bloque, que ocupe el ancho disponible:
+ * el propio text-align:center de FA centra el glifo dentro. */
+.fa.block, .fas.block, .far.block, .fab.block,
+.fa-solid.block, .fa-regular.block, .fa-brands.block { width: auto; }
+
 /* Scrollbar */
 .scrollbar-hide { -ms-overflow-style: none; scrollbar-width: none; }
 .scrollbar-hide::-webkit-scrollbar { display: none; }

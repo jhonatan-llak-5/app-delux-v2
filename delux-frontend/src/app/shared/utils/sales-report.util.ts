@@ -97,6 +97,15 @@ function timestampedName(base: string): string {
 
 /** Genera y descarga el PDF del reporte de Ventas. */
 export function exportSalesPdf(d: SalesReportData): void {
+  buildSalesDoc(d).save(timestampedName('ventas'));
+}
+
+/** El mismo PDF como Blob, para compartirlo por la hoja nativa. */
+export function salesPdfBlob(d: SalesReportData): Blob {
+  return buildSalesDoc(d).output('blob');
+}
+
+function buildSalesDoc(d: SalesReportData): jsPDF {
   const doc = new jsPDF({ orientation: 'p', unit: 'mm', format: 'a4' });
   const pageW = doc.internal.pageSize.getWidth();
   const rightX = pageW - MARGIN;
@@ -216,5 +225,5 @@ export function exportSalesPdf(d: SalesReportData): void {
     doc.text(`Página ${i} de ${total}`, rightX, pageH - 8, { align: 'right' });
   }
 
-  doc.save(timestampedName('ventas'));
+  return doc;
 }
