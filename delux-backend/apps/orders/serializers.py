@@ -336,17 +336,10 @@ class POSCheckoutSerializer(serializers.Serializer):
         try: _safe_broadcast(order)
         except Exception as e: print(f'[broadcast_pos] {e}')
 
-        # Comprobante por email (solo si el cliente dejó un correo válido).
-        # Se ENCOLA en segundo plano para no bloquear el cobro en el POS: la
-        # respuesta vuelve al instante y el correo se envía después (Celery).
-        # Si el broker no está disponible, dispatch() cae a envío en línea.
-        if customer and getattr(customer, 'email', ''):
-            try:
-                from apps.accounts.tasks import dispatch
-                from apps.notifications.tasks import send_pos_receipt_email
-                dispatch(send_pos_receipt_email, order.id)
-            except Exception as e:
-                print(f'[pos_receipt] {e}')
+        # NO se envía comprobante por correo en las ventas del POS: el cliente
+        # se lleva el impreso del local, así que el correo solo agregaba ruido.
+        # La plantilla y send_pos_receipt_email() siguen existiendo por si se
+        # quiere reactivar; esto es lo único que había que quitar.
 
         # Factura electrónica (NovaFactura), en segundo plano y sin bloquear el
         # cobro. Solo se dispara si la facturación está activa en la config.
