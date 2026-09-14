@@ -396,15 +396,14 @@ export class SaleDetailComponent implements OnInit, OnDestroy {
   }
 
   /**
-   * ¿Se puede imprimir el comprobante? Con factura electrónica activa, solo
-   * cuando está AUTORIZADA (ya tiene N° y clave de acceso). Sin factura
-   * electrónica, se imprime como recibo simple de la venta.
+   * El comprobante SIEMPRE se puede imprimir, igual que en el POS: una venta
+   * sin factura sale como nota de venta, y una con factura en curso sale con
+   * lo que ya se tenga (N° y, si llegó, clave de acceso). Nunca se bloquea al
+   * vendedor esperando la autorización del SRI: el estado real de la factura
+   * se ve en la tarjeta "Factura electrónica" de esta misma pantalla.
    */
   canPrintReceipt(): boolean {
-    const o = this.order();
-    if (!o) return false;
-    if (!this.einvoiceEnabled()) return true;
-    return o.invoice_status === 'AUTHORIZED';
+    return !!this.order();
   }
 
   // ── Factura electrónica ──
