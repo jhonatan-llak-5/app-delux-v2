@@ -91,7 +91,8 @@ def build_emit_payload(order, cfg) -> dict:
     }
 
 
-def _mark(order, *, status, invoice_id=None, invoice_number=None, error=None):
+def _mark(order, *, status, invoice_id=None, invoice_number=None,
+          access_key=None, error=None):
     from apps.orders.models import Order
     fields = ["invoice_status", "invoice_updated_at"]
     order.invoice_status = status
@@ -102,6 +103,13 @@ def _mark(order, *, status, invoice_id=None, invoice_number=None, error=None):
     if invoice_number is not None:
         order.invoice_number = invoice_number or ""
         fields.append("invoice_number")
+    # La clave de acceso la calcula NovaFactura al armar el XML, antes de que el
+    # SRI conteste, así que ya viene en la respuesta de emit. Guardarla aquí evita
+    # esperar al webhook para poder imprimirla en el comprobante.
+    # Nunca se borra con un valor vacío: el webhook es la fuente definitiva.
+    if access_key:
+        order.invoice_access_key = access_key
+        fields.append("invoice_access_key")
     if error is not None:
         order.invoice_error = (error or "")[:400]
         fields.append("invoice_error")
@@ -147,6 +155,7 @@ def emit_invoice(order) -> None:
             order, status=Order.InvoiceStatus.PROCESSING,
             invoice_id=data.get("invoice_id", ""),
             invoice_number=data.get("document_number", ""),
+            access_key=data.get("access_key") or "",
             error="",
         )
     else:
