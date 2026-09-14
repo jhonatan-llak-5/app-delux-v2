@@ -31,6 +31,17 @@ import { imgOrPlaceholder, onImageError } from '@shared/utils/img-placeholder';
 import { ViewMode, readViewPref, writeViewPref } from '@shared/utils/view-pref.util';
 import { ConfirmService } from '@shared/components/confirm/confirm.service';
 
+/** Sondeo rápido mientras el cajero mira la pantalla de espera (ms). */
+const WAIT_POLL_MS = 1000;
+/** Sondeo lento una vez mostrado el popup: ahí ya solo falta que el SRI
+ *  autorice, y eso nadie lo está esperando de pie (ms). */
+const IDLE_POLL_MS = 3000;
+/** Tope de la espera del popup. Pasado esto se muestra igual, con o sin código:
+ *  el cajero no se queda bloqueado y la factura sigue resolviéndose atrás. */
+const MAX_WAIT_MS = 5000;
+/** Tope total del sondeo tras la venta. */
+const MAX_POLL_MS = 60000;
+
 interface CartItem {
   variant_id: number;
   product_name: string;
@@ -113,6 +124,15 @@ export class PosComponent implements OnInit, OnDestroy {
   }
   error = signal<string | null>(null);
   completedOrder = signal<Order | null>(null);
+  /** Pantalla de espera tras cobrar: retiene el popup los segundos en los que
+   *  llega el código de la factura, para que el comprobante se imprima con él.
+   *  No espera la autorización del SRI (eso tarda): basta el número y la clave,
+   *  que el backend guarda apenas NovaFactura responde. */
+  invoiceWait = signal(false);
+  /** ¿La orden ya trae un código imprimible (N° de factura o clave de acceso)? */
+  private hasInvoiceCode(o: Order | null): boolean {
+    return !!(o && (o.invoice_number || o.invoice_access_key));
+  }
   customerData: Record<string, string> = {
     full_name: '', email: '', phone: '', document_id: '',
     document_type: '05', business_name: '', address: '', province: '',
@@ -487,6 +507,13 @@ export class PosComponent implements OnInit, OnDestroy {
       next: order => {
         this.saving.set(false);
         this.completedOrder.set(order);
+        // Si la factura está en curso y todavía no tiene código, se muestra la
+        // pantalla de espera en vez del popup de venta exitosa.
+        const st = order.invoice_status || '';
+        this.invoiceWait.set(
+          this.einvoiceEnabled() && (st === 'PROCESSING' || st === 'PENDING_SRI')
+          && !this.hasInvoiceCode(order),
+        );
         this.startInvoicePolling(order);
       },
       error: e => {
@@ -506,14 +533,24 @@ export class PosComponent implements OnInit, OnDestroy {
     if (this.completedOrder()) printVoucherPDF(this.completedOrder()!, this.branding.receiptBusiness());
   }
 
-  /** ¿Se puede imprimir ya el comprobante? Sin factura electrónica, siempre;
-   *  con factura, solo cuando el SRI la AUTORIZA (ya tiene N° y clave). */
-  receiptReady(): boolean {
+  /** El comprobante siempre se puede imprimir desde el popup: nunca se bloquea
+   *  al cajero. Lo que sí avisamos es cuándo saldrá incompleto. */
+  missingAccessKey(): boolean {
     const o = this.completedOrder();
-    if (!o) return false;
-    if (!this.einvoiceEnabled()) return true;
+    if (!o || !this.einvoiceEnabled()) return false;
     const st = o.invoice_status || '';
-    return st !== 'PROCESSING' && st !== 'PENDING_SRI';
+    return (st === 'PROCESSING' || st === 'PENDING_SRI') && !o.invoice_access_key;
+  }
+
+  /** Sale de la pantalla de espera y muestra el popup de una vez. El sondeo
+   *  sigue corriendo: si el código llega después, aparece solo. */
+  skipInvoiceWait(): void { this.invoiceWait.set(false); }
+
+  /** Código de la factura para mostrar en el popup: la clave de acceso si ya
+   *  llegó, si no el número de factura. */
+  invoiceCode(): string {
+    const o = this.completedOrder();
+    return o?.invoice_access_key || o?.invoice_number || '';
   }
 
   /** Navega al detalle de la venta (donde también se puede imprimir). */
@@ -528,28 +565,44 @@ export class PosComponent implements OnInit, OnDestroy {
   private pollTimer: any = null;
   private startInvoicePolling(order: Order): void {
     this.stopInvoicePolling();
-    // Sin factura electrónica o ya autorizada: no hace falta consultar.
+    // Solo consultamos si la factura está EN CURSO (PROCESSING/PENDING_SRI).
+    // Sin facturación, ya autorizada, o venta sin factura: no hace falta.
     const st0 = order.invoice_status || '';
     if (!this.einvoiceEnabled() || (st0 !== 'PROCESSING' && st0 !== 'PENDING_SRI')) return;
-    let attempts = 0;
-    this.pollTimer = setInterval(() => {
-      attempts++;
-      const cur = this.completedOrder();
-      if (!cur || cur.id !== order.id) { this.stopInvoicePolling(); return; }
-      this.ord.get(order.id).subscribe({
-        next: o => {
-          this.completedOrder.set(o);
-          if (['AUTHORIZED', 'REJECTED', 'ANNULLED'].includes(o.invoice_status || '')) {
-            this.stopInvoicePolling();
-          }
-        },
-        error: () => {},
-      });
-      if (attempts >= 20) this.stopInvoicePolling();   // deja de insistir (~1 min)
-    }, 3000);
+    // Cadencia variable: rápido mientras hay alguien esperando la pantalla,
+    // lento después. Por eso es setTimeout encadenado y no setInterval.
+    let elapsed = 0;
+    const DONE = ['AUTHORIZED', 'REJECTED', 'ANNULLED', 'ERROR'];
+    const tick = () => {
+      const delay = this.invoiceWait() ? WAIT_POLL_MS : IDLE_POLL_MS;
+      this.pollTimer = setTimeout(() => {
+        elapsed += delay;
+        const cur = this.completedOrder();
+        if (!cur || cur.id !== order.id) { this.stopInvoicePolling(); return; }
+        // Al llegar al tope se suelta la espera aunque no haya código: el
+        // comprobante saldrá sin número, pero el cajero sigue atendiendo.
+        if (elapsed >= MAX_WAIT_MS) this.invoiceWait.set(false);
+        this.ord.get(order.id).subscribe({
+          next: o => {
+            this.completedOrder.set(o);
+            const done = DONE.includes(o.invoice_status || '');
+            // En cuanto hay código (o el SRI ya resolvió), se suelta la espera y
+            // aparece el popup de venta exitosa con el número a la vista.
+            if (this.hasInvoiceCode(o) || done) this.invoiceWait.set(false);
+            if (done || elapsed >= MAX_POLL_MS) { this.stopInvoicePolling(); return; }
+            tick();
+          },
+          error: () => {
+            if (elapsed >= MAX_POLL_MS) { this.stopInvoicePolling(); return; }
+            tick();
+          },
+        });
+      }, delay);
+    };
+    tick();
   }
   private stopInvoicePolling(): void {
-    if (this.pollTimer) { clearInterval(this.pollTimer); this.pollTimer = null; }
+    if (this.pollTimer) { clearTimeout(this.pollTimer); this.pollTimer = null; }
   }
   ngOnDestroy(): void { this.stopInvoicePolling(); }
 
@@ -563,6 +616,11 @@ export class PosComponent implements OnInit, OnDestroy {
     this.plazo.set(1);
     this.unidad.set('meses');
     this.completedOrder.set(null);
+    this.invoiceWait.set(false);
+    // La factura se pide POR VENTA: el check vuelve a apagarse en cada venta
+    // nueva. Si quedara encendido, el vendedor facturaría sin querer la compra
+    // del siguiente cliente, que casi siempre no la pide.
+    this.wantInvoice.set(false);
     this.customerData = this.blankCustomer();
     this.customerId.set(null);
     this.custQuery = '';
