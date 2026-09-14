@@ -507,6 +507,7 @@ export class PosComponent implements OnInit, OnDestroy {
       next: order => {
         this.saving.set(false);
         this.completedOrder.set(order);
+        this.playSaleSound();
         // Si la factura está en curso y todavía no tiene código, se muestra la
         // pantalla de espera en vez del popup de venta exitosa.
         const st = order.invoice_status || '';
@@ -528,6 +529,31 @@ export class PosComponent implements OnInit, OnDestroy {
     });
   }
 
+
+  /** Beep corto y agradable ("ding-ding") al completar una venta. Web Audio,
+   *  sin archivos. Ignora errores si el navegador bloquea el audio. */
+  private playSaleSound(): void {
+    try {
+      const AC = (window as any).AudioContext || (window as any).webkitAudioContext;
+      if (!AC) return;
+      const ctx = new AC();
+      ctx.resume?.();
+      const now = ctx.currentTime;
+      [880, 1174.66].forEach((f, i) => {
+        const o = ctx.createOscillator();
+        const g = ctx.createGain();
+        o.type = 'sine';
+        o.frequency.value = f;
+        const t0 = now + i * 0.12;
+        g.gain.setValueAtTime(0.0001, t0);
+        g.gain.exponentialRampToValueAtTime(0.28, t0 + 0.02);
+        g.gain.exponentialRampToValueAtTime(0.0001, t0 + 0.20);
+        o.connect(g); g.connect(ctx.destination);
+        o.start(t0); o.stop(t0 + 0.22);
+      });
+      setTimeout(() => { try { ctx.close(); } catch {} }, 700);
+    } catch { /* audio bloqueado: sin sonido */ }
+  }
 
   printVoucher() {
     if (this.completedOrder()) printVoucherPDF(this.completedOrder()!, this.branding.receiptBusiness());
