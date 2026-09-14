@@ -18,6 +18,13 @@ def emit_invoice_task(self, order_id):
     try:
         emit_invoice(order)
     except Exception as exc:
+        # Un 4xx de NovaFactura es un error de datos o de configuración (sin
+        # certificado, Consumidor Final sobre el tope, total en cero): reintentar
+        # da exactamente lo mismo. La orden ya quedó marcada como ERROR con el
+        # motivo y se reemite a mano desde el detalle de la venta.
+        resp = getattr(exc, 'response', None)
+        if resp is not None and 400 <= getattr(resp, 'status_code', 0) < 500:
+            return
         try:
             raise self.retry(exc=exc)
         except self.MaxRetriesExceededError:

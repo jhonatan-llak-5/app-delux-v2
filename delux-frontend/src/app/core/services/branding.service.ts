@@ -10,6 +10,7 @@ interface BrandConfig {
   business_ruc?: string;
   business_address?: string;
   business_phone?: string;
+  einvoice_environment?: string;   // 'TEST' | 'PROD' (ambiente SRI)
   site_logo_url?: string | null;
   site_favicon_url?: string | null;
   affiliate_commission_rate?: number;
@@ -149,6 +150,8 @@ export class BrandingService {
   readonly businessRuc = computed(() => this._cfg()?.business_ruc || '');
   readonly businessAddress = computed(() => this._cfg()?.business_address || '');
   readonly businessPhone = computed(() => this._cfg()?.business_phone || '');
+  /** Ambiente de facturacion electronica configurado ('TEST' | 'PROD'). */
+  readonly einvoiceEnvironment = computed(() => (this._cfg()?.einvoice_environment || '').toUpperCase());
 
   /** Datos del emisor para el encabezado del comprobante de venta impreso. */
   receiptBusiness() {
@@ -159,6 +162,7 @@ export class BrandingService {
       address: this.businessAddress(),
       phone: this.businessPhone(),
       taxRate: this.taxRate(),
+      environment: this.einvoiceEnvironment(),
     };
   }
 

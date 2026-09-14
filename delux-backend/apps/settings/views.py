@@ -210,6 +210,9 @@ class PublicUploadConfigView(APIView):
             'business_ruc': c.business_ruc or '',
             'business_address': c.business_address or '',
             'business_phone': c.business_phone or '',
+            # Ambiente de facturacion electronica (TEST/PROD). Lo imprime el
+            # comprobante como AMBIENTE: PRUEBAS / PRODUCCION, que el RIDE exige.
+            'einvoice_environment': c.einvoice_environment or 'TEST',
             'site_logo_url': _url(getattr(c, 'site_logo', None)),
             'site_favicon_url': _url(getattr(c, 'site_favicon', None)),
             'payphone_available': bool(
