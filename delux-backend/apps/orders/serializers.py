@@ -351,10 +351,24 @@ class POSCheckoutSerializer(serializers.Serializer):
         # Factura electrónica (NovaFactura), en segundo plano y sin bloquear el
         # cobro. Solo se dispara si la facturación está activa en la config.
         if want_invoice:
+            # La emisión es asíncrona, pero la orden se marca PROCESSING aquí
+            # mismo: es la señal que mira el POS para quedarse sondeando hasta
+            # que lleguen el número y la clave de acceso. Sin esta marca la
+            # respuesta del cobro sale como NOT_ISSUED, el POS no sondea y el
+            # comprobante se imprime sin datos de factura (solo aparecen al
+            # entrar al detalle). enqueue_invoice la pasa a ERROR si el broker
+            # está caído, y el refresh trae número y clave si la emisión ya
+            # alcanzó a responder.
+            from apps.settings.models import PlatformSettings as _PSinv
+            if getattr(_PSinv.load(), 'einvoice_enabled', False):
+                order.invoice_status = Order.InvoiceStatus.PROCESSING
+                order.invoice_updated_at = timezone.now()
+                order.save(update_fields=['invoice_status', 'invoice_updated_at'])
             try:
                 from apps.orders.einvoice import enqueue_invoice
                 enqueue_invoice(order)
             except Exception as e:
                 print(f'[einvoice] {e}')
+            order.refresh_from_db()
 
         return order
