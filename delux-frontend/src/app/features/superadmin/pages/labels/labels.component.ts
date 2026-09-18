@@ -9,7 +9,9 @@ import { BranchContextService } from '@core/services/branch-context.service';
 import { BrandingService } from '@core/services/branding.service';
 import { NotifyService } from '@shared/services/notify.service';
 import { InventoryService, Stock, ProductGroup } from '@features/superadmin/services/inventory.service';
-import { printProductLabels, LabelItem } from '@shared/utils/print-labels';
+import { printProductLabels, LabelItem, LABEL_SIZES, labelSizePreset } from '@shared/utils/print-labels';
+import { StoreSettingsService } from '@features/superadmin/services/store-settings.service';
+import { AuthService } from '@core/services/auth.service';
 import { PrinterSetupGuideComponent } from '@shared/components/printer-setup-guide/printer-setup-guide.component';
 
 @Component({
@@ -29,7 +31,17 @@ import { PrinterSetupGuideComponent } from '@shared/components/printer-setup-gui
           <h1 class="text-2xl md:text-3xl font-bold tracking-tight">Etiquetas</h1>
           <p class="text-slate-500 text-sm mt-1">Busca productos, elige cuáles imprimir y genera las etiquetas en lote.</p>
         </div>
-        <div class="flex items-center gap-2">
+        <div class="flex flex-wrap items-center gap-2">
+          @if (canEditSize()) {
+            <label class="inline-flex items-center gap-2 text-sm text-slate-500" title="Tamaño de etiqueta (se guarda para toda la tienda)">
+              <i class="fa-solid fa-ruler-combined"></i>
+              <select class="eg-input !h-10 text-sm" [ngModel]="branding.labelSize()" (ngModelChange)="changeSize($event)" [disabled]="savingSize()">
+                @for (s of sizes; track s.id) { <option [value]="s.id">{{ s.title }}</option> }
+              </select>
+            </label>
+          } @else {
+            <span class="text-sm text-slate-500"><i class="fa-solid fa-ruler-combined mr-1"></i>{{ sizePreset().title }}</span>
+          }
           <button type="button" (click)="guide.open()" class="btn-secondary text-sm">
             <i class="fa-solid fa-circle-question"></i> Configurar impresora
           </button>
@@ -176,13 +188,15 @@ import { PrinterSetupGuideComponent } from '@shared/components/printer-setup-gui
                         (pageChange)="onPage($event)" (pageSizeChange)="onSize($event)" />
       }
 
-      <p class="text-[11px] text-slate-400">La etiqueta (50×30 mm) incluye el nombre, el código interno como código de barras y el precio con IVA.</p>
+      <p class="text-[11px] text-slate-400">La etiqueta ({{ sizePreset().title }}) incluye el nombre, el código interno como código de barras y el precio con IVA.</p>
     </div>
   `,
 })
 export class LabelsComponent {
   private inv = inject(InventoryService);
-  private branding = inject(BrandingService);
+  branding = inject(BrandingService);
+  private storeSvc = inject(StoreSettingsService);
+  private auth = inject(AuthService);
   private notify = inject(NotifyService);
   ctx = inject(BranchContextService);
 
@@ -199,6 +213,12 @@ export class LabelsComponent {
   private copies = signal<Record<number, number>>({});
   /** Productos expandidos manualmente. Al buscar se expanden todos. */
   private expandedSet = signal<Set<number>>(new Set());
+
+  /** Tamaño de etiqueta (config global de la tienda). */
+  readonly sizes = LABEL_SIZES;
+  sizePreset = computed(() => labelSizePreset(this.branding.labelSize()));
+  canEditSize = computed(() => ['SUPERADMIN', 'BRANCH_MANAGER'].includes(this.auth.user()?.role ?? ''));
+  savingSize = signal(false);
 
   constructor() {
     effect(() => { this.search(); this.ctx.current(); this.page(); this.pageSize(); this.load(); },
@@ -284,6 +304,18 @@ export class LabelsComponent {
     return t;
   });
 
+  changeSize(id: string): void {
+    this.savingSize.set(true);
+    this.storeSvc.saveStoreOptions({ label_size: id }).subscribe({
+      next: () => {
+        this.branding.load();
+        this.savingSize.set(false);
+        this.notify.success(`Tamaño de etiqueta: ${labelSizePreset(id).title}`);
+      },
+      error: () => { this.savingSize.set(false); this.notify.error('No se pudo guardar el tamaño de etiqueta.'); },
+    });
+  }
+
   print(): void {
     const ids = this.selected();
     const items: LabelItem[] = this.stocks()
@@ -294,7 +326,7 @@ export class LabelsComponent {
       }));
     if (!items.length) { this.notify.warning('Selecciona al menos un producto.'); return; }
     printProductLabels(items, {
-      store: this.branding.siteName(), taxRate: this.branding.taxRate(),
+      store: this.branding.siteName(), size: this.branding.labelSize(), taxRate: this.branding.taxRate(),
       onError: m => this.notify.error(m),
     });
   }

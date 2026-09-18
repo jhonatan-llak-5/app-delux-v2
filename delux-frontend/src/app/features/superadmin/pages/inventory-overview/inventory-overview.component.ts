@@ -324,7 +324,7 @@ export class InventoryOverviewComponent implements OnInit {
     const price = s.price_override != null ? +s.price_override : +s.base_price || 0;
     printProductLabels(
       [{ sku: s.variant_sku, name: s.product_name, size: s.variant_size, price, quantity: 1 }],
-      { store: this.branding.siteName(), taxRate: this.branding.taxRate(), onError: m => this.notify.error(m) },
+      { store: this.branding.siteName(), size: this.branding.labelSize(), taxRate: this.branding.taxRate(), onError: m => this.notify.error(m) },
     );
   }
 

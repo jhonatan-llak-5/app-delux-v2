@@ -31,6 +31,7 @@ class PlatformSettingsSerializer(serializers.ModelSerializer):
             'tax_rate',
             'affiliate_commission_rate',
             'affiliate_min_payout',
+            'label_size',
             # Subidas
             'max_image_upload_mb', 'max_file_upload_mb', 'max_video_upload_mb',
             'allowed_image_extensions', 'allowed_file_extensions', 'allowed_video_extensions',

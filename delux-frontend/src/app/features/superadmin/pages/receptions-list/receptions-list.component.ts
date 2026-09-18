@@ -323,7 +323,7 @@ export class ReceptionsListComponent implements OnInit {
       quantity: Math.max(1, it.quantity),
     }));
     printProductLabels(items, {
-      store: this.branding.siteName(),
+      store: this.branding.siteName(), size: this.branding.labelSize(),
       onError: (m) => this.notify.error(m),
     });
   }

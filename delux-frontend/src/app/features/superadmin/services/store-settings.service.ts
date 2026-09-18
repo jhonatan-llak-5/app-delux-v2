@@ -22,6 +22,8 @@ export interface StoreOptions {
   delivery_enabled: boolean;
   out_of_stock_display: 'SHOW' | 'HIDE' | 'SOLD_OUT';
   consumidor_final_enabled: boolean;
+  /** Tamaño global de etiquetas: '50x30' | '40x30' | '40x25' | '35x25' | '30x20'. */
+  label_size?: string;
   einvoice_enabled?: boolean;
   einvoice_consumidor_final_max?: number;
   // Datos del negocio (emisor) para el comprobante de venta impreso.

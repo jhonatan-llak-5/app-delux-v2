@@ -1,6 +1,7 @@
 import { Injectable, computed, inject, signal } from '@angular/core';
 import { HttpClient } from '@angular/common/http';
 import { environment } from '@env/environment';
+import { labelSizePreset } from '@shared/utils/print-labels';
 
 interface BrandConfig {
   site_name?: string;
@@ -37,6 +38,8 @@ interface BrandConfig {
   pickup_enabled?: boolean;
   delivery_enabled?: boolean;
   out_of_stock_display?: 'SHOW' | 'HIDE' | 'SOLD_OUT';
+  // Etiquetas de producto
+  label_size?: string;
   // Contacto público + redes
   contact_email?: string;
   whatsapp_contact_number?: string;
@@ -113,6 +116,8 @@ export class BrandingService {
   readonly deliveryEnabled = computed(() => this._cfg()?.delivery_enabled !== false);
   /** Cómo mostrar productos sin stock: SHOW | HIDE | SOLD_OUT. */
   readonly outOfStockDisplay = computed(() => this._cfg()?.out_of_stock_display || 'SHOW');
+  /** Tamaño global de las etiquetas de producto (id tipo '35x25'). */
+  readonly labelSize = computed(() => labelSizePreset(this._cfg()?.label_size).id);
   readonly recaptchaSiteKey = computed(() => this._cfg()?.recaptcha_site_key || '');
 
   // ─── Contacto público ───

@@ -15,6 +15,7 @@ import { ScheduleEditorComponent } from '@features/superadmin/pages/schedule-edi
 import { ProductService, Product } from '@features/superadmin/services/product.service';
 import { AdminService, AdminBranch } from '@features/superadmin/services/admin.service';
 import { StoreSettingsService, StorePayments, StoreOptions } from '@features/superadmin/services/store-settings.service';
+import { LABEL_SIZES } from '@shared/utils/print-labels';
 
 type TabId = 'perfil' | 'tienda' | 'impuestos' | 'pagos' | 'notificaciones';
 
@@ -230,6 +231,25 @@ interface PdfPalette {
                     @if (o.rec) { <span class="ml-1 text-[10px] px-1.5 py-0.5 rounded-full bg-emerald-50 text-emerald-700">Recomendado</span> }
                   </p>
                   <p class="text-[11px] text-slate-500">{{ o.desc }}</p>
+                </div>
+              </label>
+            }
+          </div>
+        </div>
+
+        <!-- Tamaño de etiquetas -->
+        <div class="card p-6">
+          <h2 class="font-bold tracking-tight mb-1">Tamaño de etiquetas de producto</h2>
+          <p class="text-sm text-slate-500 mb-4">Medida del rollo de la impresora térmica. Debe coincidir con el material configurado en la impresora.</p>
+          <div class="grid sm:grid-cols-2 gap-2">
+            @for (s of labelSizes; track s.id) {
+              <label class="flex items-start gap-3 border rounded-xl p-3 cursor-pointer"
+                     [ngClass]="store.label_size === s.id ? 'border-violet-500 bg-violet-50/40' : 'border-slate-200 hover:bg-slate-50'">
+                <input type="radio" name="labelSize" [value]="s.id" [(ngModel)]="store.label_size"
+                       class="mt-1 w-4 h-4 accent-violet-500" />
+                <div>
+                  <p class="font-medium text-sm">{{ s.title }}</p>
+                  <p class="text-[11px] text-slate-500">{{ s.hint }}</p>
                 </div>
               </label>
             }
@@ -575,8 +595,9 @@ export class StoreConfigComponent implements OnInit {
   savingPay = signal(false);
 
   // Tienda
-  store: StoreOptions = { pickup_enabled: true, delivery_enabled: true, out_of_stock_display: 'SHOW', consumidor_final_enabled: false };
+  store: StoreOptions = { pickup_enabled: true, delivery_enabled: true, out_of_stock_display: 'SHOW', consumidor_final_enabled: false, label_size: '50x30' };
   savingStore = signal(false);
+  readonly labelSizes = LABEL_SIZES;
   oosOptions: { id: StoreOptions['out_of_stock_display']; title: string; desc: string; rec?: boolean }[] = [
     { id: 'SHOW',     title: 'Mostrarlos como están', desc: 'El cliente los ve igual que cualquier otro.' },
     { id: 'HIDE',     title: 'Ocultarlos del catálogo', desc: 'No se muestran hasta que vuelvas a tener stock.', rec: true },

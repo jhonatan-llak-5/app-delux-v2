@@ -1,5 +1,7 @@
-import { ChangeDetectionStrategy, Component, HostListener, signal } from '@angular/core';
+import { ChangeDetectionStrategy, Component, HostListener, computed, inject, signal } from '@angular/core';
 import { CommonModule } from '@angular/common';
+import { BrandingService } from '@core/services/branding.service';
+import { labelSizePreset } from '@shared/utils/print-labels';
 
 /**
  * Guía paso a paso (mismo estilo visual que el tour) para configurar la
@@ -96,7 +98,7 @@ import { CommonModule } from '@angular/common';
                     <text x="26" y="78" fill="#374151" font-family="Segoe UI, Arial" font-size="12" font-weight="600">Material</text>
                     <text x="30" y="112" fill="#374151" font-family="Segoe UI, Arial" font-size="12.5">Nombre:</text>
                     <rect x="92" y="98" width="450" height="24" rx="3" fill="#fff8d6" stroke="#3b82f6" stroke-width="1.8"/>
-                    <text x="102" y="115" fill="#111827" font-family="Segoe UI, Arial" font-size="12.5" font-weight="700">50 x 30  (50.0 mm x 30.0 mm)</text>
+                    <text x="102" y="115" fill="#111827" font-family="Segoe UI, Arial" font-size="12.5" font-weight="700">{{ size().w }} x {{ size().h }}  ({{ size().w }}.0 mm x {{ size().h }}.0 mm)</text>
                     <!-- botones -->
                     <rect x="92" y="140" width="120" height="26" rx="4" fill="#eef2ff" stroke="#3b82f6" stroke-width="1.6"/>
                     <text x="126" y="158" fill="#1d4ed8" font-family="Segoe UI, Arial" font-size="12" font-weight="700">Nuevo…</text>
@@ -111,7 +113,7 @@ import { CommonModule } from '@angular/common';
                     <text x="56" y="256" fill="#111827" font-family="Segoe UI, Arial" font-size="12.5" font-weight="700">Vertical</text>
                     <circle cx="180" cy="252" r="6" fill="#ffffff" stroke="#9aa0ab" stroke-width="1.5"/>
                     <text x="196" y="256" fill="#6b7280" font-family="Segoe UI, Arial" font-size="12.5">Horizontal</text>
-                    <text x="26" y="298" fill="#6b7280" font-family="Segoe UI, Arial" font-size="11.5" font-style="italic">Ancho 50.0 mm · Alto 30.0 mm</text>
+                    <text x="26" y="298" fill="#6b7280" font-family="Segoe UI, Arial" font-size="11.5" font-style="italic">Ancho {{ size().w }}.0 mm · Alto {{ size().h }}.0 mm</text>
                   </svg>
                 }
                 @case (2) {
@@ -148,7 +150,7 @@ import { CommonModule } from '@angular/common';
                     <rect x="0" y="0" width="620" height="34" fill="#e7eaf0"/>
                     <text x="16" y="22" fill="#2b3240" font-family="Segoe UI, Arial" font-size="12.5" font-weight="600">Preferencias de impresión de 4BARCODE 4B-2054TA</text>
                     <rect x="20" y="70" width="580" height="96" rx="6" fill="#ffffff" stroke="#dfe3ea"/>
-                    <text x="44" y="112" fill="#374151" font-family="Segoe UI, Arial" font-size="13">Se guardan el material 50×30 y el método térmico.</text>
+                    <text x="44" y="112" fill="#374151" font-family="Segoe UI, Arial" font-size="13">Se guardan el material {{ size().w }}×{{ size().h }} y el método térmico.</text>
                     <text x="44" y="136" fill="#6b7280" font-family="Segoe UI, Arial" font-size="12">Windows recordará esta configuración para la impresora.</text>
                     <!-- footer botones -->
                     <rect x="300" y="200" width="92" height="30" rx="4" fill="#eef2ff" stroke="#3b82f6" stroke-width="1.8"/>
@@ -247,8 +249,13 @@ import { CommonModule } from '@angular/common';
 export class PrinterSetupGuideComponent {
   visible = signal(false);
   index = signal(0);
+  private branding = inject(BrandingService);
+  /** Tamaño de etiqueta configurado para la tienda (define las medidas del material). */
+  readonly size = computed(() => labelSizePreset(this.branding.labelSize()));
 
-  readonly steps = [
+  get steps() {
+    const s = this.size();
+    return [
     {
       icon: 'fa-print',
       title: 'Abre las preferencias de la impresora',
@@ -256,8 +263,8 @@ export class PrinterSetupGuideComponent {
     },
     {
       icon: 'fa-ruler-combined',
-      title: 'Crea el material de 50 × 30 mm',
-      body: 'En la pestaña <b>«Preparar página»</b>, junto a <b>Material</b> pulsa <b>«Nuevo…»</b> y crea uno con <b>Ancho 50.0 mm</b> y <b>Alto 30.0 mm</b>. Ponle de nombre «50 x 30». En <b>Orientación</b> deja <b>«Vertical»</b>. <i>(Esta es la medida real de la etiqueta del sistema.)</i>',
+      title: `Crea el material de ${s.w} × ${s.h} mm`,
+      body: `En la pestaña <b>«Preparar página»</b>, junto a <b>Material</b> pulsa <b>«Nuevo…»</b> y crea uno con <b>Ancho ${s.w}.0 mm</b> y <b>Alto ${s.h}.0 mm</b>. Ponle de nombre «${s.w} x ${s.h}». En <b>Orientación</b> deja <b>«Vertical»</b>. <i>(Debe coincidir con el tamaño elegido en Etiquetas.)</i>`,
     },
     {
       icon: 'fa-fire',
@@ -275,7 +282,8 @@ export class PrinterSetupGuideComponent {
       body: 'Selecciona los productos y pulsa <b>«Imprimir»</b>. En el diálogo del navegador elige como destino <b>«4BARCODE 4B-2054TA»</b> y confirma. ¡Listo! Las etiquetas saldrán con el tamaño correcto.',
     },
   ];
-  readonly total = this.steps.length;
+  }
+  get total(): number { return this.steps.length; }
 
   open(): void { this.index.set(0); this.visible.set(true); }
   close(): void { this.visible.set(false); }

@@ -691,7 +691,7 @@ export class ReceptionComponent implements OnInit {
       quantity: this.labelPerUnit ? Math.max(1, it.quantity) : 1,
     }));
     printProductLabels(items, {
-      store: this.branding.siteName(),
+      store: this.branding.siteName(), size: this.branding.labelSize(),
       onError: (m) => this.notify.error(m),
     });
   }

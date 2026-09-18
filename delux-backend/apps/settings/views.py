@@ -65,7 +65,7 @@ class StorePaymentSettingsView(APIView):
 class StoreOptionsView(APIView):
     """Opciones de tienda en línea. Admin y Gerente.
     GET/PATCH /api/v1/admin/settings/store/
-    Campos: pickup_enabled, delivery_enabled, out_of_stock_display.
+    Campos: pickup_enabled, delivery_enabled, out_of_stock_display, label_size, ...
     """
     permission_classes = [permissions.IsAuthenticated, IsBranchManager]
 
@@ -76,6 +76,7 @@ class StoreOptionsView(APIView):
             'delivery_enabled': bool(c.delivery_enabled),
             'out_of_stock_display': c.out_of_stock_display or 'SHOW',
             'consumidor_final_enabled': bool(c.consumidor_final_enabled),
+            'label_size': c.label_size or '50x30',
             'einvoice_enabled': bool(c.einvoice_enabled),
             'einvoice_consumidor_final_max': float(c.einvoice_consumidor_final_max or 0),
             # Datos del negocio (emisor) para el comprobante impreso.
@@ -100,6 +101,11 @@ class StoreOptionsView(APIView):
             c.out_of_stock_display = val; fields.append('out_of_stock_display')
         if 'consumidor_final_enabled' in d:
             c.consumidor_final_enabled = bool(d.get('consumidor_final_enabled')); fields.append('consumidor_final_enabled')
+        if 'label_size' in d:
+            val = str(d.get('label_size') or '').strip().lower()
+            if val not in dict(PlatformSettings.LABEL_SIZE_CHOICES):
+                return Response({'detail': 'Tamaño de etiqueta inválido.'}, status=status.HTTP_400_BAD_REQUEST)
+            c.label_size = val; fields.append('label_size')
         for f in ('business_legal_name', 'business_ruc', 'business_address', 'business_phone'):
             if f in d:
                 setattr(c, f, str(d.get(f) or '').strip()); fields.append(f)
@@ -110,6 +116,7 @@ class StoreOptionsView(APIView):
             'delivery_enabled': bool(c.delivery_enabled),
             'out_of_stock_display': c.out_of_stock_display or 'SHOW',
             'consumidor_final_enabled': bool(c.consumidor_final_enabled),
+            'label_size': c.label_size or '50x30',
             'business_legal_name': c.business_legal_name or '',
             'business_ruc': c.business_ruc or '',
             'business_address': c.business_address or '',
@@ -222,6 +229,8 @@ class PublicUploadConfigView(APIView):
             'pickup_enabled': bool(c.pickup_enabled),
             'delivery_enabled': bool(c.delivery_enabled),
             'out_of_stock_display': c.out_of_stock_display or 'SHOW',
+            # Etiquetas de producto (tamaño global de impresión)
+            'label_size': c.label_size or '50x30',
             # Transferencia bancaria
             'transfer_enabled': bool(c.transfer_enabled),
             'bank_name': c.bank_name or '',

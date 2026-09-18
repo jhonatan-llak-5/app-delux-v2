@@ -167,6 +167,15 @@ class PlatformSettings(models.Model):
         default=False,
         help_text='Asigna "Consumidor Final" a las ventas sin cliente (para facturación).')
 
+    # ─── Etiquetas de producto (impresora térmica) ───
+    LABEL_SIZE_CHOICES = [
+        ('50x30', '50 × 30 mm'), ('40x30', '40 × 30 mm'), ('40x25', '40 × 25 mm'),
+        ('35x25', '35 × 25 mm'), ('30x20', '30 × 20 mm'),
+    ]
+    label_size = models.CharField(
+        max_length=10, choices=LABEL_SIZE_CHOICES, default='50x30',
+        help_text='Tamaño de las etiquetas de producto (ancho x alto en mm).')
+
     # ─── Facturación electrónica (puente con NovaFactura) ───
     einvoice_enabled = models.BooleanField(
         default=False,
