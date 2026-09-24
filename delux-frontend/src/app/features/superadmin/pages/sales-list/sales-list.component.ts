@@ -1,4 +1,4 @@
-import { ChangeDetectionStrategy, Component, OnInit, inject, signal, effect} from '@angular/core';
+import { ChangeDetectionStrategy, Component, OnInit, inject, signal, effect, computed} from '@angular/core';
 import { DlxEmptyStateComponent } from '@shared/ui/empty-state.component';
 import { OrderStatusLabelPipe, OrderStatusClassPipe } from '@shared/ui/order-status.pipe';
 import { AuthService } from '@core/services/auth.service';
@@ -82,6 +82,19 @@ import { DlxChangeSaleModalComponent } from '@shared/ui/change-sale-modal.compon
         <option value="CANCELLED">Canceladas</option>
         <option value="REFUNDED">Devueltas</option>
       </select>
+      @if (einvoiceEnabled()) {
+        <select [(ngModel)]="invoiceFilter" (change)="onFilter()"
+                class="eg-input border-transparent" title="Filtrar por facturación electrónica">
+          <option value="">Facturación: todas</option>
+          <option value="issued">Facturadas</option>
+          <option value="AUTHORIZED">— Autorizadas por el SRI</option>
+          <option value="PENDING_SRI">— En espera del SRI</option>
+          <option value="REJECTED">— Rechazadas</option>
+          <option value="ERROR">— Con error</option>
+          <option value="ANNULLED">— Anuladas</option>
+          <option value="not_issued">Sin factura</option>
+        </select>
+      }
       <div class="flex items-center gap-1.5">
         <span class="text-xs font-semibold text-slate-500">Desde</span>
         <input type="date" [(ngModel)]="dateFrom" (ngModelChange)="onFilter()"
@@ -236,6 +249,8 @@ export class SalesListComponent implements OnInit {
   private confirm = inject(ConfirmService);
   private notify = inject(NotifyService);
   private branding = inject(BrandingService);
+  /** El filtro de facturación solo aparece si la tienda emite comprobantes. */
+  protected einvoiceEnabled = computed(() => this.branding.einvoiceEnabled());
   private adminSvc = inject(AdminService);
   private branchCtx = inject(BranchContextService);
   private ready = false;
@@ -262,6 +277,7 @@ export class SalesListComponent implements OnInit {
   search = signal('');
   branchFilter: number | null = null;
   statusFilter = '';
+  invoiceFilter = '';
   channelFilter = '';
   dateFrom = '';
   dateTo = '';
@@ -279,6 +295,7 @@ export class SalesListComponent implements OnInit {
       search: this.search() || undefined,
       branch: this.branchCtx.current() || undefined,
       status: this.statusFilter || undefined,
+      invoice: this.invoiceFilter || undefined,
       channel: this.channelFilter || undefined,
       mine: this.onlyMine() || undefined,
       date_from: this.dateFrom || undefined,
@@ -324,6 +341,7 @@ export class SalesListComponent implements OnInit {
       search: this.search() || undefined,
       branch: this.branchCtx.current() || undefined,
       status: this.statusFilter || undefined,
+      invoice: this.invoiceFilter || undefined,
       channel: this.channelFilter || undefined,
       mine: this.onlyMine() || undefined,
       date_from: this.dateFrom || undefined,

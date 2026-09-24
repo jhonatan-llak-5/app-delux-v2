@@ -12,6 +12,7 @@ interface BrandConfig {
   business_address?: string;
   business_phone?: string;
   einvoice_environment?: string;   // 'TEST' | 'PROD' (ambiente SRI)
+  einvoice_enabled?: boolean;
   site_logo_url?: string | null;
   site_favicon_url?: string | null;
   affiliate_commission_rate?: number;
@@ -157,6 +158,10 @@ export class BrandingService {
   readonly businessPhone = computed(() => this._cfg()?.business_phone || '');
   /** Ambiente de facturacion electronica configurado ('TEST' | 'PROD'). */
   readonly einvoiceEnvironment = computed(() => (this._cfg()?.einvoice_environment || '').toUpperCase());
+
+  /** Si la tienda factura electronicamente. Apaga lo relacionado con
+   *  comprobantes en el panel cuando el cliente no usa facturacion. */
+  readonly einvoiceEnabled = computed(() => this._cfg()?.einvoice_enabled === true);
 
   /** Datos del emisor para el encabezado del comprobante de venta impreso. */
   receiptBusiness() {

@@ -220,6 +220,9 @@ class PublicUploadConfigView(APIView):
             # Ambiente de facturacion electronica (TEST/PROD). Lo imprime el
             # comprobante como AMBIENTE: PRUEBAS / PRODUCCION, que el RIDE exige.
             'einvoice_environment': c.einvoice_environment or 'TEST',
+            # Si esta tienda factura electronicamente (el panel usa esto
+            # para mostrar u ocultar lo relacionado con comprobantes).
+            'einvoice_enabled': bool(c.einvoice_enabled),
             'site_logo_url': _url(getattr(c, 'site_logo', None)),
             'site_favicon_url': _url(getattr(c, 'site_favicon', None)),
             'payphone_available': bool(

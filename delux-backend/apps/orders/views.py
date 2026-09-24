@@ -50,6 +50,15 @@ class AdminOrderViewSet(viewsets.ReadOnlyModelViewSet):
         if params.get('branch'):   qs = qs.filter(branch_id=params['branch'])
         if params.get('status'):   qs = qs.filter(status=params['status'])
         if params.get('channel'):  qs = qs.filter(channel=params['channel'])
+        # Facturacion electronica: 'issued' = con comprobante emitido,
+        # 'not_issued' = sin factura, o un estado concreto del SRI.
+        invoice = (params.get('invoice') or '').strip()
+        if invoice == 'issued':
+            qs = qs.exclude(invoice_status=Order.InvoiceStatus.NOT_ISSUED)
+        elif invoice == 'not_issued':
+            qs = qs.filter(invoice_status=Order.InvoiceStatus.NOT_ISSUED)
+        elif invoice:
+            qs = qs.filter(invoice_status=invoice)
         if params.get('mine') == 'true':
             qs = qs.filter(seller=self.request.user)
         if params.get('date_from'):

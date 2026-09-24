@@ -25,13 +25,13 @@ import { ReportsService, MySalesData } from '@features/superadmin/services/repor
     @if (loading()) {
       <div class="card p-10 text-center text-slate-400"><i class="fa-solid fa-spinner fa-spin text-xl"></i></div>
     } @else {
-      <div class="grid grid-cols-2 xl:grid-cols-4 gap-4">
+      <div class="grid grid-cols-2 xl:grid-cols-3 gap-4">
         <dlx-stat-card label="Ventas del periodo" [value]="'$' + money(d()?.total_revenue)" icon="fa-sack-dollar" />
         <dlx-stat-card label="N° de ventas" [value]="d()?.total_orders ?? 0" icon="fa-receipt"
                        iconBg="bg-violet-50 dark:bg-violet-500/15" iconColor="text-violet-600 dark:text-violet-400" />
-        <dlx-stat-card label="Mi comisión" [value]="'$' + money(d()?.commission)" icon="fa-hand-holding-dollar"
-                       iconBg="bg-emerald-50 dark:bg-emerald-500/15" iconColor="text-emerald-600 dark:text-emerald-400"
-                       [sub]="d()?.commission_rate + '% por venta'" />
+        <!-- El KPI "Mi comisión" se quitó a pedido del negocio: el personal
+             cobra por sueldo, no por venta. La comisión sigue existiendo en
+             la ficha de personal por si algún cliente la usa. -->
         <dlx-stat-card label="Vendido hoy" [value]="'$' + money(d()?.today_revenue)" icon="fa-calendar-day"
                        iconBg="bg-amber-50 dark:bg-amber-500/15" iconColor="text-amber-600 dark:text-amber-400"
                        [sub]="(d()?.today_orders ?? 0) + ' venta(s) hoy'" />
