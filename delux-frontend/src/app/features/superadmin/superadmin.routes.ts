@@ -99,21 +99,27 @@ export const SUPERADMIN_ROUTES: Routes = [
           import('./pages/sales-list/sales-list.component').then(m => m.SalesListComponent),
       },
       // Caja de mostrador: apertura, cierre e historial de turnos.
-      { path: 'caja', pathMatch: 'full', redirectTo: 'caja/apertura' },
+      { path: 'cash', pathMatch: 'full', redirectTo: 'cash/open' },
+      // Rutas en espanol de la primera version. Se dejan redirigiendo
+      // para no romper marcadores ni accesos directos ya guardados.
+      { path: 'caja', pathMatch: 'full', redirectTo: 'cash/open' },
+      { path: 'caja/apertura', redirectTo: 'cash/open' },
+      { path: 'caja/cierre', redirectTo: 'cash/close' },
+      { path: 'caja/historial', redirectTo: 'cash/history' },
       {
-        path: 'caja/apertura',
+        path: 'cash/open',
         canActivate: [roleGuard(SALES)],
         loadComponent: () =>
           import('./pages/cash-open/cash-open.component').then(m => m.CashOpenComponent),
       },
       {
-        path: 'caja/cierre',
+        path: 'cash/close',
         canActivate: [roleGuard(SALES)],
         loadComponent: () =>
           import('./pages/cash-close/cash-close.component').then(m => m.CashCloseComponent),
       },
       {
-        path: 'caja/historial',
+        path: 'cash/history',
         canActivate: [roleGuard(SALES)],
         loadComponent: () =>
           import('./pages/cash-history/cash-history.component').then(m => m.CashHistoryComponent),
@@ -223,7 +229,7 @@ export const SUPERADMIN_ROUTES: Routes = [
           import('./pages/affiliates-admin/affiliates-admin.component').then(m => m.AffiliatesAdminComponent),
       },
       {
-        path: 'affiliates/reporte',
+        path: 'affiliates/report',
         canActivate: [roleGuard(SALES)],
         loadComponent: () =>
           import('./pages/affiliate-report/affiliate-report.component').then(m => m.AffiliateReportComponent),
@@ -240,14 +246,16 @@ export const SUPERADMIN_ROUTES: Routes = [
         loadComponent: () =>
           import('./pages/contact-messages/contact-messages.component').then(m => m.ContactMessagesComponent),
       },
+      { path: 'finanzas', redirectTo: 'finance' },
       {
-        path: 'finanzas',
+        path: 'finance',
         canActivate: [roleGuard(MANAGER)],
         loadComponent: () =>
           import('./pages/finanzas-resumen/finanzas-resumen.component').then(m => m.FinanzasResumenComponent),
       },
+      { path: 'gastos', redirectTo: 'expenses' },
       {
-        path: 'gastos',
+        path: 'expenses',
         canActivate: [roleGuard(SALES)],
         loadComponent: () =>
           import('./pages/gastos-list/gastos-list.component').then(m => m.GastosListComponent),
@@ -258,8 +266,10 @@ export const SUPERADMIN_ROUTES: Routes = [
         loadComponent: () =>
           import('./pages/payroll-list/payroll-list.component').then(m => m.PayrollListComponent),
       },
+      { path: 'payroll/reporte', redirectTo: 'payroll/report' },
+      { path: 'affiliates/reporte', redirectTo: 'affiliates/report' },
       {
-        path: 'payroll/reporte',
+        path: 'payroll/report',
         canActivate: [roleGuard(MANAGER)],
         loadComponent: () =>
           import('./pages/payroll-report/payroll-report.component').then(m => m.PayrollReportComponent),

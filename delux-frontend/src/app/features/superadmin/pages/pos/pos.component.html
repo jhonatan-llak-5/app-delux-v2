@@ -12,7 +12,7 @@
       <div class="shrink-0 flex items-center gap-2">
         <!-- Estado de la caja: sin turno abierto, la venta no entra en ningún arqueo -->
         @if (cashSession(); as cs) {
-          <a routerLink="/app/admin/caja/cierre" title="Caja abierta — ver cierre"
+          <a routerLink="/app/admin/cash/close" title="Caja abierta — ver cierre"
              class="inline-flex items-center gap-2 px-3 h-10 rounded-xl bg-emerald-50 dark:bg-emerald-500/15
                     text-emerald-700 dark:text-emerald-300 border border-emerald-200 dark:border-emerald-500/25
                     text-sm font-semibold transition hover:bg-emerald-100">
@@ -20,7 +20,7 @@
             <span class="hidden md:inline">Caja abierta</span>
           </a>
         } @else if (cashChecked()) {
-          <a routerLink="/app/admin/caja/apertura" title="No hay caja abierta"
+          <a routerLink="/app/admin/cash/open" title="No hay caja abierta"
              class="inline-flex items-center gap-2 px-3 h-10 rounded-xl bg-amber-50 dark:bg-amber-500/15
                     text-amber-700 dark:text-amber-300 border border-amber-200 dark:border-amber-500/25
                     text-sm font-semibold transition hover:bg-amber-100">

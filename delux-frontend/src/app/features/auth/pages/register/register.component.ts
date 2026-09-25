@@ -59,7 +59,7 @@ import { AuthShellComponent } from '@features/auth/components/auth-shell/auth-sh
               <p class="text-[12.5px] text-ink-700 dark:text-white/75 leading-snug">
                 Ganarás <strong class="text-[#0095f6]">{{ branding.affiliateCommissionRate() }}%</strong> por cada venta que traigas.
                 Activa tu cuenta por correo y recibe tu código de afiliado.
-                <a routerLink="/afiliados/terminos" class="text-[#0095f6] underline">Ver términos</a>
+                <a routerLink="/affiliates/terms" class="text-[#0095f6] underline">Ver términos</a>
               </p>
             </div>
           }

@@ -45,7 +45,7 @@ import { AffiliateService, AffiliateSummary, MonthlyPoint, AffiliateProductRow }
         </div>
         <p class="text-xs text-slate-400 mt-2">
           En cada producto tienes un botón para copiar su enlace con tu código.
-          <a routerLink="/afiliados/terminos" class="text-[var(--dash-primary)] hover:underline">Ver términos</a>.
+          <a routerLink="/affiliates/terms" class="text-[var(--dash-primary)] hover:underline">Ver términos</a>.
         </p>
       </div>
     </div>
@@ -59,17 +59,17 @@ import { AffiliateService, AffiliateSummary, MonthlyPoint, AffiliateProductRow }
 
     <!-- Accesos a secciones -->
     <div class="grid grid-cols-1 sm:grid-cols-3 gap-3 mt-4">
-      <a routerLink="/app/affiliate/comisiones" class="card p-5 flex items-center gap-3 hover:shadow-lg hover:-translate-y-0.5 transition-all group">
+      <a routerLink="/app/affiliate/commissions" class="card p-5 flex items-center gap-3 hover:shadow-lg hover:-translate-y-0.5 transition-all group">
         <span class="grid place-items-center w-11 h-11 rounded-xl bg-amber-50 dark:bg-amber-500/15 text-amber-600 dark:text-amber-400 shrink-0"><i class="fa-solid fa-hand-holding-dollar"></i></span>
         <div class="min-w-0"><p class="font-bold text-sm">Mis comisiones</p><p class="text-xs text-slate-400">Detalle, filtros y export</p></div>
         <i class="fa-solid fa-arrow-right text-[10px] text-slate-400 ml-auto group-hover:translate-x-1 transition-transform"></i>
       </a>
-      <a routerLink="/app/affiliate/ventas" class="card p-5 flex items-center gap-3 hover:shadow-lg hover:-translate-y-0.5 transition-all group">
+      <a routerLink="/app/affiliate/sales" class="card p-5 flex items-center gap-3 hover:shadow-lg hover:-translate-y-0.5 transition-all group">
         <span class="grid place-items-center w-11 h-11 rounded-xl bg-[var(--dash-primary-l)] text-[var(--dash-primary)] shrink-0"><i class="fa-solid fa-box"></i></span>
         <div class="min-w-0"><p class="font-bold text-sm">Mis ventas</p><p class="text-xs text-slate-400">Productos vendidos</p></div>
         <i class="fa-solid fa-arrow-right text-[10px] text-slate-400 ml-auto group-hover:translate-x-1 transition-transform"></i>
       </a>
-      <a routerLink="/app/affiliate/pagos" class="card p-5 flex items-center gap-3 hover:shadow-lg hover:-translate-y-0.5 transition-all group">
+      <a routerLink="/app/affiliate/payouts" class="card p-5 flex items-center gap-3 hover:shadow-lg hover:-translate-y-0.5 transition-all group">
         <span class="grid place-items-center w-11 h-11 rounded-xl bg-emerald-50 dark:bg-emerald-500/15 text-emerald-600 dark:text-emerald-400 shrink-0"><i class="fa-solid fa-money-check-dollar"></i></span>
         <div class="min-w-0"><p class="font-bold text-sm">Mis pagos</p><p class="text-xs text-slate-400">Historial de cobros</p></div>
         <i class="fa-solid fa-arrow-right text-[10px] text-slate-400 ml-auto group-hover:translate-x-1 transition-transform"></i>
@@ -102,7 +102,7 @@ import { AffiliateService, AffiliateSummary, MonthlyPoint, AffiliateProductRow }
       <div class="card overflow-hidden">
         <div class="px-5 py-4 border-b border-slate-100 dark:border-white/10 flex items-center justify-between">
           <h2 class="font-bold tracking-tight"><i class="fa-solid fa-fire text-orange-500 mr-1"></i> Top productos</h2>
-          <a routerLink="/app/affiliate/ventas" class="text-xs text-[var(--dash-primary)] hover:underline">Ver todo</a>
+          <a routerLink="/app/affiliate/sales" class="text-xs text-[var(--dash-primary)] hover:underline">Ver todo</a>
         </div>
         @if (topProducts().length === 0) {
           <div class="p-8 text-center text-slate-400 text-sm">Aún no hay ventas.</div>

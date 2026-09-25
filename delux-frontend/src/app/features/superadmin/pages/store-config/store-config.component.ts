@@ -559,7 +559,7 @@ export class StoreConfigComponent implements OnInit {
   get storeUrl(): string {
     const origin = (typeof window !== 'undefined' ? window.location.origin : '');
     const id = this.branchCtx.current();
-    return id != null ? `${origin}/catalogo?sucursal=${id}` : `${origin}/catalogo`;
+    return id != null ? `${origin}/catalog?sucursal=${id}` : `${origin}/catalog`;
   }
   schedulesOpen = signal(false);
   pdfLoading = signal(false);

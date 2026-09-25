@@ -18,6 +18,7 @@ def send_platform_email(
     html: bool = False,
     cc: Iterable[str] | None = None,
     bcc: Iterable[str] | None = None,
+    attachments: Iterable[tuple] | None = None,
 ) -> int:
     s = PlatformSettings.load()
 
@@ -46,6 +47,10 @@ def send_platform_email(
         bcc=list(bcc) if bcc else None,
         connection=connection,
     )
+    for att in (attachments or []):
+        # (nombre, contenido, mimetype) — p. ej. el PDF del cierre de caja.
+        msg.attach(*att)
+
     if html:
         msg.content_subtype = 'html'
     return msg.send(fail_silently=False)

@@ -13,7 +13,9 @@ import {
   DlxCashCountComponent, DlxExportMenuComponent, DlxModalComponent, DlxPageHeaderComponent,
   DlxShareButtonComponent, DlxStatCardComponent, DlxTableColumn, DlxTableComponent, CashCountLine,
 } from '@shared/ui';
+import { RowAction, RowActionsComponent } from '@shared/ui/row-actions.component';
 import { ExportColumn, PdfLogo } from '@shared/utils/export.util';
+import { shareFile } from '@shared/utils/share.util';
 import {
   CashReportMeta, cashSessionPdfBlob, cashSessionsPdfBlob,
   exportCashSessionPdf, exportCashSessionsPdf,
@@ -27,7 +29,7 @@ import {
   standalone: true,
   imports: [CommonModule, FormsModule, RouterLink, DlxPageHeaderComponent, DlxStatCardComponent,
             DlxTableComponent, DlxModalComponent, DlxCashCountComponent,
-            DlxExportMenuComponent, DlxShareButtonComponent],
+            DlxExportMenuComponent, DlxShareButtonComponent, RowActionsComponent],
   changeDetection: ChangeDetectionStrategy.OnPush,
   templateUrl: './cash-history.component.html',
 })
@@ -38,18 +40,30 @@ export class CashHistoryComponent implements OnInit {
   auth = inject(AuthService);
   branchCtx = inject(BranchContextService);
 
-  readonly cols: DlxTableColumn<CashSession>[] = [
-    { key: 'code', label: 'Turno' },
-    { key: 'branch_name', label: 'Sucursal' },
-    { key: 'opened_by_name', label: 'Usuario' },
-    { key: 'opened_at', label: 'Apertura' },
-    { key: 'closed_at', label: 'Cierre' },
-    { key: 'sales_total', label: 'Ventas', align: 'right' },
-    { key: 'expected_amount', label: 'Esperado', align: 'right' },
-    { key: 'counted_amount', label: 'Contado', align: 'right' },
-    { key: 'difference', label: 'Diferencia', align: 'right' },
-    { key: 'status', label: 'Estado', align: 'center' },
-  ];
+  /** Arqueo CIEGO: el vendedor cuenta y entrega, pero no ve el esperado ni
+   *  el descuadre. El backend no se los manda, asi que pintarlos daria
+   *  $0.00 — un "todo cuadro" que no es cierto. Mejor no mostrar la columna. */
+  blind = computed(() => this.auth.user()?.role === 'SALESPERSON');
+
+  /** Columnas visibles segun el rol. */
+  cols = computed<DlxTableColumn<CashSession>[]>(() => {
+    const hidden = this.blind()
+      ? new Set(['sales_total', 'expected_amount', 'difference'])
+      : new Set<string>();
+    const all: DlxTableColumn<CashSession>[] = [
+      { key: 'code', label: 'Turno' },
+      { key: 'branch_name', label: 'Sucursal' },
+      { key: 'opened_by_name', label: 'Usuario' },
+      { key: 'opened_at', label: 'Apertura' },
+      { key: 'closed_at', label: 'Cierre' },
+      { key: 'sales_total', label: 'Ventas', align: 'right' },
+      { key: 'expected_amount', label: 'Esperado', align: 'right' },
+      { key: 'counted_amount', label: 'Contado', align: 'right' },
+      { key: 'difference', label: 'Diferencia', align: 'right' },
+      { key: 'status', label: 'Estado', align: 'center' },
+    ];
+    return all.filter(c => !hidden.has(c.key));
+  });
 
   rows = signal<CashSession[]>([]);
   total = signal(0);
@@ -209,6 +223,44 @@ export class CashHistoryComponent implements OnInit {
   /** PDF de un turno desde la tabla: la fila no trae conteos ni movimientos,
    *  así que primero se pide el detalle completo. */
   rowPdfBusy = signal<number | null>(null);
+
+  /** Acciones del desplegable de la fila. El vendedor solo puede ver el
+   *  turno: el arqueo le llega por correo al gerente, no lo descarga el. */
+  rowActions(row: CashSession): RowAction[] {
+    const busy = this.rowPdfBusy() === row.id;
+    return [
+      { label: 'Ver', icon: 'fa-eye', run: () => this.openDetail(row) },
+      { label: 'Descargar PDF', icon: 'fa-file-pdf', variant: 'default',
+        hidden: this.blind(), disabled: busy, run: () => this.exportRowPdf(row) },
+      { label: 'Compartir', icon: 'fa-share-nodes', variant: 'default',
+        hidden: this.blind(), disabled: busy, run: () => { void this.shareRowPdf(row); } },
+    ];
+  }
+
+  /** Comparte el arqueo de una fila: primero pide el detalle completo,
+   *  porque la fila no trae conteos ni movimientos. */
+  async shareRowPdf(row: CashSession): Promise<void> {
+    this.rowPdfBusy.set(row.id);
+    try {
+      const full = await firstValueFrom(this.cash.get(row.id));
+      const result = await shareFile(
+        cashSessionPdfBlob(full as any, this.meta()),
+        `arqueo-${full.code}.pdf`,
+        { title: `Arqueo ${full.code}`, text: this.summaryOf(full) },
+      );
+      if (result === 'fallback') {
+        this.notify.info('Tu navegador no comparte archivos', {
+          description: 'Descargamos el PDF y abrimos WhatsApp: adjunta el archivo descargado.',
+          duration: 7000,
+        });
+      }
+    } catch (e) {
+      this.notify.fromServerError(e, 'No se pudo compartir el arqueo.');
+    } finally {
+      this.rowPdfBusy.set(null);
+    }
+  }
+
   exportRowPdf(row: CashSession): void {
     this.rowPdfBusy.set(row.id);
     this.cash.get(row.id).subscribe({
@@ -233,7 +285,11 @@ export class CashHistoryComponent implements OnInit {
 
   shareText(): string {
     const d = this.detail();
-    if (!d) return '';
+    return d ? this.summaryOf(d) : '';
+  }
+
+  /** Resumen de una linea para el texto que acompana al archivo compartido. */
+  private summaryOf(d: CashSession): string {
     const estado = Math.abs(+d.difference) < 0.005 ? 'cuadrada' : `con diferencia de ${this.money(d.difference)}`;
     return `Arqueo de caja ${d.code} — ${d.branch_name} (${d.register_name || 'Caja'}). `
          + `Ventas ${this.money(d.sales_total)}, efectivo contado ${this.money(d.counted_amount)}: ${estado}.`;

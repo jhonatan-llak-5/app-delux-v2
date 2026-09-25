@@ -1,0 +1,66 @@
+{% extends 'emails/_base.html' %}
+{% block body %}
+<div style="display:inline-block;background:linear-gradient(135deg,{{ accent_dark }} 0%,{{ accent }} 100%);padding:18px;border-radius:20px;margin-bottom:24px;">
+  <div style="font-size:36px;color:#fff;">{{ icon }}</div>
+</div>
+
+<div style="font-size:10px;letter-spacing:0.3em;color:#737c8c;text-transform:uppercase;font-weight:600;margin-bottom:8px;">
+  Cierre de caja
+</div>
+<h1 style="font-family:'Bricolage Grotesque',Georgia,serif;font-size:32px;font-weight:700;letter-spacing:-0.04em;margin:0 0 24px;line-height:1.1;color:#06080f;">
+  Turno {{ code }}
+</h1>
+
+<!-- Resultado del arqueo -->
+<div style="background:{{ accent_bg }};border:1px solid {{ accent }};border-radius:20px;padding:24px 26px;margin-bottom:28px;">
+  <div style="font-size:22px;font-weight:800;color:{{ accent_dark }};line-height:1.2;">{{ outcome_title }}</div>
+  <div style="font-size:14px;color:{{ accent_dark }};margin-top:6px;">{{ outcome_detail }}</div>
+</div>
+
+<!-- Datos del turno -->
+<table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0"
+       style="border-collapse:collapse;font-size:15px;margin-bottom:28px;">
+  <tr>
+    <td style="padding:10px 0;color:#737c8c;border-bottom:1px solid #e9ebef;">Sucursal</td>
+    <td style="padding:10px 0;text-align:right;font-weight:700;color:#06080f;border-bottom:1px solid #e9ebef;">{{ branch }}</td>
+  </tr>
+  <tr>
+    <td style="padding:10px 0;color:#737c8c;border-bottom:1px solid #e9ebef;">Caja</td>
+    <td style="padding:10px 0;text-align:right;font-weight:700;color:#06080f;border-bottom:1px solid #e9ebef;">{{ register }}</td>
+  </tr>
+  <tr>
+    <td style="padding:10px 0;color:#737c8c;border-bottom:1px solid #e9ebef;">Vendedor</td>
+    <td style="padding:10px 0;text-align:right;font-weight:700;color:#06080f;border-bottom:1px solid #e9ebef;">{{ seller }}</td>
+  </tr>
+  <tr>
+    <td style="padding:10px 0;color:#737c8c;border-bottom:1px solid #e9ebef;">Fecha de cierre</td>
+    <td style="padding:10px 0;text-align:right;font-weight:700;color:#06080f;border-bottom:1px solid #e9ebef;">{{ closed_at }}</td>
+  </tr>
+  <tr>
+    <td style="padding:10px 0;color:#737c8c;border-bottom:1px solid #e9ebef;">Total esperado</td>
+    <td style="padding:10px 0;text-align:right;font-weight:700;color:#06080f;border-bottom:1px solid #e9ebef;font-family:'JetBrains Mono','Courier New',monospace;">{{ expected }}</td>
+  </tr>
+  <tr>
+    <td style="padding:10px 0;color:#737c8c;">Efectivo contado</td>
+    <td style="padding:10px 0;text-align:right;font-weight:700;color:#06080f;font-family:'JetBrains Mono','Courier New',monospace;">{{ counted }}</td>
+  </tr>
+</table>
+
+{% if closing_note %}
+<div style="background:#f5f6f8;border:1px solid #e9ebef;border-radius:16px;padding:18px 20px;margin-bottom:28px;">
+  <div style="font-size:10px;letter-spacing:0.3em;color:#737c8c;text-transform:uppercase;font-weight:600;margin-bottom:6px;">Observaciones</div>
+  <div style="font-size:14px;color:#4c5466;line-height:1.6;">{{ closing_note }}</div>
+</div>
+{% endif %}
+
+<div style="background:#f5f6f8;border-radius:16px;padding:18px 20px;text-align:center;">
+  <div style="font-size:13px;color:#4c5466;line-height:1.6;">
+    <strong style="color:#06080f;">El arqueo completo va en el PDF adjunto.</strong><br />
+    También lo tienes en <strong>Caja &rarr; Historial</strong> dentro del sistema.
+  </div>
+</div>
+
+<p style="font-size:12px;color:#9aa2b1;line-height:1.6;margin:24px 0 0;text-align:center;">
+  Correo automático enviado al cerrar el turno. No hace falta responder.
+</p>
+{% endblock %}

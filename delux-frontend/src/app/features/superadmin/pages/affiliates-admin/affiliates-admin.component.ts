@@ -30,7 +30,7 @@ import {
       <div class="flex gap-2 flex-wrap">
         <button class="btn-secondary text-sm" (click)="reload()"><i class="fa-solid fa-arrows-rotate"></i> Recargar</button>
         <dlx-export-menu [columns]="exportColumns" [rows]="rows()" filename="afiliados" title="Afiliados" orientation="l" />
-        <a routerLink="/app/admin/affiliates/reporte" class="btn-secondary text-sm"><i class="fa-solid fa-chart-column"></i> Reporte</a>
+        <a routerLink="/app/admin/affiliates/report" class="btn-secondary text-sm"><i class="fa-solid fa-chart-column"></i> Reporte</a>
         @if (canRegisterPay()) {
           <button class="eg-btn-primary text-sm" [disabled]="totalPending() <= 0" (click)="askPayAll()"><i class="fa-solid fa-money-bill-wave"></i> Pagar a todos</button>
         }

@@ -1,21 +1,25 @@
 <dlx-page-header eyebrow="Caja" title="Historial de Caja"
                  subtitle="Todos los turnos abiertos y cerrados, con su arqueo">
-  <dlx-export-menu [columns]="exportCols" [rows]="rows()" [loader]="loadAllForExport"
-                   [pdfHandler]="exportGroupPdf" [pdfBlobHandler]="sharePdfBlob"
-                   filename="arqueo-caja" title="Arqueo de Caja" orientation="l"
-                   [shareText]="'Arqueo de caja — ' + (stats()?.sessions || 0) + ' turno(s).'" />
-  <a routerLink="/app/admin/caja/apertura" class="eg-btn-secondary eg-btn-sm">
+  @if (!blind()) {
+    <dlx-export-menu [columns]="exportCols" [rows]="rows()" [loader]="loadAllForExport"
+                     [pdfHandler]="exportGroupPdf" [pdfBlobHandler]="sharePdfBlob"
+                     filename="arqueo-caja" title="Arqueo de Caja" orientation="l"
+                     [shareText]="'Arqueo de caja — ' + (stats()?.sessions || 0) + ' turno(s).'" />
+  }
+  <a routerLink="/app/admin/cash/open" class="eg-btn-secondary eg-btn-sm">
     <i class="fa-solid fa-lock-open"></i> Apertura
   </a>
-  <a routerLink="/app/admin/caja/cierre" class="eg-btn-primary eg-btn-sm">
+  <a routerLink="/app/admin/cash/close" class="eg-btn-primary eg-btn-sm">
     <i class="fa-solid fa-lock"></i> Cierre
   </a>
 </dlx-page-header>
 
 @if (stats(); as st) {
-  <div class="grid gap-4 sm:grid-cols-2 xl:grid-cols-4 mb-6">
+  <div class="grid gap-4 mb-6"
+       [ngClass]="blind() ? 'sm:grid-cols-1' : 'sm:grid-cols-2 xl:grid-cols-4'">
     <dlx-stat-card label="Turnos" [value]="st.sessions" icon="fa-calendar-check"
-                   [sub]="st.open + ' abiertos · ' + st.closed + ' cerrados'" />
+                   [sub]="(st.open ?? 0) + ' abiertos · ' + (st.closed ?? 0) + ' cerrados'" />
+    @if (!blind()) {
     <dlx-stat-card label="Ventas" [value]="money(st.sales_total)" icon="fa-cash-register"
                    iconBg="bg-emerald-50 dark:bg-emerald-500/15" iconColor="text-emerald-600 dark:text-emerald-400"
                    [sub]="money(st.cash_sales) + ' en efectivo'" />
@@ -25,6 +29,7 @@
     <dlx-stat-card label="Descuadre acumulado" [value]="money(st.difference)" icon="fa-scale-unbalanced"
                    iconBg="bg-amber-50 dark:bg-amber-500/15" iconColor="text-amber-600 dark:text-amber-400"
                    [sub]="st.mismatched + ' turnos con diferencia'" />
+    }
   </div>
 }
 
@@ -78,7 +83,7 @@
   </div>
 </div>
 
-<dlx-table [columns]="cols" [rows]="rows()" [total]="total()" [loading]="loading()"
+<dlx-table [columns]="cols()" [rows]="rows()" [total]="total()" [loading]="loading()"
            [page]="page()" [pageSize]="size()" [rowClickable]="true"
            emptyIcon="fa-cash-register" emptyTitle="Sin turnos de caja"
            emptyDescription="Abre una caja para empezar a registrar el efectivo del mostrador."
@@ -117,14 +122,7 @@
   </ng-template>
 
   <ng-template #actions let-row>
-    <button type="button" class="eg-action-btn" title="Descargar arqueo en PDF"
-            (click)="exportRowPdf(row)" [disabled]="rowPdfBusy() === row.id">
-      @if (rowPdfBusy() === row.id) { <i class="fa-solid fa-spinner fa-spin"></i> }
-      @else { <i class="fa-solid fa-file-pdf text-rose-500"></i> }
-    </button>
-    <button type="button" class="eg-action-btn" title="Ver detalle" (click)="openDetail(row)">
-      <i class="fa-solid fa-eye"></i>
-    </button>
+    <dlx-row-actions [actions]="rowActions(row)" />
   </ng-template>
 </dlx-table>
 
@@ -137,14 +135,21 @@
     <div class="space-y-6">
       <!-- Acciones del comprobante -->
       <div class="flex flex-wrap items-center gap-2 pb-4 border-b border-slate-100 dark:border-white/5">
-        <button type="button" class="eg-btn-secondary eg-btn-sm" (click)="exportOnePdf()">
-          <i class="fa-solid fa-file-pdf text-rose-500"></i> Descargar PDF
-        </button>
-        <dlx-share-button [blobFactory]="detailPdfBlob"
-                          [filename]="'arqueo-' + d.code + '.pdf'"
-                          [shareTitle]="'Arqueo ' + d.code"
-                          [text]="shareText()"
-                          btnClass="eg-btn-secondary eg-btn-sm" />
+        @if (!blind()) {
+          <button type="button" class="eg-btn-secondary eg-btn-sm" (click)="exportOnePdf()">
+            <i class="fa-solid fa-file-pdf text-rose-500"></i> Descargar PDF
+          </button>
+          <dlx-share-button [blobFactory]="detailPdfBlob"
+                            [filename]="'arqueo-' + d.code + '.pdf'"
+                            [shareTitle]="'Arqueo ' + d.code"
+                            [text]="shareText()"
+                            btnClass="eg-btn-secondary eg-btn-sm" />
+        } @else {
+          <p class="text-xs text-[var(--dash-text-muted)]">
+            <i class="fa-solid fa-lock"></i>
+            El arqueo completo se envia por correo a quien administra la sucursal.
+          </p>
+        }
         @if (detailLoading()) {
           <span class="text-xs text-[var(--dash-text-muted)]">
             <i class="fa-solid fa-spinner fa-spin"></i> Cargando detalle…
@@ -152,7 +157,9 @@
         }
       </div>
 
-      <div class="grid grid-cols-2 sm:grid-cols-4 gap-3 text-sm">
+      <div class="grid gap-3 text-sm"
+           [ngClass]="blind() ? 'grid-cols-1' : 'grid-cols-2 sm:grid-cols-4'">
+        @if (!blind()) {
         <div class="rounded-xl border border-slate-200 dark:border-white/10 px-4 py-3">
           <p class="text-[10px] uppercase tracking-widest font-bold text-slate-400">Fondo inicial</p>
           <p class="font-bold tabular-nums mt-0.5">{{ money(d.opening_amount) }}</p>
@@ -161,20 +168,26 @@
           <p class="text-[10px] uppercase tracking-widest font-bold text-slate-400">Esperado</p>
           <p class="font-bold tabular-nums mt-0.5">{{ money(d.totals?.expected_amount ?? d.expected_amount) }}</p>
         </div>
+        }
         <div class="rounded-xl border border-slate-200 dark:border-white/10 px-4 py-3">
-          <p class="text-[10px] uppercase tracking-widest font-bold text-slate-400">Contado</p>
+          <p class="text-[10px] uppercase tracking-widest font-bold text-slate-400">
+            {{ blind() ? 'Efectivo entregado' : 'Contado' }}
+          </p>
           <p class="font-bold tabular-nums mt-0.5">
             @if (d.status === 'CLOSED') { {{ money(d.counted_amount) }} } @else { — }
           </p>
         </div>
+        @if (!blind()) {
         <div class="rounded-xl border border-slate-200 dark:border-white/10 px-4 py-3">
           <p class="text-[10px] uppercase tracking-widest font-bold text-slate-400">Diferencia</p>
           <p class="font-bold tabular-nums mt-0.5" [ngClass]="diffClass(d.difference)">
             @if (d.status === 'CLOSED') { {{ money(d.difference) }} } @else { — }
           </p>
         </div>
+        }
       </div>
 
+      @if (!blind()) {
       <div>
         <h3 class="font-bold mb-3">Movimientos del turno</h3>
         <dl class="text-sm grid sm:grid-cols-2 gap-x-8">
@@ -228,6 +241,7 @@
           </ul>
         }
       </div>
+      }
 
       <div>
         <h3 class="font-bold mb-3">Conteo de apertura</h3>

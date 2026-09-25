@@ -229,6 +229,15 @@ def close_session(*, session: CashSession, user, closing_lines=None,
         session.closed_at = timezone.now()
         session.status = CashSession.Status.CLOSED
         session.save()
+
+    # Arqueo por correo a quienes supervisan la sucursal, con el PDF adjunto.
+    # Va despues del commit y nunca tumba el cierre si el correo falla.
+    try:
+        from .tasks import send_cash_close_email_task
+        send_cash_close_email_task.delay(session.id)
+    except Exception:
+        pass
+
     return session
 
 

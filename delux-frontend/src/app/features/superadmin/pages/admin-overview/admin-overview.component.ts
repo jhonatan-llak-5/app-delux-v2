@@ -49,7 +49,7 @@ import {
           <div class="w-10 h-10 rounded-xl bg-rose-50 dark:bg-rose-500/15 text-rose-600 grid place-items-center"><i class="fa-solid fa-wallet"></i></div>
           <div><p class="text-xs text-slate-400">Gastos (30 días)</p><p class="font-bold">{{ money(f.gastos) }}</p></div>
         </div>
-        <a routerLink="/app/admin/finanzas" class="card p-4 flex items-center gap-3 hover:ring-2 hover:ring-violet-200 transition">
+        <a routerLink="/app/admin/finance" class="card p-4 flex items-center gap-3 hover:ring-2 hover:ring-violet-200 transition">
           <div class="w-10 h-10 rounded-xl bg-violet-50 dark:bg-violet-500/15 text-violet-600 grid place-items-center"><i class="fa-solid fa-scale-balanced"></i></div>
           <div class="flex-1"><p class="text-xs text-slate-400">Balance general</p><p class="font-bold text-sm">Ingresos, egresos y balance</p></div>
           <i class="fa-solid fa-arrow-right text-slate-300"></i>

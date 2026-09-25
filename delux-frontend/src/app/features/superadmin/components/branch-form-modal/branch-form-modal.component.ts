@@ -273,7 +273,7 @@ export class BranchFormModalComponent {
 
   kioskUrl(): string {
     const t = (this.branch as any)?.kiosk_token;
-    return (t && typeof window !== 'undefined') ? `${window.location.origin}/kiosko/${t}` : '';
+    return (t && typeof window !== 'undefined') ? `${window.location.origin}/kiosk/${t}` : '';
   }
 
   copyKioskUrl(): void {

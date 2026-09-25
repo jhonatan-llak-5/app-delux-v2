@@ -31,6 +31,35 @@ def _smtp_send_raw(from_email: str, to_email: str, raw_message: str) -> bool:
         return False
 
 
+def email_base_ctx() -> dict:
+    """Marca del encabezado (logo, nombre y eslogan) que espera emails/_base.html."""
+    s = PlatformSettings.load()
+    # Los correos no admiten rutas relativas: el logo va con dominio completo.
+    logo_url = ''
+    try:
+        if getattr(s, 'site_logo', None):
+            base = (os.getenv('FRONTEND_URL') or '').rstrip('/')
+            if base:
+                logo_url = f'{base}{s.site_logo.url}'
+    except Exception:
+        logo_url = ''
+    return {
+        'platform_name': s.platform_name,
+        'platform_tagline': s.platform_tagline,
+        'support_email': s.support_email,
+        'logo_url': logo_url,
+    }
+
+
+def render_email(template: str, ctx: dict) -> str:
+    """Renderiza emails/<template>.html con el encabezado de la plataforma.
+
+    Sirve tambien para los correos que se envian por otro camino porque llevan
+    adjunto (el arqueo de caja), que send_html_email no soporta.
+    """
+    return render_to_string(f'emails/{template}.html', {**ctx, **email_base_ctx()})
+
+
 def send_html_email(to_email: str, subject: str, template: str, ctx: dict, text_fallback: str = ''):
     """Renderiza el correo (rápido) y lo envía EN SEGUNDO PLANO con Celery, para
     no bloquear la respuesta de la API con el SMTP. Si el broker no responde,
@@ -40,23 +69,7 @@ def send_html_email(to_email: str, subject: str, template: str, ctx: dict, text_
         print(f'[email skipped] {subject} → {to_email}')
         return False
 
-    # Logo absoluto para el encabezado del correo (los correos no admiten rutas relativas).
-    logo_url = ''
-    try:
-        if getattr(s, 'site_logo', None):
-            base = (os.getenv('FRONTEND_URL') or '').rstrip('/')
-            if base:
-                logo_url = f'{base}{s.site_logo.url}'
-    except Exception:
-        logo_url = ''
-
-    html = render_to_string(f'emails/{template}.html', {
-        **ctx,
-        'platform_name': s.platform_name,
-        'platform_tagline': s.platform_tagline,
-        'support_email': s.support_email,
-        'logo_url': logo_url,
-    })
+    html = render_email(template, ctx)
 
     msg = MIMEMultipart('alternative')
     msg['Subject'] = subject

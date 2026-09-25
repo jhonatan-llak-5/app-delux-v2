@@ -59,6 +59,11 @@ export class CashCloseComponent implements OnInit {
   /** Tolerancia de centavo para no marcar descuadre por redondeo. */
   isBalanced = computed(() => Math.abs(this.difference()) < 0.005);
 
+  /** Arqueo CIEGO: el vendedor cuenta y entrega, pero no ve el esperado ni
+   *  el descuadre. Eso lo revisan el gerente de la sucursal y el superadmin.
+   *  El backend tampoco se los manda; esto solo acomoda la pantalla. */
+  blind = computed(() => this.auth.user()?.role === 'SALESPERSON');
+
   elapsed = computed(() => {
     const s = this.session();
     if (!s) return '';

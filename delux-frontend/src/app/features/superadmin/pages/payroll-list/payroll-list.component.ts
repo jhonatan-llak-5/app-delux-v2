@@ -30,7 +30,7 @@ import { PayrollService, PayrollRun } from '@features/superadmin/services/payrol
       </div>
       <div class="flex flex-wrap gap-2 w-full sm:w-auto">
         <dlx-export-menu [columns]="exportColumns" [rows]="rows()" filename="nomina" title="Nómina de empleados" orientation="l" />
-        <a routerLink="/app/admin/payroll/reporte" class="btn-secondary text-sm"><i class="fa-solid fa-chart-column"></i> Reporte</a>
+        <a routerLink="/app/admin/payroll/report" class="btn-secondary text-sm"><i class="fa-solid fa-chart-column"></i> Reporte</a>
         <button class="eg-btn-primary text-sm" (click)="openGenerate()"><i class="fa-solid fa-plus"></i> Generar pagos</button>
       </div>
     </div>

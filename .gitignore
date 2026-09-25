@@ -26,3 +26,7 @@ delux-backend/staticfiles/
 celerybeat-schedule
 celerybeat-schedule.*
 celerybeat.pid
+
+# Scratch de las sesiones de Claude (capturas, empaquetados temporales)
+*.tgz
+Claude outputs/

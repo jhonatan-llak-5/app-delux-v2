@@ -54,6 +54,10 @@ export class CashOpenComponent implements OnInit {
   userName = computed(() => this.auth.user()?.full_name || this.auth.user()?.email || 'Usuario');
   /** Solo el superadmin elige sucursal; el resto abre la caja de la suya. */
   canPickBranch = computed(() => this.auth.user()?.role === 'SUPERADMIN');
+
+  /** Arqueo CIEGO: el vendedor no ve el fondo inicial ni las ventas del
+   *  turno. El backend no se los manda, asi que pintarlos daria $0.00. */
+  blind = computed(() => this.auth.user()?.role === 'SALESPERSON');
   branches = computed(() => this.branchCtx.branches());
   branchName = computed(() =>
     this.branches().find(b => b.id === this.branchId())?.name ?? this.branchCtx.currentName());
@@ -160,7 +164,7 @@ export class CashOpenComponent implements OnInit {
         this.notify.success(`Caja abierta con $${(+s.opening_amount).toFixed(2)}`, {
           description: `${s.code} · ${s.register_name || 'Caja'}`,
         });
-        this.router.navigate(['/app/admin/caja/cierre']);
+        this.router.navigate(['/app/admin/cash/close']);
       },
       error: e => {
         this.saving.set(false);

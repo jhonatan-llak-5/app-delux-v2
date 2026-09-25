@@ -1,7 +1,7 @@
 <div>
   <dlx-page-header eyebrow="Caja" title="Cierre de Caja"
                    subtitle="Finaliza el turno y registra el resumen de movimientos">
-    <a routerLink="/app/admin/caja/historial" class="eg-btn-ghost eg-btn-sm">
+    <a routerLink="/app/admin/cash/history" class="eg-btn-ghost eg-btn-sm">
       <i class="fa-solid fa-clock-rotate-left"></i> Historial
     </a>
   </dlx-page-header>
@@ -16,16 +16,25 @@
   @else if (closed(); as c) {
     <section class="eg-card-padded text-center py-12">
       <div class="w-16 h-16 rounded-2xl grid place-items-center mx-auto mb-4"
-           [ngClass]="+c.difference === 0
-             ? 'bg-emerald-50 dark:bg-emerald-500/15 text-emerald-600'
-             : 'bg-amber-50 dark:bg-amber-500/15 text-amber-600'">
-        <i class="fa-solid text-2xl" [ngClass]="+c.difference === 0 ? 'fa-circle-check' : 'fa-triangle-exclamation'"></i>
+           [ngClass]="blind()
+             ? 'bg-[var(--dash-primary)]/10 text-[var(--dash-primary)]'
+             : (+c.difference === 0
+                 ? 'bg-emerald-50 dark:bg-emerald-500/15 text-emerald-600'
+                 : 'bg-amber-50 dark:bg-amber-500/15 text-amber-600')">
+        <i class="fa-solid text-2xl"
+           [ngClass]="blind() ? 'fa-lock' : (+c.difference === 0 ? 'fa-circle-check' : 'fa-triangle-exclamation')"></i>
       </div>
       <h2 class="text-xl font-bold">Caja cerrada</h2>
       <p class="text-sm text-[var(--dash-text-muted)] mt-1">
         {{ c.code }} · {{ c.register_name || 'Caja' }} · cerrada {{ c.closed_at | date:'dd/MM/yyyy HH:mm' }}
       </p>
 
+      @if (blind()) {
+        <p class="text-sm text-[var(--dash-text-muted)] mt-6 max-w-md mx-auto">
+          Contaste <span class="font-bold tabular-nums text-[var(--dash-text)]">{{ money(c.counted_amount) }}</span>.
+          Tu supervisor revisará el arqueo.
+        </p>
+      } @else {
       <div class="grid grid-cols-1 sm:grid-cols-3 gap-3 max-w-2xl mx-auto mt-6 text-left">
         <div class="rounded-xl border border-slate-200 dark:border-white/10 px-4 py-3">
           <p class="text-[10px] uppercase tracking-widest font-bold text-slate-400">Esperado</p>
@@ -46,12 +55,13 @@
           </p>
         </div>
       </div>
+      }
 
       <div class="flex items-center justify-center gap-3 mt-8">
-        <a routerLink="/app/admin/caja/historial" class="eg-btn-secondary">
+        <a routerLink="/app/admin/cash/history" class="eg-btn-secondary">
           <i class="fa-solid fa-clock-rotate-left"></i> Ver historial
         </a>
-        <a routerLink="/app/admin/caja/apertura" class="eg-btn-primary">
+        <a routerLink="/app/admin/cash/open" class="eg-btn-primary">
           <i class="fa-solid fa-lock-open"></i> Abrir nueva caja
         </a>
       </div>
@@ -69,7 +79,7 @@
       <p class="text-sm text-[var(--dash-text-muted)] mt-1 max-w-sm mx-auto">
         Abre la caja con su fondo inicial para poder registrar ventas en efectivo y cerrarla al final del turno.
       </p>
-      <a routerLink="/app/admin/caja/apertura" class="eg-btn-primary mt-6 inline-flex">
+      <a routerLink="/app/admin/cash/open" class="eg-btn-primary mt-6 inline-flex">
         <i class="fa-solid fa-lock-open"></i> Abrir caja
       </a>
     </section>
@@ -116,18 +126,22 @@
             <p class="text-[10px] uppercase tracking-widest font-bold text-slate-400">Apertura</p>
             <p class="font-semibold mt-0.5">{{ s.opened_at | date:'dd/MM/yyyy HH:mm' }}</p>
           </div>
-          <div>
-            <p class="text-[10px] uppercase tracking-widest font-bold text-slate-400">Fondo inicial</p>
-            <p class="font-semibold mt-0.5 tabular-nums">{{ money(s.opening_amount) }}</p>
-          </div>
+          @if (!blind()) {
+            <div>
+              <p class="text-[10px] uppercase tracking-widest font-bold text-slate-400">Fondo inicial</p>
+              <p class="font-semibold mt-0.5 tabular-nums">{{ money(s.opening_amount) }}</p>
+            </div>
+          }
           <div>
             <p class="text-[10px] uppercase tracking-widest font-bold text-slate-400">Tiempo de uso</p>
             <p class="font-semibold mt-0.5">{{ elapsed() }}</p>
           </div>
-          <div>
-            <p class="text-[10px] uppercase tracking-widest font-bold text-slate-400">Ventas</p>
-            <p class="font-semibold mt-0.5 tabular-nums">{{ totals()?.sales_count || 0 }}</p>
-          </div>
+          @if (!blind()) {
+            <div>
+              <p class="text-[10px] uppercase tracking-widest font-bold text-slate-400">Ventas</p>
+              <p class="font-semibold mt-0.5 tabular-nums">{{ totals()?.sales_count || 0 }}</p>
+            </div>
+          }
           <div>
             <p class="text-[10px] uppercase tracking-widest font-bold text-slate-400">Estado</p>
             <p class="mt-0.5"><span class="eg-badge eg-badge-success">Abierta</span></p>
@@ -135,6 +149,7 @@
         </div>
       </section>
 
+      @if (!blind()) {
       <section class="eg-card-padded mb-4">
         <h2 class="font-bold text-lg mb-4">Resumen de movimientos</h2>
 
@@ -206,6 +221,7 @@
           </div>
         </div>
       </section>
+      }
 
       <section class="eg-card-padded">
         <div class="flex items-center justify-between gap-3 mb-4">
@@ -271,6 +287,17 @@
     <!-- PASO 3 · Resultado -->
     @if (step() === 2) {
       <section class="eg-card-padded">
+        @if (blind()) {
+          <h2 class="font-bold text-lg mb-1">Revisa tu conteo</h2>
+          <p class="text-sm text-[var(--dash-text-muted)] mb-5">
+            Confirma que este es el efectivo que contaste. El arqueo lo revisa tu supervisor.
+          </p>
+          <div class="max-w-3xl rounded-xl border border-slate-200 dark:border-white/10 px-5 py-4
+                      flex items-center justify-between">
+            <span class="font-bold">Efectivo contado</span>
+            <span class="text-2xl font-display font-bold tabular-nums">{{ money(counted()) }}</span>
+          </div>
+        } @else {
         <h2 class="font-bold text-lg mb-1">Resultado del cierre</h2>
         <p class="text-sm text-[var(--dash-text-muted)] mb-5">Así queda el arqueo del turno.</p>
 
@@ -341,6 +368,7 @@
             }
           </p>
         </div>
+        }
 
         <div class="mt-5 max-w-3xl">
           <label class="eg-label">Observaciones (opcional)</label>
@@ -363,6 +391,13 @@
           necesitarán una caja nueva.
         </p>
 
+        @if (blind()) {
+          <div class="max-w-md mx-auto mt-6 rounded-xl border border-slate-200 dark:border-white/10 px-5 py-4
+                      flex items-center justify-between text-left">
+            <span class="font-bold">Efectivo contado</span>
+            <span class="text-2xl font-display font-bold tabular-nums">{{ money(counted()) }}</span>
+          </div>
+        } @else {
         <div class="grid grid-cols-1 sm:grid-cols-3 gap-3 max-w-2xl mx-auto mt-6 text-left">
           <div class="rounded-xl border border-slate-200 dark:border-white/10 px-4 py-3">
             <p class="text-[10px] uppercase tracking-widest font-bold text-slate-400">Esperado</p>
@@ -380,6 +415,7 @@
             <p class="text-lg font-bold tabular-nums mt-0.5">{{ money(difference()) }}</p>
           </div>
         </div>
+        }
       </section>
     }
 

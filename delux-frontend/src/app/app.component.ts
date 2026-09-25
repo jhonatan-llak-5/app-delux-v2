@@ -39,13 +39,13 @@ export class AppComponent implements OnInit {
 
   constructor() {
     // Forzado de tema reactivo: depende de la URL actual y de la preferencia de tienda.
-    // - /app y /kiosko: respetan la preferencia del usuario (tema del dashboard).
+    // - /app y /kiosk: respetan la preferencia del usuario (tema del dashboard).
     // - Rutas de compra (shop/product/cart/checkout/auth): respetan la preferencia de tienda.
     // - Resto de páginas públicas (marketing/legales/inicio): siempre claro.
     effect(() => {
       const url = this.currentUrl();
       const shopMode = this.theme.shopMode();
-      if (url.startsWith('/app') || url.startsWith('/kiosko')) {
+      if (url.startsWith('/app') || url.startsWith('/kiosk')) {
         this.theme.force(null);
       } else if (this.isShopUrl(url)) {
         this.theme.force(shopMode);

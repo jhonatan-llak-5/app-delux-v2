@@ -117,7 +117,7 @@ export class DashboardLayoutComponent implements AfterViewInit, OnDestroy {
   /** Clicks de navegación: el item "Kiosko" abre el kiosko de la sucursal. */
   onNav(item: NavItem, mobile = false): void {
     if (mobile) this.closeMobile();
-    if (item.route === '/kiosko') this.openKiosk();
+    if (item.route === '/kiosk') this.openKiosk();
   }
 
   /** Abre el kiosko de la sucursal del usuario (o la seleccionada) en una pestaña nueva. */
@@ -128,7 +128,7 @@ export class DashboardLayoutComponent implements AfterViewInit, OnDestroy {
         const list = r.results || [];
         const b = (branchId != null ? list.find(x => x.id === branchId) : null) || list[0];
         if (b?.kiosk_token && typeof window !== 'undefined') {
-          window.open('/kiosko/' + b.kiosk_token, '_blank');
+          window.open('/kiosk/' + b.kiosk_token, '_blank');
         } else {
           this.notify.error('No se encontró el kiosko de la sucursal.');
         }
@@ -181,12 +181,12 @@ export class DashboardLayoutComponent implements AfterViewInit, OnDestroy {
     { title: 'Ventas', roles: ['SUPERADMIN', 'BRANCH_MANAGER'], items: [
       { label: 'Ventas',       icon: 'fa-cash-register', route: '/app/admin/pos' },
       { label: 'Devoluciones', icon: 'fa-rotate-left',   route: '/app/admin/returns' },
-      { label: 'Kiosko',       icon: 'fa-qrcode',        route: '/kiosko' },
+      { label: 'Kiosko',       icon: 'fa-qrcode',        route: '/kiosk' },
     ] },
     { title: 'Caja', roles: ['SUPERADMIN', 'BRANCH_MANAGER'], items: [
-      { label: 'Apertura',  icon: 'fa-lock-open',          route: '/app/admin/caja/apertura' },
-      { label: 'Cierre',    icon: 'fa-lock',               route: '/app/admin/caja/cierre' },
-      { label: 'Historial', icon: 'fa-clock-rotate-left',  route: '/app/admin/caja/historial' },
+      { label: 'Apertura',  icon: 'fa-lock-open',          route: '/app/admin/cash/open' },
+      { label: 'Cierre',    icon: 'fa-lock',               route: '/app/admin/cash/close' },
+      { label: 'Historial', icon: 'fa-clock-rotate-left',  route: '/app/admin/cash/history' },
     ] },
     { title: 'Inventario', roles: ['SUPERADMIN', 'BRANCH_MANAGER'], items: [
       { label: 'Inventario',  icon: 'fa-boxes-stacked', route: '/app/admin/inventory', exact: true },
@@ -197,8 +197,8 @@ export class DashboardLayoutComponent implements AfterViewInit, OnDestroy {
       { label: 'Cupones',     icon: 'fa-ticket',        route: '/app/admin/coupons' },
     ] },
     { title: 'Finanzas', roles: ['SUPERADMIN', 'BRANCH_MANAGER'], items: [
-      { label: 'Balance general', icon: 'fa-scale-balanced',      route: '/app/admin/finanzas' },
-      { label: 'Gastos',    icon: 'fa-wallet',              route: '/app/admin/gastos' },
+      { label: 'Balance general', icon: 'fa-scale-balanced',      route: '/app/admin/finance' },
+      { label: 'Gastos',    icon: 'fa-wallet',              route: '/app/admin/expenses' },
       { label: 'Nómina',    icon: 'fa-money-check-dollar',  route: '/app/admin/payroll' },
       { label: 'Afiliados', icon: 'fa-hand-holding-dollar', route: '/app/admin/affiliates' },
     ] },
@@ -226,13 +226,13 @@ export class DashboardLayoutComponent implements AfterViewInit, OnDestroy {
     { title: 'Ventas', roles: ['SALESPERSON'], items: [
       { label: 'Ventas',       icon: 'fa-cash-register', route: '/app/admin/pos' },
       { label: 'Devoluciones', icon: 'fa-rotate-left',   route: '/app/admin/returns' },
-      { label: 'Kiosko',       icon: 'fa-qrcode',        route: '/kiosko' },
+      { label: 'Kiosko',       icon: 'fa-qrcode',        route: '/kiosk' },
       { label: 'Cupones',      icon: 'fa-ticket',        route: '/app/admin/coupons' },
     ] },
     { title: 'Caja', roles: ['SALESPERSON'], items: [
-      { label: 'Apertura',  icon: 'fa-lock-open',         route: '/app/admin/caja/apertura' },
-      { label: 'Cierre',    icon: 'fa-lock',              route: '/app/admin/caja/cierre' },
-      { label: 'Historial', icon: 'fa-clock-rotate-left', route: '/app/admin/caja/historial' },
+      { label: 'Apertura',  icon: 'fa-lock-open',         route: '/app/admin/cash/open' },
+      { label: 'Cierre',    icon: 'fa-lock',              route: '/app/admin/cash/close' },
+      { label: 'Historial', icon: 'fa-clock-rotate-left', route: '/app/admin/cash/history' },
     ] },
     { title: 'Inventario', roles: ['SALESPERSON'], items: [
       { label: 'Inventario',  icon: 'fa-boxes-stacked', route: '/app/admin/inventory', exact: true },
@@ -242,7 +242,7 @@ export class DashboardLayoutComponent implements AfterViewInit, OnDestroy {
       { label: 'Marcas',      icon: 'fa-tags',          route: '/app/admin/brands' },
     ] },
     { title: 'Finanzas', roles: ['SALESPERSON'], items: [
-      { label: 'Gastos', icon: 'fa-wallet', route: '/app/admin/gastos' },
+      { label: 'Gastos', icon: 'fa-wallet', route: '/app/admin/expenses' },
     ] },
     { title: 'Mi cuenta', roles: ['SALESPERSON'], items: [
       { label: 'Mi perfil', icon: 'fa-id-card', route: '/app/profile' },
@@ -269,9 +269,9 @@ export class DashboardLayoutComponent implements AfterViewInit, OnDestroy {
       roles: ['AFFILIATE'],
       items: [
         { label: 'Panel de afiliado', icon: 'fa-hand-holding-dollar', route: '/app/affiliate', exact: true },
-        { label: 'Mis comisiones',    icon: 'fa-hand-holding-dollar', route: '/app/affiliate/comisiones' },
-        { label: 'Mis ventas',        icon: 'fa-box',                route: '/app/affiliate/ventas' },
-        { label: 'Mis pagos',         icon: 'fa-money-check-dollar',  route: '/app/affiliate/pagos' },
+        { label: 'Mis comisiones',    icon: 'fa-hand-holding-dollar', route: '/app/affiliate/commissions' },
+        { label: 'Mis ventas',        icon: 'fa-box',                route: '/app/affiliate/sales' },
+        { label: 'Mis pagos',         icon: 'fa-money-check-dollar',  route: '/app/affiliate/payouts' },
         { label: 'Mi perfil',         icon: 'fa-id-card',            route: '/app/profile' },
       ],
     },

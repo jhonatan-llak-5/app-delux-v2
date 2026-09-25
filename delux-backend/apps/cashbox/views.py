@@ -117,7 +117,7 @@ class CashSessionViewSet(viewsets.ReadOnlyModelViewSet):
         session = qs.filter(opened_by=request.user).first() or qs.first()
         if not session:
             return Response({'session': None})
-        return Response({'session': CashSessionDetailSerializer(session).data})
+        return Response({'session': CashSessionDetailSerializer(session, context={'request': request}).data})
 
     @action(detail=False, methods=['post'])
     def open(self, request):
@@ -151,14 +151,16 @@ class CashSessionViewSet(viewsets.ReadOnlyModelViewSet):
             )
         except ValueError as e:
             raise ValidationError({'detail': str(e)})
-        return Response(CashSessionDetailSerializer(session).data, status=201)
+        return Response(CashSessionDetailSerializer(session, context={'request': request}).data, status=201)
 
     @action(detail=True, methods=['get'])
     def summary(self, request, pk=None):
         """Totales en vivo del turno (pantalla de cierre)."""
         session = self.get_object()
-        totals = compute_totals(session) if session.is_open else None
-        data = CashSessionDetailSerializer(session).data
+        # Arqueo ciego: al vendedor no se le manda el esperado ni su desglose.
+        blind = getattr(request.user, 'role', None) == 'SALESPERSON'
+        totals = compute_totals(session) if (session.is_open and not blind) else None
+        data = CashSessionDetailSerializer(session, context={'request': request}).data
         if totals:
             data['totals'] = {k: str(v) for k, v in totals.items()}
         return Response(data)
@@ -183,7 +185,7 @@ class CashSessionViewSet(viewsets.ReadOnlyModelViewSet):
             )
         except ValueError as e:
             raise ValidationError({'detail': str(e)})
-        return Response(CashSessionDetailSerializer(session).data)
+        return Response(CashSessionDetailSerializer(session, context={'request': request}).data)
 
     @action(detail=True, methods=['get', 'post'])
     def movements(self, request, pk=None):
@@ -206,6 +208,15 @@ class CashSessionViewSet(viewsets.ReadOnlyModelViewSet):
     @action(detail=False, methods=['get'])
     def stats(self, request):
         """Totales del historial filtrado (cabecera de la página)."""
+        # Arqueo ciego: el vendedor no ve totales de descuadre del historial.
+        # Si ve cuantos turnos hubo: son conteos, no dejan deducir el efectivo.
+        if getattr(request.user, 'role', None) == 'SALESPERSON':
+            qs = self.get_queryset()
+            return Response({
+                'sessions': qs.count(),
+                'open': qs.filter(status=CashSession.Status.OPEN).count(),
+                'closed': qs.filter(status=CashSession.Status.CLOSED).count(),
+            })
         qs = self.get_queryset()
         closed = qs.filter(status=CashSession.Status.CLOSED)
         agg = closed.aggregate(

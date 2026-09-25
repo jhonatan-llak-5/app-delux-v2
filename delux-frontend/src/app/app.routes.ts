@@ -47,8 +47,9 @@ export const appRoutes: Routes = [
         data: { page: 'about' },
         loadComponent: () => import('./features/legal/legal-page.component').then(m => m.LegalPageComponent),
       },
+      { path: 'afiliados/terminos', redirectTo: '/affiliates/terms' },
       {
-        path: 'afiliados/terminos',
+        path: 'affiliates/terms',
         loadComponent: () =>
           import('./features/affiliate/pages/affiliate-terms/affiliate-terms.component').then(m => m.AffiliateTermsComponent),
       },
@@ -96,20 +97,23 @@ export const appRoutes: Routes = [
   },
 
   // Catálogo público (enlace para compartir) — página propia, sin carrito
+  { path: 'catalogo', redirectTo: 'catalog' },
   {
-    path: 'catalogo',
+    path: 'catalog',
     loadComponent: () =>
       import('./features/shop/catalog-page.component').then(m => m.CatalogPageComponent),
   },
 
   // Kiosko de consulta (tablet en tienda) — pantalla pública full-screen
+  { path: 'kiosko', pathMatch: 'full', redirectTo: 'kiosk' },
+  { path: 'kiosko/:token', redirectTo: 'kiosk/:token' },
   {
-    path: 'kiosko',
+    path: 'kiosk',
     loadComponent: () =>
       import('./features/kiosk/kiosk.component').then(m => m.KioskComponent),
   },
   {
-    path: 'kiosko/:token',
+    path: 'kiosk/:token',
     loadComponent: () =>
       import('./features/kiosk/kiosk.component').then(m => m.KioskComponent),
   },

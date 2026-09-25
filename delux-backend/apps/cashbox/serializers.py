@@ -56,6 +56,30 @@ class CashSessionSerializer(serializers.ModelSerializer):
             'expected_amount', 'counted_amount', 'difference',
         ]
 
+    # Campos con los que se puede deducir cuanto DEBERIA haber en el cajon.
+    # El vendedor hace un arqueo CIEGO: cuenta, entrega y no ve el resultado;
+    # el descuadre lo revisan el gerente de la sucursal y el superadmin.
+    # No basta con ocultar la diferencia: con el fondo inicial y las ventas en
+    # efectivo se llega al mismo numero sumando.
+    BLIND_FIELDS = (
+        'opening_amount', 'expected_amount', 'difference',
+        'sales_total', 'cash_sales', 'card_sales', 'transfer_sales', 'other_sales',
+        'change_in', 'change_out', 'expenses_cash', 'cash_in', 'cash_out',
+    )
+
+    def _is_blind(self) -> bool:
+        user = getattr(self.context.get('request'), 'user', None)
+        return getattr(user, 'role', None) == 'SALESPERSON'
+
+    def to_representation(self, instance):
+        data = super().to_representation(instance)
+        if self._is_blind():
+            for field in self.BLIND_FIELDS:
+                data.pop(field, None)
+            if 'totals' in data:
+                data['totals'] = None
+        return data
+
     def _name(self, u) -> str:
         return (u.full_name or u.username or u.email) if u else ''
 
