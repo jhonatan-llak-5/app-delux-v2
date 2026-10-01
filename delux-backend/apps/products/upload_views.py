@@ -13,14 +13,20 @@ from rest_framework.parsers import MultiPartParser, FormParser
 from rest_framework.response import Response
 from rest_framework.views import APIView
 
-from apps.accounts.permissions import IsBranchManager
+from apps.accounts.permissions import IsStaff
 
 DEFAULT_EXT = {'jpg', 'jpeg', 'png', 'webp', 'gif', 'avif', 'svg'}
 
 
 class ProductImageUploadView(APIView):
-    """POST multipart con field `image` -> { url }."""
-    permission_classes = [permissions.IsAuthenticated, IsBranchManager]
+    """POST multipart con field `image` -> { url }.
+
+    Permiso IsStaff (gerente, vendedor y bodeguero), igual que los modulos que
+    consumen esta subida: productos, marcas, categorias y recepciones. Si aqui
+    se pidiera gerente, el bodeguero podria crear un producto pero no
+    adjuntarle la foto.
+    """
+    permission_classes = [permissions.IsAuthenticated, IsStaff]
     parser_classes = [MultiPartParser, FormParser]
 
     def post(self, request):

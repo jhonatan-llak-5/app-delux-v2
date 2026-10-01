@@ -290,12 +290,19 @@ export class InventoryOverviewComponent implements OnInit {
     });
   }
 
+  /** Borrar variantes es de gerente para arriba: el backend lo exige, y si es
+   *  la última variante activa el producto entero se da de baja. */
+  private canDeleteVariant(): boolean {
+    return ['SUPERADMIN', 'BRANCH_MANAGER'].includes(this.auth.user()?.role ?? '');
+  }
+
   /** Acciones a nivel de VARIANTE (línea dentro del producto). */
   variantActions(s: Stock, g: ProductGroup): RowAction[] {
     return [
       { label: 'Ajustar', icon: 'fa-pen', run: () => this.openAdjust(s) },
       { label: 'Imprimir etiqueta', icon: 'fa-barcode', run: () => this.printLabel(s) },
-      { label: 'Eliminar variante', icon: 'fa-trash', variant: 'danger', run: () => this.deleteVariant(s, g) },
+      { label: 'Eliminar variante', icon: 'fa-trash', variant: 'danger',
+        hidden: !this.canDeleteVariant(), run: () => this.deleteVariant(s, g) },
     ];
   }
 
