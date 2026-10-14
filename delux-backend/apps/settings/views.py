@@ -4,7 +4,9 @@ from rest_framework.response import Response
 from rest_framework.views import APIView
 from rest_framework.decorators import action
 
-from apps.accounts.permissions import IsSuperadmin, IsTenantAdmin, IsBranchManager
+from apps.accounts.permissions import (
+    IsSuperadmin, IsTenantAdmin, IsBranchManager, IsStaff,
+)
 
 from .email import send_platform_email
 from .models import PlatformSettings, NewsletterSubscriber
@@ -77,6 +79,7 @@ class StoreOptionsView(APIView):
             'out_of_stock_display': c.out_of_stock_display or 'SHOW',
             'consumidor_final_enabled': bool(c.consumidor_final_enabled),
             'label_size': c.label_size or '50x30',
+            'receipt_exchange_note': bool(c.receipt_exchange_note),
             'einvoice_enabled': bool(c.einvoice_enabled),
             'einvoice_consumidor_final_max': float(c.einvoice_consumidor_final_max or 0),
             # Datos del negocio (emisor) para el comprobante impreso.
@@ -101,6 +104,9 @@ class StoreOptionsView(APIView):
             c.out_of_stock_display = val; fields.append('out_of_stock_display')
         if 'consumidor_final_enabled' in d:
             c.consumidor_final_enabled = bool(d.get('consumidor_final_enabled')); fields.append('consumidor_final_enabled')
+        if 'receipt_exchange_note' in d:
+            c.receipt_exchange_note = bool(d.get('receipt_exchange_note'))
+            fields.append('receipt_exchange_note')
         if 'label_size' in d:
             val = str(d.get('label_size') or '').strip().lower()
             if val not in dict(PlatformSettings.LABEL_SIZE_CHOICES):
@@ -117,6 +123,7 @@ class StoreOptionsView(APIView):
             'out_of_stock_display': c.out_of_stock_display or 'SHOW',
             'consumidor_final_enabled': bool(c.consumidor_final_enabled),
             'label_size': c.label_size or '50x30',
+            'receipt_exchange_note': bool(c.receipt_exchange_note),
             'business_legal_name': c.business_legal_name or '',
             'business_ruc': c.business_ruc or '',
             'business_address': c.business_address or '',
@@ -186,6 +193,24 @@ class TestPayPhoneView(APIView):
         })
 
 
+class ReceiptPrintConfigView(APIView):
+    """GET: datos que necesita el navegador para hablar con NovaPrint.
+
+    Va aparte de public-config porque incluye el token, y public-config es
+    abierto. Lo lee cualquier miembro del personal (IsStaff): el vendedor
+    también imprime, no solo el gerente.
+    """
+    permission_classes = [permissions.IsAuthenticated, IsStaff]
+
+    def get(self, request):
+        c = PlatformSettings.load()
+        return Response({
+            'mode': c.receipt_print_mode or 'BROWSER',
+            'agent_url': c.receipt_print_agent_url or 'http://127.0.0.1:9123',
+            'agent_token': c.receipt_print_agent_token or '',
+        })
+
+
 class PublicUploadConfigView(APIView):
     """GET público: límites y extensiones permitidas para validar uploads.
 
@@ -223,6 +248,12 @@ class PublicUploadConfigView(APIView):
             # Si esta tienda factura electronicamente (el panel usa esto
             # para mostrar u ocultar lo relacionado con comprobantes).
             'einvoice_enabled': bool(c.einvoice_enabled),
+            # Leyenda de cambios al pie del comprobante impreso.
+            'receipt_exchange_note': bool(c.receipt_exchange_note),
+            # Cómo imprime el sistema: BROWSER (diálogo del navegador) o
+            # DIRECT (agente NovaPrint). El token NO va aquí: este endpoint
+            # es público y se entrega aparte, solo al personal autenticado.
+            'receipt_print_mode': c.receipt_print_mode or 'BROWSER',
             'site_logo_url': _url(getattr(c, 'site_logo', None)),
             'site_favicon_url': _url(getattr(c, 'site_favicon', None)),
             'payphone_available': bool(

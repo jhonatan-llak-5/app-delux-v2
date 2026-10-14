@@ -8,7 +8,7 @@ import { Order, OrderService, Payment } from '@features/superadmin/services/orde
 import { ShippingService, Shipment } from '@shared/services/shipping.service';
 import { ConfirmService } from '@shared/components/confirm/confirm.service';
 import { environment } from '@env/environment';
-import { printVoucherPDF } from '@shared/utils/voucher-pdf.util';
+import { ReceiptPrintService } from '@core/services/receipt-print.service';
 import { AuthService } from '@core/services/auth.service';
 import { NotifyService } from '@shared/services/notify.service';
 import { StoreSettingsService } from '@features/superadmin/services/store-settings.service';
@@ -32,6 +32,7 @@ export class SaleDetailComponent implements OnInit, OnDestroy {
   private confirm = inject(ConfirmService);
   private storeSet = inject(StoreSettingsService);
   private branding = inject(BrandingService);
+  private receiptPrint = inject(ReceiptPrintService);
   einvoiceEnabled = signal(false);   // facturación electrónica activa
   cfMax = signal(50);                // tope $ para facturar como Consumidor Final
   emitOpen = signal(false);          // modal "Emitir factura"
@@ -392,7 +393,7 @@ export class SaleDetailComponent implements OnInit, OnDestroy {
   /** Imprime el comprobante de venta térmico (abre la vista de impresión). */
   print() {
     const o = this.order();
-    if (o) printVoucherPDF(o, this.branding.receiptBusiness());
+    if (o) this.receiptPrint.print(o, this.branding.receiptBusiness());
   }
 
   /**

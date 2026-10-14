@@ -9,7 +9,8 @@ import { BrandingService } from '@core/services/branding.service';
 import { DlxToggleComponent } from '@shared/ui/toggle.component';
 import { DlxPriceInputComponent } from '@shared/ui/price-input.component';
 
-type TabId = 'email' | 'recaptcha' | 'brand' | 'uploads' | 'payments' | 'einvoice' | 'backup';
+type TabId = 'email' | 'recaptcha' | 'brand' | 'uploads' | 'payments' | 'einvoice'
+  | 'printing' | 'backup';
 type ExtControl = 'allowed_image_extensions' | 'allowed_file_extensions' | 'allowed_video_extensions';
 interface ExtensionOption { ext: string; label: string; }
 
@@ -65,6 +66,7 @@ export class PlatformSettingsComponent implements OnInit {
     { id: 'uploads',   label: 'Subidas',     icon: 'fa-upload' },
     { id: 'payments',  label: 'Pagos',       icon: 'fa-credit-card' },
     { id: 'einvoice',  label: 'Facturación', icon: 'fa-file-invoice' },
+    { id: 'printing',  label: 'Impresión',   icon: 'fa-print' },
     { id: 'backup',    label: 'Respaldo',    icon: 'fa-database' },
   ];
   tab = signal<TabId>('email');
@@ -144,7 +146,45 @@ export class PlatformSettingsComponent implements OnInit {
     einvoice_emission_point_uuid: [''],
     einvoice_webhook_secret: [''],
     einvoice_consumidor_final_max: [50],
+    // Impresión del comprobante
+    receipt_print_mode: ['BROWSER'],
+    receipt_print_agent_url: ['http://127.0.0.1:9123'],
+    receipt_print_agent_token: [''],
   });
+
+  /** Resultado de la última prueba contra NovaPrint. */
+  agentCheck = signal<{ ok: boolean; msg: string } | null>(null);
+  checkingAgent = signal(false);
+
+  /** Pregunta a NovaPrint si está escuchando, desde ESTE navegador.
+   *  Hay que probarlo en la PC de caja: el agente corre en cada máquina. */
+  async checkAgent() {
+    if (this.checkingAgent()) return;
+    this.checkingAgent.set(true);
+    this.agentCheck.set(null);
+    const url = (this.form.value.receipt_print_agent_url || '').replace(/\/+$/, '');
+    try {
+      const ctrl = new AbortController();
+      const t = setTimeout(() => ctrl.abort(), 2500);
+      const r = await fetch(`${url}/ping`, { signal: ctrl.signal });
+      clearTimeout(t);
+      if (!r.ok) throw new Error('respuesta ' + r.status);
+      const d = await r.json();
+      const impresora = d.printer || '(la predeterminada de Windows)';
+      this.agentCheck.set({
+        ok: true,
+        msg: `NovaPrint ${d.version} responde. Imprimirá en: ${impresora}. Ancho: ${d.width} columnas.`,
+      });
+    } catch {
+      this.agentCheck.set({
+        ok: false,
+        msg: 'No responde. Revisa que NovaPrint esté abierto en ESTA computadora '
+           + '(icono en la bandeja, junto al reloj) y que la dirección sea la correcta.',
+      });
+    } finally {
+      this.checkingAgent.set(false);
+    }
+  }
 
   ngOnInit() { this.loadSettings(); }
   setTab(id: TabId) { this.tab.set(id); }

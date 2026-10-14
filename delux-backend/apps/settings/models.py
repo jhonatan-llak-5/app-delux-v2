@@ -176,6 +176,36 @@ class PlatformSettings(models.Model):
         max_length=10, choices=LABEL_SIZE_CHOICES, default='50x30',
         help_text='Tamaño de las etiquetas de producto (ancho x alto en mm).')
 
+    # ─── Comprobante de venta impreso ───
+    # Algunos locales aceptan cambios y otros no, asi que la leyenda se decide
+    # por tienda. Encendida por defecto: es como venia imprimiendose.
+    receipt_exchange_note = models.BooleanField(
+        default=True,
+        help_text='Imprime "Para cambios es INDISPENSABLE presentar este documento" '
+                  'al pie del comprobante de venta.')
+
+    # ─── Impresión del comprobante ───
+    # BROWSER: jsPDF + diálogo de impresión del navegador (lo de siempre).
+    # DIRECT:  se envía a NovaPrint, el agente local, y sale directo a la
+    #          térmica sin diálogo. Si el agente no responde, el frontend
+    #          cae solo al navegador: nunca deja a la caja sin imprimir.
+    class ReceiptPrintMode(models.TextChoices):
+        BROWSER = 'BROWSER', 'Diálogo del navegador'
+        DIRECT = 'DIRECT', 'Directo a la impresora (NovaPrint)'
+
+    receipt_print_mode = models.CharField(
+        max_length=10, choices=ReceiptPrintMode.choices,
+        default=ReceiptPrintMode.BROWSER,
+        help_text='Cómo imprime el sistema el comprobante de venta.')
+    receipt_print_agent_url = models.CharField(
+        max_length=200, blank=True, default='http://127.0.0.1:9123',
+        help_text='Dirección de NovaPrint en la PC de caja. Casi siempre la '
+                  'predeterminada; solo cambia si moviste el puerto.')
+    receipt_print_agent_token = models.CharField(
+        max_length=128, blank=True, default='',
+        help_text='Clave compartida con NovaPrint. La misma debe quedar en el '
+                  'config.json de cada PC de caja.')
+
     # ─── Facturación electrónica (puente con NovaFactura) ───
     einvoice_enabled = models.BooleanField(
         default=False,

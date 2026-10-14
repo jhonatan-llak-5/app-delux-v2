@@ -24,6 +24,8 @@ export interface StoreOptions {
   consumidor_final_enabled: boolean;
   /** Tamaño global de etiquetas: '50x30' | '40x30' | '40x25' | '35x25' | '30x20'. */
   label_size?: string;
+  /** Leyenda "Para cambios..." al pie del comprobante impreso. */
+  receipt_exchange_note?: boolean;
   einvoice_enabled?: boolean;
   einvoice_consumidor_final_max?: number;
   // Datos del negocio (emisor) para el comprobante de venta impreso.

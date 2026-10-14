@@ -14,6 +14,9 @@ export interface ReceiptBusiness {
   phone: string;
   taxRate: number;     // % IVA (15)
   environment: string; // Ambiente SRI configurado: 'TEST' | 'PROD'
+  /** Imprime la leyenda de cambios al pie. Se configura por tienda en
+   *  Ajustes -> Tienda; si no llega, se asume true (como venia siendo). */
+  exchangeNote?: boolean;
 }
 
 function money(v: any): string {
@@ -233,8 +236,10 @@ function renderReceipt(
 
   // ── Pie: cambios + autorización ──
   doc.setFontSize(7);
-  const changes = doc.splitTextToSize('Para cambios es INDISPENSABLE presentar este documento', R - L);
-  doc.text(changes, C, y, { align: 'center' }); y += 3.2 * changes.length + 1;
+  if (biz?.exchangeNote !== false) {
+    const changes = doc.splitTextToSize('Para cambios es INDISPENSABLE presentar este documento', R - L);
+    doc.text(changes, C, y, { align: 'center' }); y += 3.2 * changes.length + 1;
+  }
 
   // Pie de identificación de la factura. La clave de acceso llega con el
   // webhook del SRI y puede tardar; mientras tanto se imprime el número de
@@ -300,4 +305,76 @@ export function printVoucherPDF(order: Order, biz?: Partial<ReceiptBusiness>): v
   } catch {
     doc.save(`comprobante-${order.code}.pdf`);
   }
+}
+
+/**
+ * Datos del ticket en el formato que entiende NovaPrint (el agente local).
+ * Se calcula EXACTAMENTE igual que el PDF de arriba — misma descripción de
+ * ítem, mismo IVA deducido del total, misma leyenda al pie — para que el
+ * ticket impreso en directo salga idéntico al que sale por el navegador.
+ * El diseño final (ancho, cortes, negritas) lo decide NovaPrint.
+ */
+export function buildReceiptPayload(order: Order, biz?: Partial<ReceiptBusiness>): any {
+  const rate = (biz?.taxRate != null && !isNaN(+biz.taxRate) ? +biz.taxRate : 15) / 100;
+  const st = (order.invoice_status || '').toUpperCase();
+  const hasFactura = !!order.invoice_number || ['PROCESSING', 'PENDING_SRI', 'AUTHORIZED'].includes(st);
+
+  const total = Number(order.total) || 0;
+  const iva = (order.tax != null && +order.tax > 0) ? +order.tax : (total - total / (1 + rate));
+  const neto = total - iva;
+  const discount = Number(order.discount) || 0;
+  const ivaPct = Math.round(rate * 100);
+  const units = (order.items || []).reduce((s, it) => s + (Number(it.quantity) || 0), 0);
+
+  const docId = (order.customer_document || '').trim();
+  const isCF = !docId || docId === '9999999999999';
+  const auth = order.invoice_access_key || order.invoice_authorization || '';
+
+  return {
+    store: {
+      name: (biz?.tradeName || '').toUpperCase(),
+      legalName: (biz?.legalName || '').toUpperCase(),
+      ruc: biz?.ruc || '',
+      address: (biz?.address || '').toUpperCase(),
+      phone: biz?.phone || '',
+    },
+    doc: {
+      title: hasFactura ? 'FACTURA' : 'NOTA DE VENTA',
+      datetime: fmtDateHm(order.created_at),
+      datetimeLong: fmtDateTime(order.created_at),
+      customer: (order.customer_name || 'CONSUMIDOR FINAL').toUpperCase(),
+      customerDoc: (hasFactura || docId) ? (docId || '9999999999999') : '',
+      customerPhone: (order.customer_phone || '').trim() || (isCF ? '9999999999' : ''),
+      code: order.code || '',
+      units: String(units),
+      seller: order.seller_name || ((order as any).channel === 'WEB' ? 'Venta web' : ''),
+    },
+    items: (order.items || []).map(it => {
+      const desc = it.sku || `${it.size || ''}${it.color ? ' ' + it.color : ''}`.trim() || it.product_name;
+      return {
+        qty: it.quantity,
+        name: desc,
+        unitPrice: money(Number(it.unit_price) / (1 + rate)),
+        total: money(Number(it.subtotal) / (1 + rate)),
+      };
+    }),
+    totals: {
+      subtotal: money(neto + discount),
+      discount: money(discount),
+      net: money(neto),
+      taxLabel: `${ivaPct}% IVA`,
+      tax: money(iva),
+      total: '$' + money(total),
+    },
+    footer: {
+      thanks: '¡Gracias por tu compra!',
+      signature: 'Cliente',
+      // Respeta el mismo interruptor de Ajustes que el PDF.
+      exchangeNote: biz?.exchangeNote !== false
+        ? 'Para cambios es INDISPENSABLE presentar este documento' : '',
+      invoiceLabel: hasFactura ? (auth ? 'AUTORIZACIÓN / CLAVE ACCESO' : 'FACTURA N°') : '',
+      invoiceValue: hasFactura ? (auth || order.invoice_number || '') : '',
+    },
+    options: { copies: 1 },
+  };
 }

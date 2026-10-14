@@ -614,6 +614,94 @@
           </section>
         }
 
+        <!-- ═════ IMPRESIÓN DEL COMPROBANTE ═════ -->
+        @if (tab() === 'printing') {
+          <section class="eg-card-padded space-y-5">
+            <div>
+              <h2 class="text-base font-bold text-slate-900 dark:text-slate-50">Impresión del comprobante</h2>
+              <p class="text-sm text-slate-500 dark:text-slate-400">
+                Cómo sale el comprobante cuando alguien pulsa <strong>Imprimir</strong> al cerrar una venta.
+                Aplica a todo el sistema.
+              </p>
+            </div>
+
+            <div class="grid gap-3 md:grid-cols-2">
+              <label class="flex gap-3 cursor-pointer rounded-xl border p-4 transition"
+                     [class.border-slate-200]="form.value.receipt_print_mode !== 'BROWSER'"
+                     [class.border-[var(--dash-primary)]]="form.value.receipt_print_mode === 'BROWSER'"
+                     [class.bg-slate-50]="form.value.receipt_print_mode === 'BROWSER'">
+                <input type="radio" formControlName="receipt_print_mode" value="BROWSER" class="mt-1" />
+                <span>
+                  <span class="block font-semibold text-sm">Diálogo del navegador</span>
+                  <span class="block text-xs text-slate-500 mt-0.5">
+                    Se abre la ventana de impresión de Chrome y el cajero elige la impresora.
+                    Funciona en cualquier PC sin instalar nada.
+                  </span>
+                </span>
+              </label>
+
+              <label class="flex gap-3 cursor-pointer rounded-xl border p-4 transition"
+                     [class.border-slate-200]="form.value.receipt_print_mode !== 'DIRECT'"
+                     [class.border-[var(--dash-primary)]]="form.value.receipt_print_mode === 'DIRECT'"
+                     [class.bg-slate-50]="form.value.receipt_print_mode === 'DIRECT'">
+                <input type="radio" formControlName="receipt_print_mode" value="DIRECT" class="mt-1" />
+                <span>
+                  <span class="block font-semibold text-sm">Directo a la impresora</span>
+                  <span class="block text-xs text-slate-500 mt-0.5">
+                    El ticket sale al instante, sin ventana de por medio. Requiere el programa
+                    <strong>NovaPrint</strong> instalado en cada PC de caja.
+                  </span>
+                </span>
+              </label>
+            </div>
+
+            <div class="rounded-xl bg-amber-50 border border-amber-200 p-3 text-[13px] text-amber-900">
+              <i class="fa-solid fa-circle-info mr-1"></i>
+              Si eliges impresión directa y NovaPrint no responde en alguna caja, esa venta se
+              imprime por el diálogo del navegador. Nadie se queda sin entregar el comprobante.
+            </div>
+
+            @if (form.value.receipt_print_mode === 'DIRECT') {
+              <div class="grid gap-4 md:grid-cols-2">
+                <label class="block"><span class="eg-label">Dirección de NovaPrint</span>
+                  <input class="eg-input font-mono text-[13px]" formControlName="receipt_print_agent_url"
+                         placeholder="http://127.0.0.1:9123" />
+                  <span class="block text-xs text-slate-500 mt-1">
+                    Déjala como está salvo que hayas cambiado el puerto.
+                  </span>
+                </label>
+                <label class="block"><span class="eg-label">Token</span>
+                  <input class="eg-input font-mono text-[13px]" formControlName="receipt_print_agent_token"
+                         placeholder="pégalo desde NovaPrint" />
+                  <span class="block text-xs text-slate-500 mt-1">
+                    El mismo valor debe quedar en el <code>config.json</code> de cada PC de caja.
+                  </span>
+                </label>
+              </div>
+
+              <div class="flex flex-wrap items-center gap-3">
+                <button type="button" class="eg-btn-secondary h-10 px-4"
+                        [disabled]="checkingAgent()" (click)="checkAgent()">
+                  @if (checkingAgent()) { <i class="fa-solid fa-spinner fa-spin"></i> Probando... }
+                  @else { <i class="fa-solid fa-plug"></i> Probar conexión }
+                </button>
+                <span class="text-xs text-slate-500">
+                  Pruébalo desde la computadora de caja, no desde otra.
+                </span>
+              </div>
+
+              @if (agentCheck(); as c) {
+                <div class="rounded-xl p-3 text-[13px] border"
+                     [class.bg-emerald-50]="c.ok" [class.border-emerald-200]="c.ok" [class.text-emerald-900]="c.ok"
+                     [class.bg-rose-50]="!c.ok" [class.border-rose-200]="!c.ok" [class.text-rose-900]="!c.ok">
+                  <i class="fa-solid mr-1" [class.fa-circle-check]="c.ok" [class.fa-circle-xmark]="!c.ok"></i>
+                  {{ c.msg }}
+                </div>
+              }
+            }
+          </section>
+        }
+
         <!-- ═════ RESPALDO DE BASE DE DATOS ═════ -->
         @if (tab() === 'backup') {
           <section class="space-y-5">

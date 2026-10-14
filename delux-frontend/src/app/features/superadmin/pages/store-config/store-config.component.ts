@@ -275,6 +275,26 @@ interface PdfPalette {
           </div>
         </div>
 
+        <!-- Leyenda de cambios en el comprobante -->
+        <div class="card p-6">
+          <div class="flex items-center justify-between gap-4">
+            <div>
+              <h2 class="font-bold tracking-tight">Leyenda de cambios en el comprobante</h2>
+              <p class="text-sm text-slate-500 mt-0.5">
+                Imprime al pie del comprobante de venta
+                <span class="font-semibold">"Para cambios es INDISPENSABLE presentar este documento"</span>.
+                Apágalo si tu local no acepta cambios o prefieres no mostrar ese aviso.
+              </p>
+            </div>
+            <button type="button" (click)="store.receipt_exchange_note = !store.receipt_exchange_note"
+                    class="w-12 h-7 rounded-full transition relative shrink-0"
+                    [ngClass]="store.receipt_exchange_note ? 'bg-emerald-500' : 'bg-slate-300'">
+              <span class="absolute top-1 w-5 h-5 rounded-full bg-white transition-all"
+                    [ngClass]="store.receipt_exchange_note ? 'left-6' : 'left-1'"></span>
+            </button>
+          </div>
+        </div>
+
         <!-- Horarios de atención (abre modal) -->
         <button type="button" (click)="schedulesOpen.set(true)"
            class="card p-5 w-full flex items-center justify-between hover:bg-slate-50 text-left">
@@ -595,7 +615,7 @@ export class StoreConfigComponent implements OnInit {
   savingPay = signal(false);
 
   // Tienda
-  store: StoreOptions = { pickup_enabled: true, delivery_enabled: true, out_of_stock_display: 'SHOW', consumidor_final_enabled: false, label_size: '50x30' };
+  store: StoreOptions = { pickup_enabled: true, delivery_enabled: true, out_of_stock_display: 'SHOW', consumidor_final_enabled: false, label_size: '50x30', receipt_exchange_note: true };
   savingStore = signal(false);
   readonly labelSizes = LABEL_SIZES;
   oosOptions: { id: StoreOptions['out_of_stock_display']; title: string; desc: string; rec?: boolean }[] = [

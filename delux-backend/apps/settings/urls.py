@@ -4,7 +4,8 @@ from rest_framework.routers import DefaultRouter
 from .views import (
     PlatformSettingsView, StoreTaxSettingsView, StorePaymentSettingsView, StoreOptionsView,
     TestEmailView, TestPayPhoneView,
-    PublicUploadConfigView, NewsletterSubscriberViewSet,
+    PublicUploadConfigView, ReceiptPrintConfigView,
+    NewsletterSubscriberViewSet,
 )
 from .contact_admin import ContactMessageViewSet
 from .backup_views import DatabaseBackupView
@@ -19,6 +20,7 @@ urlpatterns = [
     path('tax/',            StoreTaxSettingsView.as_view(),   name='admin-settings-tax'),
     path('payments/',       StorePaymentSettingsView.as_view(), name='admin-settings-payments'),
     path('store/',          StoreOptionsView.as_view(),       name='admin-settings-store'),
+    path('receipt-print/',  ReceiptPrintConfigView.as_view(), name='admin-settings-receipt-print'),
     path('test-email/',     TestEmailView.as_view(),        name='admin-settings-test-email'),
     path('test-payphone/',  TestPayPhoneView.as_view(),     name='admin-settings-test-payphone'),
     path('backup/',         DatabaseBackupView.as_view(),   name='admin-settings-backup'),

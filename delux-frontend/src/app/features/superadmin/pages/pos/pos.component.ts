@@ -25,7 +25,7 @@ import { CategoryService, Category } from '@features/superadmin/services/categor
 import { CustomerService, Customer } from '@features/superadmin/services/customer.service';
 import { StoreSettingsService } from '@features/superadmin/services/store-settings.service';
 import { CashService, CashSession } from '@features/superadmin/services/cash.service';
-import { printVoucherPDF } from '@shared/utils/voucher-pdf.util';
+import { ReceiptPrintService } from '@core/services/receipt-print.service';
 import { parseApiError } from '@shared/utils/api-error.util';
 import { imgOrPlaceholder, onImageError } from '@shared/utils/img-placeholder';
 import { ViewMode, readViewPref, writeViewPref } from '@shared/utils/view-pref.util';
@@ -81,6 +81,7 @@ export class PosComponent implements OnInit, OnDestroy {
   private auth = inject(AuthService);
   branchCtx = inject(BranchContextService);
   private branding = inject(BrandingService);
+  private receiptPrint = inject(ReceiptPrintService);
   private confirm = inject(ConfirmService);
   private router = inject(Router);
 
@@ -556,7 +557,10 @@ export class PosComponent implements OnInit, OnDestroy {
   }
 
   printVoucher() {
-    if (this.completedOrder()) printVoucherPDF(this.completedOrder()!, this.branding.receiptBusiness());
+    const o = this.completedOrder();
+    // El servicio decide: directo a la termica (NovaPrint) o dialogo del
+    // navegador. Si el agente no responde, cae solo al dialogo.
+    if (o) this.receiptPrint.print(o, this.branding.receiptBusiness());
   }
 
   /** El comprobante siempre se puede imprimir desde el popup: nunca se bloquea

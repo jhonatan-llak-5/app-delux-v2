@@ -18,7 +18,7 @@ import { Order, OrderService, OrderSummary } from '@features/superadmin/services
 import { ConfirmService } from '@shared/components/confirm/confirm.service';
 import { NotifyService } from '@shared/services/notify.service';
 import { AdminService, AdminBranch } from '@features/superadmin/services/admin.service';
-import { printVoucherPDF } from '@shared/utils/voucher-pdf.util';
+import { ReceiptPrintService } from '@core/services/receipt-print.service';
 import { BrandingService } from '@core/services/branding.service';
 import { DlxPaginationComponent } from '@shared/ui/pagination.component';
 import { DlxCancelSaleModalComponent } from '@shared/ui/cancel-sale-modal.component';
@@ -249,6 +249,7 @@ export class SalesListComponent implements OnInit {
   private confirm = inject(ConfirmService);
   private notify = inject(NotifyService);
   private branding = inject(BrandingService);
+  private receiptPrint = inject(ReceiptPrintService);
   /** El filtro de facturación solo aparece si la tienda emite comprobantes. */
   protected einvoiceEnabled = computed(() => this.branding.einvoiceEnabled());
   private adminSvc = inject(AdminService);
@@ -444,7 +445,7 @@ export class SalesListComponent implements OnInit {
           this.notify.warning('La factura aún no está autorizada por el SRI. Intenta en unos momentos.');
           return;
         }
-        printVoucherPDF(full, this.branding.receiptBusiness());
+        this.receiptPrint.print(full, this.branding.receiptBusiness());
       },
       error: () => this.notify.error('No se pudo generar el comprobante.'),
     });

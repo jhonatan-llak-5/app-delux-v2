@@ -49,6 +49,9 @@ class PlatformSettingsSerializer(serializers.ModelSerializer):
             'einvoice_company_uuid', 'einvoice_branch_uuid', 'einvoice_emission_point_uuid',
             'einvoice_environment', 'einvoice_webhook_secret',
             'einvoice_consumidor_final_max',
+            # Impresión del comprobante
+            'receipt_print_mode', 'receipt_print_agent_url',
+            'receipt_print_agent_token',
             # Audit
             'updated_at',
         )

@@ -12,6 +12,7 @@ interface BrandConfig {
   business_address?: string;
   business_phone?: string;
   einvoice_environment?: string;   // 'TEST' | 'PROD' (ambiente SRI)
+  receipt_exchange_note?: boolean; // leyenda de cambios al pie del comprobante
   einvoice_enabled?: boolean;
   site_logo_url?: string | null;
   site_favicon_url?: string | null;
@@ -158,6 +159,9 @@ export class BrandingService {
   readonly businessPhone = computed(() => this._cfg()?.business_phone || '');
   /** Ambiente de facturacion electronica configurado ('TEST' | 'PROD'). */
   readonly einvoiceEnvironment = computed(() => (this._cfg()?.einvoice_environment || '').toUpperCase());
+  /** Leyenda de cambios al pie del comprobante. Si el backend no la manda
+   *  (instalacion vieja), se asume encendida: es como venia imprimiendose. */
+  readonly receiptExchangeNote = computed(() => this._cfg()?.receipt_exchange_note !== false);
 
   /** Si la tienda factura electronicamente. Apaga lo relacionado con
    *  comprobantes en el panel cuando el cliente no usa facturacion. */
@@ -173,6 +177,7 @@ export class BrandingService {
       phone: this.businessPhone(),
       taxRate: this.taxRate(),
       environment: this.einvoiceEnvironment(),
+      exchangeNote: this.receiptExchangeNote(),
     };
   }
 
